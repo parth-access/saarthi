@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Simple rules for Saarthi
+    
+    match /bookings/{bookingId} {
+      allow create: if request.resource.data.name != null && 
+                      request.resource.data.email != null && 
+                      request.resource.data.message != null;
+      allow read, update, delete: if false;
+    }
+    
+    match /contacts/{contactId} {
+      allow create: if request.resource.data.name != null && 
+                      request.resource.data.email != null && 
+                      request.resource.data.message != null;
+      allow read, update, delete: if false;
+    }
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

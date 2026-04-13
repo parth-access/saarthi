@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "Booking": {
+      "title": "Booking",
+      "description": "A session booking request from a user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "message": { "type": "string", "description": "Details about the booking request" },
+        "preferredTime": { "type": "string", "description": "Optional preferred time for the session" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the booking was created" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "A contact message from a user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "format": "email", "description": "User's email address" },
+        "message": { "type": "string", "description": "The contact message" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the message was sent" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of session booking requests."
+    },
+    "/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Collection of contact form submissions."
+    }
+  }
+}
