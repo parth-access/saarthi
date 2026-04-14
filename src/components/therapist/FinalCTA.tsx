@@ -14,9 +14,9 @@ const FinalCTA = () => {
             transition={{ duration: 0.8 }}
             className="max-w-3xl"
           >
-            <h2 className="mb-6 text-white font-serif italic">Start your healing journey today.</h2>
+            <h2 className="mb-6 text-white font-serif italic">Schedule a consultation today.</h2>
             <p className="mb-10 text-lg text-primary-foreground/80 md:text-xl">
-              Ready to find clarity and move forward? Book your first session with me today and let's work together towards your mental wellness.
+              Ready to address your concerns? Book a session to discuss your requirements and begin a structured approach to your mental well-being.
             </p>
             <Button size="lg" variant="accent" className="text-primary font-bold">
               Book a Session
