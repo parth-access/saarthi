@@ -35,7 +35,7 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
               </CardHeader>
               <CardContent>
                 <p className="text-xl font-medium text-primary">{mode}</p>
-                <p className="mt-2 text-muted-foreground">Professional online sessions from the comfort of your space.</p>
+                <p className="mt-2 text-muted-foreground">Professional online sessions for accessibility and convenience.</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -61,7 +61,7 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
                     </span>
                   ))}
                 </div>
-                <p className="mt-4 text-muted-foreground">I work with individuals, couples, and families across all ages.</p>
+                <p className="mt-4 text-muted-foreground">I work with individuals, couples, families, and teenagers.</p>
               </CardContent>
             </Card>
           </motion.div>

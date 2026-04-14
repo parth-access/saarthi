@@ -29,13 +29,6 @@ const ProfileHero = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/5 text-primary text-sm font-medium mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              Available for Sessions
-            </div>
             <h1 className="text-primary font-serif mb-4">{name}</h1>
             <p className="text-xl md:text-2xl text-accent font-serif italic mb-6">{title}</p>
             
