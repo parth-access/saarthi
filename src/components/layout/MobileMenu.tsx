@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "motion/react"
 import { X } from "lucide-react"
 import { Button } from "../ui/Button"
@@ -7,10 +8,11 @@ import { Link } from "react-router-dom"
 interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
+  onBookClick?: () => void
   links: { name: string; href: string }[]
 }
 
-const MobileMenu = ({ isOpen, onClose, links }: MobileMenuProps) => {
+const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) => {
   // Disable scroll when menu is open
   React.useEffect(() => {
     if (isOpen) {
@@ -23,48 +25,49 @@ const MobileMenu = ({ isOpen, onClose, links }: MobileMenuProps) => {
     }
   }, [isOpen])
 
-  return (
+  // Use Portal to render at the root of the document body
+  // This avoids stacking context issues from parent components
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] flex flex-col bg-[#f8f6f2] p-8 md:hidden"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className="fixed inset-0 z-[9999] flex flex-col bg-background p-6 md:hidden"
         >
-          {/* Top Bar */}
-          <div className="flex items-center justify-between mb-16">
-            <Link to="/" className="flex items-center gap-3 text-3xl font-bold tracking-tight text-primary font-serif" onClick={onClose}>
+          {/* Top Bar: Logo (Left) + Close (Right) */}
+          <div className="flex items-center justify-between mb-12">
+            <Link to="/" className="flex items-center" onClick={onClose}>
               <img 
                 src="/saarthi-logo-Photoroom.png" 
                 alt="Saarthi Logo" 
                 className="h-10 w-auto object-contain" 
                 referrerPolicy="no-referrer"
               />
-              S
             </Link>
             <button
               onClick={onClose}
               className="p-2 text-primary hover:bg-primary/5 rounded-full transition-colors"
               aria-label="Close menu"
             >
-              <X className="h-8 w-8" />
+              <X className="h-8 w-8 stroke-[1.5]" />
             </button>
           </div>
 
-          {/* Menu Items */}
-          <nav className="flex flex-col space-y-10">
+          {/* Middle: Navigation Links */}
+          <nav className="flex flex-col space-y-6">
             {links.map((link, index) => (
               <motion.div
                 key={link.name}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 + 0.2 }}
               >
                 <Link
                   to={link.href}
-                  className="text-3xl font-serif font-medium text-primary hover:text-accent transition-colors"
+                  className="text-4xl font-serif font-medium text-primary hover:text-accent transition-colors"
                   onClick={onClose}
                 >
                   {link.name}
@@ -73,24 +76,28 @@ const MobileMenu = ({ isOpen, onClose, links }: MobileMenuProps) => {
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="mt-auto pb-10">
+          {/* Bottom: Primary CTA */}
+          <div className="mt-auto pb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.6 }}
             >
               <Button 
-                className="w-full h-16 text-lg font-bold rounded-2xl bg-primary text-white hover:bg-primary/90" 
-                onClick={onClose}
+                className="w-full h-14 text-base font-bold tracking-wider uppercase rounded-full bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/10" 
+                onClick={() => {
+                  onClose();
+                  if (onBookClick) onBookClick();
+                }}
               >
-                Book Session
+                Book a Session
               </Button>
             </motion.div>
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 
