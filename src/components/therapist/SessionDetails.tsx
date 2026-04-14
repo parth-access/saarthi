@@ -35,7 +35,7 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
               </CardHeader>
               <CardContent>
                 <p className="text-xl font-medium text-primary">{mode}</p>
-                <p className="mt-2 text-muted-foreground">Professional online sessions for accessibility and convenience.</p>
+                <p className="mt-2 text-muted-foreground">Professional sessions conducted with strict adherence to privacy and clinical standards.</p>
               </CardContent>
             </Card>
           </motion.div>

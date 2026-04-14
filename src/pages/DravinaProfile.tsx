@@ -32,8 +32,7 @@ const DravinaProfile = () => {
       "Workplace Issues",
       "Family Concerns",
       "Teen & Child Support",
-      "Employee Mental Health (EAP)",
-      "Online Therapy"
+      "Employee Mental Health (EAP)"
     ],
     qualifications: [
       {
@@ -100,7 +99,7 @@ const DravinaProfile = () => {
       
       <TherapistProcess />
       
-      <SessionDetails mode="Online" clients={["Individual", "Couple", "Family", "Teen"]} />
+      <SessionDetails mode="Online & Offline Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
       
       <FinalCTA />
     </main>
