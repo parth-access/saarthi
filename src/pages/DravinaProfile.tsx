@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import ProfileHero from "../components/therapist/ProfileHero"
 import AboutSection from "../components/therapist/AboutSection"
@@ -45,6 +46,11 @@ const DravinaProfile = () => {
 
   return (
     <main className="bg-background">
+      <Helmet>
+        <title>Dravina Gupta | Psychologist & Therapist in Delhi | Saarthi</title>
+        <meta name="description" content="Meet Dravina Gupta, a certified psychologist at Saarthi. Specializing in anxiety, stress, and depression therapy in Delhi. Book an online session today." />
+        <link rel="canonical" href="https://saarthilife.com/therapists/dravina" />
+      </Helmet>
       <ProfileHero 
         name={dravinaData.name}
         title={dravinaData.title}

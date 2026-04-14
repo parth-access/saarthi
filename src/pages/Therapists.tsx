@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { MapPin, ArrowRight } from "lucide-react"
 import { Button } from "../components/ui/Button"
@@ -27,6 +28,11 @@ const Therapists = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen">
+      <Helmet>
+        <title>Our Therapists | Find Your Saarthi for Mental Health</title>
+        <meta name="description" content="Connect with certified psychologists and therapists at Saarthi. Browse our team of mental health professionals dedicated to supporting your emotional journey." />
+        <link rel="canonical" href="https://saarthilife.com/therapists" />
+      </Helmet>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
           <motion.h1
