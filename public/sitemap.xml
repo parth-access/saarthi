@@ -30,4 +30,10 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+  <loc>https://saarthilife.com/therapists/dravina</loc>
+  <lastmod>2026-04-15</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.9</priority>
+</url>
 </urlset>
