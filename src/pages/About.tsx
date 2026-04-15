@@ -197,8 +197,8 @@ const About = () => {
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-primary">The Founder</h3>
-                <p className="text-accent font-medium italic">Psychologist</p>
+                <h3 className="text-2xl font-bold text-primary">Founder</h3>
+                <p className="text-accent font-medium italic">Dravina Gupta</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.
@@ -219,7 +219,7 @@ const About = () => {
                 <p className="text-accent font-medium italic">Co-Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                Bringing a modern vision and business strategy, Krishna is passionate about building a safe and meaningful brand experience.
+                Bringing a modern vision, Krishna is passionate about building a safe and meaningful brand experience.
               </p>
             </motion.div>
           </div>

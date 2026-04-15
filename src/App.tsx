@@ -7,6 +7,7 @@ import Home from "./pages/Home"
 import Therapists from "./pages/Therapists"
 import Vision from "./pages/Vision"
 import About from "./pages/About"
+import Contact from "./pages/Contact"
 import DravinaProfile from "./pages/DravinaProfile"
 import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
@@ -26,6 +27,7 @@ function App() {
             <Route path="/therapists" element={<Therapists />} />
             <Route path="/vision" element={<Vision />} />
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/therapists/dravina" element={<DravinaProfile />} />
           </Routes>
           <Footer />
