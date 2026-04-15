@@ -1,21 +1,5 @@
 {
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "saarthilife.com"
-        }
-      ],
-      "destination": "https://saarthilife.com/:path*",
-      "permanent": true
-    }
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
