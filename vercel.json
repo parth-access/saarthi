@@ -1,8 +1,14 @@
 {
   "redirects": [
     {
-      "source": "http://saarthilife.com/:path*",
-      "destination": "https://saarthilife.com/:path*",
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "saarthilife.com"
+        }
+      ],
+      "destination": "https://www.saarthilife.com/:path*",
       "permanent": true
     }
   ]
