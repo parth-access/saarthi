@@ -198,7 +198,7 @@ const About = () => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-primary">Dravina Gupta</h3>
-                <p className="text-accent font-medium italic">Co-Founder</p>
+                <p className="text-accent font-medium italic">Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.
