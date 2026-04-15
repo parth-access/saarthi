@@ -16,7 +16,7 @@ const FeaturedTherapist = () => {
           >
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="/Gemini_Generated_Image_1q2v1m1q2v1m1q2v.png"
+                src="https://picsum.photos/seed/join/400/400"
                 alt="Dravina Gupta - Certified Psychologist at Saarthi"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
