@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "redirects": [
     {
       "source": "/:path*",
@@ -8,7 +14,7 @@
           "value": "saarthilife.com"
         }
       ],
-      "destination": "https://www.saarthilife.com/:path*",
+      "destination": "https://saarthilife.com/:path*",
       "permanent": true
     }
   ]
