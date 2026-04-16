@@ -5,18 +5,22 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { name, email, message } = req.body;
+  const { name, email, message, type, preferred_time } = req.body;
   const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const isBooking = type === 'booking';
+  const subject = isBooking ? 'New Booking Request' : 'New Contact Form Submission';
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Saarthi Contact <contact@saarthilife.com>',
+      from: 'Saarthi Contact <onboarding@resend.dev>',
       to: 'healwithsaarthi@gmail.com',
-      subject: 'New Contact Form Submission',
+      subject: subject,
       html: `
-        <h2>New Contact Form Submission</h2>
+        <h2>${subject}</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
+        ${isBooking ? `<p><strong>Preferred Time:</strong> ${preferred_time || 'Not specified'}</p>` : ''}
         <p><strong>Message:</strong></p>
         <p>${message}</p>
       `,
