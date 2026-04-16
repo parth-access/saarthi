@@ -67,8 +67,8 @@ const DravinaProfile = () => {
   return (
     <main className="bg-background">
       <Helmet>
-        <title>Dravina Gupta | Psychologist & Therapist in Delhi | Saarthi</title>
-        <meta name="description" content="Meet Dravina Gupta, a certified psychologist at Saarthi. Specializing in anxiety, stress, and depression therapy in Delhi. Book an online session today." />
+        <title>Dravina Gupta | Psychologist in Delhi | Saarthi</title>
+        <meta name="description" content="Consult Dravina Gupta, a psychologist in Delhi specializing in anxiety, stress, depression, and workplace issues. Book online therapy sessions with Saarthi." />
         <link rel="canonical" href="https://saarthilife.com/therapists/dravina" />
         <script type="application/ld+json">
           {JSON.stringify(jsonLd)}

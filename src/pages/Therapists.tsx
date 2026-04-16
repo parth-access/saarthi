@@ -12,7 +12,7 @@ const Therapists = () => {
       name: "Dravina Gupta",
       role: "Therapist | Psychologist",
       location: "Delhi, India",
-      image: "https://picsum.photos/seed/join/400/400",
+      image: "/Gemini_Generated_Image_1q2v1m1q2v1m1q2v.png",
       route: "/therapists/dravina",
       isPlaceholder: false,
     },
@@ -30,7 +30,7 @@ const Therapists = () => {
     <div className="pt-32 pb-24 bg-background min-h-screen">
       <Helmet>
         <title>Our Therapists | Find Your Saarthi for Mental Health</title>
-        <meta name="description" content="Connect with certified psychologists and therapists at Saarthi. Browse our team of mental health professionals dedicated to supporting your emotional journey." />
+        <meta name="description" content="Browse qualified therapists at Saarthi and find the right support for anxiety, stress, relationships, and emotional well-being." />
         <link rel="canonical" href="https://saarthilife.com/therapists" />
       </Helmet>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

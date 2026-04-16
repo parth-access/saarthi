@@ -33,7 +33,7 @@ const About = () => {
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
       <Helmet>
         <title>About Saarthi | Our Mission, Vision & Founders</title>
-        <meta name="description" content="Learn about Saarthi, a safe space for mental health support. Founded by experts to provide empathetic, non-judgmental online therapy and counseling." />
+        <meta name="description" content="Learn about Saarthi’s mission to make mental health support accessible through professional therapy and psychological guidance." />
         <link rel="canonical" href="https://saarthilife.com/about" />
       </Helmet>
       {/* Background Decorative Elements */}
@@ -197,8 +197,8 @@ const About = () => {
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-primary">Dravina Gupta</h3>
-                <p className="text-accent font-medium italic">Founder</p>
+                <h3 className="text-2xl font-bold text-primary">Founder</h3>
+                <p className="text-accent font-medium italic">Dravina Gupta</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.
@@ -219,7 +219,7 @@ const About = () => {
                 <p className="text-accent font-medium italic">Co-Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                Bringing a modern vision, Krishna is passionate about building a safe and meaningful brand experience.
+                Bringing a modern vision and business strategy, Krishna is passionate about building a safe and meaningful brand experience.
               </p>
             </motion.div>
           </div>

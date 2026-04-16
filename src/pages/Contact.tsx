@@ -10,7 +10,7 @@ const Contact = () => {
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
       <Helmet>
         <title>Contact Saarthi | Therapy & Mental Health Support</title>
-        <meta name="description" content="Reach out to Saarthi for therapy sessions, queries, or guidance. We're here to support your mental wellness journey." />
+        <meta name="description" content="Get in touch with Saarthi for therapy sessions, questions, or guidance. Reach out for professional mental health support." />
         <link rel="canonical" href="https://saarthilife.com/contact" />
       </Helmet>
 
