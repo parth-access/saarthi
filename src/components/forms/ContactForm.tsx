@@ -1,7 +1,6 @@
 import * as React from "react"
 import { db } from "../../lib/firebase"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import emailjs from "@emailjs/browser"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
@@ -27,23 +26,19 @@ export function ContactForm() {
         createdAt: serverTimestamp()
       })
 
-      // 2. Send Email via EmailJS (if configured)
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      // 2. Send Email via Resend backend route
+      const response = await fetch('/api/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      if (serviceId && templateId && publicKey) {
-        await emailjs.send(
-          serviceId,
-          templateId,
-          {
-            from_name: formData.name,
-            from_email: formData.email,
-            message: formData.message,
-            type: 'Contact Message'
-          },
-          publicKey
-        );
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send email');
       }
 
       setStatus('success')
