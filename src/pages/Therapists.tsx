@@ -12,7 +12,7 @@ const Therapists = () => {
       name: "Dravina Gupta",
       role: "Therapist | Psychologist",
       location: "Delhi, India",
-      image: "/Gemini_Generated_Image_1q2v1m1q2v1m1q2v.png",
+      image: "https://picsum.photos/seed/join/400/400",
       route: "/therapists/dravina",
       isPlaceholder: false,
     },
