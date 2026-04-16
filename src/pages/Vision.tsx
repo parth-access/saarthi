@@ -33,7 +33,7 @@ const Vision = () => {
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
       <Helmet>
         <title>Our Vision | Normalizing Mental Well-being | Saarthi</title>
-        <meta name="description" content="Explore the vision of Saarthi: making emotional well-being simple, natural, and accessible. We envision a world where mental health support is a normal part of life." />
+        <meta name="description" content="Explore Saarthi’s vision to normalize mental health conversations and provide accessible, judgment-free psychological support." />
         <link rel="canonical" href="https://saarthilife.com/vision" />
       </Helmet>
       {/* Background Decorative Elements */}
