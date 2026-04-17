@@ -17,8 +17,19 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     name: "",
     email: "",
     message: "",
-    preferredTime: ""
+    date: "",
+    time: ""
   })
+
+  // Get today's date in YYYY-MM-DD format for min date restriction
+  const today = new Date().toISOString().split('T')[0];
+
+  const timeSlots = [
+    "10:00 AM - 12:00 PM",
+    "12:00 PM - 2:00 PM",
+    "4:00 PM - 6:00 PM",
+    "6:00 PM - 8:00 PM"
+  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,18 +43,12 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
       })
 
       // 2. Send Email via Resend backend route
-      const response = await fetch('/api/send', {
+      const response = await fetch('/api/book-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          message: formData.message,
-          preferred_time: formData.preferredTime,
-          type: 'booking'
-        }),
+        body: JSON.stringify(formData),
       });
 
       const result = await response.json();
@@ -53,9 +58,9 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
       }
 
       setStatus('success')
-      setFormData({ name: "", email: "", message: "", preferredTime: "" })
+      setFormData({ name: "", email: "", message: "", date: "", time: "" })
       if (onSuccess) {
-        setTimeout(onSuccess, 2000)
+        setTimeout(onSuccess, 3000)
       }
     } catch (error) {
       console.error("Booking error:", error)
@@ -63,7 +68,7 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
@@ -79,8 +84,8 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
             className="flex flex-col items-center text-center py-8"
           >
             <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
-            <h3 className="text-xl font-heading font-bold text-text mb-2">Booking Received</h3>
-            <p className="text-muted-foreground">We'll get back to you shortly to confirm your session.</p>
+            <h3 className="text-xl font-heading font-bold text-text mb-2">Request Sent</h3>
+            <p className="text-muted-foreground">Your request has been sent. We'll contact you shortly.</p>
           </motion.div>
         ) : (
           <motion.form
@@ -116,16 +121,36 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="preferredTime" className="text-sm font-medium text-text">Preferred Time (Optional)</label>
-              <Input
-                id="preferredTime"
-                name="preferredTime"
-                type="text"
-                value={formData.preferredTime}
-                onChange={handleChange}
-                placeholder="e.g. Monday Afternoon"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="date" className="text-sm font-medium text-text">Preferred Date *</label>
+                <Input
+                  required
+                  id="date"
+                  name="date"
+                  type="date"
+                  min={today}
+                  value={formData.date}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="time" className="text-sm font-medium text-text">Preferred Time *</label>
+                <select
+                  required
+                  id="time"
+                  name="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200"
+                >
+                  <option value="" disabled>Select a slot</option>
+                  {timeSlots.map(slot => (
+                    <option key={slot} value={slot}>{slot}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -134,10 +159,10 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
                 required
                 id="message"
                 name="message"
-                rows={4}
+                rows={3}
                 value={formData.message}
                 onChange={handleChange}
-                placeholder="Tell us a bit about what you're looking for..."
+                placeholder="Briefly describe your concerns..."
               />
             </div>
 
