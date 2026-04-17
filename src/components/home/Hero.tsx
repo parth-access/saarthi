@@ -48,9 +48,10 @@ const Hero = ({ onBookClick }: HeroProps) => {
           >
             <img
               src="https://picsum.photos/seed/wellness/1200/600"
-              alt="Mental Wellness"
+              alt="Mental Wellness and Emotional Clarity"
               className="h-full w-full object-cover opacity-90"
               referrerPolicy="no-referrer"
+              loading="lazy"
             />
           </motion.div>
         </div>

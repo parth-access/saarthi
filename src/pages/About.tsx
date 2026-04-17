@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { Button } from "../components/ui/Button"
 import { Link } from "react-router-dom"
@@ -30,6 +31,11 @@ const About = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
+      <Helmet>
+        <title>About Saarthi | Our Mission, Vision & Founders</title>
+        <meta name="description" content="Learn about Saarthi’s mission to make mental health support accessible through professional therapy and psychological guidance." />
+        <link rel="canonical" href="https://saarthilife.com/about" />
+      </Helmet>
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[10%] -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-50" />
@@ -191,8 +197,8 @@ const About = () => {
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-primary">The Founder</h3>
-                <p className="text-accent font-medium italic">Psychologist</p>
+                <h3 className="text-2xl font-bold text-primary">Founder</h3>
+                <p className="text-accent font-medium italic">Dravina Gupta</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.

@@ -14,7 +14,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
     { name: "Therapists", href: "/therapists" },
     { name: "About", href: "/about" },
     { name: "Our Vision", href: "/vision" },
-    { name: "Contact", href: "/#contact" },
+    { name: "Contact", href: "/contact" },
   ]
 
   return (

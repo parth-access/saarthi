@@ -16,10 +16,11 @@ const FeaturedTherapist = () => {
           >
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="/Gemini_Generated_Image_1q2v1m1q2v1m1q2v.png"
-                alt="Dravina Gupta - Psychologist"
+                src="https://picsum.photos/seed/join/400/400"
+                alt="Dravina Gupta - Certified Psychologist at Saarthi"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-primary/10" />
             </div>
