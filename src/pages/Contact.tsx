@@ -30,81 +30,115 @@ const Contact = () => {
             transition={{ duration: 0.8 }}
             className="space-y-6"
           >
-            <h1 className="text-5xl md:text-7xl text-primary leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-serif text-primary leading-tight tracking-tight">
               Contact Saarthi
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-serif italic leading-relaxed">
-              If you have questions, need guidance, or want to understand how therapy works, feel free to reach out.
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-sans leading-relaxed">
+              Not sure where to start? That’s okay. You can simply share what you’re feeling, and we’ll guide you.
             </p>
           </motion.div>
         </section>
 
-        <div className="grid lg:grid-cols-3 gap-16">
-          {/* 2. Contact Information Section */}
-          <div className="lg:col-span-1 space-y-12">
+        <div className="grid lg:grid-cols-12 gap-16 items-start">
+          {/* 2. Contact Information Section (Left Side - Info Panel) */}
+          <div className="lg:col-span-5 space-y-12 h-full flex flex-col justify-center">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="space-y-8"
+              className="space-y-10"
             >
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                  <Mail className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-primary mb-1">Email</h3>
-                  <a href="mailto:healwithsaarthi@gmail.com" className="text-muted-foreground hover:text-accent transition-colors">
-                    healwithsaarthi@gmail.com
-                  </a>
-                </div>
+              <div className="space-y-2">
+                <h2 className="text-3xl md:text-4xl font-serif text-primary leading-tight">
+                  We're here to listen.
+                </h2>
+                <p className="text-muted-foreground text-lg">
+                  Reach out for support, questions, or to understand how therapy can help you.
+                </p>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                  <MapPin className="h-6 w-6" />
+              <div className="space-y-8">
+                <div className="flex items-start gap-5">
+                  <div className="h-14 w-14 rounded-[1.5rem] bg-white shadow-sm flex items-center justify-center text-primary shrink-0 border border-primary/5">
+                    <Mail className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-primary font-serif">Email Us</h3>
+                    <a href="mailto:healwithsaarthi@gmail.com" className="text-text hover:text-accent transition-colors block text-lg">
+                      healwithsaarthi@gmail.com
+                    </a>
+                    <p className="text-sm text-muted-foreground italic">We usually respond within 24 hours</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-primary mb-1">Location</h3>
-                  <p className="text-muted-foreground">Delhi, India</p>
-                </div>
-              </div>
 
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shrink-0">
-                  <Calendar className="h-6 w-6" />
+                <div className="flex items-start gap-5">
+                  <div className="h-14 w-14 rounded-[1.5rem] bg-white shadow-sm flex items-center justify-center text-primary shrink-0 border border-primary/5">
+                    <MapPin className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-primary font-serif">Our Location</h3>
+                    <p className="text-text text-lg">Delhi, India</p>
+                    <p className="text-sm text-muted-foreground italic">Based in Delhi, available online across India</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-primary mb-1">Sessions</h3>
-                  <p className="text-muted-foreground">Online & Offline (by appointment)</p>
+
+                <div className="flex items-start gap-5">
+                  <div className="h-14 w-14 rounded-[1.5rem] bg-white shadow-sm flex items-center justify-center text-primary shrink-0 border border-primary/5">
+                    <Calendar className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-bold text-primary font-serif">Support Sessions</h3>
+                    <p className="text-text text-lg">Online & Offline</p>
+                    <p className="text-sm text-muted-foreground italic">Confidential, safe, and personalized support</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
 
-          {/* 3. Contact Form Section */}
-          <div className="lg:col-span-2">
+          {/* 3. Contact Form Section (Right Side) */}
+          <div className="lg:col-span-7">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-primary/5 shadow-sm"
+              className="space-y-6"
             >
-              <ContactForm />
-              
-              {/* 4. CTA (optional but minimal) */}
-              <div className="mt-10 pt-8 border-t border-primary/5 text-center">
-                <p className="text-muted-foreground flex items-center justify-center gap-2">
-                  Prefer booking directly? 
-                  <Link to="/therapists" className="text-primary font-medium hover:text-accent transition-colors inline-flex items-center gap-1">
-                    Book a session instead
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+              {/* Human Touch Note */}
+              <div className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 mb-2">
+                <p className="text-primary/80 font-medium italic text-center">
+                  “You’ll be guided by a certified psychologist with a compassionate and non-judgmental approach.”
                 </p>
+              </div>
+
+              <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-primary/5 shadow-soft overflow-hidden">
+                <ContactForm />
               </div>
             </motion.div>
           </div>
         </div>
+
+        {/* 4. Secondary CTA (Bottom) */}
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mt-32 pt-16 border-t border-primary/10 text-center"
+        >
+          <div className="max-w-xl mx-auto space-y-8">
+            <h3 className="text-2xl font-serif text-primary">Prefer to start directly?</h3>
+            <p className="text-muted-foreground font-sans">
+              If you feel ready, you can book a consultation session directly with Dravina to begin your journey.
+            </p>
+            <Link 
+              to="/therapists" 
+              className="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full font-medium"
+            >
+              Book a Session
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+          </div>
+        </motion.section>
       </div>
     </div>
   )
