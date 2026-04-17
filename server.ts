@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import sendHandler from "./api/send";
+import bookSessionHandler from "./api/book-session";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,8 +14,9 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API Route
+  // API Routes
   app.post("/api/send", sendHandler);
+  app.post("/api/book-session", bookSessionHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
