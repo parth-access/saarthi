@@ -35,6 +35,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
                 src="/saarthi-logo-Photoroom.png" // <-- use your simplified icon version
                 alt="Saarthi"
                 className="h-10 md:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                referrerPolicy="no-referrer"
               />
 
               {/* ✅ Clean text */}

@@ -1,6 +1,4 @@
 import * as React from "react"
-import { db } from "../../lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
@@ -20,13 +18,7 @@ export function ContactForm() {
     setStatus('loading')
 
     try {
-      // 1. Save to Firestore
-      await addDoc(collection(db, 'contacts'), {
-        ...formData,
-        createdAt: serverTimestamp()
-      })
-
-      // 2. Send Email via Resend backend route
+      // Send data to backend API (Firestore save and Email sending happen there)
       const response = await fetch('/api/send', {
         method: 'POST',
         headers: {
@@ -81,71 +73,85 @@ export function ContactForm() {
           <motion.form
             key="form"
             onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="space-y-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            <div className="space-y-2">
-              <label htmlFor="contact-name" className="text-sm font-medium text-text">Name</label>
-              <Input
-                required
-                id="contact-name"
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Your name"
-              />
-            </div>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="contact-name" className="text-sm font-medium text-text">Name</label>
+                <Input
+                  required
+                  id="contact-name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Your full name"
+                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label htmlFor="contact-email" className="text-sm font-medium text-text">Email</label>
-              <Input
-                required
-                id="contact-email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="your@email.com"
-              />
-            </div>
+              <div className="space-y-2">
+                <label htmlFor="contact-email" className="text-sm font-medium text-text">Email Address</label>
+                <Input
+                  required
+                  id="contact-email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@email.com"
+                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
+                />
+              </div>
 
-            <div className="md:col-span-2 space-y-2">
-              <label htmlFor="contact-message" className="text-sm font-medium text-text">How can we help?</label>
-              <Textarea
-                required
-                id="contact-message"
-                name="message"
-                rows={5}
-                value={formData.message}
-                onChange={handleChange}
-                placeholder="Your message..."
-              />
+              <div className="space-y-2">
+                <label htmlFor="contact-message" className="text-sm font-medium text-text">What’s on your mind?</label>
+                <Textarea
+                  required
+                  id="contact-message"
+                  name="message"
+                  rows={6}
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="Feel free to share as much or as little as you want..."
+                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 p-4"
+                />
+              </div>
             </div>
 
             {status === 'error' && (
-              <div className="md:col-span-2 flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl">
+              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl">
                 <AlertCircle className="h-5 w-5" />
                 <p>Something went wrong. Please try again.</p>
               </div>
             )}
 
-            <div className="md:col-span-2 flex justify-center mt-4">
+            <div className="space-y-6">
               <Button
                 type="submit"
                 disabled={status === 'loading'}
-                className="px-12 py-6 text-lg rounded-full"
+                className="w-full h-16 text-lg rounded-2xl hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-100"
               >
                 {status === 'loading' ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Sending...
+                    Processing...
                   </>
                 ) : (
-                  "Send Message"
+                  "Send Your Message"
                 )}
               </Button>
+
+              <div className="space-y-2 text-center">
+                <p className="text-sm text-muted-foreground">
+                  “Your information is kept private and confidential.”
+                </p>
+                <p className="text-xs text-muted-foreground opacity-60">
+                  No pressure. Just share what you feel comfortable with.
+                </p>
+              </div>
             </div>
           </motion.form>
         )}

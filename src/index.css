@@ -4,7 +4,7 @@
 @theme {
   --color-primary: #1F5E3B;
   --color-primary-foreground: #FFFFFF;
-  --color-accent: #D4AF37;
+  --color-accent: #E6A520;
   --color-accent-foreground: #FFFFFF;
   --color-background: #FFFBE7;
   --color-text: #1A1A1A;
@@ -13,6 +13,8 @@
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
+
+  --shadow-soft: 0 10px 40px -10px rgba(31, 94, 59, 0.08);
 }
 
 @layer base {
