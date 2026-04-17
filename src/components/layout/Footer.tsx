@@ -1,95 +1,71 @@
-import * as React from "react"
-import { Button } from "../ui/Button"
-import MobileMenu from "./MobileMenu"
 import { Link } from "react-router-dom"
+import { Mail, MapPin, Phone, Instagram } from "lucide-react"
 
-interface NavbarProps {
-  onBookClick?: () => void;
-}
-
-const Navbar = ({ onBookClick }: NavbarProps) => {
-  const [isOpen, setIsOpen] = React.useState(false)
-
-  const navLinks = [
-    { name: "Therapists", href: "/therapists" },
-    { name: "About", href: "/about" },
-    { name: "Our Vision", href: "/vision" },
-    { name: "Contact", href: "/contact" },
-  ]
-
+export function Footer() {
   return (
-    <nav className="fixed top-0 z-50 w-full border-b border-primary/5 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        
-        {/* ✅ Reduced height for better balance */}
-        <div className="flex h-16 items-center justify-between">
-          
-          {/* Left: Logo */}
-          <div className="flex items-center">
-            <Link
-              to="/"
-              className="group flex items-center gap-2 text-primary font-serif transition-transform hover:scale-[1.02]"
-            >
-              {/* ✅ Use icon-style logo (IMPORTANT) */}
-              <img
-                src="/saarthi-logo-Photoroom.png" // <-- use your simplified icon version
-                alt="Saarthi"
-                className="h-10 md:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-                referrerPolicy="no-referrer"
-              />
-
-              {/* ✅ Clean text */}
-              <span className="hidden md:inline text-2xl font-semibold tracking-tight">
-                Saarthi
-              </span>
+    <footer className="bg-white border-t border-muted pt-16 pb-8">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div className="md:col-span-1">
+            <Link to="/" className="flex items-center gap-3 text-primary mb-4">
+              <img src="/saarthi-logo-Photoroom.png" alt="Saarthi Logo" className="h-10 w-auto object-contain" referrerPolicy="no-referrer" />
+              <span className="font-heading text-2xl font-bold tracking-tight text-text">Saarthi</span>
             </Link>
-          </div>
-
-          {/* Center: Desktop Links */}
-          <div className="hidden md:flex flex-1 justify-center">
-            <div className="flex items-center space-x-10">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: CTA / Mobile */}
-          <div className="flex items-center">
-            {/* Desktop CTA */}
-            <div className="hidden md:block">
-              <Button size="default" variant="primary" onClick={onBookClick}>
-                Book Session
-              </Button>
-            </div>
-
-            {/* Mobile */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsOpen(true)}
-                className="text-xs font-bold tracking-[0.2em] uppercase text-primary hover:opacity-70 transition-opacity"
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              A mental wellness platform helping you find clarity, balance, and emotional well-being with the right support.
+            </p>
+            <div className="flex items-center gap-4">
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                aria-label="Instagram"
               >
-                Explore
-              </button>
+                <Instagram className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
+          
+          <div className="md:flex md:justify-center">
+            <div>
+              <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link to="/therapists" className="hover:text-primary transition-colors">Therapists</Link></li>
+                <li><Link to="/about" className="hover:text-primary transition-colors">About</Link></li>
+                <li><Link to="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
+                <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:flex md:justify-end">
+            <div>
+              <h4 className="font-heading font-semibold mb-4">Contact</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Mail className="h-5 w-5 text-primary shrink-0" />
+                  <a href="mailto:healwithsaarthi@gmail.com" className="hover:text-primary transition-colors">
+                    healwithsaarthi@gmail.com
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Phone className="h-5 w-5 text-primary shrink-0" />
+                  <span>+91 98765 43210</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <MapPin className="h-5 w-5 text-primary shrink-0" />
+                  <span>New Delhi, India</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
+        
+        <div className="border-t border-muted pt-8 text-center text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
+        </div>
       </div>
-
-      <MobileMenu
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onBookClick={onBookClick}
-        links={navLinks}
-      />
-    </nav>
+    </footer>
   )
 }
-
-export default Navbar
