@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { MapPin, ArrowRight } from "lucide-react"
 import { Button } from "../components/ui/Button"
@@ -11,7 +12,7 @@ const Therapists = () => {
       name: "Dravina Gupta",
       role: "Therapist | Psychologist",
       location: "Delhi, India",
-      image: "/Gemini_Generated_Image_1q2v1m1q2v1m1q2v.png",
+      image: "https://picsum.photos/seed/join/400/400",
       route: "/therapists/dravina",
       isPlaceholder: false,
     },
@@ -27,6 +28,11 @@ const Therapists = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen">
+      <Helmet>
+        <title>Our Therapists | Find Your Saarthi for Mental Health</title>
+        <meta name="description" content="Browse qualified therapists at Saarthi and find the right support for anxiety, stress, relationships, and emotional well-being." />
+        <link rel="canonical" href="https://saarthilife.com/therapists" />
+      </Helmet>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
           <motion.h1

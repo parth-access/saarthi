@@ -25,11 +25,11 @@ const Specializations = ({ items }: SpecializationsProps) => {
         <div className="mb-16 text-center">
           <h2 className="mb-4 text-primary font-serif">Specializations</h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            I specialize in a wide range of mental wellness areas, providing expert support for various emotional and psychological challenges.
+            Areas of focus based on clinical experience and practice.
           </p>
         </div>
         
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {items.map((spec, index) => (
             <motion.div
               key={spec}

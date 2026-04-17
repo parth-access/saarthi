@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { Button } from "../components/ui/Button"
 import { Link } from "react-router-dom"
@@ -30,6 +31,11 @@ const Vision = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
+      <Helmet>
+        <title>Our Vision | Normalizing Mental Well-being | Saarthi</title>
+        <meta name="description" content="Explore Saarthi’s vision to normalize mental health conversations and provide accessible, judgment-free psychological support." />
+        <link rel="canonical" href="https://saarthilife.com/vision" />
+      </Helmet>
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[10%] -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-50" />

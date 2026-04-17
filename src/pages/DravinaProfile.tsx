@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import ProfileHero from "../components/therapist/ProfileHero"
 import AboutSection from "../components/therapist/AboutSection"
@@ -16,35 +17,63 @@ const DravinaProfile = () => {
     location: "Delhi, India",
     languages: ["Hindi", "English"],
     experience: "1+ years",
-    shortIntro: "Helping individuals navigate anxiety, stress, and emotional challenges with a safe, non-judgmental approach.",
+    shortIntro: "Psychologist with a focus on identifying psychological patterns and supporting clients with practical, structured approaches.",
     aboutContent: [
-      "I’m a psychologist trained in Clinical Psychology, working with individuals navigating anxiety, stress, and emotional challenges.",
-      "My approach focuses on creating a safe, non-judgmental space where you can explore your thoughts and emotions. Together, we work towards clarity, emotional strength, and healthier ways of coping."
+      "Hi, I am Dravina Gupta, a psychologist with a background in Clinical Psychology. I have completed both my graduation and post-graduation in this field and work with individuals dealing with a range of emotional and psychological concerns.",
+      "I specialize in areas such as anger management, stress, anxiety, depression, and workplace-related challenges. My work involves identifying psychological patterns, understanding individual concerns through observation and conversation, and supporting clients with practical approaches.",
+      "I am known for being a patient listener with strong analytical skills and an empathetic approach. I focus on understanding each individual’s situation deeply and helping them navigate their personal challenges in a structured and supportive manner.",
+      "I am committed to using my knowledge and experience to support individuals in improving their mental well-being."
     ],
     specializations: [
-      "Anxiety & Stress",
+      "Anger Management",
+      "Anxiety",
       "Depression",
-      "Emotional Regulation",
-      "Workplace Stress",
-      "Relationship Issues",
-      "Self-Esteem"
+      "Stress & Burnout",
+      "Workplace Issues",
+      "Family Concerns",
+      "Teen & Child Support",
+      "Employee Mental Health (EAP)"
     ],
     qualifications: [
       {
-        degree: "M.A. Clinical Psychology",
-        institution: "Amity University",
-        year: "2023"
+        degree: "Master’s in Psychology",
+        institution: "",
+        year: ""
       },
       {
-        degree: "B.A. Psychology (Hons)",
-        institution: "Delhi University",
-        year: "2021"
+        degree: "Bachelor’s in Psychology",
+        institution: "",
+        year: ""
       }
     ]
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Dravina Gupta",
+    "jobTitle": "Psychologist",
+    "worksFor": {
+      "@type": "Organization",
+      "name": "Saarthi"
+    },
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Delhi",
+      "addressCountry": "India"
+    }
+  }
+
   return (
     <main className="bg-background">
+      <Helmet>
+        <title>Dravina Gupta | Psychologist in Delhi | Saarthi</title>
+        <meta name="description" content="Consult Dravina Gupta, a psychologist in Delhi specializing in anxiety, stress, depression, and workplace issues. Book online therapy sessions with Saarthi." />
+        <link rel="canonical" href="https://saarthilife.com/therapists/dravina" />
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      </Helmet>
       <ProfileHero 
         name={dravinaData.name}
         title={dravinaData.title}
@@ -60,11 +89,17 @@ const DravinaProfile = () => {
       
       <Qualifications items={dravinaData.qualifications} />
       
-      <Approach items={["CBT", "Humanistic", "Integrative", "Mindfulness"]} />
+      <Approach items={[
+        "Acceptance & Commitment Therapy (ACT)",
+        "Cognitive Behavioral Therapy (CBT)",
+        "Solution Focused Brief Therapy (SFBT)",
+        "Emotion-Focused Therapy",
+        "Exposure and Response Prevention (ERP)"
+      ]} />
       
       <TherapistProcess />
       
-      <SessionDetails mode="Online Sessions" clients={["Individuals", "Couples", "Young Adults"]} />
+      <SessionDetails mode="Online & Offline Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
       
       <FinalCTA />
     </main>

@@ -1,12 +1,11 @@
 import * as React from "react"
+import { Helmet } from "react-helmet-async"
 import Hero from "../components/home/Hero"
 import Services from "../components/home/Services"
 import FeaturedTherapist from "../components/home/FeaturedTherapist"
 import Process from "../components/home/Process"
 import CTA from "../components/home/CTA"
 import { ContactForm } from "../components/forms/ContactForm"
-import { Modal } from "../components/ui/Modal"
-import { BookingForm } from "../components/forms/BookingForm"
 
 interface HomeProps {
   onBookClick?: () => void;
@@ -15,6 +14,11 @@ interface HomeProps {
 const Home = ({ onBookClick }: HomeProps) => {
   return (
     <main>
+      <Helmet>
+        <title>Saarthi | Online Therapy & Mental Wellness Support India</title>
+        <meta name="description" content="Welcome to Saarthi. We offer expert online therapy for anxiety, stress, and depression. Start your journey to emotional wellbeing with our professional psychologists." />
+        <link rel="canonical" href="https://saarthilife.com/" />
+      </Helmet>
       <Hero onBookClick={onBookClick} />
       <Services />
       <FeaturedTherapist />
