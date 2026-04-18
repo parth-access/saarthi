@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import admin, { db } from './_lib/firebase-admin.ts';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
@@ -7,18 +8,45 @@ export default async function handler(req: any, res: any) {
 
   const { name, email, date, time, message } = req.body;
 
+  console.log("📩 Booking received:", name, email);
+
+  // 1. Validation
   if (!name || !email || !date || !time || !message) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
 
+  // 2. Save to Firestore via Admin SDK
+  if (!db) {
+    console.error('Database connection unavailable');
+    return res.status(500).json({ success: false, error: 'Database connection unavailable' });
+  }
+
+  try {
+    await db.collection('bookings').add({
+      name,
+      email,
+      date,
+      time,
+      message,
+      status: "Pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    console.log("💾 Saved to Firestore");
+  } catch (dbError) {
+    console.error('Firestore Admin Error:', dbError);
+    return res.status(500).json({ success: false, error: 'Database operation failed' });
+  }
+
+  // 3. Send Emails via Resend (only if DB save succeeded)
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   try {
-    // 1. Send email to admin
+    // Admin Notification
     const adminEmail = await resend.emails.send({
       from: 'Saarthi Booking <contact@saarthilife.com>',
       to: ['healwithsaarthi@gmail.com'],
-      subject: 'New Booking Request - Saarthi',
+      replyTo: email,
+      subject: `New Booking Request - ${name}`,
       html: `
         <h2>New Booking Request</h2>
         <p><strong>Name:</strong> ${name}</p>
@@ -30,11 +58,10 @@ export default async function handler(req: any, res: any) {
     });
 
     if (!adminEmail || adminEmail.error) {
-      console.error('Resend admin email error:', adminEmail.error);
-      return res.status(400).json({ success: false, error: 'Failed to notify admin' });
+       console.error('Resend admin email error:', adminEmail?.error);
     }
 
-    // 2. Send confirmation email to user
+    // User Confirmation
     const userEmail = await resend.emails.send({
       from: 'Saarthi <contact@saarthilife.com>',
       to: email,
@@ -56,13 +83,14 @@ export default async function handler(req: any, res: any) {
 
     if (!userEmail || userEmail.error) {
       console.error('Resend user email error:', userEmail?.error);
-      // We don't fail the whole request if only the confirmation email fails, 
-      // as long as the admin notification succeeded.
     }
 
+    console.log("📧 Email sent");
+    // Return success since database save was the critical step
     return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+  } catch (emailError) {
+    console.error('Email API Error:', emailError);
+    // Still return success as the booking is already saved in Firestore
+    return res.status(200).json({ success: true });
   }
 }
