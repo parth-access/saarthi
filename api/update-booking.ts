@@ -64,7 +64,7 @@ export default async function handler(req: any, res: any) {
       await resend.emails.send({
         from: 'Saarthi <contact@saarthilife.com>',
         to: booking.email,
-        bcc: ['saarthilife@gmail.com'], // ✅ FIXED
+        bcc: ['healwithsaarthi@gmail.com'], // ✅ FIXED
         subject: subject,
         html: body
       });
