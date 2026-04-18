@@ -1,4 +1,4 @@
-import { db } from '../lib/firebase-admin';
+import { db } from './_lib/firebase-admin';
 
 export default async function handler(req: any, res: any) {
   console.log("🔥 API HIT:", req.url);
