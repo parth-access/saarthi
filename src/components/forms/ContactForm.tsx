@@ -17,28 +17,12 @@ export function ContactForm() {
     e.preventDefault()
     setStatus('loading')
 
-    try {
-      // Send data to backend API (Firestore save and Email sending happen there)
-      const response = await fetch('/api/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to send email');
-      }
-
+    // Simulate API call for frontend-only mode
+    setTimeout(() => {
+      console.log("Mock contact data:", formData)
       setStatus('success')
       setFormData({ name: "", email: "", message: "" })
-    } catch (error) {
-      console.error("Contact error:", error)
-      setStatus('error')
-    }
+    }, 1500)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
