@@ -1,34 +1,50 @@
-import { db } from './_lib/firebase-admin';
+import { db } from '../lib/firebase-admin';
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
-  }
-
-  const { password } = req.query;
-
-  if (password !== 'saarthi-admin') {
-    return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-
-  if (!db) {
-    return res.status(500).json({ success: false, error: 'Database unavailable' });
-  }
+  console.log("🔥 API HIT:", req.url);
+  
+  // Always return JSON
+  const sendError = (status: number, message: string) => {
+    return res.status(status).json({ success: false, error: message });
+  };
 
   try {
-    const snapshot = await db.collection('bookings').orderBy('createdAt', 'desc').get();
-    const bookings = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
-      };
-    });
+    if (req.method !== 'GET') {
+      return sendError(405, 'Method not allowed');
+    }
 
-    return res.status(200).json({ success: true, bookings });
-  } catch (error) {
-    console.error('Get bookings error:', error);
-    return res.status(500).json({ success: false, error: 'Failed to fetch bookings' });
+    const { password } = req.query;
+    console.log("🔍 Admin Fetch Attempt");
+
+    if (password !== 'saarthi-admin') {
+      return sendError(401, 'Unauthorized');
+    }
+
+    // Database check
+    if (!db) {
+      console.error("🔥 Database instance missing in get-bookings");
+      return sendError(500, 'Database initialization failed');
+    }
+
+    try {
+      const snapshot = await db.collection('bookings').orderBy('createdAt', 'desc').get();
+      const bookings = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null,
+        };
+      });
+
+      console.log(`✅ Successfully fetched ${bookings.length} bookings`);
+      return res.status(200).json({ success: true, bookings });
+    } catch (error) {
+      console.error('❌ Firestore Fetch Error:', error);
+      return sendError(500, 'Failed to fetch bookings from database');
+    }
+  } catch (fatalError) {
+    console.error('💀 FATAL ADMIN API ERROR:', fatalError);
+    return sendError(500, 'Internal server error');
   }
 }
