@@ -5,17 +5,11 @@ service cloud.firestore {
     // Simple rules for Saarthi
     
     match /bookings/{bookingId} {
-      allow create: if request.resource.data.name != null && 
-                      request.resource.data.email != null && 
-                      request.resource.data.message != null;
-      allow read, update, delete: if false;
+      allow read, write: if false;
     }
     
     match /contacts/{contactId} {
-      allow create: if request.resource.data.name != null && 
-                      request.resource.data.email != null && 
-                      request.resource.data.message != null;
-      allow read, update, delete: if false;
+      allow read, write: if false;
     }
     
     match /{document=**} {

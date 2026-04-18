@@ -1,6 +1,4 @@
 import * as React from "react"
-import { db } from "../../lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
@@ -36,13 +34,7 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     setStatus('loading')
 
     try {
-      // 1. Save to Firestore
-      await addDoc(collection(db, 'bookings'), {
-        ...formData,
-        createdAt: serverTimestamp()
-      })
-
-      // 2. Send Email via Resend backend route
+      // Send data to backend API (Firestore save and Emails happen there)
       const response = await fetch('/api/book-session', {
         method: 'POST',
         headers: {
@@ -54,7 +46,7 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to send email');
+        throw new Error(result.error || 'Failed to process booking');
       }
 
       setStatus('success')

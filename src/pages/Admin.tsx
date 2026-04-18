@@ -49,27 +49,42 @@ const AdminPage = () => {
   React.useEffect(() => {
     if (!isAuthenticated) return
 
-    const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"))
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const bookingsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Booking[]
-      setBookings(bookingsData)
-      setLoading(false)
-    }, (err) => {
-      console.error("Firestore listen error:", err)
-      setLoading(false)
-    })
+    const fetchBookings = async () => {
+      try {
+        const response = await fetch('/api/get-bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        })
+        const data = await response.json()
+        if (data.success) {
+          setBookings(data.bookings)
+        }
+      } catch (err) {
+        console.error("Fetch bookings error:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    return () => unsubscribe()
-  }, [isAuthenticated])
+    fetchBookings()
+    // Poll every 30 seconds for updates since we moved away from real-time snapshot
+    const interval = setInterval(fetchBookings, 30000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated, password])
 
   const updateStatus = async (id: string, newStatus: BookingStatus) => {
     try {
-      const bookingRef = doc(db, "bookings", id)
-      await updateDoc(bookingRef, { status: newStatus })
+      const response = await fetch('/api/update-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: newStatus, password })
+      })
+      const data = await response.json()
+      if (data.success) {
+        // Optimistic update
+        setBookings(prev => prev.map(b => b.id === id ? { ...b, status: newStatus } : b))
+      }
     } catch (err) {
       console.error("Update status error:", err)
     }
