@@ -8,6 +8,8 @@ interface Booking {
   name: string;
   email: string;
   message: string;
+  preferredDate: string;
+  preferredTime: string;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }
@@ -42,26 +44,25 @@ const AdminPage = () => {
     fetchBookings()
   }, [])
 
-  const handleUpdateStatus = async (bookingId: string, status: 'accepted' | 'rejected') => {
+  const handleUpdateStatus = async (id: string, status: 'accepted' | 'rejected') => {
     try {
-      setProcessingId(bookingId)
+      setProcessingId(id)
       const response = await fetch('/api/update-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, status })
+        body: JSON.stringify({ id, status })
       })
       
       const data = await response.json()
       
       if (data.success) {
-        // Refresh local state
-        setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status } : b))
+        setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
       } else {
-        alert(data.error || "Failed to update status")
+        setError(data.error || "Failed to update status")
       }
     } catch (err: any) {
       console.error("Update status error:", err)
-      alert("Something went wrong while updating the booking status.")
+      setError("Something went wrong while updating the booking status.")
     } finally {
       setProcessingId(null)
     }
@@ -128,8 +129,14 @@ const AdminPage = () => {
                             {booking.email}
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground font-mono">
-                          {new Date(booking.createdAt).toLocaleDateString()}
+                        <div className="flex flex-col text-right">
+                          <div className="flex items-center gap-2 text-primary font-medium">
+                            <Calendar className="h-4 w-4" />
+                            {booking.preferredDate}
+                          </div>
+                          <div className="text-sm text-muted-foreground font-mono">
+                            {booking.preferredTime}
+                          </div>
                         </div>
                       </div>
 

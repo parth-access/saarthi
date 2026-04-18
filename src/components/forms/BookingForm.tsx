@@ -42,7 +42,9 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          message: formData.message
+          message: formData.message,
+          preferredDate: formData.date,
+          preferredTime: formData.time
         }),
       });
 
