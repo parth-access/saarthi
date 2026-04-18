@@ -1,7 +1,6 @@
-import { db } from './_lib/firebase-admin.js';
+import { db } from './firebase-admin.js';
 
 export default async function handler(req: any, res: any) {
-  // Only allow GET
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
@@ -13,10 +12,19 @@ export default async function handler(req: any, res: any) {
 
     const bookings = snapshot.docs.map(doc => {
       const data = doc.data();
+      
+      // Safe timestamp conversion
+      let createdAt = data.createdAt;
+      if (createdAt && typeof createdAt.toDate === 'function') {
+        createdAt = createdAt.toDate().toISOString();
+      } else if (createdAt instanceof Date) {
+        createdAt = createdAt.toISOString();
+      }
+
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null
+        createdAt
       };
     });
 
