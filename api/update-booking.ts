@@ -1,4 +1,4 @@
-import admin, { db } from './_lib/firebase-admin.ts';
+import admin, { db } from './_lib/firebase-admin';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

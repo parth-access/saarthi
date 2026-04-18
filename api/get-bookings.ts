@@ -1,11 +1,11 @@
-import { db } from './_lib/firebase-admin.ts';
+import { db } from './_lib/firebase-admin';
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const { password } = req.body;
+  const { password } = req.query;
 
   if (password !== 'saarthi-admin') {
     return res.status(401).json({ success: false, error: 'Unauthorized' });

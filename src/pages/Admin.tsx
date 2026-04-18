@@ -51,17 +51,26 @@ const AdminPage = () => {
 
     const fetchBookings = async () => {
       try {
-        const response = await fetch('/api/get-bookings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        })
+        const response = await fetch(`/api/get-bookings?password=${password}`)
+        
+        if (response.status === 401) {
+          setError("Session expired or invalid credentials.")
+          setIsAuthenticated(false)
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error("Server error")
+        }
+
         const data = await response.json()
         if (data.success) {
           setBookings(data.bookings)
+          setError("")
         }
       } catch (err) {
         console.error("Fetch bookings error:", err)
+        setError("Failed to fetch bookings. Please check your connection.")
       } finally {
         setLoading(false)
       }
