@@ -33,15 +33,34 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     e.preventDefault()
     setStatus('loading')
 
-    // Simulate API call for frontend-only mode
-    setTimeout(() => {
-      console.log("Mock booking data:", formData)
+    try {
+      const response = await fetch('/api/create-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to process booking');
+      }
+
       setStatus('success')
       setFormData({ name: "", email: "", message: "", date: "", time: "" })
       if (onSuccess) {
         setTimeout(onSuccess, 3000)
       }
-    }, 1500)
+    } catch (error) {
+      console.error("Booking error:", error)
+      setStatus('error')
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
