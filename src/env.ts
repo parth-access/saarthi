@@ -1,12 +1,14 @@
 import dotenv from 'dotenv'
 
-// Load ONLY .env.local
-dotenv.config({ path: '.env.local' })
+// Only load .env.local in development/local environments
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: '.env.local' })
+}
 
 const key = process.env.FIREBASE_ADMIN_KEY_BASE64
 
 if (!key) {
-  console.error("❌ FIREBASE_ADMIN_KEY_BASE64 is missing")
+  console.warn("⚠️ FIREBASE_ADMIN_KEY_BASE64 is missing in current environment")
 } else {
-  console.log("✅ ENV LOADED:", key.slice(0, 20))
+  console.log("✅ ENV LOADED (Admin Key Available)")
 }

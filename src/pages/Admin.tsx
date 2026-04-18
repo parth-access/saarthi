@@ -53,24 +53,31 @@ const AdminPage = () => {
       try {
         const response = await fetch(`/api/get-bookings?password=${password}`)
         
+        // Robust JSON handling with fallback
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Non-JSON response received:", text.slice(0, 200));
+          throw new Error(`Server returned invalid response format (${response.status})`);
+        }
+
         if (response.status === 401) {
           setError("Session expired or invalid credentials.")
           setIsAuthenticated(false)
           return
         }
 
-        if (!response.ok) {
-          throw new Error("Server error")
-        }
-
-        const data = await response.json()
         if (data.success) {
           setBookings(data.bookings)
           setError("")
+        } else {
+          throw new Error(data.error || "Failed to load bookings")
         }
       } catch (err) {
         console.error("Fetch bookings error:", err)
-        setError("Failed to fetch bookings. Please check your connection.")
+        setError(err instanceof Error ? err.message : "Failed to fetch bookings. Please check your connection.")
       } finally {
         setLoading(false)
       }
