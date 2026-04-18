@@ -33,31 +33,15 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     e.preventDefault()
     setStatus('loading')
 
-    try {
-      // Send data to backend API (Firestore save and Emails happen there)
-      const response = await fetch('/api/book-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to process booking');
-      }
-
+    // Simulate API call for frontend-only mode
+    setTimeout(() => {
+      console.log("Mock booking data:", formData)
       setStatus('success')
       setFormData({ name: "", email: "", message: "", date: "", time: "" })
       if (onSuccess) {
         setTimeout(onSuccess, 3000)
       }
-    } catch (error) {
-      console.error("Booking error:", error)
-      setStatus('error')
-    }
+    }, 1500)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
