@@ -17,12 +17,27 @@ export function ContactForm() {
     e.preventDefault()
     setStatus('loading')
 
-    // Simulate API call for frontend-only mode
-    setTimeout(() => {
-      console.log("Mock contact data:", formData)
+    try {
+      const response = await fetch('/api/create-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to process request');
+      }
+
       setStatus('success')
       setFormData({ name: "", email: "", message: "" })
-    }, 1500)
+    } catch (error) {
+      console.error("Contact error:", error)
+      setStatus('error')
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
