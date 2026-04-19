@@ -36,7 +36,7 @@ const DravinaProfile = () => {
     ],
     qualifications: [
       {
-        degree: "Master’s in Psychology",
+        degree: "Master’s in Clinical Psychology",
         institution: "",
         year: ""
       },
@@ -94,12 +94,12 @@ const DravinaProfile = () => {
         "Cognitive Behavioral Therapy (CBT)",
         "Solution Focused Brief Therapy (SFBT)",
         "Emotion-Focused Therapy",
-        "Exposure and Response Prevention (ERP)"
+        "Mindfulness"
       ]} />
       
       <TherapistProcess />
       
-      <SessionDetails mode="Online & Offline Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
+      <SessionDetails mode="Online Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
       
       <FinalCTA />
     </main>

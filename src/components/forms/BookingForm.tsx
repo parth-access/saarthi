@@ -16,7 +16,9 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     email: "",
     message: "",
     date: "",
-    time: ""
+    time: "",
+    gender: "",
+    age: ""
   })
 
   // Get today's date in YYYY-MM-DD format for min date restriction
@@ -44,7 +46,9 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
           email: formData.email,
           message: formData.message,
           preferredDate: formData.date,
-          preferredTime: formData.time
+          preferredTime: formData.time,
+          gender: formData.gender,
+          age: parseInt(formData.age)
         }),
       });
 
@@ -55,7 +59,7 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
       }
 
       setStatus('success')
-      setFormData({ name: "", email: "", message: "", date: "", time: "" })
+      setFormData({ name: "", email: "", message: "", date: "", time: "", gender: "", age: "" })
       if (onSuccess) {
         setTimeout(onSuccess, 3000)
       }
@@ -116,6 +120,40 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
                 onChange={handleChange}
                 placeholder="john@example.com"
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="gender" className="text-sm font-medium text-text">Gender *</label>
+                <select
+                  required
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-all duration-200"
+                >
+                  <option value="" disabled>Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="age" className="text-sm font-medium text-text">Age *</label>
+                <Input
+                  required
+                  id="age"
+                  name="age"
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={formData.age}
+                  onChange={handleChange}
+                  placeholder="25"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

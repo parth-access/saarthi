@@ -62,7 +62,7 @@ const Vision = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="text-6xl md:text-8xl lg:text-9xl text-primary leading-[0.85] tracking-tighter mb-12"
+              className="text-5xl md:text-7xl lg:text-8xl text-primary leading-[0.85] tracking-tighter mb-12"
             >
               Our Vision — <br />
               <span className="italic font-normal text-accent/80">Making Emotional Well-being Simple</span>

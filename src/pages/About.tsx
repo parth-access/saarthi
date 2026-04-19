@@ -78,7 +78,7 @@ const About = () => {
                   Saarthi was created with a simple yet powerful intention — to offer a space where you feel heard, understood, and supported without judgment. In a world that constantly demands more, Saarthi stands as a pause — a place where you can reconnect with yourself.
                 </p>
                 <p>
-                  Founded by a psychologist and co-founded by a BBA student, Saarthi brings together professional mental health expertise and a modern, empathetic approach. This unique combination allows us to understand emotional needs deeply, while presenting support in a way that feels accessible, comforting, and real.
+                  Created by a psychologist and a visionary partner, Saarthi brings together professional mental health expertise and a fresh, empathetic perspective. This balance allows us to understand emotional needs deeply, while providing support that feels human, gentle, and real.
                 </p>
                 <p>
                   Like its name, Saarthi (a guide), we aim to gently support you through your journey — not by leading, but by walking with you.
@@ -184,7 +184,7 @@ const About = () => {
         {/* 7. Founders Section */}
         <section className="mb-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl text-primary mb-4">Our Founders</h2>
+            <h2 className="text-4xl md:text-5xl text-primary mb-4">The Hearts Behind Saarthi</h2>
           </div>
           <div className="grid md:grid-cols-2 gap-12">
             <motion.div
@@ -198,7 +198,11 @@ const About = () => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-primary">Dravina Gupta</h3>
+<<<<<<< HEAD
                 <p className="text-accent font-medium italic">Founder</p>
+=======
+                <p className="text-accent font-medium italic">Our Guiding Light</p>
+>>>>>>> 390cca9 (Founder Changes Applied)
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.
@@ -216,7 +220,7 @@ const About = () => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-primary">Krishna Gupta</h3>
-                <p className="text-accent font-medium italic">Co-Founder</p>
+                <p className="text-accent font-medium italic">The Visionary Partner</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 Bringing a modern vision and business strategy, Krishna is passionate about building a safe and meaningful brand experience.
