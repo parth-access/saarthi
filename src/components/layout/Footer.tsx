@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom"
 import { Mail, MapPin, Phone, Instagram } from "lucide-react"
 
-export function Footer() {
+interface FooterProps {
+  onAdminLogin: () => void
+}
+
+export function Footer({ onAdminLogin }: FooterProps) {
   return (
     <footer className="bg-white border-t border-muted pt-16 pb-8">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -16,7 +20,7 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-4">
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/saarthi.safespace/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
@@ -35,6 +39,14 @@ export function Footer() {
                 <li><Link to="/about" className="hover:text-primary transition-colors">About</Link></li>
                 <li><Link to="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
                 <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                <li>
+                  <button 
+                    onClick={onAdminLogin}
+                    className="hover:text-primary transition-colors text-left"
+                  >
+                    Admin Login
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
@@ -49,10 +61,10 @@ export function Footer() {
                     healwithsaarthi@gmail.com
                   </a>
                 </li>
-                <li className="flex items-start gap-2">
+                {/* <li className="flex items-start gap-2">
                   <Phone className="h-5 w-5 text-primary shrink-0" />
                   <span>+91 98765 43210</span>
-                </li>
+                </li> */}
                 <li className="flex items-start gap-2">
                   <MapPin className="h-5 w-5 text-primary shrink-0" />
                   <span>New Delhi, India</span>
@@ -63,7 +75,7 @@ export function Footer() {
         </div>
         
         <div className="border-t border-muted pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Saarthi The Guidence For Life</p>
         </div>
       </div>
     </footer>
