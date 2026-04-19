@@ -13,9 +13,11 @@ import DravinaProfile from "./pages/DravinaProfile"
 import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
 import { BookingForm } from "./components/forms/BookingForm"
+import { AdminAuthModal } from "./components/auth/AdminAuthModal"
 
 function App() {
   const [isBookingOpen, setIsBookingOpen] = React.useState(false)
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = React.useState(false)
 
   return (
     <HelmetProvider>
@@ -32,7 +34,7 @@ function App() {
             <Route path="/admin" element={<Admin />} />
             <Route path="/therapists/dravina" element={<DravinaProfile />} />
           </Routes>
-          <Footer />
+          <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
 
           <Modal 
             isOpen={isBookingOpen} 
@@ -41,6 +43,11 @@ function App() {
           >
             <BookingForm onSuccess={() => setIsBookingOpen(false)} />
           </Modal>
+
+          <AdminAuthModal 
+            isOpen={isAdminLoginOpen} 
+            onClose={() => setIsAdminLoginOpen(false)} 
+          />
         </div>
       </Router>
     </HelmetProvider>

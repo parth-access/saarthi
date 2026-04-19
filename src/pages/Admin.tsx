@@ -1,7 +1,8 @@
 import * as React from "react"
 import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "motion/react"
-import { Mail, Calendar, User, ShieldCheck, CheckCircle2, XCircle, Loader2 } from "lucide-react"
+import { Mail, Calendar, User, ShieldCheck, CheckCircle2, XCircle, Loader2, LogOut } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 interface Booking {
   id: string;
@@ -19,6 +20,7 @@ const AdminPage = () => {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
+  const navigate = useNavigate()
 
   const fetchBookings = async () => {
     try {
@@ -41,8 +43,18 @@ const AdminPage = () => {
   }
 
   React.useEffect(() => {
+    const isAuthenticated = localStorage.getItem("isAdminAuthenticated") === "true"
+    if (!isAuthenticated) {
+      navigate("/")
+      return
+    }
     fetchBookings()
   }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAdminAuthenticated")
+    navigate("/")
+  }
 
   const handleUpdateStatus = async (id: string, status: 'accepted' | 'rejected') => {
     try {
@@ -80,12 +92,21 @@ const AdminPage = () => {
             <h1 className="text-5xl md:text-6xl font-serif text-primary">Booking Manager</h1>
             <p className="text-xl text-muted-foreground font-sans mt-3">Manage session requests and communications.</p>
           </div>
-          <button 
-            onClick={fetchBookings}
-            className="px-6 py-2 bg-white rounded-full border border-primary/10 shadow-sm text-sm font-medium hover:bg-white/80 transition-colors"
-          >
-            Refresh Data
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={fetchBookings}
+              className="px-6 py-2 bg-white rounded-full border border-primary/10 shadow-sm text-sm font-medium hover:bg-white/80 transition-colors"
+            >
+              Refresh Data
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="px-6 py-2 bg-red-50 text-red-600 rounded-full border border-red-100 shadow-sm text-sm font-medium hover:bg-red-100 transition-colors flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </header>
 
         {error && (
