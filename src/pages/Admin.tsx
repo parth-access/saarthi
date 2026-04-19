@@ -11,6 +11,8 @@ interface Booking {
   message: string;
   preferredDate: string;
   preferredTime: string;
+  gender: string;
+  age: number;
   status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
 }
@@ -148,6 +150,10 @@ const AdminPage = () => {
                           <div className="flex items-center gap-2 text-muted-foreground text-sm">
                             <Mail className="h-4 w-4" />
                             {booking.email}
+                            <span className="mx-2">•</span>
+                            <span className="bg-primary/5 px-2 py-0.5 rounded text-xs">
+                              {booking.gender}, {booking.age} yrs
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col text-right">

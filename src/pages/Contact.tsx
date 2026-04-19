@@ -88,7 +88,7 @@ const Contact = () => {
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-lg font-bold text-primary font-serif">Support Sessions</h3>
-                    <p className="text-text text-lg">Online & Offline</p>
+                    <p className="text-text text-lg">Online</p>
                     <p className="text-sm text-muted-foreground italic">Confidential, safe, and personalized support</p>
                   </div>
                 </div>
