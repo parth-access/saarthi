@@ -16,7 +16,7 @@ const Home = ({ onBookClick }: HomeProps) => {
     <main>
       <Helmet>
         <title>Saarthi | Online Therapy & Mental Wellness Support India</title>
-        <meta name="description" content="Welcome to Saarthi. We offer expert online therapy for anxiety, stress, and depression. Start your journey to emotional wellbeing with our professional psychologists." />
+        <meta name="description" content="Saarthi provides professional online therapy and psychology consultations for anxiety, stress, and emotional well-being. Find clarity and heal." />
         <link rel="canonical" href="https://saarthilife.com/" />
       </Helmet>
       <Hero onBookClick={onBookClick} />
