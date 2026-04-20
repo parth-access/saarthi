@@ -206,7 +206,15 @@ const AdminPage = () => {
                         <div className="bg-[#fcfaf7] p-4 rounded-[2rem] border border-primary/5 text-center min-w-[140px]">
                           <div className="text-sm font-bold text-primary/60 uppercase tracking-tighter mb-1">Requested slot</div>
                           <div className="text-lg font-serif text-primary">
-                            {format(parseISO(booking.date), "dd MMM")}
+                            {booking.date ? (
+                              (() => {
+                                try {
+                                  return format(parseISO(booking.date), "dd MMM")
+                                } catch (e) {
+                                  return "Invalid Date"
+                                }
+                              })()
+                            ) : "Date N/A"}
                           </div>
                           <div className="text-xs font-mono font-bold text-accent uppercase">
                             at {booking.time}
@@ -223,7 +231,20 @@ const AdminPage = () => {
 
                       <div className="mt-8 pt-8 border-t border-primary/5 flex items-center justify-between">
                          <div className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/50">
-                           Received {format(new Date(booking.createdAt?.seconds * 1000 || booking.createdAt), "PPP p")}
+                           Received {(() => {
+                             try {
+                               const dateVal = booking.createdAt?.seconds 
+                                 ? new Date(booking.createdAt.seconds * 1000) 
+                                 : booking.createdAt 
+                                   ? new Date(booking.createdAt) 
+                                   : null;
+                               return dateVal && !isNaN(dateVal.getTime()) 
+                                 ? format(dateVal, "PPP p") 
+                                 : "Date N/A";
+                             } catch (e) {
+                               return "Date N/A"
+                             }
+                           })()}
                          </div>
                       </div>
                     </div>

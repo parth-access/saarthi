@@ -163,7 +163,7 @@ const BookingSystem = () => {
             <div className="text-center">
               <h3 className="text-2xl font-serif text-primary">Pick a Time</h3>
               <p className="text-muted-foreground text-sm flex items-center justify-center mt-1">
-                <Calendar className="w-3 h-3 mr-1" /> {format(parseISO(bookingData.date), "MMMM dd, yyyy")}
+                <Calendar className="w-3 h-3 mr-1" /> {bookingData.date ? format(parseISO(bookingData.date), "MMMM dd, yyyy") : "No date selected"}
               </p>
             </div>
             
@@ -286,7 +286,9 @@ const BookingSystem = () => {
                 <span className="font-bold text-primary">{bookingData.sessionType}</span>
                 
                 <span className="text-muted-foreground">Date & Time</span>
-                <span className="font-bold text-primary">{format(parseISO(bookingData.date), "dd MMM yyyy")} at {bookingData.time}</span>
+                <span className="font-bold text-primary">
+                  {bookingData.date ? format(parseISO(bookingData.date), "dd MMM yyyy") : "N/A"} at {bookingData.time || "N/A"}
+                </span>
                 
                 <span className="text-muted-foreground">Name</span>
                 <span className="font-bold text-primary">{bookingData.name}</span>
