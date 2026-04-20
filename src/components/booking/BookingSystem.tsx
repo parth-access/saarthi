@@ -95,15 +95,21 @@ const BookingSystem = () => {
     if (!therapistId || !date) return
     setLoadingSlots(true)
     setError(null)
+    console.log(`🔄 BookingSystem: Fetching availability for ${therapistId} on ${date}`);
     try {
       const res = await fetch(`/api/get-availability?therapistId=${therapistId}&date=${date}`)
       const data = await res.json()
+      
       if (data.success) {
+        console.log(`📦 BookingSystem: Slots received`, data.slots);
         setSlots(data.slots || [])
+      } else {
+        console.error(`❌ BookingSystem: API error`, data.error);
+        setError(data.error || "Unable to load slots. Please try again.")
       }
     } catch (err) {
-      console.error("Failed to fetch availability", err)
-      setError("Unable to load slots. Please try again.")
+      console.error("❌ BookingSystem: Network fetch error", err)
+      setError("Unable to connect to the availability service. Please check your internet.")
     } finally {
       setLoadingSlots(false)
     }
@@ -165,6 +171,17 @@ const BookingSystem = () => {
       setError("Unable to complete booking. Check your connection.")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const formatTime12h = (time24: string) => {
+    try {
+      const [hours, minutes] = time24.split(':').map(Number)
+      const period = hours >= 12 ? 'PM' : 'AM'
+      const h12 = hours % 12 || 12
+      return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`
+    } catch (e) {
+      return time24
     }
   }
 
@@ -360,7 +377,7 @@ const BookingSystem = () => {
                       "bg-white border-muted/30 hover:border-primary/40 hover:bg-primary/5"
                     )}
                   >
-                    {slot.time}
+                    {formatTime12h(slot.time)}
                     {!slot.isAvailable && <div className="absolute inset-x-0 bottom-0 py-0.5 bg-muted text-[8px] font-black uppercase text-center">{slot.reason}</div>}
                   </button>
                 ))}
@@ -487,7 +504,7 @@ const BookingSystem = () => {
                 <div className="space-y-1">
                   <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Chosen Slot</p>
                   <p className="font-serif text-lg font-bold text-primary">
-                    {format(parseISO(bookingData.date), "dd MMM")} at {bookingData.time}
+                    {format(parseISO(bookingData.date), "dd MMM")} at {formatTime12h(bookingData.time)}
                   </p>
                 </div>
                 <div className="space-y-1">
