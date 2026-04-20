@@ -5,7 +5,11 @@ import { Mail, MapPin, Calendar, ArrowRight } from "lucide-react"
 import { Link } from "react-router-dom"
 import { ContactForm } from "../components/forms/ContactForm"
 
-const Contact = () => {
+interface ContactProps {
+  onBookClick?: () => void;
+}
+
+const Contact = ({ onBookClick }: ContactProps) => {
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
       <Helmet>
@@ -130,13 +134,13 @@ const Contact = () => {
             <p className="text-muted-foreground font-sans">
               If you feel ready, you can book a consultation session directly with Dravina to begin your journey.
             </p>
-            <Link 
-              to="/therapists" 
+            <button 
+              onClick={onBookClick}
               className="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full font-medium"
             >
               Book a Session
               <ArrowRight className="h-5 w-5" />
-            </Link>
+            </button>
           </div>
         </motion.section>
       </div>
