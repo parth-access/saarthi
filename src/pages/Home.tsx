@@ -42,3 +42,4 @@ const Home = ({ onBookClick }: HomeProps) => {
 }
 
 export default Home
+

@@ -149,3 +149,4 @@ const Contact = ({ onBookClick }: ContactProps) => {
 }
 
 export default Contact
+

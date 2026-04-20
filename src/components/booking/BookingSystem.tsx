@@ -1,27 +1,27 @@
 import * as React from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { format, addDays, isSameDay, startOfToday, parseISO } from "date-fns"
-import { ChevronRight, ChevronLeft, Calendar, Clock, User, CheckCircle2, ChevronRightCircle, Loader2 } from "lucide-react"
+import { format, addDays, startOfToday, parseISO } from "date-fns"
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Calendar, 
+  Clock, 
+  User, 
+  CheckCircle2, 
+  Loader2, 
+  ShieldCheck, 
+  AlertCircle 
+} from "lucide-react"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { cn } from "../../lib/utils"
-import { SessionType } from "../../types"
-
-const SLOTS = [
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "01:00 PM",
-  "04:00 PM",
-  "05:00 PM",
-  "06:00 PM",
-  "07:00 PM"
-]
+import { SessionType, Therapist, BookingStatus } from "../../types"
 
 const SESSION_TYPES: SessionType[] = ["Individual", "Couple", "Family", "Teen"]
 
 interface BookingData {
+  therapistId: string;
   sessionType: SessionType | "";
   date: string;
   time: string;
@@ -32,12 +32,23 @@ interface BookingData {
   message: string;
 }
 
+interface Slot {
+  time: string;
+  isAvailable: boolean;
+  reason: string | null;
+}
+
 const BookingSystem = () => {
   const [step, setStep] = React.useState(1)
-  const [loadingAvailability, setLoadingAvailability] = React.useState(false)
+  const [therapists, setTherapists] = React.useState<Therapist[]>([])
+  const [loadingTherapists, setLoadingTherapists] = React.useState(true)
+  const [loadingSlots, setLoadingSlots] = React.useState(false)
+  const [slots, setSlots] = React.useState<Slot[]>([])
   const [submitting, setSubmitting] = React.useState(false)
-  const [bookedSlots, setBookedSlots] = React.useState<string[]>([])
+  const [error, setError] = React.useState<string | null>(null)
+  
   const [bookingData, setBookingData] = React.useState<BookingData>({
+    therapistId: "",
     sessionType: "",
     date: "",
     time: "",
@@ -49,31 +60,86 @@ const BookingSystem = () => {
   })
 
   const handleNext = () => setStep(s => s + 1)
-  const handleBack = () => setStep(s => s - 1)
+  const handleBack = () => {
+    setError(null)
+    setStep(s => s - 1)
+  }
 
-  const fetchAvailability = async (dateStr: string) => {
-    setLoadingAvailability(true)
+  // 1. Fetch Therapists
+  React.useEffect(() => {
+    const fetchTherapists = async () => {
+      setLoadingTherapists(true)
+      try {
+        const res = await fetch('/api/get-therapists')
+        const data = await res.json()
+        if (data.success) {
+          setTherapists(data.therapists)
+        }
+      } catch (err) {
+        console.error("Failed to fetch therapists", err)
+      } finally {
+        setLoadingTherapists(false)
+      }
+    }
+    fetchTherapists()
+  }, [])
+
+  // 2. Fetch Availability Slots
+  const fetchAvailability = async (therapistId: string, date: string) => {
+    if (!therapistId || !date) return
+    setLoadingSlots(true)
+    setError(null)
     try {
-      const res = await fetch(`/api/get-availability?date=${dateStr}`)
+      const res = await fetch(`/api/get-availability?therapistId=${therapistId}&date=${date}`)
       const data = await res.json()
       if (data.success) {
-        setBookedSlots(data.bookedSlots)
+        setSlots(data.slots || [])
       }
     } catch (err) {
       console.error("Failed to fetch availability", err)
+      setError("Unable to load slots. Please try again.")
     } finally {
-      setLoadingAvailability(false)
+      setLoadingSlots(false)
     }
   }
 
   React.useEffect(() => {
-    if (bookingData.date) {
-      fetchAvailability(bookingData.date)
+    if (bookingData.therapistId && bookingData.date && step === 4) {
+      fetchAvailability(bookingData.therapistId, bookingData.date)
     }
-  }, [bookingData.date])
+  }, [bookingData.therapistId, bookingData.date, step])
 
+  // 3. Lock Slot
+  const lockSlot = async (time: string) => {
+    setError(null)
+    try {
+      const res = await fetch('/api/lock-slot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          therapistId: bookingData.therapistId,
+          date: bookingData.date,
+          time: time
+        })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setBookingData(prev => ({ ...prev, time }))
+        handleNext()
+      } else {
+        setError(data.error || "This slot is no longer available.")
+        // Refresh availability if lock fails
+        fetchAvailability(bookingData.therapistId, bookingData.date)
+      }
+    } catch (err) {
+      setError("Connection issue while trying to reserve slot.")
+    }
+  }
+
+  // 4. Create Booking
   const submitBooking = async () => {
     setSubmitting(true)
+    setError(null)
     try {
       const res = await fetch('/api/create-booking', {
         method: 'POST',
@@ -85,13 +151,12 @@ const BookingSystem = () => {
       })
       const data = await res.json()
       if (data.success) {
-        setStep(6) // Success step
+        setStep(7) // Success step
       } else {
-        alert(data.error || "Something went wrong")
+        setError(data.error || "Final confirmation failed. Please try again.")
       }
     } catch (err) {
-      console.error(err)
-      alert("Failed to connect to server")
+      setError("Unable to complete booking. Check your connection.")
     } finally {
       setSubmitting(false)
     }
@@ -99,10 +164,68 @@ const BookingSystem = () => {
 
   const renderStep = () => {
     switch(step) {
-      case 1:
+      case 1: // Therapist Selection
         return (
-          <div className="space-y-6">
-            <h3 className="text-2xl font-serif text-primary text-center">Select Session Type</h3>
+          <div className="space-y-8">
+            <div className="text-center">
+              <h3 className="text-3xl font-serif text-primary">Choose your Therapist</h3>
+              <p className="text-muted-foreground mt-2">Select a specialist best suited for your journey</p>
+            </div>
+            
+            {loadingTherapists ? (
+              <div className="py-20 flex flex-col items-center">
+                <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+                <p className="font-serif italic text-primary/60">Meeting our team...</p>
+              </div>
+            ) : (
+              <div className="grid gap-6">
+                {therapists.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setBookingData(d => ({ ...d, therapistId: t.id }))
+                      handleNext()
+                    }}
+                    className={cn(
+                      "p-6 rounded-[2.5rem] border-2 text-left transition-all group flex flex-col sm:flex-row items-center gap-6",
+                      bookingData.therapistId === t.id 
+                        ? "border-primary bg-primary/5 ring-4 ring-primary/5" 
+                        : "border-muted/30 bg-white hover:border-primary/20 hover:bg-primary/5"
+                    )}
+                  >
+                    <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 border-2 border-primary/10">
+                      <img 
+                        src={t.photoUrl || "placeholder.png"} 
+                        alt={t.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2 text-center sm:text-left">
+                      <h4 className="text-xl font-serif text-primary font-bold">{t.name}</h4>
+                      <p className="text-sm font-medium text-accent uppercase tracking-wider">{t.title}</p>
+                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        {t.specialties.slice(0, 3).map(s => (
+                          <span key={s} className="text-[10px] bg-primary/5 text-primary/70 px-2 py-0.5 rounded-full border border-primary/10 font-bold uppercase">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <ChevronRight className="hidden sm:block w-6 h-6 text-primary/40 group-hover:text-primary transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      case 2: // Session Type
+        return (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h3 className="text-3xl font-serif text-primary">Session Type</h3>
+              <p className="text-muted-foreground mt-2">What kind of support are you looking for?</p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {SESSION_TYPES.map(type => (
                 <button
@@ -112,25 +235,35 @@ const BookingSystem = () => {
                     handleNext()
                   }}
                   className={cn(
-                    "p-6 rounded-2xl border-2 text-left transition-all hover:border-primary/30",
+                    "p-8 rounded-[2rem] border-2 text-center transition-all hover:scale-[1.02] active:scale-100",
                     bookingData.sessionType === type 
-                      ? "border-primary bg-primary/5 text-primary" 
-                      : "border-muted bg-white text-muted-foreground"
+                      ? "border-primary bg-primary/5 text-primary ring-4 ring-primary/5 shadow-xl shadow-primary/5" 
+                      : "border-muted/30 bg-white text-muted-foreground"
                   )}
                 >
-                  <span className="text-lg font-medium">{type}</span>
+                  <span className="text-xl font-serif font-bold">{type}</span>
                 </button>
               ))}
             </div>
+            <div className="flex pt-4">
+              <Button variant="ghost" className="rounded-full" onClick={handleBack}>
+                <ChevronLeft className="mr-2 h-4 w-4" /> Go Back
+              </Button>
+            </div>
           </div>
         )
-      case 2:
+      case 3: // Date Selection
         return (
-          <div className="space-y-6">
-            <h3 className="text-2xl font-serif text-primary text-center">Choose a Date</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="space-y-8">
+            <div className="text-center">
+              <h3 className="text-3xl font-serif text-primary">Preferred Date</h3>
+              <p className="text-muted-foreground mt-2">Choose a day that works for you</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[...Array(14)].map((_, i) => {
                 const day = addDays(startOfToday(), i)
+                // Skip Sundays if not available or just disable if rule says so
+                // For simplicity, showing all 14 days
                 const dateStr = format(day, "yyyy-MM-dd")
                 const isSelected = bookingData.date === dateStr
                 return (
@@ -138,198 +271,263 @@ const BookingSystem = () => {
                     key={dateStr}
                     onClick={() => setBookingData(d => ({ ...d, date: dateStr, time: "" }))}
                     className={cn(
-                      "p-4 rounded-xl border flex flex-col items-center transition-all",
+                      "p-6 rounded-2xl border-2 flex flex-col items-center transition-all hover:border-primary/40",
                       isSelected 
-                        ? "bg-primary text-white border-primary shadow-lg scale-105" 
-                        : "bg-white border-muted hover:border-primary/30"
+                        ? "bg-primary text-white border-primary shadow-xl scale-105" 
+                        : "bg-white border-muted/30 hover:bg-primary/5"
                     )}
                   >
-                    <span className="text-xs uppercase opacity-80">{format(day, "EEE")}</span>
-                    <span className="text-xl font-bold">{format(day, "dd")}</span>
-                    <span className="text-xs">{format(day, "MMM")}</span>
+                    <span className="text-[10px] uppercase font-black tracking-widest opacity-60 mb-2">{format(day, "EEE")}</span>
+                    <span className="text-2xl font-serif font-bold">{format(day, "dd")}</span>
+                    <span className="text-sm font-medium opacity-80">{format(day, "MMM")}</span>
                   </button>
                 )
               })}
             </div>
             <div className="flex justify-between pt-4">
-              <Button variant="ghost" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-              <Button disabled={!bookingData.date} onClick={handleNext}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+              <Button variant="ghost" className="rounded-full" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
+              <Button 
+                disabled={!bookingData.date} 
+                onClick={handleNext}
+                className="rounded-full px-8"
+              >
+                Find Slots <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </div>
         )
-      case 3:
+      case 4: // Time Slot
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="text-center">
-              <h3 className="text-2xl font-serif text-primary">Pick a Time</h3>
-              <p className="text-muted-foreground text-sm flex items-center justify-center mt-1">
-                <Calendar className="w-3 h-3 mr-1" /> {bookingData.date ? format(parseISO(bookingData.date), "MMMM dd, yyyy") : "No date selected"}
+              <h3 className="text-3xl font-serif text-primary">Available Slots</h3>
+              <p className="text-muted-foreground mt-2 flex items-center justify-center gap-2">
+                <Calendar className="w-4 h-4" /> {bookingData.date ? format(parseISO(bookingData.date), "MMMM dd, yyyy") : ""}
               </p>
             </div>
             
-            {loadingAvailability ? (
-              <div className="py-12 flex flex-col items-center">
-                <Loader2 className="h-8 w-8 text-primary animate-spin mb-2" />
-                <p className="text-sm text-muted-foreground">Checking slots...</p>
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center gap-3 text-sm font-medium">
+                <AlertCircle className="w-5 h-5" /> {error}
+              </div>
+            )}
+
+            {loadingSlots ? (
+              <div className="py-20 flex flex-col items-center">
+                <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+                <p className="font-serif italic text-primary/60">Checking the doctor's diary...</p>
+              </div>
+            ) : slots.length === 0 ? (
+              <div className="text-center py-16 bg-muted/5 rounded-[2rem] border-2 border-dashed border-muted/50">
+                <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-30" />
+                <p className="font-serif text-xl text-muted-foreground/60">No available slots for this day.</p>
+                <p className="text-sm text-muted-foreground mt-2">Try selecting another date.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {SLOTS.map(slot => {
-                  const isBooked = bookedSlots.includes(slot)
-                  const isSelected = bookingData.time === slot
-                  return (
-                    <button
-                      key={slot}
-                      disabled={isBooked}
-                      onClick={() => setBookingData(d => ({ ...d, time: slot }))}
-                      className={cn(
-                        "p-4 rounded-xl border text-sm font-medium transition-all relative overflow-hidden",
-                        isBooked ? "bg-muted/50 border-muted opacity-40 cursor-not-allowed" :
-                        isSelected ? "bg-primary text-white border-primary shadow-md" : 
-                        "bg-white border-muted hover:border-primary/30"
-                      )}
-                    >
-                      {slot}
-                      {isBooked && <span className="absolute inset-0 flex items-center justify-center opacity-10"><Clock className="w-8 h-8" /></span>}
-                    </button>
-                  )
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {slots.map(slot => (
+                  <button
+                    key={slot.time}
+                    disabled={!slot.isAvailable}
+                    onClick={() => lockSlot(slot.time)}
+                    className={cn(
+                      "p-5 rounded-2xl border-2 text-sm font-bold transition-all relative overflow-hidden",
+                      !slot.isAvailable ? "bg-muted/30 border-muted/10 opacity-30 cursor-not-allowed" :
+                      bookingData.time === slot.time ? "bg-primary text-white border-primary shadow-xl" : 
+                      "bg-white border-muted/30 hover:border-primary/40 hover:bg-primary/5"
+                    )}
+                  >
+                    {slot.time}
+                    {!slot.isAvailable && <div className="absolute inset-x-0 bottom-0 py-0.5 bg-muted text-[8px] font-black uppercase text-center">{slot.reason}</div>}
+                  </button>
+                ))}
               </div>
             )}
             
-            <div className="flex justify-between pt-4">
-              <Button variant="ghost" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-              <Button disabled={!bookingData.time} onClick={handleNext}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+            <div className="flex pt-4">
+              <Button variant="ghost" className="rounded-full" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
             </div>
           </div>
         )
-      case 4:
+      case 5: // User Details
         return (
-          <div className="space-y-6">
-            <h3 className="text-2xl font-serif text-primary text-center">Your Details</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-8">
+            <div className="text-center">
+              <h3 className="text-3xl font-serif text-primary">Your Details</h3>
+              <p className="text-muted-foreground mt-2">Almost there! We just need some details.</p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
+                  <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Full Name</label>
                   <Input 
-                    placeholder="Enter your name" 
+                    placeholder="E.g. Siddharth Singh" 
                     value={bookingData.name}
                     onChange={e => setBookingData(d => ({ ...d, name: e.target.value }))}
+                    className="h-14 rounded-2xl bg-primary/5 border-none focus:bg-white focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email Address</label>
+                  <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Email Address</label>
                   <Input 
                     type="email" 
-                    placeholder="name@email.com" 
+                    placeholder="E.g. sidd@email.com" 
                     value={bookingData.email}
                     onChange={e => setBookingData(d => ({ ...d, email: e.target.value }))}
+                    className="h-14 rounded-2xl bg-primary/5 border-none focus:bg-white focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Gender</label>
+                  <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Gender</label>
                   <select 
                     value={bookingData.gender}
                     onChange={e => setBookingData(d => ({ ...d, gender: e.target.value }))}
-                    className="flex h-10 w-full rounded-md border border-muted bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="flex h-14 w-full rounded-2xl bg-primary/5 border-none px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%235A5A40%22%20stroke-width%3D%221.67%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E')] bg-[length:20px_20px] bg-[right_15px_center] bg-no-repeat"
                   >
-                    <option value="">Select</option>
+                    <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Age</label>
+                  <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Age</label>
                   <Input 
                     type="number" 
                     placeholder="Age" 
                     value={bookingData.age}
                     onChange={e => setBookingData(d => ({ ...d, age: e.target.value }))}
+                    className="h-14 rounded-2xl bg-primary/5 border-none focus:bg-white focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Briefly describe your concern</label>
+                <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Anything you'd like to share?</label>
                 <Textarea 
-                  placeholder="Tell us a little about what you'd like to discuss..." 
+                  placeholder="Tell us a little about what's bringing you to therapy..." 
                   value={bookingData.message}
                   onChange={e => setBookingData(d => ({ ...d, message: e.target.value }))}
                   rows={4}
+                  className="rounded-[2rem] bg-primary/5 border-none focus:bg-white focus:ring-2 focus:ring-primary/20 p-6"
                 />
               </div>
             </div>
+            
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center gap-3 text-sm">
+                <AlertCircle className="w-5 h-5 shrink-0" /> {error}
+              </div>
+            )}
+
             <div className="flex justify-between pt-4">
-              <Button variant="ghost" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
+              <Button variant="ghost" className="rounded-full" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
               <Button 
                 disabled={!bookingData.name || !bookingData.email || !bookingData.gender || !bookingData.age} 
                 onClick={handleNext}
+                className="rounded-full px-12"
               >
-                Review <ChevronRight className="ml-2 h-4 w-4" />
+                Review Request <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         )
-      case 5:
+      case 6: // Review
+        const selectedTherapist = therapists.find(t => t.id === bookingData.therapistId)
         return (
           <div className="space-y-8">
             <div className="text-center">
-              <h3 className="text-2xl font-serif text-primary">Review Details</h3>
-              <p className="text-muted-foreground text-sm">Please verify your session details</p>
+              <h3 className="text-3xl font-serif text-primary">Final Review</h3>
+              <p className="text-muted-foreground mt-2">Take a moment to check your session details</p>
             </div>
             
-            <div className="bg-[#FFFBE7] border border-accent/20 rounded-[2rem] p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-y-4 text-sm">
-                <span className="text-muted-foreground">Session Type</span>
-                <span className="font-bold text-primary">{bookingData.sessionType}</span>
-                
-                <span className="text-muted-foreground">Date & Time</span>
-                <span className="font-bold text-primary">
-                  {bookingData.date ? format(parseISO(bookingData.date), "dd MMM yyyy") : "N/A"} at {bookingData.time || "N/A"}
-                </span>
-                
-                <span className="text-muted-foreground">Name</span>
-                <span className="font-bold text-primary">{bookingData.name}</span>
-                
-                <span className="text-muted-foreground">Email</span>
-                <span className="font-bold text-primary truncate">{bookingData.email}</span>
+            <div className="bg-[#FFFBE7] border-2 border-primary/5 rounded-[3rem] p-10 space-y-8 shadow-sm">
+              <div className="flex items-center gap-6 pb-8 border-b border-primary/5">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
+                   <img src={selectedTherapist?.photoUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                   <p className="text-[10px] uppercase font-black tracking-[0.2em] text-accent mb-1">Your Specialist</p>
+                   <h4 className="text-2xl font-serif font-bold text-primary">{selectedTherapist?.name}</h4>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-8 text-sm">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Session Focus</p>
+                  <p className="font-serif text-lg font-bold text-primary">{bookingData.sessionType} Session</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Chosen Slot</p>
+                  <p className="font-serif text-lg font-bold text-primary">
+                    {format(parseISO(bookingData.date), "dd MMM")} at {bookingData.time}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Your Name</p>
+                  <p className="font-serif text-lg font-bold text-primary">{bookingData.name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Contact Email</p>
+                  <p className="font-serif text-lg font-bold text-primary truncate">{bookingData.email}</p>
+                </div>
               </div>
               
               {bookingData.message && (
-                <div className="pt-4 border-t border-accent/10">
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Your Message</p>
-                  <p className="text-sm italic">{bookingData.message}</p>
+                <div className="pt-8 border-t border-primary/5">
+                  <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mb-3">A Note from You</p>
+                  <p className="italic text-primary/80 leading-relaxed">"{bookingData.message}"</p>
                 </div>
               )}
             </div>
             
-            <div className="flex justify-between pt-4">
-              <Button variant="ghost" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-              <Button className="px-12" size="lg" disabled={submitting} onClick={submitBooking}>
-                {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Confirm Booking"}
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center gap-3 text-sm">
+                <AlertCircle className="w-5 h-5" /> {error}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-6">
+              <Button variant="ghost" className="rounded-full" onClick={handleBack}><ChevronLeft className="mr-2 h-4 w-4" /> Go Back</Button>
+              <Button 
+                className="px-16 h-16 rounded-full text-lg shadow-2xl shadow-primary/20" 
+                disabled={submitting} 
+                onClick={submitBooking}
+              >
+                {submitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Confirm Session Request"}
               </Button>
             </div>
           </div>
         )
-      case 6:
+      case 7: // Success
         return (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-12 space-y-6"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-20 px-4 space-y-10"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-2">
-              <CheckCircle2 className="w-10 h-10" />
+            <div className="relative inline-flex items-center justify-center">
+              <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse" />
+              <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
+                <CheckCircle2 className="w-12 h-12" />
+              </div>
             </div>
-            <h2 className="text-3xl font-serif text-primary">Request Received</h2>
-            <p className="text-lg text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Your session request has been received. This is a meaningful step forward.
-            </p>
-            <p className="text-sm text-muted-foreground">We'll confirm your session shortly via email.</p>
-            <Button asChild variant="outline" className="mt-8 rounded-full px-8">
-              <a href="/">Back to Home</a>
+            
+            <div className="space-y-4 max-w-sm mx-auto">
+              <h2 className="text-4xl font-serif text-primary">A Path Forward</h2>
+              <p className="text-xl text-muted-foreground leading-relaxed italic">
+                “Every journey begins with a single, intentional step.”
+              </p>
+              <p className="text-muted-foreground">
+                Your request has been sent to our specialists. We will confirm your session details via email within 24 hours.
+              </p>
+            </div>
+            
+            <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500">
+              <a href="/">Return to Home</a>
             </Button>
           </motion.div>
         )
@@ -339,38 +537,41 @@ const BookingSystem = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-6">
-      <div className="mb-12">
-        <div className="flex justify-between items-center relative mb-4">
-          {[1,2,3,4,5].map(i => (
-            <div 
-              key={i} 
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold z-10 transition-all",
-                step === i ? "bg-primary text-white scale-110 shadow-lg" : 
-                step > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-              )}
-            >
-              {step > i ? <CheckCircle2 className="w-5 h-5" /> : i}
+    <div className="max-w-3xl mx-auto py-12 px-6 overflow-hidden">
+      {/* Progress Line */}
+      {step < 7 && (
+        <div className="mb-16">
+          <div className="flex justify-between items-center relative mb-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div 
+                key={i} 
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black z-10 transition-all duration-500",
+                  step === i ? "bg-primary text-white scale-125 shadow-lg shadow-primary/20" : 
+                  step > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground opacity-40"
+                )}
+              >
+                {step > i ? <CheckCircle2 className="w-4 h-4" /> : i}
+              </div>
+            ))}
+            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-muted -translate-y-1/2">
+              <div 
+                className="h-full bg-primary/30 transition-all duration-700 ease-out" 
+                style={{ width: `${(Math.min(step - 1, 5) / 5) * 100}%` }}
+              />
             </div>
-          ))}
-          <div className="absolute top-1/2 left-0 w-full h-[2px] bg-muted -translate-y-1/2">
-            <div 
-              className="h-full bg-primary/20 transition-all duration-500" 
-              style={{ width: `${(Math.min(step - 1, 4) / 4) * 100}%` }}
-            />
           </div>
         </div>
-      </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white rounded-[2.5rem] shadow-xl shadow-primary/5 p-8 sm:p-12 border border-muted/50"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="min-h-[500px]"
         >
           {renderStep()}
         </motion.div>

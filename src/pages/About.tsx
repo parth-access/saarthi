@@ -32,7 +32,7 @@ const About = () => {
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
       <Helmet>
-        <title>About Saarthi | Our Mission, Vision & Team</title>
+        <title>About Saarthi | Our Mission, Vision & Founders</title>
         <meta name="description" content="Learn about Saarthi’s mission to make mental health support accessible through professional therapy and psychological guidance." />
         <link rel="canonical" href="https://saarthilife.com/about" />
       </Helmet>
@@ -94,7 +94,7 @@ const About = () => {
             >
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=1000" 
+                  src="about_page.png" 
                   alt="Calm meditation" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -181,7 +181,7 @@ const About = () => {
           </div>
         </section>
 
-        {/* 7. Team Section */}
+        {/* 7. Founders Section */}
         <section className="mb-32">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl text-primary mb-4">The Hearts Behind Saarthi</h2>
@@ -198,7 +198,7 @@ const About = () => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-primary">Dravina Gupta</h3>
-                <p className="text-accent font-medium italic">Our Guiding Light</p>
+                <p className="text-accent font-medium italic">Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 A dedicated psychologist focused on understanding and supporting mental well-being with compassion and expertise.
@@ -216,7 +216,7 @@ const About = () => {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-primary">Krishna Gupta</h3>
-                <p className="text-accent font-medium italic">The Visionary Partner</p>
+                <p className="text-accent font-medium italic">Co-Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 Bringing a modern vision and business strategy, Krishna is passionate about building a safe and meaningful brand experience.
@@ -231,3 +231,4 @@ const About = () => {
 }
 
 export default About
+
