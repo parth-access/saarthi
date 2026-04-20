@@ -12,7 +12,7 @@ import Admin from "./pages/Admin"
 import DravinaProfile from "./pages/DravinaProfile"
 import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
-import { BookingForm } from "./components/forms/BookingForm"
+import BookingSystem from "./components/booking/BookingSystem"
 import { AdminAuthModal } from "./components/auth/AdminAuthModal"
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
             <Route path="/therapists" element={<Therapists />} />
             <Route path="/vision" element={<Vision />} />
             <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
+            <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/therapists/dravina" element={<DravinaProfile />} />
           </Routes>
@@ -40,8 +40,9 @@ function App() {
             isOpen={isBookingOpen} 
             onClose={() => setIsBookingOpen(false)} 
             title="Book a Session"
+            className="sm:max-w-3xl" // Make it wider for the step content
           >
-            <BookingForm onSuccess={() => setIsBookingOpen(false)} />
+            <BookingSystem />
           </Modal>
 
           <AdminAuthModal 

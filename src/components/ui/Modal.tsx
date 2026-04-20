@@ -1,15 +1,17 @@
 import * as React from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { X } from "lucide-react"
+import { cn } from "../../lib/utils"
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -36,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+            className={cn("relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl", className)}
           >
             <div className="flex items-center justify-between border-b border-muted p-6">
               <h3 className="text-xl font-heading font-bold text-text">{title}</h3>
