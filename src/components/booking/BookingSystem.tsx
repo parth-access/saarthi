@@ -68,15 +68,21 @@ const BookingSystem = () => {
   // 1. Fetch Therapists
   React.useEffect(() => {
     const fetchTherapists = async () => {
+      console.log('🔄 BookingSystem: Fetching therapists...');
       setLoadingTherapists(true)
+      setError(null)
       try {
         const res = await fetch('/api/get-therapists')
         const data = await res.json()
+        console.log('📦 BookingSystem: Therapist data received', data);
         if (data.success) {
-          setTherapists(data.therapists)
+          setTherapists(data.therapists || [])
+        } else {
+          setError(data.error || "Could not load our specialists.")
         }
       } catch (err) {
-        console.error("Failed to fetch therapists", err)
+        console.error("❌ BookingSystem: Failed to fetch therapists", err)
+        setError("Network error. Please check your connection.")
       } finally {
         setLoadingTherapists(false)
       }
@@ -177,12 +183,29 @@ const BookingSystem = () => {
                 <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
                 <p className="font-serif italic text-primary/60">Meeting our team...</p>
               </div>
+            ) : error && step === 1 ? (
+              <div className="py-16 text-center space-y-4">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto opacity-50" />
+                <p className="text-primary font-medium">{error}</p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  Try Again
+                </Button>
+              </div>
+            ) : therapists.length === 0 ? (
+              <div className="py-16 text-center space-y-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/10">
+                <ShieldCheck className="w-12 h-12 text-primary/20 mx-auto" />
+                <div className="space-y-2">
+                  <p className="text-xl font-serif text-primary/60">No specialists available right now.</p>
+                  <p className="text-sm text-muted-foreground">We are currently updating our therapist profiles.</p>
+                </div>
+              </div>
             ) : (
               <div className="grid gap-6">
                 {therapists.map(t => (
                   <button
                     key={t.id}
                     onClick={() => {
+                      console.log(`👤 BookingSystem: Therapist selected: ${t.name} (${t.id})`);
                       setBookingData(d => ({ ...d, therapistId: t.id }))
                       handleNext()
                     }}
@@ -195,7 +218,7 @@ const BookingSystem = () => {
                   >
                     <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 border-2 border-primary/10">
                       <img 
-                        src={t.photoUrl || "placeholder.png"} 
+                        src={t.image || "placeholder.png"} 
                         alt={t.name}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
@@ -203,14 +226,14 @@ const BookingSystem = () => {
                     </div>
                     <div className="flex-1 space-y-2 text-center sm:text-left">
                       <h4 className="text-xl font-serif text-primary font-bold">{t.name}</h4>
-                      <p className="text-sm font-medium text-accent uppercase tracking-wider">{t.title}</p>
-                      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                        {t.specialties.slice(0, 3).map(s => (
-                          <span key={s} className="text-[10px] bg-primary/5 text-primary/70 px-2 py-0.5 rounded-full border border-primary/10 font-bold uppercase">
-                            {s}
-                          </span>
-                        ))}
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <p className="text-sm font-medium text-accent uppercase tracking-wider">{t.specialization}</p>
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent/30 hidden sm:block" />
+                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t.experience} Exp.</p>
                       </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {t.bio}
+                      </p>
                     </div>
                     <ChevronRight className="hidden sm:block w-6 h-6 text-primary/40 group-hover:text-primary transition-colors" />
                   </button>
@@ -447,11 +470,12 @@ const BookingSystem = () => {
             <div className="bg-[#FFFBE7] border-2 border-primary/5 rounded-[3rem] p-10 space-y-8 shadow-sm">
               <div className="flex items-center gap-6 pb-8 border-b border-primary/5">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
-                   <img src={selectedTherapist?.photoUrl} alt="" className="w-full h-full object-cover" />
+                   <img src={selectedTherapist?.image} alt="" className="w-full h-full object-cover" />
                 </div>
                 <div>
                    <p className="text-[10px] uppercase font-black tracking-[0.2em] text-accent mb-1">Your Specialist</p>
                    <h4 className="text-2xl font-serif font-bold text-primary">{selectedTherapist?.name}</h4>
+                   <p className="text-[10px] font-black uppercase text-primary/40 tracking-widest">{selectedTherapist?.specialization}</p>
                 </div>
               </div>
 

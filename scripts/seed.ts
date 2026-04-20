@@ -1,10 +1,6 @@
-import { db } from './firebase-admin.js';
+import { db } from '../api/firebase-admin.js';
 
-export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
+async function seed() {
   console.log('🌱 Starting database seeding...');
 
   try {
@@ -35,27 +31,23 @@ export default async function handler(req: any, res: any) {
       }
     ];
 
-    const results = [];
-    const batch = db.batch();
-
     for (const t of therapists) {
-      // Check if therapist already exists to avoid duplicates (optional, but good for idempotent seeding)
       const existing = await db.collection('therapists').where('name', '==', t.name).get();
       
       let therapistId;
       if (existing.empty) {
         const therapistRef = db.collection('therapists').doc();
-        batch.set(therapistRef, t);
+        await therapistRef.set(t);
         therapistId = therapistRef.id;
-        console.log(`✅ Queued therapist: ${t.name}`);
+        console.log(`✅ Created therapist: ${t.name}`);
       } else {
         therapistId = existing.docs[0].id;
-        console.log(`ℹ️ Therapist ${t.name} already exists, skipping.`);
+        console.log(`ℹ️ Therapist ${t.name} already exists.`);
       }
 
-      // Add availability for each (Mon-Fri, 10 AM - 6 PM)
       const availabilityQuery = await db.collection('availability').where('therapistId', '==', therapistId).get();
       if (availabilityQuery.empty) {
+        const batch = db.batch();
         for (let day = 1; day <= 5; day++) {
           const availRef = db.collection('availability').doc();
           batch.set(availRef, {
@@ -66,22 +58,17 @@ export default async function handler(req: any, res: any) {
             slotDuration: 60
           });
         }
-        console.log(`📅 Queued availability for ${t.name}`);
+        await batch.commit();
+        console.log(`📅 Created availability for ${t.name}`);
       }
-
-      results.push({ name: t.name, id: therapistId });
     }
 
-    await batch.commit();
     console.log('✨ Seeding completed successfully!');
-
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Seeding successful',
-      therapists: results
-    });
-  } catch (error: any) {
+    process.exit(0);
+  } catch (error) {
     console.error('❌ Seeding failed:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    process.exit(1);
   }
 }
+
+seed();

@@ -62,7 +62,7 @@ const Vision = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="text-5xl md:text-7xl lg:text-8xl text-primary leading-[0.85] tracking-tighter mb-12"
+              className="text-4xl md:text-6xl lg:text-7xl text-primary leading-[0.85] tracking-tighter mb-12"
             >
               Our Vision — <br />
               <span className="italic font-normal text-accent/80">Making Emotional Well-being Simple</span>
@@ -96,15 +96,15 @@ const Vision = () => {
             >
               <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="vision_page.png" 
+                  src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1000" 
                   alt="Visionary landscape" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
               </div>
-              {/* <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-accent rounded-full flex items-center justify-center text-white shadow-xl rotate-12 p-8 text-center">
+              <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-accent rounded-full flex items-center justify-center text-white shadow-xl rotate-12 p-8 text-center">
                 <p className="text-sm font-serif italic">"Building a world where people feel safe to grow."</p>
-              </div> */}
+              </div>
             </motion.div>
 
             <div className="space-y-12">
@@ -243,4 +243,3 @@ const Vision = () => {
 }
 
 export default Vision
-
