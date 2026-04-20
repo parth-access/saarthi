@@ -17,8 +17,9 @@ export default async function handler(req: any, res: any) {
       let createdAt = data.createdAt;
       if (createdAt && typeof createdAt.toDate === 'function') {
         createdAt = createdAt.toDate().toISOString();
-      } else if (createdAt instanceof Date) {
-        createdAt = createdAt.toISOString();
+      } else if (createdAt && createdAt._seconds) {
+        // Handle admin raw timestamp object
+        createdAt = new Date(createdAt._seconds * 1000).toISOString();
       }
 
       return {

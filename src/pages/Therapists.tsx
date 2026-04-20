@@ -107,3 +107,4 @@ const Therapists = () => {
 }
 
 export default Therapists
+
