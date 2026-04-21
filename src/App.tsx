@@ -32,7 +32,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/therapists/dravina" element={<DravinaProfile />} />
+            <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
           </Routes>
           <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
 

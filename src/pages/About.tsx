@@ -94,7 +94,7 @@ const About = () => {
             >
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="about_page.png" 
+                  src="/about_page.png" 
                   alt="Calm meditation" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -231,4 +231,3 @@ const About = () => {
 }
 
 export default About
-

@@ -10,7 +10,11 @@ import TherapistProcess from "../components/therapist/TherapistProcess"
 import SessionDetails from "../components/therapist/SessionDetails"
 import FinalCTA from "../components/therapist/FinalCTA"
 
-const DravinaProfile = () => {
+interface DravinaProfileProps {
+  onBookClick?: () => void;
+}
+
+const DravinaProfile = ({ onBookClick }: DravinaProfileProps) => {
   const dravinaData = {
     name: "Dravina Gupta",
     title: "Therapist | Psychologist",
@@ -81,6 +85,8 @@ const DravinaProfile = () => {
         languages={dravinaData.languages}
         experience={dravinaData.experience}
         shortIntro={dravinaData.shortIntro}
+        image="/about_page.png"
+        onBookClick={onBookClick}
       />
       
       <AboutSection content={dravinaData.aboutContent} />
@@ -101,11 +107,9 @@ const DravinaProfile = () => {
       
       <SessionDetails mode="Online Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
       
-      <FinalCTA />
+      <FinalCTA onBookClick={onBookClick} />
     </main>
   )
 }
 
 export default DravinaProfile
-
-

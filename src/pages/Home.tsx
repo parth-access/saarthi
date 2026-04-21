@@ -21,7 +21,7 @@ const Home = ({ onBookClick }: HomeProps) => {
       </Helmet>
       <Hero onBookClick={onBookClick} />
       <Services />
-      <FeaturedTherapist />
+      <FeaturedTherapist onBookClick={onBookClick} />
       <Process />
       
       <section id="contact" className="py-24 bg-white">
@@ -42,4 +42,3 @@ const Home = ({ onBookClick }: HomeProps) => {
 }
 
 export default Home
-
