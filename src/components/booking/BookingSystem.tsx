@@ -65,6 +65,20 @@ const BookingSystem = () => {
     setStep(s => s - 1)
   }
 
+  // Safe fetch helper to handle non-JSON responses (HTML hijacking)
+  const safeFetch = async (url: string, options?: RequestInit) => {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get("content-type");
+    
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error(`❌ Non-JSON response from ${url}:`, text.slice(0, 200));
+      throw new Error(`Server returned unexpected format. Expected JSON, got ${contentType || 'unknown'}.`);
+    }
+    
+    return res.json();
+  };
+
   // 1. Fetch Therapists
   React.useEffect(() => {
     const fetchTherapists = async () => {
@@ -72,17 +86,16 @@ const BookingSystem = () => {
       setLoadingTherapists(true)
       setError(null)
       try {
-        const res = await fetch('/api/get-therapists')
-        const data = await res.json()
+        const data = await safeFetch('/api/get-therapists')
         console.log('📦 BookingSystem: Therapist data received', data);
         if (data.success) {
           setTherapists(data.therapists || [])
         } else {
           setError(data.error || "Could not load our specialists.")
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("❌ BookingSystem: Failed to fetch therapists", err)
-        setError("Network error. Please check your connection.")
+        setError(err.message || "Network error. Please check your connection.")
       } finally {
         setLoadingTherapists(false)
       }
@@ -97,8 +110,7 @@ const BookingSystem = () => {
     setError(null)
     console.log(`🔄 BookingSystem: Fetching availability for ${therapistId} on ${date}`);
     try {
-      const res = await fetch(`/api/get-availability?therapistId=${therapistId}&date=${date}`)
-      const data = await res.json()
+      const data = await safeFetch(`/api/get-availability?therapistId=${therapistId}&date=${date}`)
       
       if (data.success) {
         console.log(`📦 BookingSystem: Slots received`, data.slots);
@@ -107,9 +119,9 @@ const BookingSystem = () => {
         console.error(`❌ BookingSystem: API error`, data.error);
         setError(data.error || "Unable to load slots. Please try again.")
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ BookingSystem: Network fetch error", err)
-      setError("Unable to connect to the availability service. Please check your internet.")
+      setError(err.message || "Unable to connect to the availability service.")
     } finally {
       setLoadingSlots(false)
     }

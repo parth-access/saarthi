@@ -4,13 +4,15 @@ let dbInstance: admin.firestore.Firestore | null = null;
 
 export function getDb(): admin.firestore.Firestore {
   if (!dbInstance) {
-    if (!admin.apps.length) {
-      const base64Key = process.env.FIREBASE_ADMIN_KEY_BASE64;
-      
-      if (!base64Key) {
-        throw new Error('FIREBASE_ADMIN_KEY_BASE64 environment variable is required for database operations. Please add it to your project settings.');
-      }
+    const base64Key = process.env.FIREBASE_ADMIN_KEY_BASE64;
+    
+    if (!base64Key) {
+      console.error('❌ CRITICAL: FIREBASE_ADMIN_KEY_BASE64 environment variable is missing.');
+      // We throw a clear error that API handlers can catch and return to the UI
+      throw new Error('Database connection is not configured. (Missing FIREBASE_ADMIN_KEY_BASE64)');
+    }
 
+    if (!admin.apps.length) {
       try {
         const serviceAccount = JSON.parse(
           Buffer.from(base64Key, 'base64').toString('utf-8')
@@ -20,10 +22,10 @@ export function getDb(): admin.firestore.Firestore {
           credential: admin.credential.cert(serviceAccount)
         });
 
-        console.log('✅ Firebase Admin initialized');
+        console.log('✅ [Admin] Firebase SDK initialized successfully');
       } catch (error: any) {
-        console.error('❌ Firebase Admin initialization error:', error);
-        throw new Error(`Failed to initialize Firebase Admin: ${error.message}`);
+        console.error('❌ [Admin] Firebase SDK initialization failed:', error.message);
+        throw new Error(`Database initialization failed: ${error.message}`);
       }
     }
     dbInstance = admin.firestore();
