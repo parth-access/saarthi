@@ -52,17 +52,30 @@ export default async function handler(req: any, res: any) {
     }
 
     const availDoc = availabilitySnapshot.docs[0].data();
-    const rawSlots = availDoc.slots;
+    let rawSlots = availDoc.slots;
 
-    // 3. Validate slots is an array
-    if (!Array.isArray(rawSlots)) {
-      console.error(`❌ [API] Data integrity error: 'slots' field is not an array for therapist ${therapistId}`);
+    // 3. Robust Slot Parsing: Handle arrays or comma-separated strings
+    let processedSlots: string[] = [];
+    if (Array.isArray(rawSlots)) {
+      // If index 0 is a comma string like "10:00, 11:00", split it
+      if (rawSlots.length === 1 && typeof rawSlots[0] === 'string' && rawSlots[0].includes(',')) {
+        processedSlots = rawSlots[0].split(',').map(s => s.trim());
+      } else {
+        processedSlots = rawSlots;
+      }
+    } else if (typeof rawSlots === 'string') {
+      // If for some reason 'slots' was saved as a single string field
+      processedSlots = rawSlots.split(',').map(s => s.trim());
+    }
+
+    if (processedSlots.length === 0) {
+      console.error(`❌ [API] Data integrity error: 'slots' field is empty or not in a valid format for therapist ${therapistId}`);
       return res.status(500).json({ success: false, error: 'Internal data error: availability slots missing' });
     }
 
-    console.log(`📦 [API] Found ${rawSlots.length} raw slots in DB for this date.`);
+    console.log(`📦 [API] Found ${processedSlots.length} processed slots for this date.`);
 
-    // 4. Fetch existing bookings for this therapist and date to mark availability
+    // 4. Fetch existing bookings
     const bookingsSnapshot = await db.collection('bookings')
       .where('therapistId', '==', therapistId)
       .where('date', '==', normalizedDate)
@@ -81,8 +94,8 @@ export default async function handler(req: any, res: any) {
 
     const lockedTimes = new Set(locksSnapshot.docs.map(doc => doc.data().time));
 
-    // 6. Build the final slots response
-    const formattedSlots = rawSlots.map((time: string) => {
+    // 6. Build the final response
+    const formattedSlots = processedSlots.map((time: string) => {
       const isBooked = bookedTimes.has(time);
       const isLocked = lockedTimes.has(time);
       
