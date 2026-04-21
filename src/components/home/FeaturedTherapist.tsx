@@ -3,7 +3,11 @@ import { motion } from "motion/react"
 import { Button } from "../ui/Button"
 import { Link } from "react-router-dom"
 
-const FeaturedTherapist = () => {
+interface FeaturedTherapistProps {
+  onBookClick?: () => void;
+}
+
+const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
   return (
     <section id="featured-therapist" className="py-24 bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -16,7 +20,7 @@ const FeaturedTherapist = () => {
           >
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src=""
+                src="https://picsum.photos/seed/wellness/1200/600"
                 alt="Dravina Gupta - Certified Psychologist at Saarthi"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
@@ -35,7 +39,7 @@ const FeaturedTherapist = () => {
             <div className="mb-6">
               <h4 className="text-sm font-bold uppercase tracking-widest text-accent mb-4">Featured Therapist</h4>
               <h2 className="text-4xl font-bold text-primary font-serif mb-2">Dravina Gupta</h2>
-              <p className="text-xl text-accent font-medium italic">Founder | Psychologist</p>
+              <p className="text-xl text-accent font-medium italic">Founder| Psychologist</p>
             </div>
 
             <div className="mb-8">
@@ -50,7 +54,7 @@ const FeaturedTherapist = () => {
                   Know Your Saarthi
                 </Link>
               </Button>
-              <Button size="lg">
+              <Button size="lg" onClick={onBookClick}>
                 Book Session
               </Button>
             </div>

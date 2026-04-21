@@ -18,7 +18,7 @@ export function ContactForm() {
     setStatus('loading')
 
     try {
-      const response = await fetch('/api/create-booking', {
+      const response = await fetch('/api/send-contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

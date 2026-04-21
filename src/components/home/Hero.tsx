@@ -53,7 +53,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
             
             <div className="relative overflow-hidden rounded-[3.5rem] shadow-2xl shadow-primary/10">
               <img
-                src="home_page.jpeg"
+                src="/home_page.jpeg"
                 alt="Mental Wellness and Emotional Clarity"
                 className="aspect-[4/5] h-full w-full object-cover sm:aspect-video lg:aspect-[4/5]"
                 referrerPolicy="no-referrer"

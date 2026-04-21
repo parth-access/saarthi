@@ -96,10 +96,10 @@ const Vision = () => {
             >
               <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&q=80&w=1000" 
-                  alt="Visionary landscape" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
+                   src="/vision_page.png" 
+                   alt="Visionary landscape" 
+                   className="w-full h-full object-cover"
+                   referrerPolicy="no-referrer"
                 />
               </div>
               <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-accent rounded-full flex items-center justify-center text-white shadow-xl rotate-12 p-8 text-center">
