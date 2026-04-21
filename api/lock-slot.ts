@@ -1,6 +1,9 @@
 import { db } from './firebase-admin.js';
 
 export default async function handler(req: any, res: any) {
+  // Enforce JSON content type
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
@@ -10,6 +13,8 @@ export default async function handler(req: any, res: any) {
   if (!therapistId || !date || !time) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
   }
+
+  console.log(`🔒 [API] Locking slot: ${therapistId} / ${date} / ${time}`);
 
   try {
     // Check if literally already booked
