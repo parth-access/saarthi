@@ -1,8 +1,6 @@
 import { db } from './firebase-admin.js';
-import { Resend } from 'resend';
 import { sanitize, isValidEmail } from './_utils.js';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendBookingRequestEmail } from './_email.js';
 
 export default async function handler(req: any, res: any) {
   // Enforce JSON content type
@@ -102,27 +100,15 @@ export default async function handler(req: any, res: any) {
     });
 
     // 📧 Async Emails (don't block the response)
-    resend.emails.send({
-      from: 'Saarthi <contact@saarthilife.com>',
-      to: email,
-      bcc: 'healwithsaarthi@gmail.com',
-      subject: 'Your session request is received',
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #f0f0f0; border-radius: 20px; color: #1a1a1a;">
-          <h2 style="color: #5A5A40; font-family: serif; font-size: 24px;">Hi ${sName},</h2>
-          <p style="font-size: 16px; line-height: 1.6;">Thank you for taking this meaningful step with Saarthi. We have received your request for a <strong>${sessionType}</strong> session with <strong>${therapistName}</strong>.</p>
-          
-          <div style="background: #fdf6e7; padding: 20px; border-radius: 15px; margin: 25px 0; border: 1px solid #f5f2ed;">
-            <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
-            <p style="margin: 5px 0;"><strong>Time:</strong> ${time}</p>
-            <p style="margin: 5px 0;"><strong>Therapist:</strong> ${therapistName}</p>
-          </div>
-          
-          <p style="font-size: 16px; line-height: 1.6;">We’ll confirm your session shortly.</p>
-          <p style="font-size: 14px; color: #666; margin-top: 30px;">Warmly,<br/><strong>Team Saarthi</strong></p>
-        </div>
-      `
-    }).catch(e => console.error('Email error:', e));
+    sendBookingRequestEmail({
+      userName: sName,
+      userEmail: email,
+      therapistName,
+      date,
+      time,
+      sessionType,
+      message: sMessage
+    });
 
     return res.status(200).json({ success: true, id: bookingId });
 
