@@ -73,7 +73,7 @@ const ProfileHero = ({
           >
             <div className="aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src={image || "https://picsum.photos/seed/therapist-profile/800/1000"}
+                src={image || "/placeholder.png"}
                 alt={name}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"

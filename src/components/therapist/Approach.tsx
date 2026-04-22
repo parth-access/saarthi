@@ -47,7 +47,7 @@ const Approach = ({ items }: ApproachProps) => {
             className="relative overflow-hidden rounded-3xl shadow-2xl"
           >
             <img
-              src="https://picsum.photos/seed/therapy-approach/1000/800"
+              src="/vision_page.png"
               alt="Therapeutic Approach"
               className="h-full w-full object-cover"
               referrerPolicy="no-referrer"
