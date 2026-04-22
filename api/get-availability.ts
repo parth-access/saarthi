@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
 
   try {
     // 1. Normalize date to YYYY-MM-DD reliably
-    const normalizedDate = new Date(date).toISOString().split('T')[0];
+    const normalizedDate = date;
     console.log(`📅 [API] Normalized date for query: ${normalizedDate}`);
 
     // 2. Query Firestore for the specific date
@@ -122,6 +122,3 @@ export default async function handler(req: any, res: any) {
     });
   }
 }
-const snapshot = await db.collection('availability').get();
-
-console.log('📦 RAW DATA:', snapshot.docs.map(doc => doc.data()));
