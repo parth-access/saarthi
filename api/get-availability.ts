@@ -122,3 +122,6 @@ export default async function handler(req: any, res: any) {
     });
   }
 }
+const snapshot = await db.collection('availability').get();
+
+console.log('📦 RAW DATA:', snapshot.docs.map(doc => doc.data()));
