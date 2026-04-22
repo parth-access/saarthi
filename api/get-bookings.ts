@@ -1,5 +1,5 @@
 import { db } from './firebase-admin.js';
-import { validateAdminAuth } from './_auth.ts';
+import { validateAdminAuth } from './_auth.js';
 
 export default async function handler(req: any, res: any) {
   // Enforce JSON content type
