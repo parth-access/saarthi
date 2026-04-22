@@ -81,3 +81,4 @@ export function Footer({ onAdminLogin }: FooterProps) {
     </footer>
   )
 }
+
