@@ -17,43 +17,57 @@ export default async function handler(req: any, res: any) {
   console.log(`🔒 [API] Locking slot: ${therapistId} / ${date} / ${time}`);
 
   try {
-    // Check if literally already booked
-    const bookingCheck = await db.collection('bookings')
-      .where('therapistId', '==', therapistId)
-      .where('date', '==', date)
-      .where('time', '==', time)
-      .where('status', 'in', ['confirmed', 'pending'])
-      .get();
+    let newLockId = '';
 
-    if (!bookingCheck.empty) {
-      return res.status(409).json({ success: false, error: 'Slot already booked' });
-    }
+    // ⚡ TRANSACTIONAL LOCKING
+    await db.runTransaction(async (transaction) => {
+      // 1. Check for existing bookings
+      const bookingQuery = db.collection('bookings')
+        .where('therapistId', '==', therapistId)
+        .where('date', '==', date)
+        .where('time', '==', time)
+        .where('status', 'in', ['confirmed', 'pending']);
+      
+      const bookingDocs = await transaction.get(bookingQuery);
+      if (!bookingDocs.empty) {
+        throw new Error('ALREADY_BOOKED');
+      }
 
-    // Check if already locked by someone else
-    const now = new Date();
-    const lockCheck = await db.collection('locks')
-      .where('therapistId', '==', therapistId)
-      .where('date', '==', date)
-      .where('time', '==', time)
-      .where('expiresAt', '>', now)
-      .get();
+      // 2. Check for active locks
+      const now = new Date();
+      const lockQuery = db.collection('locks')
+        .where('therapistId', '==', therapistId)
+        .where('date', '==', date)
+        .where('time', '==', time)
+        .where('expiresAt', '>', now);
+      
+      const lockDocs = await transaction.get(lockQuery);
+      if (!lockDocs.empty) {
+        throw new Error('ALREADY_LOCKED');
+      }
 
-    if (!lockCheck.empty) {
-      return res.status(409).json({ success: false, error: 'Slot is temporarily locked by another user' });
-    }
-
-    // Create new lock
-    const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
-    const lockRef = await db.collection('locks').add({
-      therapistId,
-      date,
-      time,
-      expiresAt
+      // 3. Create the lock
+      const lockRef = db.collection('locks').doc();
+      newLockId = lockRef.id;
+      
+      transaction.set(lockRef, {
+        therapistId,
+        date,
+        time,
+        expiresAt: new Date(now.getTime() + 5 * 60 * 1000) // 5 minutes
+      });
     });
 
-    return res.status(200).json({ success: true, lockId: lockRef.id });
+    return res.status(200).json({ success: true, lockId: newLockId });
+
   } catch (error: any) {
+    if (error.message === 'ALREADY_BOOKED') {
+      return res.status(409).json({ success: false, error: 'This slot was just booked.' });
+    }
+    if (error.message === 'ALREADY_LOCKED') {
+      return res.status(409).json({ success: false, error: 'Someone else is currently filling out details for this slot.' });
+    }
     console.error('❌ Error locking slot:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Failed to reserve slot. Please try again.' });
   }
 }

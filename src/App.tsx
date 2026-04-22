@@ -10,6 +10,7 @@ import About from "./pages/About"
 import Contact from "./pages/Contact"
 import Admin from "./pages/Admin"
 import DravinaProfile from "./pages/DravinaProfile"
+import NotFound from "./pages/NotFound"
 import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
 import BookingSystem from "./components/booking/BookingSystem"
@@ -33,6 +34,12 @@ function App() {
             <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
+            <Route path="/book" element={
+              <div className="pt-24 min-h-screen bg-[#FFFBE7]">
+                <BookingSystem />
+              </div>
+            } />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
 

@@ -25,6 +25,7 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
     setTimeout(() => {
       // The password requested by the user: "saarthi-admmin" (intentional typo included)
       if (password === "saarthi-admmin") {
+        localStorage.setItem("adminToken", password)
         localStorage.setItem("isAdminAuthenticated", "true")
         onClose()
         navigate("/admin")

@@ -38,14 +38,19 @@ const AdminPage = () => {
   const fetchData = async () => {
     try {
       setLoading(true)
+      const token = localStorage.getItem("adminToken")
       
       // Fetch Bookings
-      const bRes = await fetch('/api/get-bookings')
+      const bRes = await fetch('/api/get-bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       const bData = await bRes.json()
       
       if (!bData.success) throw new Error(bData.error || "Failed to load bookings")
       
-      // Fetch Therapists
+      // Fetch Therapists (public API)
       const tRes = await fetch('/api/get-therapists')
       const tData = await tRes.json()
       
@@ -76,15 +81,20 @@ const AdminPage = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("isAdminAuthenticated")
+    localStorage.removeItem("adminToken")
     navigate("/")
   }
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
       setProcessingId(id)
+      const token = localStorage.getItem("adminToken")
       const response = await fetch('/api/update-booking', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ id, status })
       })
       

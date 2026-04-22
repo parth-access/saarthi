@@ -33,8 +33,8 @@ const Hero = ({ onBookClick }: HeroProps) => {
             </div>
 
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-start sm:space-x-6 sm:space-y-0">
-              <Button size="lg" variant="primary" onClick={onBookClick} className="px-10 py-7 text-lg">
-                Book a Session
+              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg">
+                <Link to="/book">Book a Session</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="px-10 py-7 text-lg">
                 <Link to="/vision">Learn More</Link>
