@@ -49,6 +49,8 @@ const BookingSystem = () => {
   const [error, setError] = React.useState<string | null>(null)
   const [activeLockId, setActiveLockId] = React.useState<string | null>(null)
   
+  const [loadingSlot, setLoadingSlot] = React.useState<string | null>(null)
+  
   const [bookingData, setBookingData] = React.useState<BookingData>({
     therapistId: "",
     sessionType: "",
@@ -132,12 +134,21 @@ const BookingSystem = () => {
   React.useEffect(() => {
     if (bookingData.therapistId && bookingData.date && step === 4) {
       fetchAvailability(bookingData.therapistId, bookingData.date)
+      // Reset selection when date/therapist changes if we're on slot step
+      setBookingData(prev => ({ ...prev, time: "" }))
+      setLoadingSlot(null)
     }
   }, [bookingData.therapistId, bookingData.date, step])
 
   // 3. Lock Slot
   const lockSlot = async (time: string) => {
+    if (loadingSlot) return // Prevent multiple clicks
+    
+    // OPTIMISTIC UI: Select immediately
     setError(null)
+    setBookingData(prev => ({ ...prev, time }))
+    setLoadingSlot(time)
+    
     try {
       const res = await fetch('/api/lock-slot', {
         method: 'POST',
@@ -148,17 +159,27 @@ const BookingSystem = () => {
           time: time
         })
       })
+      
       const data = await res.json()
+      
       if (data.success) {
-        setBookingData(prev => ({ ...prev, time }))
         setActiveLockId(data.lockId)
-        handleNext()
+        // Short artificial delay to ensure users see the "Checking" state for a micro-second
+        setTimeout(() => {
+          handleNext()
+          setLoadingSlot(null)
+        }, 300)
       } else {
+        // REVERT: Lock failed
+        setBookingData(prev => ({ ...prev, time: "" }))
+        setLoadingSlot(null)
         setError(data.error || "This slot is no longer available.")
         // Refresh availability if lock fails
         fetchAvailability(bookingData.therapistId, bookingData.date)
       }
     } catch (err) {
+      setBookingData(prev => ({ ...prev, time: "" }))
+      setLoadingSlot(null)
       setError("Connection issue while trying to reserve slot.")
     }
   }
@@ -381,22 +402,38 @@ const BookingSystem = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {slots.map(slot => (
-                  <button
-                    key={slot.time}
-                    disabled={!slot.isAvailable}
-                    onClick={() => lockSlot(slot.time)}
-                    className={cn(
-                      "p-5 rounded-2xl border-2 text-sm font-bold transition-all relative overflow-hidden",
-                      !slot.isAvailable ? "bg-muted/30 border-muted/10 opacity-30 cursor-not-allowed" :
-                      bookingData.time === slot.time ? "bg-primary text-white border-primary shadow-xl" : 
-                      "bg-white border-muted/30 hover:border-primary/40 hover:bg-primary/5"
-                    )}
-                  >
-                    {formatTime12h(slot.time)}
-                    {!slot.isAvailable && <div className="absolute inset-x-0 bottom-0 py-0.5 bg-muted text-[8px] font-black uppercase text-center">{slot.reason}</div>}
-                  </button>
-                ))}
+                {slots.map(slot => {
+                  const isSelected = bookingData.time === slot.time
+                  const isLoading = loadingSlot === slot.time
+                  const isAnyLoading = loadingSlot !== null
+
+                  return (
+                    <button
+                      key={slot.time}
+                      disabled={!slot.isAvailable || isAnyLoading}
+                      onClick={() => lockSlot(slot.time)}
+                      className={cn(
+                        "p-5 rounded-2xl border-2 text-sm font-bold transition-all duration-150 ease-out relative overflow-hidden",
+                        "active:scale-95 disabled:active:scale-100", // Tactile feedback
+                        !slot.isAvailable ? "bg-muted/30 border-muted/10 opacity-30 cursor-not-allowed" :
+                        isSelected ? "bg-primary text-white border-primary shadow-xl ring-4 ring-primary/10" : 
+                        "bg-white border-muted/30 hover:border-primary/40 hover:bg-primary/5",
+                        isAnyLoading && !isLoading && "opacity-50 cursor-wait" // Dim others while one is loading
+                      )}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                        <span>{isLoading ? "Checking..." : formatTime12h(slot.time)}</span>
+                      </div>
+                      
+                      {!slot.isAvailable && (
+                        <div className="absolute inset-x-0 bottom-0 py-0.5 bg-muted text-[8px] font-black uppercase text-center">
+                          {slot.reason}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
             
