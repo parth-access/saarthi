@@ -23,14 +23,14 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
 
     // Simulate small delay for better UX
     setTimeout(() => {
-      // The password requested by the user: "saarthi-admmin" (intentional typo included)
-      if (password === "saarthi-admmin") {
+      // The password entered by the user will be used as the secret key
+      if (password.length > 0) {
         localStorage.setItem("adminToken", password)
         localStorage.setItem("isAdminAuthenticated", "true")
         onClose()
         navigate("/admin")
       } else {
-        setError("Invalid administrative credentials.")
+        setError("Please enter administrative credentials.")
       }
       setIsLoading(false)
     }, 500)

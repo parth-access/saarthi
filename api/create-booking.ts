@@ -34,7 +34,7 @@ export default async function handler(req: any, res: any) {
 
     // ⚡ TRANSACTIONAL BOOKING
     await db.runTransaction(async (transaction) => {
-      // 1. Check for existing bookings
+      // 1. Check for existing concurrent bookings (another layer of safety)
       const existingQuery = db.collection('bookings')
         .where('therapistId', '==', therapistId)
         .where('date', '==', date)
@@ -42,29 +42,42 @@ export default async function handler(req: any, res: any) {
         .where('status', 'in', ['confirmed', 'pending']);
       
       const existingDocs = await transaction.get(existingQuery);
-
       if (!existingDocs.empty) {
         throw new Error('SLOT_OCCUPIED');
       }
 
-      // 2. Optional: Verify lock if provided
-      if (lockId) {
-        const lockRef = db.collection('locks').doc(lockId);
-        const lockDoc = await transaction.get(lockRef);
-        if (lockDoc.exists) {
-          // Verify it matches is a good idea but optional for speed
-          // transaction.delete(lockRef); // Clean up lock
-        }
+      // 2. Validate and Consume Lock (MANDATORY in production)
+      if (!lockId) {
+        throw new Error('MISSING_LOCK'); // Prevent bookings without a pre-secured lock
+      }
+      
+      const lockRef = db.collection('locks').doc(lockId);
+      const lockDoc = await transaction.get(lockRef);
+      
+      if (!lockDoc.exists) {
+        throw new Error('INVALID_LOCK');
+      }
+      
+      const lockData = lockDoc.data();
+      const now = new Date();
+      
+      if (!lockData || lockData.expiresAt.toDate() < now) {
+        throw new Error('EXPIRED_LOCK');
+      }
+      
+      // Ensure lock is for the correct data
+      if (lockData.therapistId !== therapistId || lockData.date !== date || lockData.time !== time) {
+        throw new Error('LOCK_MISMATCH');
       }
 
-      // 3. Get therapist name
+      // 3. Get therapist name for confirmation email
       const therapistRef = db.collection('therapists').doc(therapistId);
       const therapistDoc = await transaction.get(therapistRef);
       if (therapistDoc.exists) {
         therapistName = therapistDoc.data()?.name || therapistName;
       }
 
-      // 4. Create the booking
+      // 4. Create the booking document
       const newBookingRef = db.collection('bookings').doc();
       bookingId = newBookingRef.id;
 
@@ -76,12 +89,16 @@ export default async function handler(req: any, res: any) {
         date,
         time,
         gender,
-        age,
+        age: parseInt(age), // Ensure number
         sessionType,
         status: 'pending',
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        lockId // track which lock was used
       });
+
+      // 5. Atomic Delete: Release the lock so the slot doesn't stay "locked" unnecessarily
+      transaction.delete(lockRef);
     });
 
     // 📧 Async Emails (don't block the response)
@@ -110,10 +127,19 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: true, id: bookingId });
 
   } catch (error: any) {
-    if (error.message === 'SLOT_OCCUPIED') {
-      return res.status(409).json({ success: false, error: 'This time slot was just booked by someone else.' });
-    }
     console.error('❌ Error creating booking:', error);
-    return res.status(500).json({ success: false, error: 'Failed to process booking. Please try again.' });
+    
+    const errorMap: Record<string, string> = {
+      'SLOT_OCCUPIED': 'This time slot was just booked by someone else.',
+      'MISSING_LOCK': 'Your session data has expired. Please refresh the page and try again.',
+      'INVALID_LOCK': 'Your reservation is no longer valid. Please choose a different time.',
+      'EXPIRED_LOCK': 'Your time slot reservation has expired. Please select the slot again.',
+      'LOCK_MISMATCH': 'Session data mismatch. Please clear your cache and try again.'
+    };
+
+    return res.status(errorMap[error.message] ? 409 : 500).json({ 
+      success: false, 
+      error: errorMap[error.message] || 'Failed to process booking. Please try again.' 
+    });
   }
 }

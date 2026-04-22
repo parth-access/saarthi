@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button"
 import { Link } from "react-router-dom"
 import { Heart, Shield, Sparkles, MessageCircle, Compass, Users, Lightbulb, Leaf } from "lucide-react"
 
+
 const About = () => {
   const differentiators = [
     {
@@ -229,5 +230,7 @@ const About = () => {
     </div>
   )
 }
+
+
 
 export default About

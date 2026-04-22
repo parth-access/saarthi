@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "vite",
     "build": "vite build",
     "start": "tsx server.ts",
     "preview": "vite preview",
@@ -16,6 +16,7 @@
     "@google/genai": "^1.29.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
+    "@sentry/react": "^10.49.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vercel/node": "^5.7.13",
     "@vitejs/plugin-react": "^5.0.4",

@@ -1,10 +1,11 @@
 import { db } from './firebase-admin.js';
+import { format, parse, addMinutes, isBefore, isSameDay } from 'date-fns';
 
 /**
- * Helper: Generates time slots between startTime and endTime
+ * API Handler: Generate slots dynamically based on therapist rules
+ * Path: /api/get-availability
  */
 export default async function handler(req: any, res: any) {
-  // Always set content-type to JSON to prevent HTML hijacking
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'GET') {
@@ -17,68 +18,43 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ success: false, error: 'Therapist ID and date are required' });
   }
 
-  console.log(`🔍 [API] Incoming availability request: therapistId=${therapistId}, rawDate=${date}`);
-
   try {
-    // 1. Normalize date to YYYY-MM-DD reliably
-    const normalizedDate = date;
-    console.log(`📅 [API] Normalized date for query: ${normalizedDate}`);
+    // 1. Determine day of week (0-6, 0 is Sunday)
+    const targetDate = new Date(date);
+    const dayOfWeek = targetDate.getDay();
 
-    // 2. Query Firestore for the specific date
-    const availabilitySnapshot = await db.collection('availability')
+    // 2. Fetch availability rules for this therapist and day
+    const rulesSnapshot = await db.collection('availability_rules')
       .where('therapistId', '==', therapistId)
-      .where('date', '==', normalizedDate)
+      .where('dayOfWeek', '==', dayOfWeek)
       .get();
 
-    // Debugging: Fallback check if specific query fails
-    if (availabilitySnapshot.empty) {
-      console.log(`ℹ️ [API] No direct match for therapistId ${therapistId} on date ${normalizedDate}.`);
-      
-      const debugSnapshot = await db.collection('availability')
-        .where('therapistId', '==', therapistId)
-        .limit(5)
-        .get();
-      
-      if (debugSnapshot.empty) {
-        console.log(`❌ [API] DEBUG: No availability documents found for therapistId ${therapistId} at all.`);
-      } else {
-        console.log(`📝 [API] DEBUG: Found ${debugSnapshot.size} availability docs for this therapist. Examples:`);
-        debugSnapshot.docs.forEach(doc => {
-          console.log(`   - ID: ${doc.id}, storedDate: ${doc.data().date}`);
-        });
-      }
-      
+    if (rulesSnapshot.empty) {
       return res.status(200).json({ success: true, slots: [] });
     }
 
-    const availDoc = availabilitySnapshot.docs[0].data();
-    let rawSlots = availDoc.slots;
+    // 3. Generate baseline slots from rules
+    let allGeneratedSlots: string[] = [];
+    
+    rulesSnapshot.docs.forEach(doc => {
+      const rule = doc.data();
+      const { startTime, endTime, slotDuration } = rule;
+      
+      const start = parse(startTime, 'HH:mm', targetDate);
+      const end = parse(endTime, 'HH:mm', targetDate);
+      const duration = slotDuration || 60;
 
-    // 3. Robust Slot Parsing: Handle arrays or comma-separated strings
-    let processedSlots: string[] = [];
-    if (Array.isArray(rawSlots)) {
-      // If index 0 is a comma string like "10:00, 11:00", split it
-      if (rawSlots.length === 1 && typeof rawSlots[0] === 'string' && rawSlots[0].includes(',')) {
-        processedSlots = rawSlots[0].split(',').map(s => s.trim());
-      } else {
-        processedSlots = rawSlots;
+      let current = start;
+      while (isBefore(current, end)) {
+        allGeneratedSlots.push(format(current, 'HH:mm'));
+        current = addMinutes(current, duration);
       }
-    } else if (typeof rawSlots === 'string') {
-      // If for some reason 'slots' was saved as a single string field
-      processedSlots = rawSlots.split(',').map(s => s.trim());
-    }
+    });
 
-    if (processedSlots.length === 0) {
-      console.error(`❌ [API] Data integrity error: 'slots' field is empty or not in a valid format for therapist ${therapistId}`);
-      return res.status(500).json({ success: false, error: 'Internal data error: availability slots missing' });
-    }
-
-    console.log(`📦 [API] Found ${processedSlots.length} processed slots for this date.`);
-
-    // 4. Fetch existing bookings
+    // 4. Fetch existing bookings for this date
     const bookingsSnapshot = await db.collection('bookings')
       .where('therapistId', '==', therapistId)
-      .where('date', '==', normalizedDate)
+      .where('date', '==', date)
       .where('status', 'in', ['confirmed', 'pending'])
       .get();
 
@@ -88,14 +64,14 @@ export default async function handler(req: any, res: any) {
     const now = new Date();
     const locksSnapshot = await db.collection('locks')
       .where('therapistId', '==', therapistId)
-      .where('date', '==', normalizedDate)
+      .where('date', '==', date)
       .where('expiresAt', '>', now)
       .get();
 
     const lockedTimes = new Set(locksSnapshot.docs.map(doc => doc.data().time));
 
-    // 6. Build the final response
-    const formattedSlots = processedSlots.map((time: string) => {
+    // 6. Filter and format slots
+    const finalSlots = allGeneratedSlots.map(time => {
       const isBooked = bookedTimes.has(time);
       const isLocked = lockedTimes.has(time);
       
@@ -106,19 +82,13 @@ export default async function handler(req: any, res: any) {
       };
     });
 
-    console.log(`✅ [API] Returning ${formattedSlots.length} slots for ${therapistId} on ${normalizedDate}`);
-
     return res.status(200).json({
       success: true,
-      slots: formattedSlots
+      slots: finalSlots
     });
 
   } catch (error: any) {
-    console.error('❌ [API] Critical availability error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to process availability.',
-      details: error.message
-    });
+    console.error('❌ [API] Availability Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to process availability.' });
   }
 }

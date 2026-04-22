@@ -16,24 +16,6 @@ const hardcodedTherapists: Therapist[] = [
     bio: "Specializing in anxiety, depression, and mindfulness-based stress reduction. I believe in a compassionate, non-judgmental approach to healing.",
     image: "about_page.png",
     active: true
-  },
-  {
-    id: "2",
-    name: "Ananya Sharma",
-    specialization: "Child & Adolescent Specialist",
-    experience: "5 Years",
-    bio: "Helping young minds navigate the complexities of growing up. Focused on emotional regulation and family dynamics.",
-    image: "https://picsum.photos/seed/ananya/400/400",
-    active: true
-  },
-  {
-    id: "3",
-    name: "Vikram Malhotra",
-    specialization: "Trauma & CBT Expert",
-    experience: "12 Years",
-    bio: "Dedicated to helping survivors of trauma reclaim their lives through evidence-based cognitive behavioral therapy.",
-    image: "https://picsum.photos/seed/vikram/400/400",
-    active: true
   }
 ]
 
