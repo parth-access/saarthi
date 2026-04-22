@@ -1,9 +1,16 @@
 import { db } from './firebase-admin.js';
+import { validateAdminAuth } from './_auth.js';
 
 export default async function handler(req: any, res: any) {
+  // Enforce JSON content type
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+
+  // Protect the route
+  if (!validateAdminAuth(req, res)) return;
 
   try {
     const snapshot = await db.collection('bookings')

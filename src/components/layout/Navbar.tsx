@@ -64,8 +64,8 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           <div className="flex items-center">
             {/* Desktop CTA */}
             <div className="hidden md:block">
-              <Button size="default" variant="primary" onClick={onBookClick}>
-                Book Session
+              <Button asChild size="default" variant="primary">
+                <Link to="/book">Book Session</Link>
               </Button>
             </div>
 

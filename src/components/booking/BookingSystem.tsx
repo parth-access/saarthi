@@ -13,6 +13,7 @@ import {
   AlertCircle 
 } from "lucide-react"
 import { Button } from "../ui/Button"
+import { Link } from "react-router-dom"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { cn } from "../../lib/utils"
@@ -46,6 +47,7 @@ const BookingSystem = () => {
   const [slots, setSlots] = React.useState<Slot[]>([])
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [activeLockId, setActiveLockId] = React.useState<string | null>(null)
   
   const [bookingData, setBookingData] = React.useState<BookingData>({
     therapistId: "",
@@ -149,6 +151,7 @@ const BookingSystem = () => {
       const data = await res.json()
       if (data.success) {
         setBookingData(prev => ({ ...prev, time }))
+        setActiveLockId(data.lockId)
         handleNext()
       } else {
         setError(data.error || "This slot is no longer available.")
@@ -170,6 +173,7 @@ const BookingSystem = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...bookingData,
+          lockId: activeLockId,
           age: parseInt(bookingData.age)
         })
       })
@@ -580,7 +584,7 @@ const BookingSystem = () => {
             </div>
             
             <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500">
-              <a href="/">Return to Home</a>
+              <Link to="/">Return to Home</Link>
             </Button>
           </motion.div>
         )

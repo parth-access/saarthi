@@ -1,5 +1,6 @@
 import { db } from './firebase-admin.js';
 import { Resend } from 'resend';
+import { validateAdminAuth } from './_auth.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -10,6 +11,9 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+
+  // Protect the route
+  if (!validateAdminAuth(req, res)) return;
 
   const { id, status } = req.body;
 
