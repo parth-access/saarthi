@@ -49,7 +49,7 @@ const AdminPage = () => {
       }
       
       // Fetch Bookings with robust error handling
-      const bRes = await fetch('/api/get-bookings', {
+      const bRes = await fetch('/api/bookings/get', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -87,7 +87,7 @@ const AdminPage = () => {
       }
       
       // Fetch Therapists (public API)
-      const tRes = await fetch('/api/get-therapists')
+      const tRes = await fetch('/api/therapists/get')
       let tData: any;
       try {
         const tText = await tRes.text()
@@ -130,7 +130,7 @@ const AdminPage = () => {
     try {
       setProcessingId(id)
       const token = localStorage.getItem("adminToken")
-      const response = await fetch('/api/update-booking', {
+      const response = await fetch('/api/bookings/update', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
