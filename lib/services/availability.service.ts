@@ -1,5 +1,6 @@
 import { db } from '../../api/firebase-admin.js';
 import { AppError } from '../utils/error.js';
+import { analyticsService } from './analytics.service.js';
 
 export const availabilityService = {
   async getAvailability(therapistId: string, date: string) {
@@ -68,7 +69,7 @@ export const availabilityService = {
     });
   },
 
-  async lockSlot(therapistId: string, date: string, time: string) {
+  async lockSlot(therapistId: string, date: string, time: string, meta: { requestId?: string } = {}) {
     // Basic validation before locking
     const existing = await db.collection('bookings')
       .where('therapistId', '==', therapistId)
@@ -90,7 +91,14 @@ export const availabilityService = {
       date,
       time,
       expiresAt,
-      createdAt: new Date()
+      createdAt: new Date(),
+      requestId: meta.requestId
+    });
+
+    // Track analytics
+    await analyticsService.trackEvent('slot_lock', { 
+      requestId: meta.requestId, 
+      metadata: { therapistId, date, time } 
     });
 
     return { lockId: lockRef.id };

@@ -41,8 +41,4 @@ const Home = ({ onBookClick }: HomeProps) => {
   )
 }
 
-<button onClick={() => { throw new Error("Test Sentry bro"); }}>
-  Break it
-</button>
-
 export default Home

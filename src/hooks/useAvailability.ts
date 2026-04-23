@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { useGlobalError } from './useGlobalError';
 
 interface Slot {
   time: string;
@@ -6,44 +7,25 @@ interface Slot {
   reason: string | null;
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.json()).then(res => {
+  if (!res.success) throw new Error(res.error || 'Failed to fetch availability');
+  return res.data;
+});
+
 export function useAvailability(therapistId: string | null, date: string | null) {
-  const [slots, setSlots] = useState<Slot[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { handleError } = useGlobalError();
+  const key = therapistId && date ? `/api/availability/get?therapistId=${therapistId}&date=${date}` : null;
 
-  useEffect(() => {
-    if (!therapistId || !date) {
-      setSlots([]);
-      return;
-    }
+  const { data, error, isLoading } = useSWR<Slot[]>(key, fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 10000, // Short cache for availability (10s)
+    refreshInterval: 30000, // Refresh every 30s
+    onError: (err) => handleError(err, 'Failed to update time slots.')
+  });
 
-    const controller = new AbortController();
-
-    async function fetchAvailability() {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch(`/api/availability/get?therapistId=${therapistId}&date=${date}`, {
-          signal: controller.signal
-        });
-        const data = await res.json();
-        if (data.success) {
-          setSlots(data.slots || []);
-        } else {
-          setError(data.error || 'Failed to load availability');
-        }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'Error fetching slots');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchAvailability();
-    return () => controller.abort();
-  }, [therapistId, date]);
-
-  return { slots, loading, error };
+  return { 
+    slots: data || [], 
+    loading: isLoading, 
+    error: error?.message || null 
+  };
 }
