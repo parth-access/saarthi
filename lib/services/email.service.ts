@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { logger } from '../logger.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = 'Saarthi <contact@saarthilife.com>';
@@ -13,75 +14,81 @@ interface EmailParams {
   sessionType?: string;
 }
 
+async function sendWithRetry(options: any, attempts = 3) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await resend.emails.send(options);
+      logger.info('Email sent successfully', { to: options.to, subject: options.subject });
+      return;
+    } catch (error: any) {
+      const delay = Math.pow(2, i) * 1000;
+      logger.warn(`Email attempt ${i + 1} failed. Retrying in ${delay}ms...`, { error: error.message });
+      if (i === attempts - 1) {
+        logger.error('Email failed after all attempts', { to: options.to, subject: options.subject }, error);
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 export const emailService = {
   async sendBookingRequest(params: EmailParams) {
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: params.userEmail,
-        subject: 'Your session request has been received',
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 20px;">
-            <h2 style="color: #5A5A40;">Hello ${params.userName},</h2>
-            <p>Thank you for reaching out to Saarthi. We have received your request for a ${params.sessionType || 'session'}.</p>
-            <div style="background: #fdf6e7; padding: 20px; border-radius: 15px; margin: 20px 0;">
-              <p><strong>Specialist:</strong> ${params.therapistName}</p>
-              <p><strong>Date:</strong> ${params.date}</p>
-              <p><strong>Time:</strong> ${params.time}</p>
-            </div>
-            <p>We will get back to you with a confirmation within 24 hours.</p>
-            <p>Warmly,<br/><strong>Team Saarthi</strong></p>
+    await sendWithRetry({
+      from: FROM_EMAIL,
+      to: params.userEmail,
+      subject: 'Your session request has been received',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 20px;">
+          <h2 style="color: #5A5A40;">Hello ${params.userName},</h2>
+          <p>Thank you for reaching out to Saarthi. We have received your request for a ${params.sessionType || 'session'}.</p>
+          <div style="background: #fdf6e7; padding: 20px; border-radius: 15px; margin: 20px 0;">
+            <p><strong>Specialist:</strong> ${params.therapistName}</p>
+            <p><strong>Date:</strong> ${params.date}</p>
+            <p><strong>Time:</strong> ${params.time}</p>
           </div>
-        `
-      });
-    } catch (error) {
-      console.error('Email failed:', error);
-    }
+          <p>We will get back to you with a confirmation within 24 hours.</p>
+          <p>Warmly,<br/><strong>Team Saarthi</strong></p>
+        </div>
+      `
+    });
   },
 
   async sendBookingConfirmation(params: EmailParams) {
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: params.userEmail,
-        bcc: ADMIN_EMAIL,
-        subject: 'Your session has been confirmed',
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 20px;">
-            <h2 style="color: #4A6741;">Session Confirmed</h2>
-            <p>Hi ${params.userName}, your session has been confirmed.</p>
-            <div style="background: #F4F7F2; padding: 20px; border-radius: 15px; margin: 20px 0;">
-              <p><strong>Specialist:</strong> ${params.therapistName}</p>
-              <p><strong>Date:</strong> ${params.date}</p>
-              <p><strong>Time:</strong> ${params.time}</p>
-            </div>
-            <p>Please ensure you are in a quiet space for the session.</p>
-            <p>With care,<br/><strong>Saarthi Support</strong></p>
+    await sendWithRetry({
+      from: FROM_EMAIL,
+      to: params.userEmail,
+      bcc: ADMIN_EMAIL,
+      subject: 'Your session has been confirmed',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 20px;">
+          <h2 style="color: #4A6741;">Session Confirmed</h2>
+          <p>Hi ${params.userName}, your session has been confirmed.</p>
+          <div style="background: #F4F7F2; padding: 20px; border-radius: 15px; margin: 20px 0;">
+            <p><strong>Specialist:</strong> ${params.therapistName}</p>
+            <p><strong>Date:</strong> ${params.date}</p>
+            <p><strong>Time:</strong> ${params.time}</p>
           </div>
-        `
-      });
-    } catch (error) {
-      console.error('Email failed:', error);
-    }
+          <p>Please ensure you are in a quiet space for the session.</p>
+          <p>With care,<br/><strong>Saarthi Support</strong></p>
+        </div>
+      `
+    });
   },
 
   async sendBookingRejection(params: EmailParams) {
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: params.userEmail,
-        subject: 'Update regarding your session request',
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
-            <h2 style="color: #721c24;">Regarding your request</h2>
-            <p>Hi ${params.userName}, we are unable to confirm the slot on ${params.date} at ${params.time}.</p>
-            <p>Please feel free to select another available slot on our website.</p>
-            <p>Be well,<br/><strong>Team Saarthi</strong></p>
-          </div>
-        `
-      });
-    } catch (error) {
-      console.error('Email failed:', error);
-    }
+    await sendWithRetry({
+      from: FROM_EMAIL,
+      to: params.userEmail,
+      subject: 'Update regarding your session request',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
+          <h2 style="color: #721c24;">Regarding your request</h2>
+          <p>Hi ${params.userName}, we are unable to confirm the slot on ${params.date} at ${params.time}.</p>
+          <p>Please feel free to select another available slot on our website.</p>
+          <p>Be well,<br/><strong>Team Saarthi</strong></p>
+        </div>
+      `
+    });
   }
 };

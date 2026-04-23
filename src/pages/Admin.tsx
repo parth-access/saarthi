@@ -96,13 +96,13 @@ const AdminPage = () => {
         tData = { success: false }
       }
       
-      if (tData.success) {
+      if (tData.success && tData.data) {
         const tMap: Record<string, Therapist> = {}
-        tData.therapists.forEach((t: Therapist) => { tMap[t.id] = t })
+        tData.data.forEach((t: Therapist) => { tMap[t.id] = t })
         setTherapists(tMap)
       }
 
-      setBookings(bData.bookings || [])
+      setBookings(bData.data?.bookings || [])
     } catch (err: any) {
       console.error("Fetch data error:", err)
       setError(err.message || "An unexpected error occurred while fetching data.")

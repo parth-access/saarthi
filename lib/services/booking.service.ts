@@ -1,12 +1,30 @@
 import { db } from '../../api/firebase-admin.js';
 import { AppError } from '../utils/error.js';
 import { BookingInput } from '../validators/booking.schema.js';
-import { emailService } from './email.service.js';
+import { analyticsService } from './analytics.service.js';
+import { queueService } from './queue.service.js';
+import { logger } from '../logger.js';
 
 export const bookingService = {
-  async createBooking(input: BookingInput) {
+  async createBooking(input: BookingInput, meta: { requestId?: string } = {}) {
+    const { requestId } = meta;
     let bookingId = '';
     let therapistName = 'one of our specialists';
+
+    // Idempotency: check if identical booking exists in last 5 mins
+    const recentCheck = await db.collection('bookings')
+      .where('email', '==', input.email)
+      .where('date', '==', input.date)
+      .where('time', '==', input.time)
+      .where('therapistId', '==', input.therapistId)
+      .where('createdAt', '>', new Date(Date.now() - 5 * 60 * 1000))
+      .limit(1)
+      .get();
+
+    if (!recentCheck.empty) {
+      logger.warn('Duplicate booking attempt detected', { ...input, requestId });
+      throw new AppError('A booking request with these details was recently received. Please check your email.', 409, 'DUPLICATE_BOOKING');
+    }
 
     await db.runTransaction(async (transaction) => {
       // 1. Double-booking check
@@ -54,6 +72,7 @@ export const bookingService = {
       transaction.set(newBookingRef, {
         ...input,
         status: 'pending',
+        requestId,
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -62,8 +81,16 @@ export const bookingService = {
       transaction.delete(lockRef);
     });
 
-    // Send email asynchronously
-    emailService.sendBookingRequest({
+    logger.info('Booking created successfully', { bookingId, requestId, userEmail: input.email });
+
+    // Track analytics
+    await analyticsService.trackEvent('booking_request', { 
+      requestId, 
+      metadata: { therapistId: input.therapistId, sessionType: input.sessionType } 
+    });
+
+    // Enqueue email job
+    await queueService.enqueueEmail('request', {
       userName: input.name,
       userEmail: input.email,
       therapistName,
@@ -72,10 +99,11 @@ export const bookingService = {
       sessionType: input.sessionType
     });
 
-    return { id: bookingId };
+    return { bookingId, therapistName };
   },
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: string, meta: { requestId?: string } = {}) {
+    const { requestId } = meta;
     const bookingRef = db.collection('bookings').doc(id);
     const bookingDoc = await bookingRef.get();
 
@@ -102,10 +130,19 @@ export const bookingService = {
 
     await bookingRef.update({ 
       status,
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      lastModifiedBy: 'admin', // Placeholder for actual admin userId
+      lastRequestId: requestId
     });
 
-    // Handle notifications
+    logger.info('Booking status updated', { bookingId: id, from: currentStatus, to: status, requestId });
+
+    // Handle analytics
+    if (status === 'confirmed') {
+      await analyticsService.trackEvent('booking_confirm', { requestId, metadata: { bookingId: id } });
+    }
+
+    // Handle notifications via queue
     const therapistDoc = await db.collection('therapists').doc(booking.therapistId).get();
     const therapistName = therapistDoc.exists ? therapistDoc.data()?.name : 'your specialist';
     
@@ -119,11 +156,11 @@ export const bookingService = {
     };
 
     if (status === 'confirmed') {
-      emailService.sendBookingConfirmation(emailParams);
+      await queueService.enqueueEmail('confirmation', emailParams);
     } else if (status === 'rejected') {
-      emailService.sendBookingRejection(emailParams);
+      await queueService.enqueueEmail('rejection', emailParams);
     }
 
-    return { success: true };
+    return { bookingId: id, status };
   }
 };

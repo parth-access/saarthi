@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useGlobalError } from './useGlobalError';
 
 export function useBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { handleError, handleSuccess } = useGlobalError();
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
     try {
@@ -12,8 +14,12 @@ export function useBooking() {
         body: JSON.stringify(params)
       });
       const data = await res.json();
+      if (!data.success) {
+        handleError(data.error);
+      }
       return data;
     } catch (err: any) {
+      handleError(err, 'Could not reserve this time slot.');
       return { success: false, error: err.message };
     }
   }
@@ -30,11 +36,16 @@ export function useBooking() {
       const data = await res.json();
       if (!data.success) {
         setError(data.error);
+        handleError(data.error);
+      } else {
+        handleSuccess('Booking request sent successfully!');
       }
       return data;
     } catch (err: any) {
-      setError(err.message || 'Network error');
-      return { success: false };
+      const msg = err.message || 'Network error';
+      setError(msg);
+      handleError(err, 'Failed to submit booking.');
+      return { success: false, error: msg };
     } finally {
       setSubmitting(false);
     }

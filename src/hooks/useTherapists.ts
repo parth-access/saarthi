@@ -1,36 +1,23 @@
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { Therapist } from '../types';
+import { useGlobalError } from './useGlobalError';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json()).then(res => {
+  if (!res.success) throw new Error(res.error || 'Failed to fetch data');
+  return res.data;
+});
 
 export function useTherapists() {
-  const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { handleError } = useGlobalError();
+  const { data, error, isLoading } = useSWR<Therapist[]>('/api/therapists/get', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000, // Cache for 1 minute
+    onError: (err) => handleError(err, 'Could not load therapist data.')
+  });
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchTherapists() {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/therapists/get', { signal: controller.signal });
-        const data = await res.json();
-        if (data.success) {
-          setTherapists(data.therapists);
-        } else {
-          setError(data.error || 'Failed to load specialists');
-        }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'System unavailable');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchTherapists();
-    return () => controller.abort();
-  }, []);
-
-  return { therapists, loading, error };
+  return { 
+    therapists: data || [], 
+    loading: isLoading, 
+    error: error?.message || null 
+  };
 }

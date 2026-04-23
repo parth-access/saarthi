@@ -16,24 +16,33 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
   const [isLoading, setIsLoading] = React.useState(false)
   const navigate = useNavigate()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    // Simulate small delay for better UX
-    setTimeout(() => {
-      // The password entered by the user will be used as the secret key
-      if (password.length > 0) {
-        localStorage.setItem("adminToken", password)
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: password })
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data?.token) {
+        localStorage.setItem("adminToken", result.data.token)
         localStorage.setItem("isAdminAuthenticated", "true")
         onClose()
         navigate("/admin")
       } else {
-        setError("Please enter administrative credentials.")
+        setError(result.error || "Authentication failed. Access denied.")
       }
+    } catch (err) {
+      setError("System unavailable. Please try again later.")
+    } finally {
       setIsLoading(false)
-    }, 500)
+    }
   }
 
   React.useEffect(() => {
