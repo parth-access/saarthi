@@ -1,11 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-
-/**
- * Validates the admin session or secret key.
- * In a real production app, this would check a JWT or Firebase Auth token.
- * For this refactor, we transition to a server-side verified secret.
- */
-export function validateAdminAuth(req: VercelRequest, res: VercelResponse): boolean {
+export function validateAdminAuth(req: any, res: any): boolean {
   const adminSecret = process.env.ADMIN_SECRET_KEY;
   const authHeader = req.headers.authorization;
 
