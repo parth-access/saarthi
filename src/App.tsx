@@ -1,20 +1,30 @@
 import * as React from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
+import { SWRConfig } from "swr"
 import Navbar from "./components/layout/Navbar"
 import { Footer } from "./components/layout/Footer"
-import Home from "./pages/Home"
-import Therapists from "./pages/Therapists"
-import Vision from "./pages/Vision"
-import About from "./pages/About"
-import Contact from "./pages/Contact"
-import Admin from "./pages/Admin"
-import DravinaProfile from "./pages/DravinaProfile"
-import NotFound from "./pages/NotFound"
 import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
-import BookingSystem from "./components/booking/BookingSystem"
 import { AdminAuthModal } from "./components/auth/AdminAuthModal"
+import { Loader2 } from "lucide-react"
+
+// Lazy load pages for better bundle size
+const Home = React.lazy(() => import("./pages/Home"))
+const Therapists = React.lazy(() => import("./pages/Therapists"))
+const Vision = React.lazy(() => import("./pages/Vision"))
+const About = React.lazy(() => import("./pages/About"))
+const Contact = React.lazy(() => import("./pages/Contact"))
+const Admin = React.lazy(() => import("./pages/Admin"))
+const DravinaProfile = React.lazy(() => import("./pages/DravinaProfile"))
+const NotFound = React.lazy(() => import("./pages/NotFound"))
+const BookingSystem = React.lazy(() => import("./components/booking/BookingSystem"))
+
+const PageLoader = () => (
+  <div className="flex h-screen w-screen items-center justify-center bg-background">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+)
 
 function App() {
   const [isBookingOpen, setIsBookingOpen] = React.useState(false)
@@ -22,42 +32,58 @@ function App() {
 
   return (
     <HelmetProvider>
-      <Router>
-        <ScrollToTop />
-        <div className="min-h-screen bg-background selection:bg-accent/30">
-          <Navbar onBookClick={() => setIsBookingOpen(true)} />
-          <Routes>
-            <Route path="/" element={<Home onBookClick={() => setIsBookingOpen(true)} />} />
-            <Route path="/therapists" element={<Therapists />} />
-            <Route path="/vision" element={<Vision />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
-            <Route path="/book" element={
-              <div className="pt-24 min-h-screen bg-[#FFFBE7]">
+      <SWRConfig 
+        value={{
+          revalidateOnFocus: false,
+          shouldRetryOnError: false,
+          dedupingInterval: 5000,
+          fetcher: (url: string) => fetch(url).then(res => res.json()).then(res => {
+            if (!res.success) throw new Error(res.error || 'Failed to fetch');
+            return res.data;
+          })
+        }}
+      >
+        <Router>
+          <ScrollToTop />
+          <div className="min-h-screen bg-background selection:bg-accent/30">
+            <Navbar onBookClick={() => setIsBookingOpen(true)} />
+            <React.Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Home onBookClick={() => setIsBookingOpen(true)} />} />
+                <Route path="/therapists" element={<Therapists />} />
+                <Route path="/vision" element={<Vision />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
+                <Route path="/book" element={
+                  <div className="pt-24 min-h-screen bg-[#FFFBE7]">
+                    <BookingSystem />
+                  </div>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </React.Suspense>
+            <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
+
+            <Modal 
+              isOpen={isBookingOpen} 
+              onClose={() => setIsBookingOpen(false)} 
+              title="Book a Session"
+              className="sm:max-w-3xl"
+            >
+              <React.Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>}>
                 <BookingSystem />
-              </div>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
+              </React.Suspense>
+            </Modal>
 
-          <Modal 
-            isOpen={isBookingOpen} 
-            onClose={() => setIsBookingOpen(false)} 
-            title="Book a Session"
-            className="sm:max-w-3xl" // Make it wider for the step content
-          >
-            <BookingSystem />
-          </Modal>
-
-          <AdminAuthModal 
-            isOpen={isAdminLoginOpen} 
-            onClose={() => setIsAdminLoginOpen(false)} 
-          />
-        </div>
-      </Router>
+            <AdminAuthModal 
+              isOpen={isAdminLoginOpen} 
+              onClose={() => setIsAdminLoginOpen(false)} 
+            />
+          </div>
+        </Router>
+      </SWRConfig>
     </HelmetProvider>
   )
 }
