@@ -5,6 +5,7 @@ import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "motion/react"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
 import { useGlobalError } from "../../hooks/useGlobalError"
+import { apiClient } from "../../lib/api"
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -20,15 +21,11 @@ export function ContactForm() {
     setStatus('loading')
 
     try {
-      const response = await fetch('/api/contact/send', {
+      const result = await apiClient('/contact/send', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
+        requireAuth: false
       });
-
-      const result = await response.json();
 
       if (!result.success) {
         handleError(result.error);

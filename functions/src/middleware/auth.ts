@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import admin from 'firebase-admin';
-import { db } from '../../api/firebase-admin.js'; // Assuming we're re-using existing initialization
-import { AppError } from '../../lib/utils/error.js';
-import { verifyToken } from '../../lib/auth-utils.js';
-import { env } from '../../lib/env.js';
+import * as functions from 'firebase-functions';
+import admin, { db } from '../config/firebase';
+import { AppError } from '../utils/error';
 
 export interface AuthRequest extends Request {
   user?: any;
@@ -37,27 +35,13 @@ export async function verifyUser(req: AuthRequest, res: Response, next: NextFunc
       return next();
     } catch (error: any) {
       if (error instanceof AppError) throw error;
-      // Fall through to JWT
+      // Fall through to other checks
     }
 
-    // 2. Try JWT fallback
-    try {
-      const payload = await verifyToken(token);
-      if (payload) {
-        req.user = {
-          id: payload.id || payload.sub,
-          email: payload.email,
-          role: payload.role || 'user',
-          name: payload.name
-        };
-        return next();
-      }
-    } catch (err) {
-      // Continue
-    }
-
-    // 3. Admin Secret Key
-    if (token === env.ADMIN_SECRET_KEY) {
+    // 2. Admin Secret Key (Fallback using functions.config())
+    // Example usage: functions.config().admin.secret_key
+    const adminSecret = functions.config().admin?.secret_key;
+    if (adminSecret && token === adminSecret) {
       req.user = { id: 'system-admin', role: 'admin', name: 'System Administrator' };
       return next();
     }
