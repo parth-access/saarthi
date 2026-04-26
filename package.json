@@ -23,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^11.10.0",
     "firebase-admin": "^13.8.0",
     "jose": "^6.2.2",
     "lru-cache": "^11.3.5",

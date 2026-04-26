@@ -9,6 +9,8 @@ const envSchema = z.object({
   
   // Admin
   ADMIN_SECRET_KEY: z.string().min(8),
+  BOOTSTRAP_ADMIN_EMAILS: z.string().optional(),
+  JWT_SECRET: z.string().min(16).default('a-very-long-and-secure-fallback-secret-key-123'),
   
   // Redis (for Rate Limiting)
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),

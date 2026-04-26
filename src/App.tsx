@@ -2,6 +2,8 @@ import * as React from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
 import { SWRConfig } from "swr"
+import { AuthProvider } from "./contexts/AuthContext"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import Navbar from "./components/layout/Navbar"
 import { Footer } from "./components/layout/Footer"
 import ScrollToTop from "./components/layout/ScrollToTop"
@@ -43,46 +45,55 @@ function App() {
           })
         }}
       >
-        <Router>
-          <ScrollToTop />
-          <div className="min-h-screen bg-background selection:bg-accent/30">
-            <Navbar onBookClick={() => setIsBookingOpen(true)} />
-            <React.Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Home onBookClick={() => setIsBookingOpen(true)} />} />
-                <Route path="/therapists" element={<Therapists />} />
-                <Route path="/vision" element={<Vision />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
-                <Route path="/book" element={
-                  <div className="pt-24 min-h-screen bg-[#FFFBE7]">
-                    <BookingSystem />
-                  </div>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </React.Suspense>
-            <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
-
-            <Modal 
-              isOpen={isBookingOpen} 
-              onClose={() => setIsBookingOpen(false)} 
-              title="Book a Session"
-              className="sm:max-w-3xl"
-            >
-              <React.Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>}>
-                <BookingSystem />
+        <AuthProvider>
+          <Router>
+            <ScrollToTop />
+            <div className="min-h-screen bg-background selection:bg-accent/30">
+              <Navbar onBookClick={() => setIsBookingOpen(true)} />
+              <React.Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Home onBookClick={() => setIsBookingOpen(true)} />} />
+                  <Route path="/therapists" element={<Therapists />} />
+                  <Route path="/vision" element={<Vision />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute allowedRoles={['admin', 'therapist']}>
+                        <Admin />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route path="/therapists/dravina" element={<DravinaProfile onBookClick={() => setIsBookingOpen(true)} />} />
+                  <Route path="/book" element={
+                    <div className="pt-24 min-h-screen bg-[#FFFBE7]">
+                      <BookingSystem />
+                    </div>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
               </React.Suspense>
-            </Modal>
+              <Footer onAdminLogin={() => setIsAdminLoginOpen(true)} />
 
-            <AdminAuthModal 
-              isOpen={isAdminLoginOpen} 
-              onClose={() => setIsAdminLoginOpen(false)} 
-            />
-          </div>
-        </Router>
+              <Modal 
+                isOpen={isBookingOpen} 
+                onClose={() => setIsBookingOpen(false)} 
+                title="Book a Session"
+                className="sm:max-w-3xl"
+              >
+                <React.Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>}>
+                  <BookingSystem />
+                </React.Suspense>
+              </Modal>
+
+              <AdminAuthModal 
+                isOpen={isAdminLoginOpen} 
+                onClose={() => setIsAdminLoginOpen(false)} 
+              />
+            </div>
+          </Router>
+        </AuthProvider>
       </SWRConfig>
     </HelmetProvider>
   )

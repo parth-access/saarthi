@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 
+import { useAuth } from "../../contexts/AuthContext"
+
 interface AdminAuthModalProps {
   isOpen: boolean
   onClose: () => void
@@ -15,6 +17,28 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
   const [error, setError] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
   const navigate = useNavigate()
+  const { login, user } = useAuth()
+
+  // If user is already an admin, navigate and close
+  React.useEffect(() => {
+    if (user?.role === 'admin' && isOpen) {
+      onClose()
+      navigate("/admin")
+    }
+  }, [user, isOpen, onClose, navigate])
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true)
+    setError("")
+    try {
+      await login()
+      // The ProtectedRoute or useEffect will handle navigation
+    } catch (err) {
+      setError("Google sign-in failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,6 +156,26 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
                   disabled={isLoading}
                 >
                   {isLoading ? "Verifying..." : "Access Dashboard"}
+                </Button>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-primary/10" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-[#FFFBE7] px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+
+                <Button 
+                  type="button"
+                  variant="outline"
+                  className="w-full h-14 text-base rounded-2xl bg-white border-primary/10 hover:bg-primary/5"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="h-5 w-5 mr-2" />
+                  Sign in with Google
                 </Button>
               </form>
             </div>
