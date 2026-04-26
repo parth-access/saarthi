@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGlobalError } from './useGlobalError';
+import { apiClient } from '../lib/api';
 
 export function useBooking() {
   const [submitting, setSubmitting] = useState(false);
@@ -8,12 +9,11 @@ export function useBooking() {
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
     try {
-      const res = await fetch('/api/availability/lock', {
+      const data = await apiClient('/availability/lock', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params)
+        body: JSON.stringify(params),
+        requireAuth: false
       });
-      const data = await res.json();
       if (!data.success) {
         handleError(data.error);
       }
@@ -28,15 +28,15 @@ export function useBooking() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch('/api/bookings/create', {
+      const data = await apiClient('/bookings/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bookingData)
+        body: JSON.stringify(bookingData),
+        requireAuth: false // Unless requireAuth is needed
       });
-      const data = await res.json();
       if (!data.success) {
-        setError(data.error);
-        handleError(data.error);
+        const errorMsg = data.error || 'Failed to submit booking';
+        setError(errorMsg);
+        handleError(errorMsg);
       } else {
         handleSuccess('Booking request sent successfully!');
       }

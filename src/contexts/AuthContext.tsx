@@ -7,6 +7,7 @@ import {
   getIdToken
 } from 'firebase/auth';
 import { auth, googleProvider, isFirebaseEnabled } from '../lib/firebase';
+import { apiClient } from '../lib/api';
 import { toast } from 'sonner';
 
 interface User {
@@ -39,13 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncUser = async (firebaseUser: FirebaseUser) => {
     try {
       const idToken = await getIdToken(firebaseUser);
-      const response = await fetch('/api/auth/login', {
+      const result = await apiClient('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken }),
+        requireAuth: false,
       });
 
-      const result = await response.json();
       if (result.success) {
         const userData = result.data.user;
         setUser(userData);
@@ -75,21 +75,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await getFreshToken();
       if (!token) return;
 
-      const response = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const result = await apiClient('/auth/me');
 
-      const result = await response.json();
       if (result.success) {
         const userData = result.data;
         setUser(userData);
         localStorage.setItem('saarthi_user', JSON.stringify(userData));
-      } else if (response.status === 401 || response.status === 404) {
+      } else if (result.error && (result.message?.includes('Unauthorized') || result.message?.includes('not found'))) {
         // Backend says no, or user deleted
         logout();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Session validation failed:', error);
+      if (error?.status === 401 || error?.status === 404) {
+        logout();
+      }
     }
   };
 

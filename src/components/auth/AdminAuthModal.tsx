@@ -4,6 +4,7 @@ import { X, Lock, ShieldCheck, AlertCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
+import { apiClient } from "../../lib/api"
 
 import { useAuth } from "../../contexts/AuthContext"
 
@@ -46,21 +47,21 @@ export function AdminAuthModal({ isOpen, onClose }: AdminAuthModalProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret: password })
+      // Validate the password using the common auth validation route
+      const result = await apiClient('/auth/me', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${password}` },
+        requireAuth: false
       });
 
-      const result = await response.json();
-
-      if (result.success && result.data?.token) {
-        localStorage.setItem("adminToken", result.data.token)
+      if (result.success && result.data?.role === 'admin') {
+        localStorage.setItem("adminToken", password)
         localStorage.setItem("isAdminAuthenticated", "true")
         onClose()
+        setPassword("")
         navigate("/admin")
       } else {
-        setError(result.error || "Authentication failed. Access denied.")
+        setError("Invalid administrative key")
       }
     } catch (err) {
       setError("System unavailable. Please try again later.")

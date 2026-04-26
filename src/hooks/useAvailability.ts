@@ -9,7 +9,7 @@ interface Slot {
 
 export function useAvailability(therapistId: string | null, date: string | null) {
   const { handleError } = useGlobalError();
-  const key = therapistId && date ? `/api/availability/get?therapistId=${therapistId}&date=${date}` : null;
+  const key = therapistId && date ? `/availability/get?therapistId=${therapistId}&date=${date}` : null;
 
   const { data, error, isLoading } = useSWR<Slot[]>(key, {
     revalidateOnFocus: true,

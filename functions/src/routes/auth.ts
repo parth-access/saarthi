@@ -1,13 +1,11 @@
 import { Router } from 'express';
-import { db } from '../../api/firebase-admin.js';
-import admin from 'firebase-admin';
-import { env } from '../../lib/env.js';
-import { createAuditLog, AuditAction } from '../../lib/services/audit.js';
-import { verifyUser, AuthRequest } from '../middleware/auth.js';
+import * as functions from 'firebase-functions';
+import admin, { db } from '../config/firebase';
+import { verifyUser, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// /api/auth/login
+// /auth/login
 router.post('/login', async (req, res, next) => {
   try {
     const { idToken } = req.body;
@@ -21,7 +19,9 @@ router.post('/login', async (req, res, next) => {
     let userData: any;
 
     if (!userDoc.exists) {
-      const adminEmails = env.BOOTSTRAP_ADMIN_EMAILS?.split(',') || [];
+      // Using functions.config() for environment variables
+      const adminEmailsConfig = functions.config().admin?.bootstrap_emails || '';
+      const adminEmails = adminEmailsConfig.split(',');
       const isInitialAdmin = adminEmails.includes(email || '');
 
       userData = {
@@ -35,10 +35,17 @@ router.post('/login', async (req, res, next) => {
       };
       await userRef.set(userData);
 
-      await createAuditLog(uid, AuditAction.SYSTEM_INIT, uid, {
-        email,
-        role: userData.role,
-        message: 'Initial user registration'
+      // Audit Log concept mapping for functions...
+      await db.collection('audit_logs').add({
+        actorUserId: uid,
+        action: 'SYSTEM_INIT',
+        targetUserId: uid,
+        metadata: {
+          email,
+          role: userData.role,
+          message: 'Initial user registration'
+        },
+        timestamp: admin.firestore.Timestamp.now()
       });
     } else {
       userData = userDoc.data();
@@ -64,7 +71,7 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// /api/auth/me
+// /auth/me
 router.get('/me', verifyUser, (req: AuthRequest, res) => {
   res.status(200).json({
     success: true,

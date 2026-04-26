@@ -2,6 +2,7 @@ import * as React from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
 import { SWRConfig } from "swr"
+import { apiClient } from "./lib/api"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ProtectedRoute } from "./components/auth/RoleProtectedRoute"
 import Navbar from "./components/layout/Navbar"
@@ -39,10 +40,11 @@ function App() {
           revalidateOnFocus: false,
           shouldRetryOnError: false,
           dedupingInterval: 5000,
-          fetcher: (url: string) => fetch(url).then(res => res.json()).then(res => {
-            if (!res.success) throw new Error(res.error || 'Failed to fetch');
-            return res.data;
-          })
+            fetcher: async (url: string) => {
+              const res = await apiClient(url, { requireAuth: false });
+              if (!res.success) throw new Error(res.error || 'Failed to fetch');
+              return res.data;
+            }
         }}
       >
         <AuthProvider>
