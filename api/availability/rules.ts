@@ -1,6 +1,6 @@
 import { db } from '../firebase-admin.js';
 import { handleError } from '../../lib/utils/error.js';
-import { validateAdminAuth } from '../shared/auth.js';
+import { validateAdminAuth } from '../../backend/middleware/auth.js';
 import { withProductionHarden } from '../../lib/logger.js';
 
 async function handler(req: any, res: any) {
