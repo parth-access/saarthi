@@ -22,8 +22,10 @@ import { format, parseISO, isSameDay } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"
 import { BookingStatus, Booking, Therapist } from "../types"
+import { useAuth } from "../contexts/AuthContext"
 
 const AdminPage = () => {
+  const { user } = useAuth()
   const [bookings, setBookings] = React.useState<Booking[]>([])
   const [therapists, setTherapists] = React.useState<Record<string, Therapist>>({})
   const [loading, setLoading] = React.useState(true)
@@ -49,7 +51,8 @@ const AdminPage = () => {
       }
       
       // Fetch Bookings with robust error handling
-      const bRes = await fetch('/api/bookings/get', {
+      const endpoint = user?.role === 'therapist' ? '/api/therapist/bookings' : '/api/bookings/get';
+      const bRes = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
