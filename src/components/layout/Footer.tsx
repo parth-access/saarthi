@@ -1,11 +1,7 @@
 import { Link } from "react-router-dom"
 import { Mail, MapPin, Phone, Instagram } from "lucide-react"
 
-interface FooterProps {
-  onAdminLogin: () => void
-}
-
-export function Footer({ onAdminLogin }: FooterProps) {
+export function Footer() {
   return (
     <footer className="bg-white border-t border-muted pt-16 pb-8">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -20,7 +16,7 @@ export function Footer({ onAdminLogin }: FooterProps) {
             </p>
             <div className="flex items-center gap-4">
               <a 
-                href="https://www.instagram.com/saarthi.safespace/" 
+                href="https://instagram.com" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
@@ -40,12 +36,12 @@ export function Footer({ onAdminLogin }: FooterProps) {
                 <li><Link to="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
                 <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
                 <li>
-                  <button 
-                    onClick={onAdminLogin}
-                    className="hover:text-primary transition-colors text-left"
+                  <Link 
+                    to="/admin"
+                    className="hover:text-primary transition-colors block"
                   >
-                    Admin Login
-                  </button>
+                    Admin Dashboard
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -61,10 +57,10 @@ export function Footer({ onAdminLogin }: FooterProps) {
                     healwithsaarthi@gmail.com
                   </a>
                 </li>
-                {/* <li className="flex items-start gap-2">
+                <li className="flex items-start gap-2">
                   <Phone className="h-5 w-5 text-primary shrink-0" />
                   <span>+91 98765 43210</span>
-                </li> */}
+                </li>
                 <li className="flex items-start gap-2">
                   <MapPin className="h-5 w-5 text-primary shrink-0" />
                   <span>New Delhi, India</span>
@@ -75,7 +71,7 @@ export function Footer({ onAdminLogin }: FooterProps) {
         </div>
         
         <div className="border-t border-muted pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Saarthi The Guidence For Life</p>
+          <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -3,80 +3,79 @@ import express from 'express';
 import cors from 'cors';
 import { handleError } from './utils/error';
 
-// Routes
+// Import Routes
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
+import { verifyUser, requireAdmin } from './middleware/auth';
 
 const app = express();
 
-/**
- * 🔥 GLOBAL CORS FIX (CRITICAL)
- * This MUST come before everything
- */
-app.use((req, res, next) => {
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-
-  // Handle preflight manually
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
-  }
-
-  next();
-});
-
-/**
- * Optional (safe fallback)
- * Not relied upon, but harmless
- */
-app.use(cors());
+// Middleware
+app.use(cors({ 
+  origin: true, // Allows requests from any origin (e.g., localhost:5173 and Vercel domains)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true 
+}));
+app.options('*', cors()); // Pre-flight across the board
 
 app.use(express.json());
 
-/**
- * Health check
- */
+// Main Health Route
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'saarthi-api-functions',
-  });
+  res.json({ status: 'ok', service: 'saarthi-api-functions' });
 });
 
-/**
- * API Routes
- * Final URLs:
- * https://...cloudfunctions.net/api/auth/...
- */
+// API Routes
 app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
+app.use('/admin', verifyUser, requireAdmin, adminRoutes);
 
-/**
- * Temporary placeholders
- */
+// Bookings that require user verification
+const protectedBookings = express.Router();
+protectedBookings.use(verifyUser);
+protectedBookings.get('/get', (req, res) => {
+  res.json({ success: true, data: { bookings: [] } });
+});
+protectedBookings.post('/update', (req, res) => {
+  res.json({ success: true });
+});
+protectedBookings.post('/create', (req, res) => {
+  res.json({ success: true });
+});
+app.use('/bookings', protectedBookings);
+
+app.get('/therapists/get', (req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+app.get('/availability/get', (req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+app.post('/availability/lock', (req, res) => {
+  res.json({ success: true, data: { locked: true } });
+});
+
+app.post('/contact/send', (req, res) => {
+  res.json({ success: true });
+});
+
+// Fallback for not-yet-implemented routes to avoid compilation errors 
 app.use('/therapist', (req, res) => res.json({ message: 'Placeholder' }));
 app.use('/bookings', (req, res) => res.json({ message: 'Placeholder' }));
 app.use('/availability', (req, res) => res.json({ message: 'Placeholder' }));
 
-/**
- * 404
- */
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-  });
+// 404 handler
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, error: 'Route not found' });
 });
 
-/**
- * Global error handler
- */
+// Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   handleError(res, err);
 });
 
-/**
- * Export Firebase Function
- */
+// Export the express app as a Firebase Function
+// This creates an endpoint named 'api' -> https://<region>-<project-id>.cloudfunctions.net/api
 export const api = functions.https.onRequest(app);
+

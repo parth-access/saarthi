@@ -80,7 +80,7 @@ const BookingSystem = () => {
 
     if (result.success) {
       setBookingData(prev => ({ ...prev, time }))
-      setActiveLockId(result.lockId)
+      setActiveLockId((result as any).data?.lockId || (result as any).lockId || null)
       setTimeout(() => {
         handleNext()
         setLockingTime(null)
