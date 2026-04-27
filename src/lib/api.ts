@@ -5,9 +5,9 @@ const FIREBASE_REGION = import.meta.env.VITE_FIREBASE_REGION || 'us-central1';
 
 // In development, the vite proxy might still be used, but the prompt says 
 // "Replace all calls from: /api/* To: https://<firebase-project-id>.cloudfunctions.net/api/*"
-export const API_BASE_URL = FIREBASE_PROJECT_ID
+export const API_BASE_URL = import.meta.env.VITE_API_URL || (FIREBASE_PROJECT_ID
   ? `https://${FIREBASE_REGION}-${FIREBASE_PROJECT_ID}.cloudfunctions.net/api`
-  : '/api'; // Fallback if no project ID
+  : '/api'); // Fallback if no project ID
 
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;

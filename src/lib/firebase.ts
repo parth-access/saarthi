@@ -11,10 +11,10 @@ const REQUIRED_VARS = [
 const checkEnv = () => {
   const missing = REQUIRED_VARS.filter(key => {
     const val = import.meta.env[key];
-    return !val || val.includes('YOUR_'); // Check for placeholders too
+    return !val || val === '' || val.includes('YOUR_'); // Check for placeholders or empty values too
   });
   if (missing.length > 0) {
-    console.warn(`⚠️ Firebase environment variables missing or incomplete: ${missing.join(', ')}. Authentication will be disabled.`);
+    console.warn(`⚠️ Firebase environment variables missing or incomplete: ${missing.join(', ')}. Firebase Auth/Firestore will be disabled.`);
     return false;
   }
   return true;
@@ -33,11 +33,14 @@ const firebaseEnabled = checkEnv();
 let app = null;
 let authInstance = null;
 let dbInstance = null;
+let googleProvider = null;
 
 if (firebaseEnabled) {
   try {
     app = initializeApp(firebaseConfig);
     authInstance = getAuth(app);
+    // Explicitly initializing Google Provider here 
+    googleProvider = new GoogleAuthProvider();
     dbInstance = getFirestore(app);
   } catch (error) {
     console.error('Failed to initialize Firebase:', error);
@@ -47,4 +50,4 @@ if (firebaseEnabled) {
 export const auth = authInstance;
 export const db = dbInstance;
 export const isFirebaseEnabled = firebaseEnabled && !!app && !!authInstance;
-export const googleProvider = new GoogleAuthProvider();
+export { googleProvider };
