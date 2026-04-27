@@ -57,7 +57,6 @@ const Hero = ({ onBookClick }: HeroProps) => {
                 alt="Mental Wellness and Emotional Clarity"
                 className="aspect-[4/5] h-full w-full object-cover sm:aspect-video lg:aspect-[4/5]"
                 referrerPolicy="no-referrer"
-                fetchPriority="high"
                 decoding="async"
               />
               <div className="absolute inset-0 bg-primary/5 mix-blend-multiply" />
