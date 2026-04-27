@@ -3,59 +3,80 @@ import express from 'express';
 import cors from 'cors';
 import { handleError } from './utils/error';
 
-// Import Routes
+// Routes
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
-// import therapistRoutes from './routes/therapist';
-// import bookingsRoutes from './routes/bookings';
-// import availabilityRoutes from './routes/availability';
 
 const app = express();
 
-// Middleware
-app.use(cors({ 
-  origin: true, // Allows requests from any origin (e.g., localhost:5173 and Vercel domains)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true 
-}));
-app.options('*', (req, res) => {
+/**
+ * 🔥 GLOBAL CORS FIX (CRITICAL)
+ * This MUST come before everything
+ */
+app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.status(204).send('');
-}); // Pre-flight across the board
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
+  // Handle preflight manually
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send('');
+  }
+
+  next();
+});
+
+/**
+ * Optional (safe fallback)
+ * Not relied upon, but harmless
+ */
+app.use(cors());
 
 app.use(express.json());
 
-// Main Health Route
+/**
+ * Health check
+ */
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'saarthi-api-functions' });
+  res.json({
+    status: 'ok',
+    service: 'saarthi-api-functions',
+  });
 });
 
-// API Routes
-// Note: In Firebase functions, if the function is named 'api', 
-// your base URL will end with /api. 
-// So these routes will be mapped to /api/auth, /api/admin, etc.
+/**
+ * API Routes
+ * Final URLs:
+ * https://...cloudfunctions.net/api/auth/...
+ */
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 
-// Fallback for not-yet-implemented routes to avoid compilation errors 
-// while you paste your migrated files
+/**
+ * Temporary placeholders
+ */
 app.use('/therapist', (req, res) => res.json({ message: 'Placeholder' }));
 app.use('/bookings', (req, res) => res.json({ message: 'Placeholder' }));
 app.use('/availability', (req, res) => res.json({ message: 'Placeholder' }));
 
-// 404 handler
-app.use((req, res, next) => {
-  res.status(404).json({ success: false, error: 'Route not found' });
+/**
+ * 404
+ */
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found',
+  });
 });
 
-// Global Error Handler
+/**
+ * Global error handler
+ */
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   handleError(res, err);
 });
 
-// Export the express app as a Firebase Function
-// This creates an endpoint named 'api' -> https://<region>-<project-id>.cloudfunctions.net/api
+/**
+ * Export Firebase Function
+ */
 export const api = functions.https.onRequest(app);
