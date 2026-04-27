@@ -13,7 +13,14 @@ import adminRoutes from './routes/admin';
 const app = express();
 
 // Middleware
-app.use(cors({ origin: true }));
+app.use(cors({ 
+  origin: true, // Allows requests from any origin (e.g., localhost:5173 and Vercel domains)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true 
+}));
+app.options('*', cors()); // Pre-flight across the board
+
 app.use(express.json());
 
 // Main Health Route
