@@ -1,68 +1,54 @@
-import { NextFunction, Request, Response } from 'express';
-import * as functions from 'firebase-functions';
-import admin, { db } from '../config/firebase';
-import { AppError } from '../utils/error';
+import { Request, Response, NextFunction } from 'express';
+import admin from '../config/firebase';
 
 export interface AuthRequest extends Request {
-  user?: any;
-}
-
-export async function verifyUser(req: AuthRequest, res: Response, next: NextFunction) {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
-
-    if (!token) {
-      throw new AppError('Unauthorized: No token provided', 401);
-    }
-
-    // 1. Try Firebase ID Token
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-      
-      if (!userDoc.exists) {
-        throw new AppError('User not found in system', 404);
-      }
-
-      const userData = userDoc.data();
-      req.user = {
-        id: decodedToken.uid,
-        email: decodedToken.email,
-        name: decodedToken.name || userData?.name,
-        role: userData?.role || 'user',
-      };
-      return next();
-    } catch (error: any) {
-      if (error instanceof AppError) throw error;
-      // Fall through to other checks
-    }
-
-    // 2. Admin Secret Key (Fallback using functions.config())
-    // Example usage: functions.config().admin.secret_key
-    const adminSecret = functions.config().admin?.secret_key;
-    if (adminSecret && token === adminSecret) {
-      req.user = { id: 'system-admin', role: 'admin', name: 'System Administrator' };
-      return next();
-    }
-
-    throw new AppError('Unauthorized: Invalid or expired token', 401);
-  } catch (error) {
-    next(error);
-  }
-}
-
-export function requireRole(roles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(new AppError('Unauthorized', 401));
-    }
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError('Forbidden: Insufficient permissions', 403));
-    }
-    next();
+  user?: {
+    uid: string;
+    email?: string;
+    role: 'admin' | 'user' | 'therapist';
   };
 }
 
-export const requireAdmin = requireRole(['admin']);
-export const requireTherapist = requireRole(['admin', 'therapist']);
+export const verifyUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Fetch user role from Firestore
+    const userDoc = await admin.firestore().collection('users').doc(decodedToken.uid).get();
+    let role = 'user';
+    if (userDoc.exists) {
+      role = userDoc.data()?.role || 'user';
+    } else {
+      // Create user doc if it doesn't exist
+      await admin.firestore().collection('users').doc(decodedToken.uid).set({
+        email: decodedToken.email,
+        role: 'user',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: role as 'admin' | 'user' | 'therapist'
+    };
+
+    next();
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
+  }
+};
+
+export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Forbidden: Requires admin role' });
+  }
+  next();
+};

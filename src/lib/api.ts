@@ -14,7 +14,7 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiClient<T = any>(endpoint: string, options: FetchOptions = {}): Promise<{ success: boolean; data?: T; error?: string; message?: string }> {
-  const { requireAuth = true, headers, ...customConfig } = options;
+  const { requireAuth, headers, ...customConfig } = options;
   
   // Clean endpoint path, handle potential double slashes
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -25,7 +25,7 @@ export async function apiClient<T = any>(endpoint: string, options: FetchOptions
     ...headers,
   };
 
-  if (requireAuth && auth?.currentUser) {
+  if (requireAuth !== false && auth?.currentUser) {
     try {
       const token = await auth.currentUser.getIdToken();
       (configHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
@@ -57,3 +57,4 @@ export async function apiClient<T = any>(endpoint: string, options: FetchOptions
     throw error;
   }
 }
+

@@ -1,12 +1,24 @@
 import { Router } from 'express';
 import admin, { db } from '../config/firebase';
-import { verifyUser, requireAdmin, AuthRequest } from '../middleware/auth';
 import { AppError } from '../utils/error';
+import { AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-router.use(verifyUser);
-router.use(requireAdmin);
+// /admin/users
+router.get('/users', async (req: AuthRequest, res, next) => {
+  try {
+    const usersSnapshot = await db.collection('users').get();
+    const usersList = usersSnapshot.docs.map(doc => ({
+      uid: doc.id,
+      ...doc.data()
+    }));
+    
+    res.status(200).json({ success: true, data: usersList });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // /admin/set-role
 router.post('/set-role', async (req: AuthRequest, res, next) => {
@@ -35,7 +47,7 @@ router.post('/set-role', async (req: AuthRequest, res, next) => {
     });
 
     await db.collection('audit_logs').add({
-      actorUserId: adminUser.id,
+      actorUserId: adminUser?.uid || 'unknown',
       action: 'ROLE_CHANGE',
       targetUserId: targetUserId,
       metadata: {

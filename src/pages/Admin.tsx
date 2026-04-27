@@ -18,21 +18,22 @@ import {
   RefreshCw
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { format, parseISO, isSameDay } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"
+import { apiClient } from "../lib/api"
 import { BookingStatus, Booking, Therapist } from "../types"
-import { useAuth } from "../contexts/AuthContext"
 
 const AdminPage = () => {
-  const { user } = useAuth()
   const [bookings, setBookings] = React.useState<Booking[]>([])
+  const [users, setUsers] = React.useState<any[]>([])
   const [therapists, setTherapists] = React.useState<Record<string, Therapist>>({})
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
   
-  // Filter states
+  // Tab/Filter states
+  const [activeTab, setActiveTab] = React.useState<'bookings' | 'users'>('bookings')
   const [statusFilter, setStatusFilter] = React.useState<BookingStatus | 'all'>('all')
   const [dateFilter, setDateFilter] = React.useState("")
   
@@ -42,61 +43,28 @@ const AdminPage = () => {
     try {
       setLoading(true)
       setError("")
-      const token = localStorage.getItem("adminToken")
-      
-      if (!token) {
-        setError("No administrative token found. Please sign in again.")
-        setLoading(false)
-        return
-      }
       
       // Fetch Bookings with robust error handling
-      const endpoint = user?.role === 'therapist' ? '/api/therapist/bookings' : '/api/bookings/get';
-      const bRes = await fetch(endpoint, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const endpoint = '/bookings/get';
+      const bRes = await apiClient(endpoint);
       
-      // Handle Specific HTTP Status Codes
-      if (bRes.status === 401) {
-        localStorage.removeItem("isAdminAuthenticated")
-        localStorage.removeItem("adminToken")
-        setError("Unauthorized access: The provided administrative key is invalid or your session has expired.")
-        setLoading(false)
-        return
-      }
-      
-      if (bRes.status >= 500) {
-        setError("Server error: There was a problem on the server side. Please try again later.")
-        setLoading(false)
-        return
-      }
-
-      // Safe JSON parsing
-      const text = await bRes.text()
-      let bData: any;
-      try {
-        bData = JSON.parse(text)
-      } catch (parseErr) {
-        console.error("Failed to parse JSON response:", text)
-        setError("Server error: Received an invalid response from the database.")
-        setLoading(false)
-        return
-      }
-      
-      if (!bData.success) {
-        throw new Error(bData.error || "Failed to retrieve the bookings database.")
+      if (!bRes.success) {
+        throw new Error(bRes.error || "Failed to retrieve the bookings database.");
       }
       
       // Fetch Therapists (public API)
-      const tRes = await fetch('/api/therapists/get')
       let tData: any;
       try {
-        const tText = await tRes.text()
-        tData = JSON.parse(tText)
+        tData = await apiClient('/therapists/get', { requireAuth: false });
       } catch (e) {
         tData = { success: false }
+      }
+      
+      let uData: any;
+      try {
+        uData = await apiClient('/admin/users');
+      } catch (e) {
+        uData = { success: false }
       }
       
       if (tData.success && tData.data) {
@@ -105,7 +73,8 @@ const AdminPage = () => {
         setTherapists(tMap)
       }
 
-      setBookings(bData.data?.bookings || [])
+      setBookings(bRes.data?.bookings || [])
+      setUsers(uData.data || [])
     } catch (err: any) {
       console.error("Fetch data error:", err)
       setError(err.message || "An unexpected error occurred while fetching data.")
@@ -115,46 +84,20 @@ const AdminPage = () => {
   }
 
   React.useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAdminAuthenticated") === "true"
-    if (!isAuthenticated) {
-      navigate("/")
-      return
-    }
     fetchData()
   }, [navigate])
 
   const handleLogout = () => {
-    localStorage.removeItem("isAdminAuthenticated")
-    localStorage.removeItem("adminToken")
     navigate("/")
   }
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
       setProcessingId(id)
-      const token = localStorage.getItem("adminToken")
-      const response = await fetch('/api/bookings/update', {
+      const data = await apiClient('/bookings/update', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ id, status })
       })
-      
-      if (response.status === 401) {
-        setError("Unauthorized: Your session is invalid. Please sign in again.")
-        return
-      }
-
-      const text = await response.text()
-      let data: any;
-      try {
-        data = JSON.parse(text)
-      } catch (e) {
-        setError("Invalid response from server during update.")
-        return
-      }
       
       if (data.success) {
         setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
@@ -163,7 +106,27 @@ const AdminPage = () => {
       }
     } catch (err: any) {
       console.error("Update status error:", err)
-      setError("Something went wrong while updating the booking status.")
+      setError(err?.message || "Something went wrong while updating the booking status.")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+
+  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+    try {
+      setProcessingId(targetUserId)
+      const res = await apiClient('/admin/set-role', {
+        method: 'POST',
+        body: JSON.stringify({ targetUserId, role: newRole })
+      })
+      if (res.success) {
+        setUsers(users.map(u => u.uid === targetUserId ? { ...u, role: newRole } : u))
+      } else {
+        setError(res.error || "Failed to update role")
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to update role")
     } finally {
       setProcessingId(null)
     }
@@ -184,7 +147,7 @@ const AdminPage = () => {
       </Helmet>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -221,6 +184,23 @@ const AdminPage = () => {
           </motion.div>
         </header>
 
+        <div className="flex gap-4 mb-10 border-b border-primary/10 pb-2">
+           <button 
+             onClick={() => setActiveTab('bookings')}
+             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'bookings' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
+           >
+             Bookings
+           </button>
+           <button 
+             onClick={() => setActiveTab('users')}
+             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'users' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
+           >
+             Users & Roles
+           </button>
+        </div>
+
+        {activeTab === 'bookings' ? (
+        <>
         {/* 🛠 FILTER BAR */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -477,6 +457,50 @@ const AdminPage = () => {
               ))}
             </AnimatePresence>
           </div>
+        )}
+        </>
+        ) : (
+           <div className="bg-white p-8 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
+              <h2 className="text-2xl font-serif text-primary mb-8">User Management</h2>
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-left">
+                  <thead>
+                     <tr className="border-b border-primary/10 text-xs uppercase tracking-wider text-muted-foreground">
+                        <th className="p-4">Email</th>
+                        <th className="p-4">Role</th>
+                        <th className="p-4">Actions</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {users.map(u => (
+                        <tr key={u.uid} className="border-b border-primary/5">
+                           <td className="p-4 font-medium">{u.email}</td>
+                           <td className="p-4">
+                              <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase", u.role === 'admin' ? "bg-accent/10 text-accent" : u.role === 'therapist' ? "bg-green-100 text-green-700" : "bg-primary/5 text-primary")}>
+                                 {u.role}
+                              </span>
+                           </td>
+                           <td className="p-4">
+                              <div className="flex gap-2">
+                                <select 
+                                  value={u.role}
+                                  onChange={(e) => handleRoleChange(u.uid, e.target.value)}
+                                  disabled={processingId === u.uid}
+                                  className="text-sm p-2 border rounded-lg bg-gray-50 focus:ring-primary/20"
+                                >
+                                  <option value="user">User</option>
+                                  <option value="therapist">Therapist</option>
+                                  <option value="admin">Admin</option>
+                                </select>
+                                {processingId === u.uid && <Loader2 className="w-4 h-4 animate-spin my-auto" />}
+                              </div>
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+                </table>
+              </div>
+           </div>
         )}
       </div>
     </div>
