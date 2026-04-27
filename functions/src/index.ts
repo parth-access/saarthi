@@ -19,7 +19,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true 
 }));
-app.options('*', cors()); // Pre-flight across the board
+app.options('*', (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(204).send('');
+}); // Pre-flight across the board
 
 app.use(express.json());
 
