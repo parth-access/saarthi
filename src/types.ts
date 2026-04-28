@@ -19,10 +19,10 @@ export interface Booking {
 export interface Therapist {
   id: string;
   name: string;
-  title: string;
-  specialties: string[];
+  specialization: string;
+  experience: string;
   bio: string;
-  photoUrl: string;
+  image: string;
   active: boolean;
 }
 

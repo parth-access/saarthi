@@ -33,8 +33,8 @@ const Hero = ({ onBookClick }: HeroProps) => {
             </div>
 
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-start sm:space-x-6 sm:space-y-0">
-              <Button size="lg" variant="primary" onClick={onBookClick} className="px-10 py-7 text-lg">
-                Book a Session
+              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg">
+                <Link to="/book">Book a Session</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="px-10 py-7 text-lg">
                 <Link to="/vision">Learn More</Link>
@@ -53,11 +53,11 @@ const Hero = ({ onBookClick }: HeroProps) => {
             
             <div className="relative overflow-hidden rounded-[3.5rem] shadow-2xl shadow-primary/10">
               <img
-                src="home_page.jpeg"
+                src="/home_page.jpeg"
                 alt="Mental Wellness and Emotional Clarity"
                 className="aspect-[4/5] h-full w-full object-cover sm:aspect-video lg:aspect-[4/5]"
                 referrerPolicy="no-referrer"
-                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-primary/5 mix-blend-multiply" />
             </div>

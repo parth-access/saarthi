@@ -58,7 +58,7 @@ const Qualifications = ({ items }: QualificationsProps) => {
             className="relative overflow-hidden rounded-3xl shadow-2xl"
           >
             <img
-              src="https://picsum.photos/seed/qualifications/1000/800"
+              src="/vision_page.png"
               alt="Qualifications"
               className="h-full w-full object-cover"
               referrerPolicy="no-referrer"

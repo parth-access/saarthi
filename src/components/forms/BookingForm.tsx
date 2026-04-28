@@ -4,6 +4,9 @@ import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "motion/react"
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { db } from "../../lib/firebase"
+import { handleFirestoreError, OperationType } from "../../lib/firebaseUtils"
 
 interface BookingFormProps {
   onSuccess?: () => void;
@@ -36,27 +39,19 @@ export function BookingForm({ onSuccess }: BookingFormProps) {
     setStatus('loading')
 
     try {
-      const response = await fetch('/api/create-booking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      await addDoc(collection(db, 'bookings'), {
           name: formData.name,
           email: formData.email,
           message: formData.message,
           preferredDate: formData.date,
           preferredTime: formData.time,
           gender: formData.gender,
-          age: parseInt(formData.age)
-        }),
+          age: parseInt(formData.age),
+          status: 'pending',
+          createdAt: serverTimestamp()
+      }).catch(err => {
+        handleFirestoreError(err, OperationType.CREATE, 'bookings');
       });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to process booking');
-      }
 
       setStatus('success')
       setFormData({ name: "", email: "", message: "", date: "", time: "", gender: "", age: "" })
