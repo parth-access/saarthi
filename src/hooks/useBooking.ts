@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useGlobalError } from './useGlobalError';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { bookingService } from '../services/bookingService';
 
 export function useBooking() {
   const [submitting, setSubmitting] = useState(false);
@@ -10,8 +8,7 @@ export function useBooking() {
   const { handleError, handleSuccess } = useGlobalError();
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
-    // In a fully client-side setup, we skip the lock and just return success.
-    // Real locking requires either transactions or a backend.
+    // With backend verification at booking, we don't strictly need a separate lock right now
     return { success: true };
   }
 
@@ -19,18 +16,13 @@ export function useBooking() {
     setSubmitting(true);
     setError(null);
     try {
-      const docRef = await addDoc(collection(db, 'bookings'), {
-        ...bookingData,
-        status: 'pending',
-        userId: auth?.currentUser?.uid || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+      const response = await bookingService.createBooking({
+        ...bookingData
       });
       
       handleSuccess('Booking request sent successfully!');
-      return { success: true, data: { id: docRef.id } };
+      return { success: true, data: { id: response.bookingId } };
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.CREATE, 'bookings');
       const msg = err.message || 'Network error';
       setError(msg);
       handleError(err, 'Failed to submit booking.');
@@ -42,4 +34,6 @@ export function useBooking() {
 
   return { createBooking, lockSlot, submitting, error, setError };
 }
+
+
 

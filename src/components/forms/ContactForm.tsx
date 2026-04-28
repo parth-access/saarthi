@@ -4,14 +4,9 @@ import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "motion/react"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
-import { useGlobalError } from "../../hooks/useGlobalError"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "../../lib/firebase"
-import { handleFirestoreError, OperationType } from "../../lib/firebaseUtils"
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const { handleError } = useGlobalError()
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -23,15 +18,10 @@ export function ContactForm() {
     setStatus('loading')
 
     try {
-      await addDoc(collection(db, 'contacts'), {
-        ...formData,
-        createdAt: serverTimestamp()
-      }).catch(err => handleFirestoreError(err, OperationType.CREATE, 'contacts'));
-
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setStatus('success')
       setFormData({ name: "", email: "", message: "" })
     } catch (error) {
-      handleError(error, "We couldn't send your message right now.");
       setStatus('error')
     }
   }

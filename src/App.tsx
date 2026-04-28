@@ -7,8 +7,7 @@ import ScrollToTop from "./components/layout/ScrollToTop"
 import { Modal } from "./components/ui/Modal"
 import { Loader2 } from "lucide-react"
 import { AuthProvider } from "./contexts/AuthContext"
-import { ProtectedRoute } from "./components/auth/RoleProtectedRoute"
-import { AuthModal } from "./components/auth/AuthModal"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 
 // Lazy load pages for better bundle size
 const Home = React.lazy(() => import("./pages/Home"))
@@ -20,6 +19,7 @@ const Admin = React.lazy(() => import("./pages/Admin"))
 const DravinaProfile = React.lazy(() => import("./pages/DravinaProfile"))
 const NotFound = React.lazy(() => import("./pages/NotFound"))
 const BookingSystem = React.lazy(() => import("./components/booking/BookingSystem"))
+const Login = React.lazy(() => import("./pages/Login"))
 
 const PageLoader = () => (
   <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -29,7 +29,6 @@ const PageLoader = () => (
 
 function App() {
   const [isBookingOpen, setIsBookingOpen] = React.useState(false)
-  const [isAuthOpen, setIsAuthOpen] = React.useState(false)
 
   return (
     <HelmetProvider>
@@ -37,7 +36,7 @@ function App() {
         <Router>
           <ScrollToTop />
           <div className="min-h-screen bg-background selection:bg-accent/30">
-            <Navbar onBookClick={() => setIsBookingOpen(true)} onLoginClick={() => setIsAuthOpen(true)} />
+            <Navbar onBookClick={() => setIsBookingOpen(true)} />
             <React.Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Home onBookClick={() => setIsBookingOpen(true)} />} />
@@ -45,10 +44,11 @@ function App() {
                 <Route path="/vision" element={<Vision />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact onBookClick={() => setIsBookingOpen(true)} />} />
+                <Route path="/login" element={<Login />} />
                 <Route 
                   path="/admin" 
                   element={
-                    <ProtectedRoute allowedRoles={['admin', 'therapist']}>
+                    <ProtectedRoute>
                       <Admin />
                     </ProtectedRoute>
                   } 
@@ -74,8 +74,6 @@ function App() {
                 <BookingSystem />
               </React.Suspense>
             </Modal>
-            
-            <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
           </div>
         </Router>
       </AuthProvider>

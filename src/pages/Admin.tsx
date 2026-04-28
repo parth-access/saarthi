@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "motion/react"
+import { therapistService } from '../services/therapistService';
 import { 
   Mail, 
   Calendar, 
@@ -9,38 +10,41 @@ import {
   CheckCircle2, 
   XCircle, 
   Loader2, 
-  LogOut, 
   Filter, 
   Info, 
   ChevronDown,
   Trash2,
   Check,
-  RefreshCw
+  RefreshCw,
+  LogOut
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { format, parseISO } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"
 import { BookingStatus, Booking, Therapist } from "../types"
-import { collection, getDocs, doc, updateDoc, setDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { bookingService } from "../services/bookingService"
 import { useAuth } from "../contexts/AuthContext"
-import { STATIC_THERAPISTS } from "../hooks/useTherapists"
+import { useTherapists } from "../hooks/useTherapists"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
-  const [users, setUsers] = React.useState<any[]>([])
-  const [therapists, setTherapists] = React.useState<Record<string, Therapist>>({})
+  const { therapists } = useTherapists();
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
   
   // Tab/Filter states
-  const [activeTab, setActiveTab] = React.useState<'bookings' | 'users'>('bookings')
+  const [activeTab, setActiveTab] = React.useState<'bookings' | 'availability'>('bookings')
   const [statusFilter, setStatusFilter] = React.useState<BookingStatus | 'all'>('all')
   const [dateFilter, setDateFilter] = React.useState("")
   
+  // Availability states
+  const [availDate, setAvailDate] = React.useState("")
+  const [availSlots, setAvailSlots] = React.useState<string[]>([])
+  const [myAvailability, setMyAvailability] = React.useState<any>({})
+  const { currentUser } = useAuth()
+
   const navigate = useNavigate()
   const { logout } = useAuth()
 
@@ -49,28 +53,13 @@ const AdminPage = () => {
       setLoading(true)
       setError("")
       
-      const bookingsQuery = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
-      const bRes = await getDocs(bookingsQuery).catch(err => {
-         handleFirestoreError(err, OperationType.LIST, 'bookings');
-         return null;
-      });
-      
-      const newBookings = bRes ? bRes.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking)) : [];
-      
-      let newUsers: any[] = [];
-      try {
-         const uRes = await getDocs(collection(db, 'users'));
-         newUsers = uRes.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-      } catch (err: any) {
-         handleFirestoreError(err, OperationType.LIST, 'users');
-      }
-      
-      const tMap: Record<string, Therapist> = {}
-      STATIC_THERAPISTS.forEach((t: Therapist) => { tMap[t.id] = t })
-      setTherapists(tMap)
+      const data = await bookingService.getBookings();
+      setBookings(data)
 
-      setBookings(newBookings)
-      setUsers(newUsers)
+      if (currentUser?.uid) {
+        const avail = await therapistService.getAvailability(currentUser.uid);
+        setMyAvailability(avail);
+      }
     } catch (err: any) {
       console.error("Fetch data error:", err)
       setError(err.message || "An unexpected error occurred while fetching data.")
@@ -81,23 +70,12 @@ const AdminPage = () => {
 
   React.useEffect(() => {
     fetchData()
-  }, [navigate])
-
-  const handleLogout = async () => {
-    await logout()
-    navigate("/")
-  }
+  }, [navigate, currentUser?.uid])
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
       setProcessingId(id)
-      await updateDoc(doc(db, 'bookings', id), {
-        status,
-        updatedAt: serverTimestamp()
-      }).catch(err => {
-        handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
-      });
-      
+      await bookingService.updateStatus(id, status);
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
     } catch (err: any) {
       console.error("Update status error:", err)
@@ -107,21 +85,37 @@ const AdminPage = () => {
     }
   }
 
-  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+  const handleSaveAvailability = async () => {
+    if (!availDate || availSlots.length === 0 || !currentUser?.uid) return;
     try {
-      setProcessingId(targetUserId)
-      await updateDoc(doc(db, 'users', targetUserId), {
-        role: newRole
-      }).catch(err => {
-         handleFirestoreError(err, OperationType.UPDATE, `users/${targetUserId}`);
-      });
-      
-      setUsers(users.map(u => u.uid === targetUserId ? { ...u, role: newRole } : u))
+      setLoading(true);
+      await therapistService.updateAvailability(availDate, availSlots, currentUser.uid);
+      await fetchData();
+      setAvailDate("");
+      setAvailSlots([]);
     } catch (err: any) {
-      setError(err?.message || "Failed to update role")
+      setError(err.message || "Failed to save availability");
     } finally {
-      setProcessingId(null)
+      setLoading(false);
     }
+  }
+
+  const handleDeleteAvailability = async (date: string) => {
+    if (!currentUser?.uid) return;
+    try {
+      setLoading(true);
+      await therapistService.deleteAvailability(date, currentUser.uid);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete availability");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   }
 
   const filteredBookings = bookings.filter(b => {
@@ -130,7 +124,10 @@ const AdminPage = () => {
     return matchesStatus && matchesDate;
   })
 
-  const getTherapistName = (id: string) => therapists[id]?.name || "Unknown Therapist"
+  const getTherapistName = (id: string) => {
+    const th = therapists.find(t => t.id === id);
+    return th?.name || "Unknown Therapist";
+  }
 
   return (
     <div className="pt-32 pb-24 min-h-screen bg-[#FDFCFB] selection:bg-primary/10">
@@ -166,11 +163,11 @@ const AdminPage = () => {
               Sync Database
             </Button>
             <Button 
-              variant="outline"
+              variant="outline" 
+              className="rounded-2xl bg-red-50 text-red-600 px-8 h-14 border-red-100 hover:bg-red-100 transition-all font-medium" 
               onClick={handleLogout}
-              className="h-14 px-8 rounded-2xl border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 transition-all flex items-center gap-2 font-medium"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
           </motion.div>
@@ -184,10 +181,10 @@ const AdminPage = () => {
              Bookings
            </button>
            <button 
-             onClick={() => setActiveTab('users')}
-             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'users' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
+             onClick={() => setActiveTab('availability')}
+             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'availability' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
            >
-             Users & Roles
+             Availability
            </button>
         </div>
 
@@ -452,47 +449,78 @@ const AdminPage = () => {
         )}
         </>
         ) : (
-           <div className="bg-white p-8 rounded-[3rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
-              <h2 className="text-2xl font-serif text-primary mb-8">User Management</h2>
-              <div className="overflow-x-auto w-full">
-                <table className="w-full text-left">
-                  <thead>
-                     <tr className="border-b border-primary/10 text-xs uppercase tracking-wider text-muted-foreground">
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Role</th>
-                        <th className="p-4">Actions</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     {users.map(u => (
-                        <tr key={u.uid} className="border-b border-primary/5">
-                           <td className="p-4 font-medium">{u.email}</td>
-                           <td className="p-4">
-                              <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase", u.role === 'admin' ? "bg-accent/10 text-accent" : u.role === 'therapist' ? "bg-green-100 text-green-700" : "bg-primary/5 text-primary")}>
-                                 {u.role}
-                              </span>
-                           </td>
-                           <td className="p-4">
-                              <div className="flex gap-2">
-                                <select 
-                                  value={u.role}
-                                  onChange={(e) => handleRoleChange(u.uid, e.target.value)}
-                                  disabled={processingId === u.uid}
-                                  className="text-sm p-2 border rounded-lg bg-gray-50 focus:ring-primary/20"
-                                >
-                                  <option value="user">User</option>
-                                  <option value="therapist">Therapist</option>
-                                  <option value="admin">Admin</option>
-                                </select>
-                                {processingId === u.uid && <Loader2 className="w-4 h-4 animate-spin my-auto" />}
-                              </div>
-                           </td>
-                        </tr>
-                     ))}
-                  </tbody>
-                </table>
+          <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
+            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Availability</h2>
+            <div className="flex flex-col lg:flex-row gap-12">
+              <div className="flex-1 space-y-6">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Select Date</label>
+                  <input 
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={availDate}
+                    onChange={(e) => setAvailDate(e.target.value)}
+                    className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Available Slots</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"].map(slot => (
+                      <button
+                        key={slot}
+                        onClick={() => {
+                          if (availSlots.includes(slot)) setAvailSlots(s => s.filter(x => x !== slot));
+                          else setAvailSlots(s => [...s, slot].sort());
+                        }}
+                        className={cn(
+                          "h-12 rounded-xl text-xs font-bold transition-all",
+                          availSlots.includes(slot) ? "bg-primary text-white" : "bg-[#FAFAFA] text-primary/60 hover:bg-primary/5"
+                        )}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleSaveAvailability} 
+                  disabled={loading || !availDate || availSlots.length === 0}
+                  className="w-full h-14 rounded-2xl text-base mt-4 font-bold"
+                >
+                  Save Schedule
+                </Button>
               </div>
-           </div>
+
+              <div className="flex-1 bg-[#FCFAF7] p-8 rounded-[2rem] border border-primary/5 h-fit">
+                <h3 className="font-serif text-xl tracking-tight text-primary mb-6 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-accent" /> Upcoming Schedule
+                </h3>
+                <div className="space-y-4">
+                  {Object.keys(myAvailability).sort().length === 0 ? (
+                    <p className="text-sm text-primary/40 italic">No availability set for upcoming days.</p>
+                  ) : (
+                    Object.entries(myAvailability).sort(([a], [b]) => a.localeCompare(b)).map(([date, slots]: any) => (
+                      <div key={date} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-primary/5 gap-4">
+                        <div>
+                          <div className="font-bold text-sm text-primary">{date}</div>
+                          <div className="text-xs text-primary/50 mt-1">{slots.length} slots available</div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDeleteAvailability(date)}
+                          className="h-8 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50"
+                        >
+                          Clear Date
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
