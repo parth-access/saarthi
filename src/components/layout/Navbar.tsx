@@ -2,17 +2,14 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
 import { Link } from "react-router-dom"
-import { LayoutDashboard, User as UserIcon, LogOut } from "lucide-react"
-import { useAuth } from "../../contexts/AuthContext"
+import { LayoutDashboard } from "lucide-react"
 
 interface NavbarProps {
   onBookClick?: () => void;
-  onLoginClick?: () => void;
 }
 
-const Navbar = ({ onBookClick, onLoginClick }: NavbarProps) => {
+const Navbar = ({ onBookClick }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false)
-  const { currentUser, logout } = useAuth()
 
   const navLinks = [
     { name: "Therapists", href: "/therapists" },
@@ -61,7 +58,6 @@ const Navbar = ({ onBookClick, onLoginClick }: NavbarProps) => {
                   {link.name}
                 </Link>
               ))}
-              {(currentUser?.role === 'admin' || currentUser?.role === 'therapist') && (
                 <Link
                   to="/admin"
                   className="text-sm font-medium text-primary transition-colors hover:opacity-80 flex items-center gap-1"
@@ -69,38 +65,12 @@ const Navbar = ({ onBookClick, onLoginClick }: NavbarProps) => {
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
-              )}
             </div>
           </div>
 
           {/* Right: CTA / Mobile */}
           <div className="flex items-center gap-4">
             
-            {/* User Profile / Login */}
-            <div className="hidden md:flex items-center gap-2">
-              {currentUser ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs font-medium text-primary line-clamp-1">{currentUser.email}</span>
-                    <button 
-                      onClick={logout}
-                      className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
-                    >
-                      <LogOut className="h-3 w-3" />
-                      Logout
-                    </button>
-                  </div>
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <UserIcon className="h-4 w-4" />
-                  </div>
-                </div>
-              ) : (
-                <Button variant="ghost" size="sm" onClick={onLoginClick} className="text-sm font-medium">
-                  Login
-                </Button>
-              )}
-            </div>
-
             {/* Desktop CTA */}
             <div className="hidden md:block">
               <Button asChild size="sm" variant="primary">
@@ -132,3 +102,4 @@ const Navbar = ({ onBookClick, onLoginClick }: NavbarProps) => {
 }
 
 export default Navbar
+

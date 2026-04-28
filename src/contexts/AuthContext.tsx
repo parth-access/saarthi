@@ -1,105 +1,52 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User as FirebaseUser, 
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, googleProvider, db } from '../lib/firebase';
-import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
-
-interface AppUser extends FirebaseUser {
-  role?: 'admin' | 'user' | 'therapist';
-}
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
-  currentUser: AppUser | null;
+  currentUser: any;
   loading: boolean;
-  loginWithGoogle: () => Promise<void>;
-  loginWithEmail: (e: string, p: string) => Promise<void>;
-  signupWithEmail: (e: string, p: string) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (email: string, pw: string) => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (err) {
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
+  }, []);
+
+  const login = async (email: string, pw: string) => {
+    const user = await authService.login(email, pw);
+    setCurrentUser(user);
+  };
+
+  const logout = () => {
+    authService.logout();
+    setCurrentUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ currentUser, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!auth) {
-      console.warn("Firebase not initialized properly");
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
-          
-          let role: any = 'user';
-          if (userSnap.exists()) {
-             role = userSnap.data()?.role || 'user';
-          } else {
-             await setDoc(userRef, {
-               email: user.email,
-               role: 'user',
-               uid: user.uid,
-               createdAt: serverTimestamp()
-             }).catch(err => {
-               handleFirestoreError(err, OperationType.CREATE, 'users');
-             });
-          }
-          (user as AppUser).role = role;
-        } catch (error) {
-          console.error("Failed to fetch/create user role", error);
-        }
-        setCurrentUser(user as AppUser);
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const loginWithGoogle = async () => {
-    if (!auth || !googleProvider) throw new Error("Firebase Auth not initialized");
-    await signInWithPopup(auth, googleProvider);
-  };
-
-  const loginWithEmail = async (e: string, p: string) => {
-    if (!auth) throw new Error("Firebase Auth not initialized");
-    await signInWithEmailAndPassword(auth, e, p);
-  };
-
-  const signupWithEmail = async (e: string, p: string) => {
-    if (!auth) throw new Error("Firebase Auth not initialized");
-    await createUserWithEmailAndPassword(auth, e, p);
-  };
-
-  const logout = async () => {
-    if (!auth) return;
-    await signOut(auth);
-  };
-
-  return (
-    <AuthContext.Provider value={{ currentUser, loading, loginWithGoogle, loginWithEmail, signupWithEmail, logout }}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
-};
-

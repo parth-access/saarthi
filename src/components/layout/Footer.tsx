@@ -57,10 +57,10 @@ export function Footer() {
                     healwithsaarthi@gmail.com
                   </a>
                 </li>
-                <li className="flex items-start gap-2">
+                {/* <li className="flex items-start gap-2">
                   <Phone className="h-5 w-5 text-primary shrink-0" />
                   <span>+91 98765 43210</span>
-                </li>
+                </li> */}
                 <li className="flex items-start gap-2">
                   <MapPin className="h-5 w-5 text-primary shrink-0" />
                   <span>New Delhi, India</span>

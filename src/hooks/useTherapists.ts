@@ -1,21 +1,34 @@
+import { useState, useEffect } from 'react';
 import { Therapist } from '../types';
-
-export const STATIC_THERAPISTS: Therapist[] = [
-  {
-    id: 'dravina',
-    name: 'Dravina Khokhar',
-    specialization: 'Counseling Psychologist',
-    experience: '3+ years',
-    bio: 'Dedicated to helping individuals find their path to healing.',
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80',
-    active: true
-  }
-];
+import { therapistService } from '../services/therapistService';
 
 export function useTherapists() {
-  return { 
-    therapists: STATIC_THERAPISTS, 
-    loading: false, 
-    error: null 
-  };
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    therapistService
+      .getTherapists()
+      .then((data) => {
+        if (mounted) {
+          setTherapists(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return { therapists, loading, error };
 }

@@ -1,5 +1,5 @@
-import useSWR from 'swr';
-import { useGlobalError } from './useGlobalError';
+import { useState, useEffect } from 'react';
+import { therapistService } from '../services/therapistService';
 
 interface Slot {
   time: string;
@@ -8,20 +8,43 @@ interface Slot {
 }
 
 export function useAvailability(therapistId: string | null, date: string | null) {
-  const { handleError } = useGlobalError();
-  const key = therapistId && date ? `/availability/get?therapistId=${therapistId}&date=${date}` : null;
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, error, isLoading } = useSWR<Slot[]>(key, {
-    revalidateOnFocus: true,
-    dedupingInterval: 10000, // Short cache for availability (10s)
-    refreshInterval: 30000, // Refresh every 30s
-    onError: (err: any) => handleError(err, 'Failed to update time slots.')
-  });
+  useEffect(() => {
+    if (!therapistId || !date) return;
+    
+    let mounted = true;
+    setLoading(true);
+    
+    therapistService.getAvailability(therapistId)
+      .then(data => {
+        if (!mounted) return;
+        
+        const availableTimes = data[date] || [];
+        
+        // Define all possible slots (e.g., 9 AM to 5 PM)
+        const allSlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+        
+        const slotObjects: Slot[] = allSlots.map(time => ({
+          time,
+          isAvailable: availableTimes.includes(time),
+          reason: availableTimes.includes(time) ? null : 'Booked'
+        }));
+        
+        setSlots(slotObjects);
+        setLoading(false);
+      })
+      .catch(err => {
+        if (!mounted) return;
+        setError(err.message);
+        setLoading(false);
+      });
+      
+    return () => { mounted = false };
+  }, [therapistId, date]);
 
-  return { 
-    slots: data || [], 
-    loading: isLoading, 
-    error: error?.message || null 
-  };
+  return { slots, loading, error };
 }
 
