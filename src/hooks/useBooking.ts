@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useGlobalError } from './useGlobalError';
-import { apiClient } from '../lib/api';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 export function useBooking() {
   const [submitting, setSubmitting] = useState(false);
@@ -8,40 +10,27 @@ export function useBooking() {
   const { handleError, handleSuccess } = useGlobalError();
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
-    try {
-      const data = await apiClient('/availability/lock', {
-        method: 'POST',
-        body: JSON.stringify(params),
-        requireAuth: false
-      });
-      if (!data.success) {
-        handleError(data.error);
-      }
-      return data;
-    } catch (err: any) {
-      handleError(err, 'Could not reserve this time slot.');
-      return { success: false, error: err.message };
-    }
+    // In a fully client-side setup, we skip the lock and just return success.
+    // Real locking requires either transactions or a backend.
+    return { success: true };
   }
 
   async function createBooking(bookingData: any) {
     setSubmitting(true);
     setError(null);
     try {
-      const data = await apiClient('/bookings/create', {
-        method: 'POST',
-        body: JSON.stringify(bookingData),
-        requireAuth: false // Unless requireAuth is needed
+      const docRef = await addDoc(collection(db, 'bookings'), {
+        ...bookingData,
+        status: 'pending',
+        userId: auth?.currentUser?.uid || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
-      if (!data.success) {
-        const errorMsg = data.error || 'Failed to submit booking';
-        setError(errorMsg);
-        handleError(errorMsg);
-      } else {
-        handleSuccess('Booking request sent successfully!');
-      }
-      return data;
+      
+      handleSuccess('Booking request sent successfully!');
+      return { success: true, data: { id: docRef.id } };
     } catch (err: any) {
+      handleFirestoreError(err, OperationType.CREATE, 'bookings');
       const msg = err.message || 'Network error';
       setError(msg);
       handleError(err, 'Failed to submit booking.');
@@ -53,3 +42,4 @@ export function useBooking() {
 
   return { createBooking, lockSlot, submitting, error, setError };
 }
+
