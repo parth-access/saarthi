@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!auth) {
+      console.warn("Firebase not initialized properly");
       setLoading(false);
       return;
     }

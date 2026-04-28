@@ -47,6 +47,8 @@ export async function apiClient<T = any>(endpoint: string, options: FetchOptions
   }
 
   const url = `${API_BASE_URL}${requestPath}`;
+  
+  console.log('API CALL →', url);
 
   try {
     const response = await fetch(url, config);
