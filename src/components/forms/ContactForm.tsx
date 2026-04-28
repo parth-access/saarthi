@@ -3,10 +3,15 @@ import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "motion/react"
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
+import { useGlobalError } from "../../hooks/useGlobalError"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { db } from "../../lib/firebase"
+import { handleFirestoreError, OperationType } from "../../lib/firebaseUtils"
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const { handleError } = useGlobalError()
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -18,24 +23,15 @@ export function ContactForm() {
     setStatus('loading')
 
     try {
-      const response = await fetch('/api/create-booking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to process request');
-      }
+      await addDoc(collection(db, 'contacts'), {
+        ...formData,
+        createdAt: serverTimestamp()
+      }).catch(err => handleFirestoreError(err, OperationType.CREATE, 'contacts'));
 
       setStatus('success')
       setFormData({ name: "", email: "", message: "" })
     } catch (error) {
-      console.error("Contact error:", error)
+      handleError(error, "We couldn't send your message right now.");
       setStatus('error')
     }
   }

@@ -2,6 +2,8 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "motion/react"
 
+import { Link } from "react-router-dom"
+
 interface CTAProps {
   onBookClick?: () => void;
 }
@@ -23,12 +25,12 @@ const CTA = ({ onBookClick }: CTAProps) => {
               Take the first step towards emotional clarity and mental wellness. Book your first session with Saarthi today.
             </p>
             <Button 
+              asChild
               size="lg" 
               variant="accent" 
               className="text-primary font-bold"
-              onClick={onBookClick}
             >
-              Book a Session
+              <Link to="/book">Book a Session</Link>
             </Button>
           </motion.div>
         </div>

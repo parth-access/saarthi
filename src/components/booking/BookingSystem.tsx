@@ -19,7 +19,7 @@ import { useBooking } from "../../hooks/useBooking"
 
 interface BookingState {
   therapistId: string;
-  sessionType: SessionType | ""
+  sessionType: SessionType | "";
   date: string;
   time: string;
   name: string;

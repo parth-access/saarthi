@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button"
 import { Link } from "react-router-dom"
 import { Heart, Shield, Sparkles, MessageCircle, Compass, Users, Lightbulb, Leaf } from "lucide-react"
 
+
 const About = () => {
   const differentiators = [
     {
@@ -94,7 +95,7 @@ const About = () => {
             >
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
                 <img 
-                  src="about_page.png" 
+                  src="/about_page.png" 
                   alt="Calm meditation" 
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -230,5 +231,6 @@ const About = () => {
   )
 }
 
-export default About
 
+
+export default About

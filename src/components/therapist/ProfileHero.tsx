@@ -10,6 +10,8 @@ interface ProfileHeroProps {
   languages: string[]
   experience: string
   shortIntro: string
+  image?: string
+  onBookClick?: () => void
 }
 
 const ProfileHero = ({
@@ -19,6 +21,8 @@ const ProfileHero = ({
   languages,
   experience,
   shortIntro,
+  image,
+  onBookClick,
 }: ProfileHeroProps) => {
   return (
     <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 bg-background overflow-hidden">
@@ -52,10 +56,10 @@ const ProfileHero = ({
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" variant="primary">
+              <Button size="lg" variant="primary" onClick={onBookClick}>
                 Book Session
               </Button>
-              <Button size="lg" variant="outline">
+              <Button size="lg" variant="outline" onClick={onBookClick}>
                 View Schedule
               </Button>
             </div>
@@ -69,7 +73,7 @@ const ProfileHero = ({
           >
             <div className="aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="https://picsum.photos/seed/therapist-profile/800/1000"
+                src={image || "/placeholder.png"}
                 alt={name}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"

@@ -2,7 +2,11 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "motion/react"
 
-const FinalCTA = () => {
+interface FinalCTAProps {
+  onBookClick?: () => void;
+}
+
+const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
   return (
     <section id="contact" className="py-24 bg-primary text-primary-foreground">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -18,7 +22,7 @@ const FinalCTA = () => {
             <p className="mb-10 text-lg text-primary-foreground/80 md:text-xl">
               Ready to address your concerns? Book a session to discuss your requirements and begin a structured approach to your mental well-being.
             </p>
-            <Button size="lg" variant="accent" className="text-primary font-bold">
+            <Button size="lg" variant="accent" className="text-primary font-bold" onClick={onBookClick}>
               Book a Session
             </Button>
           </motion.div>
