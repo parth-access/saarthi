@@ -12,12 +12,17 @@ const app = express();
 
 // Middleware
 app.use(cors({ 
-  origin: true, // Allows requests from any origin (e.g., localhost:5173 and Vercel domains)
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://www.saarthilife.com',
+    'https://saarthilife.com'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true 
 }));
-app.options('*', cors()); // Pre-flight across the board
+app.options('*', cors());
 
 app.use(express.json());
 
