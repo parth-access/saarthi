@@ -3,13 +3,13 @@ import {
   User as FirebaseUser, 
   onAuthStateChanged,
   signInWithPopup,
-  GoogleAuthProvider,
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword
 } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
-import { apiClient } from '../lib/api';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, googleProvider, db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 interface AppUser extends FirebaseUser {
   role?: 'admin' | 'user' | 'therapist';
@@ -46,15 +46,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const token = await user.getIdToken();
-          const response = await apiClient('/auth/me', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (response.success && response.data) {
-            (user as AppUser).role = response.data.role;
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          let role: any = 'user';
+          if (userSnap.exists()) {
+             role = userSnap.data()?.role || 'user';
+          } else {
+             await setDoc(userRef, {
+               email: user.email,
+               role: 'user',
+               uid: user.uid,
+               createdAt: serverTimestamp()
+             }).catch(err => {
+               handleFirestoreError(err, OperationType.CREATE, 'users');
+             });
           }
+          (user as AppUser).role = role;
         } catch (error) {
-          console.error("Failed to fetch user role", error);
+          console.error("Failed to fetch/create user role", error);
         }
         setCurrentUser(user as AppUser);
       } else {
@@ -92,3 +102,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+

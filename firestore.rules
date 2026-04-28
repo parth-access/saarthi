@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    
+    function isAdminOrTherapist() {
+       return isSignedIn() && 
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "therapist");
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdminOrTherapist());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isAdminOrTherapist());
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if isSignedIn();
+      
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || isAdminOrTherapist());
+
+      allow update, delete: if isAdminOrTherapist();
+    }
+  }
+}

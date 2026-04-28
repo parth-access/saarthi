@@ -21,8 +21,12 @@ import { useNavigate } from "react-router-dom"
 import { format, parseISO } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"
-import { apiClient } from "../lib/api"
 import { BookingStatus, Booking, Therapist } from "../types"
+import { collection, getDocs, doc, updateDoc, setDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { useAuth } from "../contexts/AuthContext"
+import { STATIC_THERAPISTS } from "../hooks/useTherapists"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
@@ -38,43 +42,35 @@ const AdminPage = () => {
   const [dateFilter, setDateFilter] = React.useState("")
   
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   const fetchData = async () => {
     try {
       setLoading(true)
       setError("")
       
-      // Fetch Bookings with robust error handling
-      const endpoint = '/bookings/get';
-      const bRes = await apiClient(endpoint);
+      const bookingsQuery = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
+      const bRes = await getDocs(bookingsQuery).catch(err => {
+         handleFirestoreError(err, OperationType.LIST, 'bookings');
+         return null;
+      });
       
-      if (!bRes.success) {
-        throw new Error(bRes.error || "Failed to retrieve the bookings database.");
-      }
+      const newBookings = bRes ? bRes.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking)) : [];
       
-      // Fetch Therapists (public API)
-      let tData: any;
+      let newUsers: any[] = [];
       try {
-        tData = await apiClient('/therapists/get', { requireAuth: false });
-      } catch (e) {
-        tData = { success: false }
+         const uRes = await getDocs(collection(db, 'users'));
+         newUsers = uRes.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+      } catch (err: any) {
+         handleFirestoreError(err, OperationType.LIST, 'users');
       }
       
-      let uData: any;
-      try {
-        uData = await apiClient('/admin/users');
-      } catch (e) {
-        uData = { success: false }
-      }
-      
-      if (tData.success && tData.data) {
-        const tMap: Record<string, Therapist> = {}
-        tData.data.forEach((t: Therapist) => { tMap[t.id] = t })
-        setTherapists(tMap)
-      }
+      const tMap: Record<string, Therapist> = {}
+      STATIC_THERAPISTS.forEach((t: Therapist) => { tMap[t.id] = t })
+      setTherapists(tMap)
 
-      setBookings(bRes.data?.bookings || [])
-      setUsers(uData.data || [])
+      setBookings(newBookings)
+      setUsers(newUsers)
     } catch (err: any) {
       console.error("Fetch data error:", err)
       setError(err.message || "An unexpected error occurred while fetching data.")
@@ -87,23 +83,22 @@ const AdminPage = () => {
     fetchData()
   }, [navigate])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout()
     navigate("/")
   }
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
       setProcessingId(id)
-      const data = await apiClient('/bookings/update', {
-        method: 'POST',
-        body: JSON.stringify({ id, status })
-      })
+      await updateDoc(doc(db, 'bookings', id), {
+        status,
+        updatedAt: serverTimestamp()
+      }).catch(err => {
+        handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
+      });
       
-      if (data.success) {
-        setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
-      } else {
-        setError(data.error || "Failed to update status")
-      }
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
     } catch (err: any) {
       console.error("Update status error:", err)
       setError(err?.message || "Something went wrong while updating the booking status.")
@@ -112,19 +107,16 @@ const AdminPage = () => {
     }
   }
 
-
   const handleRoleChange = async (targetUserId: string, newRole: string) => {
     try {
       setProcessingId(targetUserId)
-      const res = await apiClient('/admin/set-role', {
-        method: 'POST',
-        body: JSON.stringify({ targetUserId, role: newRole })
-      })
-      if (res.success) {
-        setUsers(users.map(u => u.uid === targetUserId ? { ...u, role: newRole } : u))
-      } else {
-        setError(res.error || "Failed to update role")
-      }
+      await updateDoc(doc(db, 'users', targetUserId), {
+        role: newRole
+      }).catch(err => {
+         handleFirestoreError(err, OperationType.UPDATE, `users/${targetUserId}`);
+      });
+      
+      setUsers(users.map(u => u.uid === targetUserId ? { ...u, role: newRole } : u))
     } catch (err: any) {
       setError(err?.message || "Failed to update role")
     } finally {

@@ -1,8 +1,6 @@
 import * as React from "react"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { HelmetProvider } from "react-helmet-async"
-import { SWRConfig } from "swr"
-import { apiClient } from "./lib/api"
 import Navbar from "./components/layout/Navbar"
 import { Footer } from "./components/layout/Footer"
 import ScrollToTop from "./components/layout/ScrollToTop"
@@ -36,18 +34,6 @@ function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
-      <SWRConfig 
-        value={{
-          revalidateOnFocus: false,
-          shouldRetryOnError: false,
-          dedupingInterval: 5000,
-            fetcher: async (url: string) => {
-              const res = await apiClient(url, { requireAuth: false });
-              if (!res.success) throw new Error(res.error || 'Failed to fetch');
-              return res.data;
-            }
-        }}
-      >
         <Router>
           <ScrollToTop />
           <div className="min-h-screen bg-background selection:bg-accent/30">
@@ -92,7 +78,6 @@ function App() {
             <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
           </div>
         </Router>
-      </SWRConfig>
       </AuthProvider>
     </HelmetProvider>
   )
