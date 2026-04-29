@@ -6,7 +6,8 @@ import {
   doc,
   updateDoc,
   query,
-  orderBy
+  orderBy,
+  where
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Booking, BookingStatus } from '../types';
@@ -36,6 +37,26 @@ export const bookingService = {
       const q = query(
         collection(db, 'bookings'),
         orderBy('createdAt', 'desc')
+      );
+
+      const snapshot = await getDocs(q);
+
+      return snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<Booking, 'id'>)
+      }));
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.LIST, 'bookings');
+      return [];
+    }
+  },
+
+  getBookingsByDate: async (therapistId: string, date: string): Promise<Booking[]> => {
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('therapistId', '==', therapistId),
+        where('date', '==', date)
       );
 
       const snapshot = await getDocs(q);

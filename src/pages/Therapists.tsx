@@ -11,8 +11,8 @@ const hardcodedTherapists: Therapist[] = [
   {
     id: "1",
     name: "Dravina Gupta",
-    specialization: "Clinical Psychologist & Mindfulness Coach",
-    experience: "8+ Years",
+    specialization: "Psychologist",
+    experience: "1+ Years",
     bio: "Specializing in anxiety, depression, and mindfulness-based stress reduction. I believe in a compassionate, non-judgmental approach to healing.",
     image: "about_page.png",
     active: true

@@ -2,7 +2,6 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
 import { Link } from "react-router-dom"
-import { LayoutDashboard } from "lucide-react"
 
 interface NavbarProps {
   onBookClick?: () => void;
@@ -58,13 +57,6 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
                   {link.name}
                 </Link>
               ))}
-                <Link
-                  to="/admin"
-                  className="text-sm font-medium text-primary transition-colors hover:opacity-80 flex items-center gap-1"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Link>
             </div>
           </div>
 
