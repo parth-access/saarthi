@@ -12,6 +12,27 @@ import { Therapist, AvailabilityConfig } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 export const therapistService = {
+  getTherapistByAuthId: async (authId: string): Promise<Therapist | null> => {
+    try {
+      const ref = collection(db, 'therapists');
+      const q = query(ref, where('authId', '==', authId));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return null;
+      }
+
+      const d = snapshot.docs[0];
+      return {
+        id: d.id,
+        ...(d.data() as Omit<Therapist, 'id'>)
+      };
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.LIST, 'therapists');
+      return null;
+    }
+  },
+
   getTherapists: async (): Promise<Therapist[]> => {
     try {
       const ref = collection(db, 'therapists');

@@ -46,6 +46,7 @@ const AdminPage = () => {
   const [availDuration, setAvailDuration] = React.useState(60)
   const [myRules, setMyRules] = React.useState<any[]>([])
   const { currentUser } = useAuth()
+  const [myTherapistProfile, setMyTherapistProfile] = React.useState<Therapist | null>(null)
 
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -55,13 +56,24 @@ const AdminPage = () => {
       setLoading(true)
       setError("")
       
-      const data = await bookingService.getBookings();
-      setBookings(data)
-
-      if (currentUser?.uid) {
-        const rules = await therapistService.getAvailabilityRules(currentUser.uid);
+      if (!currentUser?.uid) return;
+      
+      // Fetch therapist profile for this admin
+      const therapist = await therapistService.getTherapistByAuthId(currentUser.uid);
+      setMyTherapistProfile(therapist);
+      
+      if (therapist) {
+        // Fetch only bookings for this therapist
+        const data = await bookingService.getBookingsByTherapist(therapist.id);
+        setBookings(data)
+        
+        // Fetch availability rules for this therapist
+        const rules = await therapistService.getAvailabilityRules(therapist.id);
         setMyRules(rules);
+      } else {
+        setError('No therapist profile found mapped to your account. Please contact support.')
       }
+
     } catch (err: any) {
       console.error("Fetch data error:", err)
       setError(err.message || "An unexpected error occurred while fetching data.")
@@ -88,11 +100,11 @@ const AdminPage = () => {
   }
 
   const handleSaveAvailability = async () => {
-    if (!availStart || !availEnd || !currentUser?.uid) return;
+    if (!availStart || !availEnd || !myTherapistProfile?.id) return;
     try {
       setLoading(true);
       await therapistService.addAvailabilityRule({
-        therapistId: currentUser.uid,
+        therapistId: myTherapistProfile.id,
         dayOfWeek: availDay,
         startTime: availStart,
         endTime: availEnd,
@@ -107,7 +119,7 @@ const AdminPage = () => {
   }
 
   const handleDeleteAvailability = async (id: string) => {
-    if (!currentUser?.uid) return;
+    if (!myTherapistProfile?.id) return;
     try {
       setLoading(true);
       await therapistService.deleteAvailabilityRule(id);

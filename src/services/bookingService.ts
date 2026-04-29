@@ -51,6 +51,31 @@ export const bookingService = {
     }
   },
 
+  getBookingsByTherapist: async (therapistId: string): Promise<Booking[]> => {
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('therapistId', '==', therapistId)
+      );
+
+      const snapshot = await getDocs(q);
+
+      const items = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<Booking, 'id'>)
+      }));
+      
+      return items.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.LIST, 'bookings');
+      return [];
+    }
+  },
+
   getBookingsByDate: async (therapistId: string, date: string): Promise<Booking[]> => {
     try {
       const q = query(
