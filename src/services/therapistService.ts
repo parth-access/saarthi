@@ -2,13 +2,13 @@ import {
   collection,
   getDocs,
   doc,
-  setDoc,
-  getDoc,
+  addDoc,
+  deleteDoc,
   query,
   where
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Therapist } from '../types';
+import { Therapist, AvailabilityConfig } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 
 export const therapistService = {
@@ -28,53 +28,44 @@ export const therapistService = {
     }
   },
 
-  getAvailability: async (
+  getAvailabilityRules: async (
     therapistId: string
-  ): Promise<Record<string, string[]>> => {
+  ): Promise<AvailabilityConfig[]> => {
     try {
-      const ref = doc(db, 'availability_rules', therapistId);
-      const snap = await getDoc(ref);
+      const ref = collection(db, 'availability_rules');
+      const q = query(ref, where('therapistId', '==', therapistId));
+      const snapshot = await getDocs(q);
 
-      if (snap.exists()) {
-        return snap.data() as Record<string, string[]>;
-      }
-
-      return {};
+      return snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<AvailabilityConfig, 'id'>)
+      }));
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.GET, 'availability_rules');
-      return {};
+      handleFirestoreError(err, OperationType.LIST, 'availability_rules');
+      return [];
     }
   },
 
-  updateAvailability: async (
-    date: string,
-    slots: string[],
-    therapistId: string
+  addAvailabilityRule: async (
+    rule: Omit<AvailabilityConfig, 'id'>
   ) => {
     try {
-      const ref = doc(db, 'availability_rules', therapistId);
-      await setDoc(ref, { [date]: slots }, { merge: true });
-
-      return { success: true };
+      const ref = collection(db, 'availability_rules');
+      const docRef = await addDoc(ref, rule);
+      return { success: true, id: docRef.id };
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.UPDATE, 'availability_rules');
+      handleFirestoreError(err, OperationType.CREATE, 'availability_rules');
       throw err;
     }
   },
 
-  deleteAvailability: async (date: string, therapistId: string) => {
+  deleteAvailabilityRule: async (id: string) => {
     try {
-      const ref = doc(db, 'availability_rules', therapistId);
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        const data = snap.data() as Record<string, string[]>;
-        delete data[date];
-        await setDoc(ref, data);
-      }
-
+      const ref = doc(db, 'availability_rules', id);
+      await deleteDoc(ref);
       return { success: true };
     } catch (err: any) {
+      handleFirestoreError(err, OperationType.DELETE, `availability_rules/${id}`);
       throw err;
     }
   }

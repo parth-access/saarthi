@@ -40,9 +40,11 @@ const AdminPage = () => {
   const [dateFilter, setDateFilter] = React.useState("")
   
   // Availability states
-  const [availDate, setAvailDate] = React.useState("")
-  const [availSlots, setAvailSlots] = React.useState<string[]>([])
-  const [myAvailability, setMyAvailability] = React.useState<any>({})
+  const [availDay, setAvailDay] = React.useState(1)
+  const [availStart, setAvailStart] = React.useState("09:00")
+  const [availEnd, setAvailEnd] = React.useState("17:00")
+  const [availDuration, setAvailDuration] = React.useState(60)
+  const [myRules, setMyRules] = React.useState<any[]>([])
   const { currentUser } = useAuth()
 
   const navigate = useNavigate()
@@ -57,8 +59,8 @@ const AdminPage = () => {
       setBookings(data)
 
       if (currentUser?.uid) {
-        const avail = await therapistService.getAvailability(currentUser.uid);
-        setMyAvailability(avail);
+        const rules = await therapistService.getAvailabilityRules(currentUser.uid);
+        setMyRules(rules);
       }
     } catch (err: any) {
       console.error("Fetch data error:", err)
@@ -86,28 +88,32 @@ const AdminPage = () => {
   }
 
   const handleSaveAvailability = async () => {
-    if (!availDate || availSlots.length === 0 || !currentUser?.uid) return;
+    if (!availStart || !availEnd || !currentUser?.uid) return;
     try {
       setLoading(true);
-      await therapistService.updateAvailability(availDate, availSlots, currentUser.uid);
+      await therapistService.addAvailabilityRule({
+        therapistId: currentUser.uid,
+        dayOfWeek: availDay,
+        startTime: availStart,
+        endTime: availEnd,
+        slotDuration: availDuration
+      });
       await fetchData();
-      setAvailDate("");
-      setAvailSlots([]);
     } catch (err: any) {
-      setError(err.message || "Failed to save availability");
+      setError(err.message || "Failed to save availability rule");
     } finally {
       setLoading(false);
     }
   }
 
-  const handleDeleteAvailability = async (date: string) => {
+  const handleDeleteAvailability = async (id: string) => {
     if (!currentUser?.uid) return;
     try {
       setLoading(true);
-      await therapistService.deleteAvailability(date, currentUser.uid);
+      await therapistService.deleteAvailabilityRule(id);
       await fetchData();
     } catch (err: any) {
-      setError(err.message || "Failed to delete availability");
+      setError(err.message || "Failed to delete availability rule");
     } finally {
       setLoading(false);
     }
@@ -450,72 +456,93 @@ const AdminPage = () => {
         </>
         ) : (
           <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
-            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Availability</h2>
+            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Availability Rules</h2>
             <div className="flex flex-col lg:flex-row gap-12">
               <div className="flex-1 space-y-6">
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Select Date</label>
-                  <input 
-                    type="date"
-                    min={new Date().toISOString().split('T')[0]}
-                    value={availDate}
-                    onChange={(e) => setAvailDate(e.target.value)}
+                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Day of Week</label>
+                  <select 
+                    value={availDay}
+                    onChange={(e) => setAvailDay(Number(e.target.value))}
                     className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                  />
+                  >
+                    <option value={0}>Sunday</option>
+                    <option value={1}>Monday</option>
+                    <option value={2}>Tuesday</option>
+                    <option value={3}>Wednesday</option>
+                    <option value={4}>Thursday</option>
+                    <option value={5}>Friday</option>
+                    <option value={6}>Saturday</option>
+                  </select>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Start Time</label>
+                    <input 
+                      type="time"
+                      value={availStart}
+                      onChange={(e) => setAvailStart(e.target.value)}
+                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">End Time</label>
+                    <input 
+                      type="time"
+                      value={availEnd}
+                      onChange={(e) => setAvailEnd(e.target.value)}
+                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Available Slots</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"].map(slot => (
-                      <button
-                        key={slot}
-                        onClick={() => {
-                          if (availSlots.includes(slot)) setAvailSlots(s => s.filter(x => x !== slot));
-                          else setAvailSlots(s => [...s, slot].sort());
-                        }}
-                        className={cn(
-                          "h-12 rounded-xl text-xs font-bold transition-all",
-                          availSlots.includes(slot) ? "bg-primary text-white" : "bg-[#FAFAFA] text-primary/60 hover:bg-primary/5"
-                        )}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Slot Duration (Min)</label>
+                  <select 
+                    value={availDuration}
+                    onChange={(e) => setAvailDuration(Number(e.target.value))}
+                    className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                  >
+                    <option value={30}>30 Minutes</option>
+                    <option value={45}>45 Minutes</option>
+                    <option value={60}>60 Minutes</option>
+                    <option value={90}>90 Minutes</option>
+                  </select>
                 </div>
                 <Button 
                   onClick={handleSaveAvailability} 
-                  disabled={loading || !availDate || availSlots.length === 0}
+                  disabled={loading || !availStart || !availEnd}
                   className="w-full h-14 rounded-2xl text-base mt-4 font-bold"
                 >
-                  Save Schedule
+                  Save Rule
                 </Button>
               </div>
 
               <div className="flex-1 bg-[#FCFAF7] p-8 rounded-[2rem] border border-primary/5 h-fit">
                 <h3 className="font-serif text-xl tracking-tight text-primary mb-6 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-accent" /> Upcoming Schedule
+                  <Calendar className="w-5 h-5 text-accent" /> Active Rules
                 </h3>
                 <div className="space-y-4">
-                  {Object.keys(myAvailability).sort().length === 0 ? (
-                    <p className="text-sm text-primary/40 italic">No availability set for upcoming days.</p>
+                  {myRules.length === 0 ? (
+                    <p className="text-sm text-primary/40 italic">No availability rules set.</p>
                   ) : (
-                    Object.entries(myAvailability).sort(([a], [b]) => a.localeCompare(b)).map(([date, slots]: any) => (
-                      <div key={date} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-primary/5 gap-4">
+                    myRules.map((rule: any) => {
+                      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                      return (
+                      <div key={rule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-primary/5 gap-4">
                         <div>
-                          <div className="font-bold text-sm text-primary">{date}</div>
-                          <div className="text-xs text-primary/50 mt-1">{slots.length} slots available</div>
+                          <div className="font-bold text-sm text-primary">Every {days[rule.dayOfWeek]}</div>
+                          <div className="text-xs text-primary/50 mt-1">{rule.startTime} - {rule.endTime} ({rule.slotDuration}m)</div>
                         </div>
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => handleDeleteAvailability(date)}
+                          onClick={() => handleDeleteAvailability(rule.id)}
                           className="h-8 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50"
                         >
-                          Clear Date
+                          Remove
                         </Button>
                       </div>
-                    ))
+                    )})
                   )}
                 </div>
               </div>
