@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services/authService';
+import { User as CustomUser } from '../types';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface AuthContextType {
-  currentUser: any;
+  currentUser: CustomUser | null;
   loading: boolean;
   login: (email: string, pw: string) => Promise<void>;
   logout: () => void;
@@ -11,26 +14,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
-        const user = await authService.getCurrentUser();
-        setCurrentUser(user);
+        if (firebaseUser) {
+          const role = await authService.getUserRole(firebaseUser.uid) || 'therapist'; // default to therapist if not set for testing, or null
+          setCurrentUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            role: role as 'admin' | 'therapist'
+          });
+        } else {
+          setCurrentUser(null);
+        }
       } catch (err) {
         setCurrentUser(null);
       } finally {
         setLoading(false);
       }
-    };
-    initAuth();
+    });
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, pw: string) => {
-    const user = await authService.login(email, pw);
-    setCurrentUser(user);
+    await authService.login(email, pw);
+    // onAuthStateChanged will handle the rest
   };
 
   const logout = () => {

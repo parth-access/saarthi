@@ -1,3 +1,9 @@
+export interface User {
+  uid: string;
+  email: string;
+  role: 'admin' | 'therapist';
+}
+
 export type BookingStatus =
   | 'pending'
   | 'confirmed'
