@@ -41,10 +41,16 @@ export const bookingService = {
 
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((d) => ({
+      const items = snapshot.docs.map((d) => ({
         id: d.id,
         ...(d.data() as Omit<Booking, 'id'>)
       }));
+      
+      return items.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
     } catch (err: any) {
       handleFirestoreError(err, OperationType.LIST, 'bookings');
       return [];

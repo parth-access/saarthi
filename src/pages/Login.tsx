@@ -30,7 +30,7 @@ export default function Login() {
   };
 
   return (
-    <div className="pt-32 pb-24 min-h-[80vh] flex items-center justify-center container mx-auto px-6">
+    <div className="pt-32 pb-24 min-h-[80vh] flex flex-col items-center justify-center container mx-auto px-6">
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -39,8 +39,8 @@ export default function Login() {
         <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 mx-auto">
           <Lock className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-serif text-center text-primary mb-2">Therapist Login</h1>
-        <p className="text-center text-muted-foreground mb-8 text-sm">Sign in to manage your availability and view bookings.</p>
+        <h1 className="text-2xl font-serif text-center text-primary mb-2">Platform Login</h1>
+        <p className="text-center text-muted-foreground mb-8 text-sm">Sign in to manage the platform or your practice.</p>
         
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center border border-red-100">
@@ -56,7 +56,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="dravina@example.com"
+              placeholder="admin@saarthi.com"
             />
           </div>
           <div>

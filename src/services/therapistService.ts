@@ -33,10 +33,13 @@ export const therapistService = {
     }
   },
 
-  getTherapists: async (): Promise<Therapist[]> => {
+  getTherapists: async (includeInactive: boolean = false): Promise<Therapist[]> => {
     try {
       const ref = collection(db, 'therapists');
-      const q = query(ref, where('active', '==', true));
+      let q = query(ref);
+      if (!includeInactive) {
+        q = query(ref, where('active', '==', true));
+      }
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map((d) => ({
@@ -87,6 +90,18 @@ export const therapistService = {
       return { success: true };
     } catch (err: any) {
       handleFirestoreError(err, OperationType.DELETE, `availability_rules/${id}`);
+      throw err;
+    }
+  },
+
+  updateTherapistStatus: async (therapistId: string, active: boolean) => {
+    try {
+      const { updateDoc } = await import('firebase/firestore');
+      const ref = doc(db, 'therapists', therapistId);
+      await updateDoc(ref, { active });
+      return { success: true };
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.UPDATE, `therapists/${therapistId}`);
       throw err;
     }
   }

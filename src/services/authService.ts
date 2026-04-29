@@ -1,5 +1,7 @@
-import { auth, isFirebaseEnabled } from '../lib/firebase';
+import { auth, isFirebaseEnabled, db } from '../lib/firebase';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { User } from '../types';
 
 export const authService = {
   login: async (email: string, password: string) => {
@@ -14,6 +16,22 @@ export const authService = {
     }
   },
   
+  getUserRole: async (uid: string): Promise<'admin' | 'therapist' | null> => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.role === 'admin' || data.role === 'therapist') {
+          return data.role;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error("Error fetching user role:", e);
+      return null;
+    }
+  },
+
   getCurrentUser: async () => {
     return new Promise((resolve) => {
       if (!isFirebaseEnabled) return resolve(null);

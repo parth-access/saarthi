@@ -38,7 +38,8 @@ const AdminPage = () => {
   const [activeTab, setActiveTab] = React.useState<'bookings' | 'availability'>('bookings')
   const [statusFilter, setStatusFilter] = React.useState<BookingStatus | 'all'>('all')
   const [dateFilter, setDateFilter] = React.useState("")
-  
+  const [therapistFilter, setTherapistFilter] = React.useState<string>('all')
+
   // Availability states
   const [availDay, setAvailDay] = React.useState(1)
   const [availStart, setAvailStart] = React.useState("09:00")
@@ -51,6 +52,10 @@ const AdminPage = () => {
   const navigate = useNavigate()
   const { logout } = useAuth()
 
+  // Global Admin States
+  const [allTherapists, setAllTherapists] = React.useState<Therapist[]>([])
+  const [adminSelectedTherapistId, setAdminSelectedTherapistId] = React.useState<string>("")
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -58,20 +63,34 @@ const AdminPage = () => {
       
       if (!currentUser?.uid) return;
       
-      // Fetch therapist profile for this admin
-      const therapist = await therapistService.getTherapistByAuthId(currentUser.uid);
-      setMyTherapistProfile(therapist);
-      
-      if (therapist) {
-        // Fetch only bookings for this therapist
-        const data = await bookingService.getBookingsByTherapist(therapist.id);
+      if (currentUser.role === 'admin') {
+        const ths = await therapistService.getTherapists(true);
+        setAllTherapists(ths);
+        if (ths.length > 0 && !adminSelectedTherapistId) {
+          setAdminSelectedTherapistId(ths[0].id);
+        }
+
+        const data = await bookingService.getBookings();
         setBookings(data)
         
-        // Fetch availability rules for this therapist
-        const rules = await therapistService.getAvailabilityRules(therapist.id);
-        setMyRules(rules);
+        if (adminSelectedTherapistId || ths.length > 0) {
+          const rules = await therapistService.getAvailabilityRules(adminSelectedTherapistId || ths[0].id);
+          setMyRules(rules);
+        }
       } else {
-        setError('No therapist profile found mapped to your account. Please contact support.')
+        // Therapist Logic
+        const therapist = await therapistService.getTherapistByAuthId(currentUser.uid);
+        setMyTherapistProfile(therapist);
+        
+        if (therapist) {
+          const data = await bookingService.getBookingsByTherapist(therapist.id);
+          setBookings(data)
+          
+          const rules = await therapistService.getAvailabilityRules(therapist.id);
+          setMyRules(rules);
+        } else {
+          setError('No therapist profile found mapped to your account. Please contact support.')
+        }
       }
 
     } catch (err: any) {
@@ -84,7 +103,7 @@ const AdminPage = () => {
 
   React.useEffect(() => {
     fetchData()
-  }, [navigate, currentUser?.uid])
+  }, [navigate, currentUser?.uid, currentUser?.role, adminSelectedTherapistId])
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
@@ -100,11 +119,12 @@ const AdminPage = () => {
   }
 
   const handleSaveAvailability = async () => {
-    if (!availStart || !availEnd || !myTherapistProfile?.id) return;
+    const targetTherapistId = currentUser?.role === 'admin' ? adminSelectedTherapistId : myTherapistProfile?.id;
+    if (!availStart || !availEnd || !targetTherapistId) return;
     try {
       setLoading(true);
       await therapistService.addAvailabilityRule({
-        therapistId: myTherapistProfile.id,
+        therapistId: targetTherapistId,
         dayOfWeek: availDay,
         startTime: availStart,
         endTime: availEnd,
@@ -119,7 +139,7 @@ const AdminPage = () => {
   }
 
   const handleDeleteAvailability = async (id: string) => {
-    if (!myTherapistProfile?.id) return;
+    if (!currentUser?.uid) return;
     try {
       setLoading(true);
       await therapistService.deleteAvailabilityRule(id);
@@ -139,7 +159,8 @@ const AdminPage = () => {
   const filteredBookings = bookings.filter(b => {
     const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
     const matchesDate = !dateFilter || b.date === dateFilter;
-    return matchesStatus && matchesDate;
+    const matchesTherapist = therapistFilter === 'all' || b.therapistId === therapistFilter;
+    return matchesStatus && matchesDate && matchesTherapist;
   })
 
   const getTherapistName = (id: string) => {
@@ -204,10 +225,37 @@ const AdminPage = () => {
            >
              Availability
            </button>
+           {currentUser?.role === 'admin' && (
+             <button 
+               onClick={() => setActiveTab('therapists' as any)}
+               className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'therapists' as any ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
+             >
+               Therapists
+             </button>
+           )}
         </div>
 
         {activeTab === 'bookings' ? (
         <>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
+            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Total Bookings</h4>
+            <div className="text-4xl font-serif text-primary">{bookings.length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
+            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Completed</h4>
+            <div className="text-4xl font-serif text-primary">{bookings.filter(b => b.status === 'completed').length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
+            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Pending</h4>
+            <div className="text-4xl font-serif text-amber-600">{bookings.filter(b => b.status === 'pending').length}</div>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
+            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Confirmed</h4>
+            <div className="text-4xl font-serif text-green-600">{bookings.filter(b => b.status === 'confirmed').length}</div>
+          </div>
+        </div>
+
         {/* 🛠 FILTER BAR */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -221,6 +269,24 @@ const AdminPage = () => {
             </div>
             
             <div className="flex-1 flex flex-wrap gap-8">
+              {currentUser?.role === 'admin' && (
+                <div className="space-y-3">
+                  <label className="text-[10px] uppercase font-bold text-accent tracking-widest ml-1 opacity-60">Therapist</label>
+                  <div className="relative group">
+                    <select 
+                      value={therapistFilter}
+                      onChange={(e) => setTherapistFilter(e.target.value)}
+                      className="block w-52 h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer"
+                    >
+                      <option value="all">All Therapists</option>
+                      {allTherapists.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20 pointer-events-none transition-transform group-hover:translate-y-[-40%]" />
+                  </div>
+                </div>
+              )}
               <div className="space-y-3">
                 <label className="text-[10px] uppercase font-bold text-accent tracking-widest ml-1 opacity-60">Status</label>
                 <div className="relative group">
@@ -466,11 +532,25 @@ const AdminPage = () => {
           </div>
         )}
         </>
-        ) : (
+        ) : activeTab === 'availability' ? (
           <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
             <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Availability Rules</h2>
             <div className="flex flex-col lg:flex-row gap-12">
               <div className="flex-1 space-y-6">
+                {currentUser?.role === 'admin' && (
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Select Therapist</label>
+                    <select 
+                      value={adminSelectedTherapistId}
+                      onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
+                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                    >
+                      {allTherapists.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Day of Week</label>
                   <select 
@@ -560,7 +640,47 @@ const AdminPage = () => {
               </div>
             </div>
           </div>
-        )}
+        ) : currentUser?.role === 'admin' && activeTab === 'therapists' as any ? (
+          <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
+            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Therapists</h2>
+            <div className="space-y-4">
+              {allTherapists.map(t => (
+                <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border border-primary/5 gap-4">
+                  <div className="flex items-center gap-4">
+                    {t.image && <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full object-cover" />}
+                    <div>
+                      <div className="font-bold text-base text-primary">{t.name}</div>
+                      <div className="text-sm text-primary/50 mt-1">{t.specialization}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase", t.active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>
+                      {t.active ? "Active" : "Inactive"}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={loading}
+                      onClick={async () => {
+                        try {
+                          setLoading(true);
+                          await therapistService.updateTherapistStatus(t.id, !t.active);
+                          await fetchData();
+                        } catch (e) {
+                          console.error(e);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      {t.active ? "Deactivate" : "Activate"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )
