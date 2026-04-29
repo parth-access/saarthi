@@ -4,14 +4,16 @@ import {
   serverTimestamp,
   getDocs,
   doc,
+  getDoc,
   updateDoc,
   query,
   orderBy,
   where
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Booking, BookingStatus } from '../types';
+import { Booking, BookingStatus, Therapist } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { resendService } from './resendService';
 
 export const bookingService = {
   createBooking: async (
@@ -24,6 +26,17 @@ export const bookingService = {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+
+      // Try to send email
+      try {
+        const therapistSnap = await getDoc(doc(db, 'therapists', bookingData.therapistId));
+        if (therapistSnap.exists()) {
+          const therapist = { id: therapistSnap.id, ...therapistSnap.data() } as Therapist;
+          await resendService.sendBookingReceivedEmail({ id: docRef.id, ...bookingData, status: 'pending', createdAt: null }, therapist);
+        }
+      } catch (err) {
+        console.error("Failed to send notification email:", err);
+      }
 
       return { bookingId: docRef.id };
     } catch (err: any) {
@@ -110,6 +123,22 @@ export const bookingService = {
         status,
         updatedAt: serverTimestamp()
       });
+
+      if (status === 'confirmed') {
+        try {
+          const bookingSnap = await getDoc(ref);
+          if (bookingSnap.exists()) {
+            const booking = { id: bookingSnap.id, ...bookingSnap.data() } as Booking;
+            const therapistSnap = await getDoc(doc(db, 'therapists', booking.therapistId));
+            if (therapistSnap.exists()) {
+              const therapist = { id: therapistSnap.id, ...therapistSnap.data() } as Therapist;
+              await resendService.sendBookingConfirmedEmail(booking, therapist);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to send confirmed email:", err);
+        }
+      }
 
       return { success: true };
     } catch (err: any) {
