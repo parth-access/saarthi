@@ -36,6 +36,7 @@ export interface Therapist {
   image: string;
   active: boolean;
   authId?: string;
+  email?: string;
 }
 
 export interface AvailabilityConfig {
