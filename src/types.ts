@@ -1,4 +1,9 @@
-export type BookingStatus = 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
+export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'rejected'
+  | 'cancelled'
+  | 'completed';
 
 export interface Booking {
   id: string;
@@ -24,15 +29,16 @@ export interface Therapist {
   bio: string;
   image: string;
   active: boolean;
+  authId?: string;
 }
 
 export interface AvailabilityConfig {
   id: string;
   therapistId: string;
-  dayOfWeek: number; // 0-6
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
-  slotDuration: number; // minutes
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
 }
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';
