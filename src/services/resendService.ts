@@ -1,5 +1,8 @@
 import { Booking, Therapist } from '../types';
 
+// Use env var for API base, or empty string to fallback to relative path (proxy) if not set
+const getApiBaseurl = () => import.meta.env.VITE_API_BASE_URL || '';
+
 export const resendService = {
   sendBookingReceivedEmail: async (booking: Booking, therapist: Therapist) => {
     try {
@@ -11,7 +14,7 @@ export const resendService = {
 
       const payload = { booking, therapist };
       
-      const response = await fetch('/api/email/booking-received', {
+      const response = await fetch(`${getApiBaseurl()}/api/email/booking-received`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -23,7 +26,7 @@ export const resendService = {
       return await response.json();
     } catch (error) {
       console.error("resendService.sendBookingReceivedEmail Error:", error);
-      // Suppress throwing to not block the UIa
+      // Suppress throwing to not block the UI
     }
   },
 
@@ -37,7 +40,7 @@ export const resendService = {
 
       const payload = { booking, therapist };
       
-      const response = await fetch('/api/email/booking-confirmed', {
+      const response = await fetch(`${getApiBaseurl()}/api/email/booking-confirmed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
