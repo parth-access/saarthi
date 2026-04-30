@@ -12,8 +12,19 @@ async function startServer() {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   app.post('/api/email/booking-received', async (req, res) => {
+    console.log("EMAIL API HIT:", req.body);
     try {
       const { booking, therapist } = req.body;
+      
+      if (!booking || typeof booking !== 'object') {
+        return res.status(400).json({ error: 'Missing booking in payload' });
+      }
+
+      if (!booking.email || !booking.name || !booking.date || !booking.time) {
+        return res.status(400).json({ error: 'Missing required booking fields' });
+      }
+
+      const therapistName = therapist?.name || 'our therapist';
       
       if (!process.env.RESEND_API_KEY) {
         console.warn('RESEND_API_KEY is not set. Simulating email send.');
@@ -27,7 +38,7 @@ async function startServer() {
         html: `
           <h1>Booking Request Received</h1>
           <p>Hi ${booking.name},</p>
-          <p>We have successfully received your booking request for a session with ${therapist.name}.</p>
+          <p>We have successfully received your booking request for a session with ${therapistName}.</p>
           <p><strong>Date:</strong> ${booking.date}</p>
           <p><strong>Time:</strong> ${booking.time}</p>
           <p>We will notify you once your therapist confirms the session.</p>
@@ -42,8 +53,19 @@ async function startServer() {
   });
 
   app.post('/api/email/booking-confirmed', async (req, res) => {
+    console.log("EMAIL API HIT:", req.body);
     try {
       const { booking, therapist } = req.body;
+      
+      if (!booking || typeof booking !== 'object') {
+        return res.status(400).json({ error: 'Missing booking in payload' });
+      }
+
+      if (!booking.email || !booking.name || !booking.date || !booking.time) {
+        return res.status(400).json({ error: 'Missing required booking fields' });
+      }
+
+      const therapistName = therapist?.name || 'our therapist';
       
       if (!process.env.RESEND_API_KEY) {
         console.warn('RESEND_API_KEY is not set. Simulating email send.');
@@ -57,15 +79,17 @@ async function startServer() {
         html: `
           <h1>Session Confirmed</h1>
           <p>Hi ${booking.name},</p>
-          <p>Your session with ${therapist.name} has been confirmed!</p>
+          <p>Your session with ${therapistName} has been confirmed!</p>
           <p><strong>Date:</strong> ${booking.date}</p>
           <p><strong>Time:</strong> ${booking.time}</p>
           <p>Have a great session!</p>
         `,
       };
 
-      if (therapist.email) {
+      if (therapist?.email) {
         options.bcc = therapist.email;
+      } else {
+        console.warn('Skipping BCC: therapist email is missing');
       }
 
       await resend.emails.send(options);
@@ -86,7 +110,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
