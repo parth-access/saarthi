@@ -5,11 +5,13 @@ import {
   addDoc,
   deleteDoc,
   query,
-  where
+  where,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Therapist, AvailabilityConfig } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
+import { mapTherapist } from '../utils/mappers';
 
 export const therapistService = {
   getTherapistByAuthId: async (authId: string): Promise<Therapist | null> => {
@@ -23,10 +25,7 @@ export const therapistService = {
       }
 
       const d = snapshot.docs[0];
-      return {
-        id: d.id,
-        ...(d.data() as Omit<Therapist, 'id'>)
-      };
+      return mapTherapist(d.id, d.data());
     } catch (err: any) {
       handleFirestoreError(err, OperationType.LIST, 'therapists');
       return null;
@@ -42,10 +41,7 @@ export const therapistService = {
       }
       const snapshot = await getDocs(q);
 
-      return snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Therapist, 'id'>)
-      }));
+      return snapshot.docs.map((d) => mapTherapist(d.id, d.data()));
     } catch (err: any) {
       handleFirestoreError(err, OperationType.LIST, 'therapists');
       return [];
@@ -96,7 +92,6 @@ export const therapistService = {
 
   updateTherapistStatus: async (therapistId: string, active: boolean) => {
     try {
-      const { updateDoc } = await import('firebase/firestore');
       const ref = doc(db, 'therapists', therapistId);
       await updateDoc(ref, { active });
       return { success: true };
