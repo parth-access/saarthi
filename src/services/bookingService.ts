@@ -16,18 +16,40 @@ import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { resendService } from './resendService';
 import { mapBooking, mapTherapist } from '../utils/mappers';
 
+const cleanPayload = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(v => cleanPayload(v)).filter(v => v !== undefined);
+  } else if (obj !== null && typeof obj === 'object') {
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = cleanPayload(value);
+      }
+      return acc;
+    }, {} as Record<string, any>);
+  }
+  return obj;
+};
+
 export const bookingService = {
   createBooking: async (
     bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'>
   ) => {
     try {
-      console.log("Creating booking with data:", bookingData);
+      console.log('Booking payload before clean:', bookingData);
+      
+      // Remove any undefined values from the payload
+      const cleanedData = cleanPayload(bookingData);
+
+      console.log('Booking payload after clean:', cleanedData);
+
       const docRef = await addDoc(collection(db, 'bookings'), {
-        ...bookingData,
+        ...cleanedData,
         status: 'pending' as BookingStatus,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
+      
+      console.log('Firestore write success, bookingId:', docRef.id);
 
       // Try to send email
       try {
@@ -56,6 +78,7 @@ export const bookingService = {
 
       return { bookingId: docRef.id };
     } catch (err: any) {
+      console.error('Firestore write failed:', err);
       handleFirestoreError(err, OperationType.CREATE, 'bookings');
       throw err;
     }
