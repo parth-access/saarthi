@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -11,8 +11,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/admin', { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +27,7 @@ export default function Login() {
     
     try {
       await login(email, password);
-      // Wait a tick before navigating so auth state updates
-      navigate('/admin');
+      // Wait for AuthContext's onAuthStateChanged to set currentUser, which will trigger navigation via useEffect
     } catch (err: any) {
       setError(err.message || 'Login failed');
       setLoading(false);
