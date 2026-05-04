@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (type === 'booking-received') {
       const data = await resend.emails.send({
-        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+        from: 'Saarthi Contact <contact@saarthilife.com>',
         to: booking.email,
         subject: 'We have received your booking request',
         html: `
@@ -46,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     if (type === 'booking-confirmed') {
       const options: any = {
-        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+        from: 'Saarthi Contact <contact@saarthilife.com>',
         to: booking.email,
         subject: 'Your session has been confirmed',
         html: `
