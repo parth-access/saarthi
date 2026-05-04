@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
+          setLoading(true);
           const role = await authService.getUserRole(firebaseUser.uid) || 'therapist'; // default to therapist if not set for testing, or null
           setCurrentUser({
             uid: firebaseUser.uid,
@@ -40,8 +41,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, pw: string) => {
-    await authService.login(email, pw);
-    // onAuthStateChanged will handle the rest
+    setLoading(true);
+    try {
+      await authService.login(email, pw);
+      // onAuthStateChanged will handle the rest
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const logout = () => {
