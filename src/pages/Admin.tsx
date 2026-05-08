@@ -16,7 +16,13 @@ import {
   Trash2,
   Check,
   RefreshCw,
-  LogOut
+  LogOut,
+  Clock,
+  Timer,
+  LayoutGrid,
+  Plus,
+  Trash,
+  CheckCircle
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { format, parseISO } from "date-fns"
@@ -26,6 +32,7 @@ import { BookingStatus, Booking, Therapist } from "../types"
 import { bookingService } from "../services/bookingService"
 import { useAuth } from "../contexts/AuthContext"
 import { useTherapists } from "../hooks/useTherapists"
+import { TherapistDashboard } from "../components/dashboard/TherapistDashboard"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
@@ -46,6 +53,7 @@ const AdminPage = () => {
   const [availEnd, setAvailEnd] = React.useState("17:00")
   const [availDuration, setAvailDuration] = React.useState(60)
   const [myRules, setMyRules] = React.useState<any[]>([])
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'success'>('idle')
   const { currentUser } = useAuth()
   const [myTherapistProfile, setMyTherapistProfile] = React.useState<Therapist | null>(null)
 
@@ -123,6 +131,7 @@ const AdminPage = () => {
     if (!availStart || !availEnd || !targetTherapistId) return;
     try {
       setLoading(true);
+      setSaveStatus('saving');
       await therapistService.addAvailabilityRule({
         therapistId: targetTherapistId,
         dayOfWeek: availDay,
@@ -131,8 +140,11 @@ const AdminPage = () => {
         slotDuration: availDuration
       });
       await fetchData();
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (err: any) {
       setError(err.message || "Failed to save availability rule");
+      setSaveStatus('idle');
     } finally {
       setLoading(false);
     }
@@ -156,6 +168,27 @@ const AdminPage = () => {
     navigate('/');
   }
 
+  const previewSlots = React.useMemo(() => {
+    const slots = [];
+    try {
+      const [startH, startM] = availStart.split(':').map(Number);
+      const [endH, endM] = availEnd.split(':').map(Number);
+      
+      let currentMin = startH * 60 + startM;
+      const endMin = endH * 60 + endM;
+
+      while (currentMin + availDuration <= endMin) {
+        const h = Math.floor(currentMin / 60);
+        const m = currentMin % 60;
+        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
+        currentMin += availDuration;
+      }
+    } catch {
+       // Ignore parsing errors
+    }
+    return slots;
+  }, [availStart, availEnd, availDuration]);
+
   const filteredBookings = bookings.filter(b => {
     const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
     const matchesDate = !dateFilter || b.date === dateFilter;
@@ -164,526 +197,292 @@ const AdminPage = () => {
   })
 
   const getTherapistName = (id: string) => {
-    const th = therapists.find(t => t.id === id);
+    const th = allTherapists.find(t => t.id === id);
     return th?.name || "Unknown Therapist";
-  }
+  };
 
-  return (
-    <div className="pt-32 pb-24 min-h-screen bg-[#FDFCFB] selection:bg-primary/10">
-      <Helmet>
-        <title>Session Manager | Saarthi Admin</title>
-      </Helmet>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h1 className="text-5xl md:text-7xl font-serif text-primary tracking-tight mb-4">Session Manager</h1>
-            <p className="text-muted-foreground font-sans text-lg max-w-lg leading-relaxed italic">
-              A gentle space to manage your connections and provide clarity to those seeking support.
-            </p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex flex-wrap gap-4"
-          >
-            <Button 
-              variant="outline" 
-              className="rounded-2xl bg-white px-8 h-14 border-primary/10 hover:border-primary/30 transition-all font-medium" 
-              onClick={fetchData}
-            >
-              <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-              Sync Database
-            </Button>
-            <Button 
-              variant="outline" 
-              className="rounded-2xl bg-red-50 text-red-600 px-8 h-14 border-red-100 hover:bg-red-100 transition-all font-medium" 
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </motion.div>
-        </header>
-
-        <div className="flex gap-4 mb-10 border-b border-primary/10 pb-2">
-           <button 
-             onClick={() => setActiveTab('bookings')}
-             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'bookings' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
-           >
-             Bookings
-           </button>
-           <button 
-             onClick={() => setActiveTab('availability')}
-             className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'availability' ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
-           >
-             Availability
-           </button>
-           {currentUser?.role === 'admin' && (
-             <button 
-               onClick={() => setActiveTab('therapists' as any)}
-               className={cn("px-6 py-3 rounded-t-2xl font-bold transition-all", activeTab === 'therapists' as any ? "bg-primary text-white" : "text-primary hover:bg-primary/5")}
-             >
-               Therapists
-             </button>
-           )}
-        </div>
-
-        {activeTab === 'bookings' ? (
-        <>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
-            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Total Bookings</h4>
-            <div className="text-4xl font-serif text-primary">{bookings.length}</div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
-            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Completed</h4>
-            <div className="text-4xl font-serif text-primary">{bookings.filter(b => b.status === 'completed').length}</div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
-            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Pending</h4>
-            <div className="text-4xl font-serif text-amber-600">{bookings.filter(b => b.status === 'pending').length}</div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-primary/5 shadow-sm">
-            <h4 className="text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">Confirmed</h4>
-            <div className="text-4xl font-serif text-green-600">{bookings.filter(b => b.status === 'confirmed').length}</div>
-          </div>
-        </div>
-
-        {/* 🛠 FILTER BAR */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="bg-white border border-primary/5 rounded-[2.5rem] p-10 mb-16 shadow-[0_8px_30px_rgb(0,0,0,0.02)]"
-        >
-          <div className="flex flex-col lg:flex-row lg:items-center gap-10">
-            <div className="flex items-center gap-4 text-xs font-bold text-primary/30 uppercase tracking-[0.3em]">
-              <Filter className="w-4 h-4" /> Filter By
-            </div>
-            
-            <div className="flex-1 flex flex-wrap gap-8">
-              {currentUser?.role === 'admin' && (
-                <div className="space-y-3">
-                  <label className="text-[10px] uppercase font-bold text-accent tracking-widest ml-1 opacity-60">Therapist</label>
-                  <div className="relative group">
-                    <select 
-                      value={therapistFilter}
-                      onChange={(e) => setTherapistFilter(e.target.value)}
-                      className="block w-52 h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer"
-                    >
-                      <option value="all">All Therapists</option>
-                      {allTherapists.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20 pointer-events-none transition-transform group-hover:translate-y-[-40%]" />
-                  </div>
-                </div>
-              )}
-              <div className="space-y-3">
-                <label className="text-[10px] uppercase font-bold text-accent tracking-widest ml-1 opacity-60">Status</label>
-                <div className="relative group">
-                  <select 
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="block w-52 h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer"
-                  >
-                    <option value="all">All Request Status</option>
-                    <option value="pending">⏳ Pending</option>
-                    <option value="confirmed">✔ Confirmed</option>
-                    <option value="rejected">✖ Rejected</option>
-                    <option value="completed">✨ Completed</option>
-                    <option value="cancelled">🚫 Cancelled</option>
-                  </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/20 pointer-events-none transition-transform group-hover:translate-y-[-40%]" />
-                </div>
+  const scheduleBuilderNode = (
+    <div className="flex flex-col lg:flex-row gap-8 items-start">
+      
+      {/* LEFT: RULE BUILDER */}
+      <div className="flex-1 lg:flex-[0.4] bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5 w-full sticky top-32">
+        <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Schedule Builder</h2>
+        
+        <div className="space-y-8">
+          {currentUser?.role === 'admin' && (
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
+                <User className="w-3 h-3" /> Select Therapist
+              </label>
+              <div className="relative group">
+                <select 
+                  value={adminSelectedTherapistId}
+                  onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
+                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-Hover:border-primary/10"
+                >
+                  {allTherapists.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
               </div>
+            </div>
+          )}
+          
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
+              <Calendar className="w-3 h-3" /> Day of Week
+            </label>
+            <div className="relative group">
+              <select 
+                value={availDay}
+                onChange={(e) => setAvailDay(Number(e.target.value))}
+                className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-hover:border-primary/10"
+              >
+                <option value={0}>Sunday</option>
+                <option value={1}>Monday</option>
+                <option value={2}>Tuesday</option>
+                <option value={3}>Wednesday</option>
+                <option value={4}>Thursday</option>
+                <option value={5}>Friday</option>
+                <option value={6}>Saturday</option>
+              </select>
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] uppercase font-bold text-accent tracking-widest ml-1 opacity-60">Session Date</label>
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
+              <Clock className="w-3 h-3" /> Time Range
+            </label>
+            <div className="flex gap-4">
+              <div className="flex-1 relative group">
                 <input 
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="block h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
+                  type="time"
+                  value={availStart}
+                  onChange={(e) => setAvailStart(e.target.value)}
+                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer group-hover:border-primary/10"
+                />
+              </div>
+              <div className="flex items-center text-primary/20 font-bold">-</div>
+              <div className="flex-1 relative group">
+                <input 
+                  type="time"
+                  value={availEnd}
+                  onChange={(e) => setAvailEnd(e.target.value)}
+                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer group-hover:border-primary/10"
                 />
               </div>
             </div>
+          </div>
 
-            <div className="text-sm font-medium text-muted-foreground bg-primary/5 px-6 py-3 rounded-2xl border border-primary/5 italic">
-              Showing <span className="text-primary font-bold not-italic">{filteredBookings?.length || 0}</span> sessions
+          <div className="space-y-4">
+            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
+              <Timer className="w-3 h-3" /> Slot Duration
+            </label>
+            <div className="relative group">
+              <select 
+                value={availDuration}
+                onChange={(e) => setAvailDuration(Number(e.target.value))}
+                className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-hover:border-primary/10"
+              >
+                <option value={30}>30 Minutes</option>
+                <option value={45}>45 Minutes</option>
+                <option value={60}>60 Minutes</option>
+                <option value={90}>90 Minutes</option>
+              </select>
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
             </div>
           </div>
-        </motion.div>
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-12 p-6 bg-red-50 text-red-700 rounded-3xl border border-red-100 flex items-center gap-4 shadow-sm"
+          <Button 
+            onClick={handleSaveAvailability} 
+            disabled={saveStatus === 'saving' || !availStart || !availEnd}
+            className={cn(
+              "w-full h-14 rounded-2xl text-sm mt-4 font-bold tracking-wide transition-all duration-300",
+              saveStatus === 'success' 
+                ? "bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg" 
+                : "bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+            )}
           >
-             <div className="bg-red-100 p-2 rounded-xl">
-               <Info className="w-5 h-5" />
+            {saveStatus === 'saving' ? (
+              <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Saving...</span>
+            ) : saveStatus === 'success' ? (
+              <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Rule Saved</span>
+            ) : (
+              <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add Rule</span>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* RIGHT: PREVIEW & ACTIVE RULES */}
+      <div className="flex-1 lg:flex-[0.6] flex flex-col gap-8 w-full">
+        
+        {/* REAL-TIME PREVIEW */}
+        <div className="bg-[#FCFAF7] p-8 md:p-12 rounded-[3.5rem] border border-primary/5 shadow-inner">
+           <h3 className="font-serif text-2xl tracking-tight text-primary mb-6 flex flex-wrap items-center justify-between gap-4">
+             <div className="flex items-center gap-3">
+               <LayoutGrid className="w-5 h-5 text-accent" /> Layout Preview
              </div>
-             <div className="flex-1 font-medium">{error}</div>
-             <Button variant="ghost" size="sm" onClick={fetchData} className="text-red-700 hover:bg-red-100">Retry</Button>
-          </motion.div>
-        )}
+             <span className="text-[10px] uppercase font-bold tracking-widest text-primary/40 bg-white px-4 py-1.5 rounded-full border border-primary/5 shadow-sm">
+               {previewSlots.length} slots generated
+             </span>
+           </h3>
+           
+           {previewSlots.length > 0 ? (
+             <div className="flex flex-wrap gap-2 md:gap-3">
+               {previewSlots.map((slot, i) => (
+                 <motion.div 
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   transition={{ delay: i * 0.02 }}
+                   key={slot}
+                   className="px-4 py-2.5 bg-white rounded-xl border border-primary/5 text-sm font-bold text-primary shadow-sm hover:border-accent/30 hover:text-accent hover:-translate-y-0.5 transition-all cursor-default"
+                 >
+                   {slot}
+                 </motion.div>
+               ))}
+             </div>
+           ) : (
+             <div className="text-center py-12 px-4 border-2 border-dashed border-primary/10 rounded-3xl bg-white/50">
+               <Calendar className="w-8 h-8 text-primary/10 mx-auto mb-3" />
+               <p className="text-primary/40 text-sm font-medium">No valid time range selected.</p>
+             </div>
+           )}
+        </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-48 text-muted-foreground">
-            <Loader2 className="h-16 w-16 animate-spin mb-8 text-primary/20" />
-            <p className="font-serif text-2xl italic text-primary/30 tracking-tight">Gathering session data...</p>
-          </div>
-        ) : (filteredBookings?.length || 0) === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-32 bg-white rounded-[4rem] border-2 border-dashed border-primary/5"
-          >
-            <div className="bg-primary/5 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Calendar className="w-12 h-12 text-primary/10" />
-            </div>
-            <p className="text-4xl font-serif text-primary/30 mb-4 tracking-tight italic">No sessions yet</p>
-            <p className="text-muted-foreground max-w-xs mx-auto text-lg leading-relaxed">
-              Your schedule is currently clear. Take this moment for yourself.
-            </p>
-          </motion.div>
-        ) : (
-          <div className="space-y-10">
+        {/* ACTIVE RULES */}
+        <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-primary/5 shadow-sm">
+          <h3 className="font-serif text-2xl tracking-tight text-primary mb-8 flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-accent" /> Active Schedule Rules
+          </h3>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AnimatePresence mode="popLayout">
-              {filteredBookings?.map((booking) => (
-                <motion.div
-                  key={booking.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  whileHover={{ scale: 1.005 }}
-                  className="bg-white p-1 md:p-1 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5 overflow-hidden group transition-all duration-500"
+              {myRules.length === 0 ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="col-span-1 sm:col-span-2 text-center py-16 bg-[#FAFAFA] rounded-3xl border-2 border-dashed border-primary/5"
                 >
-                  <div className="flex flex-col xl:flex-row">
-                    {/* LEFT PANEL: CONTENT */}
-                    <div className="flex-1 p-10 md:p-14">
-                      <div className="flex flex-wrap items-start justify-between gap-10 mb-12">
-                        <div className="space-y-6">
-                          <div className="flex flex-wrap items-center gap-6">
-                            <h2 className="text-4xl md:text-5xl font-serif text-primary tracking-tight leading-none">{booking.name}</h2>
-                            <StatusBadge status={booking.status} />
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-x-10 gap-y-5 text-muted-foreground text-sm font-medium">
-                            <span className="flex items-center gap-3 bg-primary/5 px-5 py-2 rounded-2xl text-primary/80">
-                              <Mail className="h-4 w-4 text-primary/40" /> {booking.email}
-                            </span>
-                            <span className="flex items-center gap-3 bg-accent/5 px-5 py-2 rounded-2xl text-accent/80 font-bold uppercase tracking-widest text-[10px]">
-                              <User className="h-4 w-4" /> {booking.gender}, {booking.age} yrs
-                            </span>
-                            <span className="flex items-center gap-3 italic text-primary/60">
-                              <ShieldCheck className="h-4 w-4 text-accent/40" /> {getTherapistName(booking.therapistId)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* SLOT DISPLAY */}
-                        <div className="bg-[#FCFAF7] p-8 rounded-[3rem] border border-primary/5 text-center min-w-[200px] shadow-inner">
-                          <div className="inline-flex items-center gap-2 text-[10px] font-bold text-primary/20 uppercase tracking-[0.3em] mb-3">
-                            <Calendar className="w-3 h-3" /> Session Slot
-                          </div>
-                          <div className="text-4xl font-serif font-bold text-primary mb-1">
-                            {booking.date ? (
-                              (() => {
-                                try {
-                                  return format(parseISO(booking.date), "dd MMM")
-                                } catch (e) {
-                                  return "Invalid"
-                                }
-                              })()
-                            ) : "N/A"}
-                          </div>
-                          <div className="text-sm font-bold text-accent uppercase tracking-widest mt-2 border-t border-primary/5 pt-2">
-                             {booking.time}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* NOTES SECTION */}
-                      <div className="relative mb-12">
-                         <div className="absolute left-[-2rem] top-0 bottom-0 w-[4px] bg-accent/10 rounded-full" />
-                         <p className="text-muted-foreground leading-relaxed italic text-2xl text-primary/70 font-serif">
-                            "{booking.message || 'The seeker left no additional notes.'}"
-                         </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-10 border-t border-primary/5">
-                        <div className="flex items-center gap-4">
-                           <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-primary/20">Session Type:</span>
-                           <span className="px-4 py-1 rounded-full bg-primary/5 text-xs font-bold text-primary/60 uppercase tracking-tighter">
-                             {booking.sessionType}
-                           </span>
-                        </div>
-                        <div className="text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground/30">
-                          ID: {booking.id.substring(0, 8).toUpperCase()} • RECEIVED {(() => {
-                            try {
-                              const dateVal = booking.createdAt?.seconds 
-                                ? new Date(booking.createdAt.seconds * 1000) 
-                                : booking.createdAt;
-                              return dateVal ? format(new Date(dateVal), "MMM dd, p") : "DATE_MISSING";
-                            } catch (e) { return "N/A" }
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* RIGHT PANEL: ACTIONS / STATUS */}
-                    <div className="xl:w-80 bg-[#FAFAFA] border-l border-primary/5 flex flex-col p-10 justify-center">
-                      <div className="flex flex-col gap-6">
-                        {booking.status === 'pending' ? (
-                          <>
-                            <button
-                              disabled={!!processingId}
-                              onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
-                              className="w-full h-20 flex flex-col items-center justify-center gap-1 bg-primary text-white rounded-[2rem] hover:bg-primary/95 transition-all font-bold shadow-2xl shadow-primary/20 disabled:opacity-50 active:scale-95 group"
-                            >
-                              {processingId === booking.id ? (
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                              ) : (
-                                <>
-                                  <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5" />
-                                    <span>Accept Session</span>
-                                  </div>
-                                  <span className="text-[10px] font-normal opacity-60">Notify Seeker</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              disabled={!!processingId}
-                              onClick={() => handleUpdateStatus(booking.id, 'rejected')}
-                              className="w-full h-16 flex items-center justify-center gap-3 bg-white text-red-500 rounded-[1.5rem] hover:bg-red-50 transition-all font-bold disabled:opacity-50 border-2 border-red-100/50"
-                            >
-                              {processingId === booking.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="h-5 w-5" />}
-                              Decline
-                            </button>
-                          </>
-                        ) : booking.status === 'confirmed' ? (
-                          <div className="space-y-6">
-                            <div className="p-10 rounded-[3rem] border-2 border-dashed border-green-200 bg-green-50/50 flex flex-col items-center justify-center text-green-700 text-center">
-                               <div className="bg-green-100 p-4 rounded-full mb-4">
-                                 <CheckCircle2 className="w-8 h-8" />
-                               </div>
-                               <span className="font-black uppercase tracking-[0.2em] text-[10px] mb-1">Confirmed</span>
-                               <span className="text-xs opacity-60">Seeking clarity soon.</span>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4">
-                              <button 
-                                disabled={!!processingId}
-                                onClick={() => handleUpdateStatus(booking.id, 'completed')}
-                                className="h-16 bg-primary text-white rounded-2xl hover:brightness-110 transition-all font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                              >
-                                <Check className="w-4 h-4" /> Mark Completed
-                              </button>
-                              <button 
-                                disabled={!!processingId}
-                                onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
-                                className="h-14 bg-white border-2 border-red-50 text-red-400 rounded-2xl hover:bg-red-50 transition-all font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
-                              >
-                                <Trash2 className="w-3 h-3" /> Cancel Session
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className={cn(
-                              "flex flex-col items-center justify-center p-12 rounded-[3.5rem] border-2 border-dashed transition-all text-center",
-                              booking.status === 'completed' ? 'text-primary border-primary/20 bg-primary/5' :
-                              booking.status === 'rejected' ? 'text-red-500 border-red-200 bg-red-50/10' : 
-                              'text-muted-foreground border-muted/20 bg-muted/5'
-                            )}
-                          >
-                            <div className="mb-4 opacity-40">
-                              {booking.status === 'completed' && <CheckCircle2 className="w-12 h-12" />}
-                              {booking.status === 'rejected' && <XCircle className="w-12 h-12" />}
-                              {booking.status === 'cancelled' && <Trash2 className="w-12 h-12" />}
-                            </div>
-                            <span className="font-black uppercase tracking-[0.3em] text-[10px] block mb-2">
-                              {booking.status}
-                            </span>
-                            <span className="text-[10px] font-medium opacity-50 italic">
-                              {booking.status === 'completed' ? 'Healing path taken' : 'Session closed'}
-                            </span>
-                          </motion.div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <Calendar className="w-10 h-10 text-primary/10 mx-auto mb-4" />
+                  <p className="text-primary/40 font-medium">No rules have been created yet.</p>
+                  <p className="text-xs text-primary/30 mt-1">Add a rule from the builder to get started.</p>
                 </motion.div>
-              ))}
+              ) : (
+                myRules.map((rule: any) => {
+                  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  return (
+                  <motion.div 
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    key={rule.id} 
+                    className="group bg-[#FAFAFA] hover:bg-white p-6 rounded-3xl border border-primary/5 hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 flex flex-col relative overflow-hidden"
+                  >
+                    {/* Accent line */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent/40 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="bg-accent/10 text-accent font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-widest border border-accent/10">
+                        {days[rule.dayOfWeek]}
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteAvailability(rule.id)}
+                        className="w-8 h-8 rounded-full bg-white border border-primary/5 flex items-center justify-center text-primary/20 hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-colors shadow-sm"
+                        title="Delete Rule"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    
+                    <div className="mt-auto">
+                      <div className="text-2xl font-serif text-primary tracking-tight mb-1 flex items-center gap-2">
+                        {rule.startTime} <span className="text-primary/20 text-lg font-sans">-</span> {rule.endTime}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary/40">
+                        <Timer className="w-3 h-3 opacity-60" /> {rule.slotDuration} min sessions
+                      </div>
+                    </div>
+                  </motion.div>
+                )})
+              )}
             </AnimatePresence>
           </div>
-        )}
-        </>
-        ) : activeTab === 'availability' ? (
-          <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
-            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Availability Rules</h2>
-            <div className="flex flex-col lg:flex-row gap-12">
-              <div className="flex-1 space-y-6">
-                {currentUser?.role === 'admin' && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Select Therapist</label>
-                    <select 
-                      value={adminSelectedTherapistId}
-                      onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
-                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                    >
-                      {allTherapists.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Day of Week</label>
-                  <select 
-                    value={availDay}
-                    onChange={(e) => setAvailDay(Number(e.target.value))}
-                    className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                  >
-                    <option value={0}>Sunday</option>
-                    <option value={1}>Monday</option>
-                    <option value={2}>Tuesday</option>
-                    <option value={3}>Wednesday</option>
-                    <option value={4}>Thursday</option>
-                    <option value={5}>Friday</option>
-                    <option value={6}>Saturday</option>
-                  </select>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Start Time</label>
-                    <input 
-                      type="time"
-                      value={availStart}
-                      onChange={(e) => setAvailStart(e.target.value)}
-                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">End Time</label>
-                    <input 
-                      type="time"
-                      value={availEnd}
-                      onChange={(e) => setAvailEnd(e.target.value)}
-                      className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-accent tracking-widest ml-1 mb-3 opacity-60">Slot Duration (Min)</label>
-                  <select 
-                    value={availDuration}
-                    onChange={(e) => setAvailDuration(Number(e.target.value))}
-                    className="block w-full h-14 rounded-2xl bg-[#FAFAFA] border-none px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer"
-                  >
-                    <option value={30}>30 Minutes</option>
-                    <option value={45}>45 Minutes</option>
-                    <option value={60}>60 Minutes</option>
-                    <option value={90}>90 Minutes</option>
-                  </select>
-                </div>
-                <Button 
-                  onClick={handleSaveAvailability} 
-                  disabled={loading || !availStart || !availEnd}
-                  className="w-full h-14 rounded-2xl text-base mt-4 font-bold"
-                >
-                  Save Rule
-                </Button>
-              </div>
+        </div>
 
-              <div className="flex-1 bg-[#FCFAF7] p-8 rounded-[2rem] border border-primary/5 h-fit">
-                <h3 className="font-serif text-xl tracking-tight text-primary mb-6 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-accent" /> Active Rules
-                </h3>
-                <div className="space-y-4">
-                  {myRules.length === 0 ? (
-                    <p className="text-sm text-primary/40 italic">No availability rules set.</p>
-                  ) : (
-                    myRules.map((rule: any) => {
-                      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                      return (
-                      <div key={rule.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-primary/5 gap-4">
-                        <div>
-                          <div className="font-bold text-sm text-primary">Every {days[rule.dayOfWeek]}</div>
-                          <div className="text-xs text-primary/50 mt-1">{rule.startTime} - {rule.endTime} ({rule.slotDuration}m)</div>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleDeleteAvailability(rule.id)}
-                          className="h-8 text-[10px] uppercase font-bold text-red-500 hover:bg-red-50"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    )})
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : currentUser?.role === 'admin' && activeTab === 'therapists' as any ? (
-          <div className="bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5">
-            <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Therapists</h2>
-            <div className="space-y-4">
-              {allTherapists.map(t => (
-                <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border border-primary/5 gap-4">
-                  <div className="flex items-center gap-4">
-                    {t.image && <img src={t.image} alt={t.name} className="w-12 h-12 rounded-full object-cover" />}
-                    <div>
-                      <div className="font-bold text-base text-primary">{t.name}</div>
-                      <div className="text-sm text-primary/50 mt-1">{t.specialization}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={cn("px-3 py-1 rounded-full text-xs font-bold uppercase", t.active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>
-                      {t.active ? "Active" : "Inactive"}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={loading}
-                      onClick={async () => {
-                        try {
-                          setLoading(true);
-                          await therapistService.updateTherapistStatus(t.id, !t.active);
-                          await fetchData();
-                        } catch (e) {
-                          console.error(e);
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                    >
-                      {t.active ? "Deactivate" : "Activate"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
-  )
+  );
+
+  const adminTherapistsNode = currentUser?.role === 'admin' ? (
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Therapists</h2>
+      {allTherapists.map(t => (
+        <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[#FCFAF7] rounded-3xl border border-primary/5 gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-4">
+            {t.image ? (
+              <img src={t.image} alt={t.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary/5" />
+            ) : (
+              <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary/40"><User className="w-6 h-6" /></div>
+            )}
+            <div>
+              <div className="font-bold text-lg text-primary font-serif">{t.name}</div>
+              <div className="text-sm text-primary/60 mt-0.5">{t.specialization}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className={cn("px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border", t.active ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100")}>
+              {t.active ? "Active" : "Inactive"}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide"
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  await therapistService.updateTherapistStatus(t.id, !t.active);
+                  await fetchData();
+                } catch (e) {
+                  console.error(e);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              {t.active ? "Deactivate" : "Activate"}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <Helmet>
+        <title>{currentUser?.role === 'admin' ? 'Session Manager | Saarthi Admin' : 'Therapist Dashboard | Saarthi'}</title>
+      </Helmet>
+      <TherapistDashboard 
+        therapist={myTherapistProfile}
+        bookings={currentUser?.role === 'admin' ? filteredBookings : bookings}
+        loading={loading}
+        error={error}
+        onRefresh={fetchData}
+        onLogout={handleLogout}
+        onUpdateStatus={handleUpdateStatus}
+        processingId={processingId}
+        scheduleBuilderNode={scheduleBuilderNode}
+        adminTherapistsNode={adminTherapistsNode}
+        isAdmin={currentUser?.role === 'admin'}
+      />
+    </>
+  );
 }
 
 const StatusBadge = ({ status }: { status: BookingStatus }) => {
