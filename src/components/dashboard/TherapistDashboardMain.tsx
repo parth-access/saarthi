@@ -103,7 +103,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   return (
     <div className="pt-16 min-h-screen bg-[#FCFAF7] selection:bg-primary/10 font-sans text-primary">
       {/* TOP HEADER */}
-      <header className="bg-white border-b border-primary/5 sticky top-16 z-30">
+      <header className="bg-white border-b border-primary/5 relative z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center text-primary/40">
