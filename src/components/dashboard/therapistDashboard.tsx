@@ -554,3 +554,4 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
 }
 
 
+
