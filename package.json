@@ -15,11 +15,14 @@
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.2.4",
     "@sentry/react": "^10.49.0",
+    "@types/escape-html": "^1.0.4",
     "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "escape-html": "^1.0.3",
     "firebase": "^11.10.0",
+    "firebase-admin": "^13.9.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
@@ -34,7 +37,7 @@
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
     "vite-plugin-compression": "^0.5.1",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
@@ -44,7 +47,7 @@
     "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vercel/node": "^5.7.15",
+    "@vercel/node": "^5.7.17",
     "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",

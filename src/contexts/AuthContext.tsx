@@ -22,12 +22,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         if (firebaseUser) {
           setLoading(true);
-          const role = await authService.getUserRole(firebaseUser.uid) || 'therapist'; // default to therapist if not set for testing, or null
-          setCurrentUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            role: role as 'admin' | 'therapist'
-          });
+          const role = await authService.getUserRole(firebaseUser.uid);
+          if (!role) {
+            // Unrecognized role -> hard logout
+            await auth.signOut();
+            setCurrentUser(null);
+          } else {
+            setCurrentUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: role as 'admin' | 'therapist'
+            });
+          }
         } else {
           setCurrentUser(null);
         }

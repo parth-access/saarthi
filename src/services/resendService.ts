@@ -1,15 +1,24 @@
 import { Booking, Therapist } from '../types';
+import { auth } from '../lib/firebase';
 
 export const resendService = {
   sendBookingReceivedEmail: async (booking: Booking, therapist: Therapist) => {
     try {
-      if (!booking?.email) throw new Error("Missing booking.email");
-      if (!booking?.name) throw new Error("Missing booking.name");
-      if (!booking?.date) throw new Error("Missing booking.date");
-      if (!booking?.time) throw new Error("Missing booking.time");
-      if (!therapist?.name) throw new Error("Missing therapist.name");
+      if (!booking?.id) throw new Error("Missing booking.id");
+      if (!therapist?.id) throw new Error("Missing therapist.id");
 
-      const payload = { type: 'booking-received', booking, therapist };
+      const payload = { 
+        type: 'booking-received', 
+        bookingId: booking.id, 
+        therapistId: therapist.id,
+        // Fallback for vercel preview if admin SDK not configured
+        bookingDetails: {
+           name: booking.name,
+           email: booking.email,
+           date: booking.date,
+           time: booking.time,
+        }
+      };
       
       const response = await fetch('/api/email', {
         method: 'POST',
@@ -22,24 +31,41 @@ export const resendService = {
       }
       return await response.json();
     } catch (error) {
-      console.error("resendService.sendBookingReceivedEmail Error:", error);
+      if (import.meta.env.DEV) {
+        console.error("resendService.sendBookingReceivedEmail Error:", error);
+      }
       // Suppress throwing to not block the UI
     }
   },
 
   sendBookingConfirmedEmail: async (booking: Booking, therapist: Therapist) => {
     try {
-      if (!booking?.email) throw new Error("Missing booking.email");
-      if (!booking?.name) throw new Error("Missing booking.name");
-      if (!booking?.date) throw new Error("Missing booking.date");
-      if (!booking?.time) throw new Error("Missing booking.time");
-      if (!therapist?.name) throw new Error("Missing therapist.name");
+      if (!booking?.id) throw new Error("Missing booking.id");
+      if (!therapist?.id) throw new Error("Missing therapist.id");
+      
+      const currentUser = auth?.currentUser;
+      if (!currentUser) throw new Error("User must be authenticated to send confirmation emails");
+      
+      const token = await currentUser.getIdToken();
 
-      const payload = { type: 'booking-confirmed', booking, therapist };
+      const payload = { 
+        type: 'booking-confirmed', 
+        bookingId: booking.id, 
+        therapistId: therapist.id,
+        bookingDetails: {
+           name: booking.name,
+           email: booking.email,
+           date: booking.date,
+           time: booking.time,
+        }
+      };
       
       const response = await fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify(payload)
       });
       
@@ -48,7 +74,9 @@ export const resendService = {
       }
       return await response.json();
     } catch (error) {
-      console.error("resendService.sendBookingConfirmedEmail Error:", error);
+      if (import.meta.env.DEV) {
+         console.error("resendService.sendBookingConfirmedEmail Error:", error);
+      }
       // Suppress throwing to not block the UI
     }
   }

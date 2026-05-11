@@ -32,7 +32,7 @@ import { BookingStatus, Booking, Therapist } from "../types"
 import { bookingService } from "../services/bookingService"
 import { useAuth } from "../contexts/AuthContext"
 import { useTherapists } from "../hooks/useTherapists"
-import { TherapistDashboard } from "../components/dashboard/TherapistDashboardMain"
+import { TherapistDashboard } from "../components/dashboard/TherapistDashboard"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
