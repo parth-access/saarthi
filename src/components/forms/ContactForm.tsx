@@ -4,9 +4,12 @@ import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "motion/react"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -16,13 +19,26 @@ export function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus('loading')
+    setErrorMessage(null)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!formData.name || !formData.email || !formData.message) {
+         throw new Error("Please fill in all fields.");
+      }
+
+      await addDoc(collection(db, 'contacts'), {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        message: formData.message.trim(),
+        createdAt: serverTimestamp()
+      });
+
       setStatus('success')
       setFormData({ name: "", email: "", message: "" })
-    } catch (error) {
-      setStatus('error')
+    } catch (error: any) {
+      if (import.meta.env.DEV) console.error("Contact Form Error:", error);
+      setStatus('error');
+      setErrorMessage(error.message || "Failed to send message.");
     }
   }
 
@@ -109,7 +125,7 @@ export function ContactForm() {
             {status === 'error' && (
               <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl">
                 <AlertCircle className="h-5 w-5" />
-                <p>Something went wrong. Please try again.</p>
+                <p>{errorMessage || "Something went wrong. Please try again."}</p>
               </div>
             )}
 
