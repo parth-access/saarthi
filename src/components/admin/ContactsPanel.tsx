@@ -1,188 +1,195 @@
-import * as React from "react"
-import { Button } from "../ui/Button"
-import { Input } from "../ui/Input"
-import { Textarea } from "../ui/Textarea"
-import { motion, AnimatePresence } from "motion/react"
-import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
+import React, { useState, useEffect } from 'react';
+import { collection, query, orderBy, limit, getDocs, updateDoc, doc, deleteDoc, startAfter } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
+import { format } from 'date-fns';
+import { Button } from '../ui/Button';
+import { CheckCircle2, Circle, Search, ShieldAlert, Trash2, MailOpen, User, Archive } from 'lucide-react';
+import { Input } from '../ui/Input';
+import { cn } from '../../lib/utils';
 
-export function ContactForm() {
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
-  const [formData, setFormData] = React.useState({
-    name: "",
-    email: "",
-    message: "",
-    honeypot: ""
-  })
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: 'unread' | 'in-progress' | 'resolved' | 'spam';
+  priority: 'normal' | 'high';
+  createdAt: any;
+  source: string;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setStatus('loading')
-    setErrorMessage(null)
+export function ContactsPanel() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'resolved' | 'spam'>('all');
 
+  const fetchContacts = async (isNextPage = false) => {
     try {
-      if (!formData.name || !formData.email || !formData.message) {
-         throw new Error("Please fill in all required fields.");
-      }
-      if (formData.message.length > 2000) {
-         throw new Error("Message is too long. Please keep it under 2000 characters.");
-      }
+      setLoading(true);
+      let q = query(
+        collection(db, 'contacts'),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
 
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send message.");
+      if (isNextPage && lastDoc) {
+        q = query(q, startAfter(lastDoc));
       }
 
-      setStatus('success')
-      setFormData({ name: "", email: "", message: "", honeypot: "" })
-    } catch (error: any) {
-      if (import.meta.env.DEV) console.error("Contact Form Error:", error);
-      setStatus('error');
-      setErrorMessage(error.message || "Something went wrong while sending your message. Please try again in a moment.");
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Contact[];
+
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+
+      if (isNextPage) {
+        setContacts(prev => [...prev, ...data]);
+      } else {
+        setContacts(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch contacts", error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+
+  const updateStatus = async (id: string, status: Contact['status']) => {
+    try {
+      await updateDoc(doc(db, 'contacts', id), { status });
+      setContacts(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+    } catch (error) {
+      console.error("Update failed", error);
+    }
+  };
+
+  const deleteContact = async (id: string) => {
+    if (!window.confirm("Delete this inquiry entirely?")) return;
+    try {
+      await deleteDoc(doc(db, 'contacts', id));
+      setContacts(prev => prev.filter(c => c.id !== id));
+    } catch (error) {
+      console.error("Delete failed", error);
+    }
+  };
+
+  const filteredContacts = contacts.filter(c => {
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      return c.name?.toLowerCase().includes(term) || 
+             c.email?.toLowerCase().includes(term) || 
+             c.message?.toLowerCase().includes(term);
+    }
+    return true;
+  });
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <AnimatePresence mode="wait">
-        {status === 'success' ? (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center text-center py-12 bg-primary/5 rounded-3xl border border-primary/10"
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-bold font-heading">Inquiries</h2>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search..." 
+              className="pl-9 h-10 w-full"
+            />
+          </div>
+          <select 
+            className="h-10 px-3 py-2 rounded-xl bg-white border border-primary/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
           >
-            <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
-            <h3 className="text-2xl font-heading font-bold text-text mb-2">Message Sent</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Thank you for reaching out. We've received your message and will get back to you as soon as possible.
-            </p>
-            <Button 
-              variant="outline" 
-              className="mt-8"
-              onClick={() => setStatus('idle')}
-            >
-              Send another message
-            </Button>
-          </motion.div>
+            <option value="all">All</option>
+            <option value="unread">Unread</option>
+            <option value="resolved">Resolved</option>
+            <option value="spam">Spam</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-primary/5 overflow-hidden shadow-sm">
+        {loading && contacts.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground">Loading inquiries...</div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground">No inquiries found.</div>
         ) : (
-          <motion.form
-            key="form"
-            onSubmit={handleSubmit}
-            className="space-y-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="contact-name" className="text-sm font-medium text-text">Name</label>
-                <Input
-                  required
-                  id="contact-name"
-                  name="name"
-                  type="text"
-                  maxLength={100}
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Your full name"
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
-                />
-              </div>
+          <div className="divide-y divide-primary/5">
+            {filteredContacts.map(contact => (
+              <div key={contact.id} className={cn("p-6 sm:p-8 transition-colors", contact.status === 'unread' ? "bg-primary/5" : "")}>
+                <div className="flex flex-col xl:flex-row gap-6 justify-between items-start">
+                  
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                          {contact.name}
+                          {contact.status === 'unread' && (
+                            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                          )}
+                        </h3>
+                        <a href={`mailto:${contact.email}`} className="text-sm text-primary/60 hover:text-primary transition-colors flex items-center gap-1 mt-1">
+                          <User className="w-3.5 h-3.5" /> {contact.email}
+                        </a>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {contact.createdAt ? format(contact.createdAt.toDate(), "MMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="space-y-2">
-                <label htmlFor="contact-email" className="text-sm font-medium text-text">Email Address</label>
-                <Input
-                  required
-                  id="contact-email"
-                  name="email"
-                  type="email"
-                  maxLength={100}
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="name@email.com"
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
-                />
-              </div>
+                    <div className="bg-[#FCFAF7] p-4 rounded-2xl text-sm leading-relaxed border border-primary/5 whitespace-pre-wrap">
+                      {contact.message}
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label htmlFor="contact-message" className="text-sm font-medium text-text">What’s on your mind?</label>
-                  <span className="text-xs text-muted-foreground">{formData.message.length}/2000</span>
+                  <div className="flex flex-wrap xl:flex-col gap-2 shrink-0">
+                    {contact.status === 'unread' ? (
+                      <Button onClick={() => updateStatus(contact.id, 'resolved')} variant="outline" size="sm" className="justify-start gap-2 h-9 border-green-200 text-green-700 hover:bg-green-50 w-32">
+                        <CheckCircle2 className="w-4 h-4" /> Resolve
+                      </Button>
+                    ) : (
+                      <Button onClick={() => updateStatus(contact.id, 'unread')} variant="outline" size="sm" className="justify-start gap-2 h-9 w-32">
+                        <MailOpen className="w-4 h-4" /> Mark Unread
+                      </Button>
+                    )}
+                    
+                    {contact.status !== 'spam' && (
+                      <Button onClick={() => updateStatus(contact.id, 'spam')} variant="outline" size="sm" className="justify-start gap-2 h-9 border-orange-200 text-orange-700 hover:bg-orange-50 w-32">
+                        <ShieldAlert className="w-4 h-4" /> Mark Spam
+                      </Button>
+                    )}
+                    
+                    <Button onClick={() => deleteContact(contact.id)} variant="outline" size="sm" className="justify-start gap-2 h-9 border-red-200 text-red-700 hover:bg-red-50 w-32">
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </Button>
+                  </div>
+
                 </div>
-                <Textarea
-                  required
-                  id="contact-message"
-                  name="message"
-                  rows={6}
-                  maxLength={2000}
-                  value={formData.message}
-                  onChange={handleChange}
-                  placeholder="Feel free to share as much or as little as you want..."
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 p-4"
-                />
               </div>
-              
-              {/* HONEYPOT FIELD - DO NOT REMOVE */}
-              <div className="hidden" aria-hidden="true">
-                <label htmlFor="contact-honeypot">Leave this field empty</label>
-                <input
-                  id="contact-honeypot"
-                  name="honeypot"
-                  type="text"
-                  tabIndex={-1}
-                  value={formData.honeypot}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            {status === 'error' && (
-              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl">
-                <AlertCircle className="h-5 w-5" />
-                <p>{errorMessage || "Something went wrong while sending your message. Please try again in a moment."}</p>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <Button
-                type="submit"
-                disabled={status === 'loading'}
-                className="w-full h-16 text-lg rounded-2xl hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-100 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed"
-              >
-                {status === 'loading' ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Send Your Message"
-                )}
-              </Button>
-
-              <div className="space-y-2 text-center">
-                <p className="text-sm text-muted-foreground">
-                  “Your information is kept private and confidential.”
-                </p>
-                <p className="text-xs text-muted-foreground opacity-60">
-                  No pressure. Just share what you feel comfortable with.
-                </p>
-              </div>
-            </div>
-          </motion.form>
+            ))}
+          </div>
         )}
-      </AnimatePresence>
+        
+        {lastDoc && filteredContacts.length >= 20 && (
+          <div className="p-4 border-t border-primary/5 flex justify-center">
+            <Button variant="outline" onClick={() => fetchContacts(true)} disabled={loading}>
+              {loading ? 'Loading...' : 'Load More'}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }
