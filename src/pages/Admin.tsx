@@ -33,6 +33,7 @@ import { bookingService } from "../services/bookingService"
 import { useAuth } from "../contexts/AuthContext"
 import { useTherapists } from "../hooks/useTherapists"
 import { TherapistDashboard } from "../components/dashboard/TherapistDashboard"
+import { ContactsPanel } from "../components/admin/ContactsPanel"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
@@ -479,6 +480,7 @@ const AdminPage = () => {
         processingId={processingId}
         scheduleBuilderNode={scheduleBuilderNode}
         adminTherapistsNode={adminTherapistsNode}
+        contactsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><ContactsPanel /></div> : null}
         isAdmin={currentUser?.role === 'admin'}
       />
     </>

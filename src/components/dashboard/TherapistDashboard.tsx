@@ -38,6 +38,7 @@ interface TherapistDashboardProps {
   processingId: string | null;
   scheduleBuilderNode?: React.ReactNode;
   adminTherapistsNode?: React.ReactNode;
+  contactsNode?: React.ReactNode;
   isAdmin?: boolean;
 }
 
@@ -59,9 +60,10 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   processingId,
   scheduleBuilderNode,
   adminTherapistsNode,
+  contactsNode,
   isAdmin
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'sessions' | 'schedule' | 'therapists'>('overview');
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'sessions' | 'schedule' | 'therapists' | 'contacts'>('overview');
   
   // Filter state
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -186,6 +188,17 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               )}
             >
               Manage Therapists
+            </button>
+          )}
+          {contactsNode && (
+            <button
+              onClick={() => setActiveTab('contacts')}
+              className={cn(
+                "pb-4 text-sm font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
+                activeTab === 'contacts' ? "border-primary text-primary" : "border-transparent text-primary/30 hover:text-primary/60"
+              )}
+            >
+              Contacts & Inquiries
             </button>
           )}
         </div>
@@ -430,6 +443,10 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
         ) : activeTab === 'schedule' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
             {scheduleBuilderNode}
+          </div>
+        ) : activeTab === 'contacts' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+            {contactsNode}
           </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
