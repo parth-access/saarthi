@@ -1,26 +1,23 @@
-import * as admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 
-if (!admin.apps.length) {
-  try {
-    const base64 = process.env.FIREBASE_ADMIN_KEY_BASE64;
+const base64 = process.env.FIREBASE_ADMIN_KEY_BASE64;
 
-    if (!base64) {
-      throw new Error('FIREBASE_ADMIN_KEY_BASE64 is missing');
-    }
-
-    const decoded = Buffer.from(base64, 'base64').toString('utf-8');
-
-    const serviceAccount = JSON.parse(decoded);
-
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-
-    console.log('Firebase Admin initialized');
-  } catch (error) {
-    console.error('Firebase admin initialization error:', error);
-  }
+if (!base64) {
+  throw new Error('FIREBASE_ADMIN_KEY_BASE64 is missing');
 }
 
-export const adminDb = admin.firestore();
-export const adminAuth = admin.auth();
+const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+const serviceAccount = JSON.parse(decoded);
+
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(serviceAccount),
+  });
+
+  console.log('Firebase Admin initialized');
+}
+
+export const adminDb = getFirestore();
+export const adminAuth = getAuth();
