@@ -1,14 +1,14 @@
 import {
   collection,
-  addDoc,
   serverTimestamp,
   getDocs,
   doc,
   getDoc,
-  updateDoc,
   query,
   orderBy,
-  where
+  where,
+  runTransaction,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Booking, BookingStatus, Therapist } from '../types';
@@ -35,50 +35,59 @@ export const bookingService = {
     bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'>
   ) => {
     try {
-      console.log('Booking payload before clean:', bookingData);
-      
-      // Remove any undefined values from the payload
       const cleanedData = cleanPayload(bookingData);
+      const slotId = `${cleanedData.therapistId}_${cleanedData.date}_${cleanedData.time}`.replace(/\//g, '-');
+      const slotRef = doc(db, 'locked_slots', slotId);
+      const newBookingRef = doc(collection(db, 'bookings'));
+      const bookingToken = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-      console.log('Booking payload after clean:', cleanedData);
+      await runTransaction(db, async (transaction) => {
+        const slotDoc = await transaction.get(slotRef);
+        if (slotDoc.exists()) {
+           throw new Error("This slot has just been booked. Please select another time.");
+        }
 
-      const docRef = await addDoc(collection(db, 'bookings'), {
-        ...cleanedData,
-        status: 'pending' as BookingStatus,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        // Lock the slot
+        transaction.set(slotRef, {
+           bookingId: newBookingRef.id,
+           createdAt: serverTimestamp()
+        });
+
+        transaction.set(newBookingRef, {
+          ...cleanedData,
+          status: 'pending' as BookingStatus,
+          bookingToken,
+          sessionMode: cleanedData.sessionMode || 'Online',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
       });
-      
-      console.log('Firestore write success, bookingId:', docRef.id);
 
       // Try to send email
       try {
         const therapistSnap = await getDoc(doc(db, 'therapists', bookingData.therapistId));
         if (therapistSnap.exists()) {
           const therapist = mapTherapist(therapistSnap.id, therapistSnap.data());
-          // Prepare a safe booking object from our payload
           const bData = {
-            id: docRef.id,
+            id: newBookingRef.id,
             ...bookingData,
             status: 'pending' as BookingStatus,
             createdAt: null,
             updatedAt: null
           };
-          const safeBooking = mapBooking(docRef.id, bData);
+          const safeBooking = mapBooking(newBookingRef.id, bData);
           
-          if (!safeBooking.email || !safeBooking.name || !safeBooking.date || !safeBooking.time) {
-             console.warn("Skipping 'Booking Received' email. Missing required booking fields:", { safeBooking });
-          } else {
+          if (safeBooking.email && safeBooking.name && safeBooking.date && safeBooking.time) {
              await resendService.sendBookingReceivedEmail(safeBooking, therapist);
           }
         }
       } catch (err) {
-        console.error("Failed to send notification email:", err);
+        if (import.meta.env.DEV) console.error("Failed to send notification email:", err);
       }
 
-      return { bookingId: docRef.id };
+      return { bookingId: newBookingRef.id };
     } catch (err: any) {
-      console.error('Firestore write failed:', err);
+      if (import.meta.env.DEV) console.error('Firestore transaction failed:', err);
       handleFirestoreError(err, OperationType.CREATE, 'bookings');
       throw err;
     }
@@ -145,13 +154,43 @@ export const bookingService = {
     }
   },
 
+  getBookingByToken: async (token: string): Promise<Booking | null> => {
+    try {
+      const q = query(
+        collection(db, 'bookings'),
+        where('bookingToken', '==', token)
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      return mapBooking(snapshot.docs[0].id, snapshot.docs[0].data());
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.LIST, 'bookings');
+      return null;
+    }
+  },
+
   updateStatus: async (id: string, status: BookingStatus) => {
     try {
       const ref = doc(db, 'bookings', id);
 
-      await updateDoc(ref, {
-        status,
-        updatedAt: serverTimestamp()
+      await runTransaction(db, async (transaction) => {
+        const bookingSnap = await transaction.get(ref);
+        if (!bookingSnap.exists()) {
+           throw new Error("Booking does not exist");
+        }
+        const data = bookingSnap.data();
+
+        transaction.update(ref, {
+          status,
+          updatedAt: serverTimestamp()
+        });
+
+        // If cancelled or rejected, release the slot lock
+        if (status === 'cancelled' || status === 'rejected') {
+           const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+           const slotRef = doc(db, 'locked_slots', slotId);
+           transaction.delete(slotRef);
+        }
       });
 
       if (status === 'confirmed') {
@@ -159,33 +198,113 @@ export const bookingService = {
           const bookingSnap = await getDoc(ref);
           if (bookingSnap.exists()) {
             const booking = mapBooking(bookingSnap.id, bookingSnap.data());
-            if (!booking.email || !booking.name || !booking.date || !booking.time) {
-               console.warn("Skipping 'Booking Confirmed' email. Missing required booking fields.", { booking });
-               return { success: true };
-            }
-            const therapistSnap = await getDoc(doc(db, 'therapists', booking.therapistId));
-            if (therapistSnap.exists()) {
-              const therapist = mapTherapist(therapistSnap.id, therapistSnap.data());
-              if (!therapist.name) {
-                 console.warn("Skipping 'Booking Confirmed' email. Missing therapist name.", { therapist });
-                 return { success: true };
+            if (booking.email && booking.name && booking.date && booking.time) {
+              const therapistSnap = await getDoc(doc(db, 'therapists', booking.therapistId));
+              if (therapistSnap.exists()) {
+                const therapist = mapTherapist(therapistSnap.id, therapistSnap.data());
+                if (therapist.name) {
+                   await resendService.sendBookingConfirmedEmail(booking, therapist);
+                }
               }
-              console.log("SENDING EMAIL WITH PAYLOAD", { booking, therapist });
-              await resendService.sendBookingConfirmedEmail(booking, therapist);
-            } else {
-               console.warn("Skipping 'Booking Confirmed' email. Therapist not found for ID:", booking.therapistId);
             }
-          } else {
-             console.warn("Skipping 'Booking Confirmed' email. Booking not found for ID:", id);
           }
         } catch (err) {
-          console.error("Failed to send confirmed email:", err);
+          if (import.meta.env.DEV) console.error("Failed to send confirmed email:", err);
         }
       }
 
       return { success: true };
     } catch (err: any) {
       handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
+      throw err;
+    }
+  },
+
+  rescheduleBooking: async (id: string, newDate: string, newTime: string) => {
+    try {
+      const ref = doc(db, 'bookings', id);
+      await runTransaction(db, async (transaction) => {
+        const bookingSnap = await transaction.get(ref);
+        if (!bookingSnap.exists()) throw new Error("Booking not found");
+        
+        const data = bookingSnap.data();
+        if (data.status === 'cancelled' || data.status === 'rejected') {
+          throw new Error("Cannot reschedule a cancelled or rejected booking.");
+        }
+
+        const oldSlotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+        const oldSlotRef = doc(db, 'locked_slots', oldSlotId);
+        
+        const newSlotId = `${data.therapistId}_${newDate}_${newTime}`.replace(/\//g, '-');
+        const newSlotRef = doc(db, 'locked_slots', newSlotId);
+
+        const newSlotDoc = await transaction.get(newSlotRef);
+        if (newSlotDoc.exists()) {
+          throw new Error("This new slot is unavailable.");
+        }
+
+        transaction.delete(oldSlotRef);
+        transaction.set(newSlotRef, {
+           bookingId: id,
+           createdAt: serverTimestamp()
+        });
+
+        transaction.update(ref, {
+          originalDate: data.date,
+          originalTime: data.time,
+          date: newDate,
+          time: newTime,
+          updatedAt: serverTimestamp(),
+          rescheduledAt: serverTimestamp(),
+        });
+      });
+
+      // Send rescheduled email
+      try {
+        const bookingSnap = await getDoc(ref);
+        if (bookingSnap.exists()) {
+          const booking = mapBooking(bookingSnap.id, bookingSnap.data());
+          const therapistSnap = await getDoc(doc(db, 'therapists', booking.therapistId));
+          if (therapistSnap.exists()) {
+            const therapist = mapTherapist(therapistSnap.id, therapistSnap.data());
+            await resendService.sendBookingRescheduledEmail(booking, therapist);
+          }
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("Failed to send reschedule emails:", err);
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
+      throw err;
+    }
+  },
+
+  rescheduleByToken: async (token: string, newDate: string, newTime: string) => {
+    try {
+      const response = await fetch('/api/manage-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newDate, newTime })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to reschedule');
+      return data;
+    } catch(err: any) {
+      console.error(err);
+      throw err;
+    }
+  },
+
+  getBookingByTokenAPIRoute: async (token: string) => {
+    try {
+      const response = await fetch(`/api/manage-booking?token=${token}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load booking');
+      return data;
+    } catch(err: any) {
+      console.error(err);
       throw err;
     }
   }
