@@ -114,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ success: true, id: docRef.id });
   } catch (error: any) {
     if (process.env.NODE_ENV !== 'production') {
-       console.error("API /contact error:", error);
+       console.error("API /contact FULL ERROR:", JSON.stringify(error, null, 2));
     }
     return res.status(500).json({ error: 'Internal Server Error' });
   }
