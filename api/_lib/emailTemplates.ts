@@ -269,7 +269,7 @@ export function generateTherapistNotificationEmail(data: BookingEmailData, type:
     </div>
 
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthi.vercel.app'}/admin" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Dashboard</a>
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/admin" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Dashboard</a>
     </div>
 
   `;
