@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Send Auto-Reply to User
       await resend.emails.send({
-        from: 'Saarthi <contact@saarthi.com>',
+        from: 'Saarthi <contact@saarthilife.com>',
         to: safeEmail,
         subject: 'We received your message | Saarthi',
         html: `
