@@ -6,6 +6,7 @@ export function mapBooking(id: string, data: any): Booking {
     therapistId: data?.therapistId || '',
     name: data?.name || 'Unknown',
     email: data?.email || '',
+    phone: data?.phone || '',
     gender: data?.gender || '',
     age: data?.age || 0,
     date: data?.date || '',

@@ -15,6 +15,7 @@ export const resendService = {
         bookingDetails: {
            name: booking.name,
            email: booking.email,
+           phone: booking.phone,
            date: booking.date,
            time: booking.time,
         }
@@ -55,6 +56,7 @@ export const resendService = {
         bookingDetails: {
            name: booking.name,
            email: booking.email,
+           phone: booking.phone,
            date: booking.date,
            time: booking.time,
         }

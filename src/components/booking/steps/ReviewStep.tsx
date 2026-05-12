@@ -62,8 +62,9 @@ export const ReviewStep = ({ data, therapists, onConfirm, onBack, submitting, er
             <p className="font-serif text-lg font-bold">{data.name}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Contact Email</p>
+            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Contact Info</p>
             <p className="font-serif text-lg font-bold truncate">{data.email}</p>
+            <p className="text-sm font-medium opacity-80">{data.phone}</p>
           </div>
         </div>
       </div>

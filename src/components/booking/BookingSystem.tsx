@@ -24,6 +24,7 @@ interface BookingState {
   time: string;
   name: string;
   email: string;
+  phone: string;
   gender: string;
   age: string;
   message: string;
@@ -38,6 +39,7 @@ const BookingSystem = () => {
     time: "",
     name: "",
     email: "",
+    phone: "",
     gender: "",
     age: "",
     message: ""
