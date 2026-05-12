@@ -2,19 +2,23 @@ import * as admin from 'firebase-admin';
 
 if (!admin.apps.length) {
   try {
-    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (serviceAccountJson) {
-      const serviceAccount = JSON.parse(serviceAccountJson);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } else {
-      // Fallback for Vercel if FIREBASE_SERVICE_ACCOUNT is empty but env vars exist individually
-      // Or just initialize default (might fail if not authorized, but safe)
-      admin.initializeApp();
+    const base64 = process.env.FIREBASE_ADMIN_KEY_BASE64;
+
+    if (!base64) {
+      throw new Error('FIREBASE_ADMIN_KEY_BASE64 is missing');
     }
+
+    const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+
+    const serviceAccount = JSON.parse(decoded);
+
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+
+    console.log('Firebase Admin initialized');
   } catch (error) {
-    console.error('Firebase admin initialization error', error);
+    console.error('Firebase admin initialization error:', error);
   }
 }
 
