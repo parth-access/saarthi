@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (process.env.RESEND_API_KEY) {
       // Send Notification to Admin
       await resend.emails.send({
-        from: 'Saarthi Contact <saarthicontact@gmail.com>',
+        from: 'Saarthi Contact <contact@saarthilife.com>',
         to: 'healwithsaarthi@gmail.com',
         subject: 'New Saarthi Contact Inquiry',
         html: `
@@ -91,7 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Send Auto-Reply to User
       await resend.emails.send({
-        from: 'Saarthi <healwithsaarthi@gmail.com>',
+        from: 'Saarthi <contact@saarthi.com>',
         to: safeEmail,
         subject: 'We received your message | Saarthi',
         html: `
