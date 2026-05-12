@@ -16,6 +16,11 @@ export function mapBooking(id: string, data: any): Booking {
     status: (data?.status || 'pending') as BookingStatus,
     createdAt: data?.createdAt || null,
     updatedAt: data?.updatedAt || null,
+    bookingToken: data?.bookingToken || '',
+    sessionMode: data?.sessionMode || '',
+    rescheduledAt: data?.rescheduledAt || null,
+    originalDate: data?.originalDate || '',
+    originalTime: data?.originalTime || '',
   };
 }
 

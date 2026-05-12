@@ -81,5 +81,46 @@ export const resendService = {
       }
       // Suppress throwing to not block the UI
     }
+  },
+
+  sendBookingRescheduledEmail: async (booking: Booking, therapist: Therapist) => {
+    try {
+      if (!booking?.id) throw new Error("Missing booking.id");
+      if (!therapist?.id) throw new Error("Missing therapist.id");
+      
+      const payload = { 
+        type: 'booking-rescheduled', 
+        bookingId: booking.id, 
+        therapistId: therapist.id,
+        bookingDetails: {
+           name: booking.name,
+           email: booking.email,
+           phone: booking.phone,
+           date: booking.date,
+           time: booking.time,
+           originalDate: booking.originalDate,
+           originalTime: booking.originalTime,
+           sessionMode: booking.sessionMode,
+           bookingToken: booking.bookingToken,
+        }
+      };
+      
+      const response = await fetch('/api/email', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to send booking rescheduled email. Status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+         console.error("resendService.sendBookingRescheduledEmail Error:", error);
+      }
+    }
   }
 };

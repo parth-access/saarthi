@@ -26,6 +26,11 @@ export interface Booking {
   status: BookingStatus;
   createdAt: any;
   updatedAt?: any;
+  bookingToken?: string;
+  sessionMode?: string;
+  rescheduledAt?: any;
+  originalDate?: string;
+  originalTime?: string;
 }
 
 export interface Therapist {
