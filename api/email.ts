@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 import { z } from 'zod';
 import escapeHtml from 'escape-html';
-import { adminAuth, adminDb } from './_lib/firebaseAdmin';
+import { adminAuth, adminDb } from './_lib/firebaseAdmin.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
