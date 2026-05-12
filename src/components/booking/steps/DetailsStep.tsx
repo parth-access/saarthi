@@ -7,9 +7,14 @@ import { Button } from "../../ui/Button"
 import { Input } from "../../ui/Input"
 import { Textarea } from "../../ui/Textarea"
 
+const phoneRegex = new RegExp(
+  /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/
+);
+
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().min(6, "Phone number is too short").max(20, "Phone number is too long").regex(phoneRegex, "Please enter a valid phone number").transform(val => val.trim()),
   gender: z.string().min(1, "Please select gender"),
   age: z.string().refine(v => !isNaN(parseInt(v)) && parseInt(v) > 0, "Invalid age"),
   message: z.string().optional()
@@ -29,6 +34,7 @@ export const DetailsStep = ({ initialData, onNext, onBack }: Props) => {
     defaultValues: {
       name: initialData.name || "",
       email: initialData.email || "",
+      phone: initialData.phone || "",
       gender: initialData.gender || "",
       age: initialData.age || "",
       message: initialData.message || ""
@@ -43,16 +49,24 @@ export const DetailsStep = ({ initialData, onNext, onBack }: Props) => {
       </div>
 
       <form onSubmit={handleSubmit(onNext)} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Full Name</label>
             <Input {...register("name")} placeholder="E.g. Siddharth Singh" className="h-14 rounded-2xl bg-primary/5 border-none" />
             {errors.name && <p className="text-xs text-red-500 ml-1">{errors.name.message}</p>}
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Email Address</label>
             <Input {...register("email")} type="email" placeholder="E.g. sidd@email.com" className="h-14 rounded-2xl bg-primary/5 border-none" />
             {errors.email && <p className="text-xs text-red-500 ml-1">{errors.email.message}</p>}
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">Phone Number</label>
+            <Input {...register("phone")} type="tel" autoComplete="tel" placeholder="+91 98765 43210" className="h-14 rounded-2xl bg-primary/5 border-none" />
+            {errors.phone && <p className="text-xs text-red-500 ml-1">{errors.phone.message}</p>}
           </div>
         </div>
 

@@ -502,6 +502,14 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
                 <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> {booking.gender}, {booking.age}y</span>
                 <span>•</span>
                 <span className="px-2 py-0.5 rounded-full bg-primary/5">{booking.sessionType}</span>
+                {booking.phone && (
+                  <>
+                    <span>•</span>
+                    <a href={`tel:${booking.phone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                      {booking.phone}
+                    </a>
+                  </>
+                )}
               </div>
             </div>
             

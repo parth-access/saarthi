@@ -13,6 +13,7 @@ const EmailPayloadSchema = z.object({
   bookingDetails: z.object({
     name: z.string(),
     email: z.string().email(),
+    phone: z.string().optional(),
     date: z.string(),
     time: z.string()
   }).optional() // Fallback if not reading entirely from admin DB
@@ -89,6 +90,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const therapistEmail = therapistData?.email;
     const patientName = bookingData.name || bookingDetails?.name;
     const patientEmail = bookingData.email || bookingDetails?.email;
+    const patientPhone = bookingData.phone || bookingDetails?.phone;
     const bookingDate = bookingData.date || bookingDetails?.date;
     const bookingTime = bookingData.time || bookingDetails?.time;
 
@@ -103,6 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Escape Inputs!
     const safePatientName = escapeHtml(patientName);
+    const safePatientPhone = patientPhone ? escapeHtml(patientPhone) : 'Not provided';
     const safeTherapistName = escapeHtml(therapistName);
     const safeDate = escapeHtml(bookingDate);
     const safeTime = escapeHtml(bookingTime);
@@ -118,6 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <p>We have successfully received your booking request for a session with ${safeTherapistName}.</p>
           <p><strong>Date:</strong> ${safeDate}</p>
           <p><strong>Time:</strong> ${safeTime}</p>
+          <p><strong>Phone:</strong> ${safePatientPhone}</p>
           <p>We will notify you once your therapist confirms the session.</p>
         `,
       });
@@ -135,6 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <p>Your session with ${safeTherapistName} has been confirmed!</p>
           <p><strong>Date:</strong> ${safeDate}</p>
           <p><strong>Time:</strong> ${safeTime}</p>
+          <p><strong>Phone:</strong> ${safePatientPhone}</p>
           <p>Have a great session!</p>
         `,
       };
