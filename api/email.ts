@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { z } from 'zod';
 import escapeHtml from 'escape-html';
 import { adminAuth, adminDb } from './_lib/firebaseAdmin.js';
+import { generateBookingReceivedEmail, generateBookingConfirmedEmail, type BookingEmailData } from './_lib/emailTemplates.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -111,37 +112,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const safeTime = escapeHtml(bookingTime);
 
     if (type === 'booking-received') {
+      const emailData: BookingEmailData = {
+        patientName: safePatientName,
+        therapistName: safeTherapistName,
+        date: safeDate,
+        time: safeTime,
+        phone: safePatientPhone,
+      };
+
       const data = await resend.emails.send({
-        from: 'Saarthi Contact <contact@saarthilife.com>',
+        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
         to: patientEmail,
-        subject: 'We have received your booking request',
-        html: `
-          <h1>Booking Request Received</h1>
-          <p>Hi ${safePatientName},</p>
-          <p>We have successfully received your booking request for a session with ${safeTherapistName}.</p>
-          <p><strong>Date:</strong> ${safeDate}</p>
-          <p><strong>Time:</strong> ${safeTime}</p>
-          <p><strong>Phone:</strong> ${safePatientPhone}</p>
-          <p>We will notify you once your therapist confirms the session.</p>
-        `,
+        subject: 'We’ve received your booking request | Saarthi',
+        html: generateBookingReceivedEmail(emailData),
       });
       return res.status(200).json({ success: true, data });
     } 
     
     if (type === 'booking-confirmed') {
+      const emailData: BookingEmailData = {
+        patientName: safePatientName,
+        therapistName: safeTherapistName,
+        date: safeDate,
+        time: safeTime,
+        phone: safePatientPhone,
+      };
+
       const options: any = {
-        from: 'Saarthi Contact <contact@saarthilife.com>',
+        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
         to: patientEmail,
-        subject: 'Your session has been confirmed',
-        html: `
-          <h1>Session Confirmed</h1>
-          <p>Hi ${safePatientName},</p>
-          <p>Your session with ${safeTherapistName} has been confirmed!</p>
-          <p><strong>Date:</strong> ${safeDate}</p>
-          <p><strong>Time:</strong> ${safeTime}</p>
-          <p><strong>Phone:</strong> ${safePatientPhone}</p>
-          <p>Have a great session!</p>
-        `,
+        subject: 'Your Saarthi session is confirmed',
+        html: generateBookingConfirmedEmail(emailData),
       };
 
       if (therapistEmail) {
