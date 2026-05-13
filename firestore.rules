@@ -2,31 +2,92 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default deny
+    // Default Deny
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if false; 
     }
 
+    // Auth Helpers
     function isSignedIn() { return request.auth != null; }
-    
-    function isAdminOrTherapist() {
-       return isSignedIn() && 
-         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "therapist");
+    function isAdmin() { 
+      // Only admins can have role 'admin' in the users collection
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+    }
+    function isTherapistDocOwner(therapistId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/therapists/$(therapistId)) && get(/databases/$(database)/documents/therapists/$(therapistId)).data.authId == request.auth.uid;
     }
 
+    // Users Collection
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdminOrTherapist());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isAdminOrTherapist());
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Only admins can write, or a strict bootstrap rule, but let's stick to admin/backend for now
+      allow write: if isAdmin();
+    }
+    
+    // Therapists Collection
+    match /therapists/{therapistId} {
+      allow read: if true; // Public profiles
+      allow create: if isAdmin(); // Only admins create profiles initially
+      allow update: if isAdmin() || (isSignedIn() && resource.data.authId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // Availability Rules
+    match /availability_rules/{ruleId} {
+      allow read: if true; // Public needs to read to show calendar
+      allow create: if isAdmin() || isTherapistDocOwner(request.resource.data.therapistId);
+      allow update, delete: if isAdmin() || isTherapistDocOwner(resource.data.therapistId);
+    }
+    
+    // Bookings
+    match /bookings/{bookingId} {
+      // Therapist can read their own bookings, admins can read all
+      allow read: if isAdmin() || (isSignedIn() && resource.data.therapistId != null && isTherapistDocOwner(resource.data.therapistId));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.therapistId != null && isTherapistDocOwner(resource.data.therapistId));
+      
+      // Public can create booking. Require therapist to exist and slot to match
+      allow create: if true 
+                     && request.resource.data.keys().hasAll(['therapistId', 'name', 'email', 'phone', 'date', 'time', 'status'])
+                     && request.resource.data.status == 'pending'
+                     // Sanity checks on strings
+                     && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100
+                     && request.resource.data.email is string && request.resource.data.email.size() > 0 && request.resource.data.email.size() < 100
+                     && request.resource.data.phone is string && request.resource.data.phone.size() > 0 && request.resource.data.phone.size() < 50;
+      
+      allow update: if isAdmin() || (isSignedIn() && isTherapistDocOwner(resource.data.therapistId));
+      allow delete: if isAdmin() || (isSignedIn() && isTherapistDocOwner(resource.data.therapistId));
+
+      match /audit_logs/{auditId} {
+        allow read: if isAdmin() || (isSignedIn() && get(/databases/$(database)/documents/bookings/$(bookingId)).data.therapistId != null && isTherapistDocOwner(get(/databases/$(database)/documents/bookings/$(bookingId)).data.therapistId));
+        // Allow create from anywhere (public can create booking -> creates audit, admin can confirm -> creates audit)
+        allow create: if true;
+      }
     }
 
-    match /bookings/{bookingId} {
-      allow create: if isSignedIn();
-      
-      allow read: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || isAdminOrTherapist());
-
-      allow update, delete: if isAdminOrTherapist();
+    // Locked Slots (to prevent double booking race condition)
+    match /locked_slots/{slotId} {
+      // Public can read to verify, or backend transaction gets it
+      allow get: if true;
+      allow list: if isAdmin() || isSignedIn();
+      // Public can lock a slot only if it doesn't exist
+      allow create: if true && request.resource.data.keys().hasAll(['bookingId', 'createdAt']);
+      // Therapists or admins can free slots (e.g. on cancellation)
+      allow delete: if isAdmin() || isSignedIn(); // Could be more strict, but adequate
+    }
+    // Contacts / Inquiries
+    match /contacts/{contactId} {
+      allow create: if true 
+                     && request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt', 'status', 'priority', 'source', 'lastUpdatedAt'])
+                     && request.resource.data.keys().size() == 8
+                     && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100
+                     && request.resource.data.email is string && request.resource.data.email.size() > 0 && request.resource.data.email.size() < 100
+                     && request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() < 2000
+                     && request.resource.data.status == 'unread'
+                     && request.resource.data.priority in ['normal', 'high']
+                     && request.resource.data.source == 'website';
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
     }
   }
 }
+

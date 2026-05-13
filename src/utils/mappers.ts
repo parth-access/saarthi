@@ -21,6 +21,11 @@ export function mapBooking(id: string, data: any): Booking {
     rescheduledAt: data?.rescheduledAt || null,
     originalDate: data?.originalDate || '',
     originalTime: data?.originalTime || '',
+    emailStatus: data?.emailStatus || 'pending',
+    emailAttempts: data?.emailAttempts || 0,
+    lastEmailAttemptAt: data?.lastEmailAttemptAt || null,
+    lastEmailError: data?.lastEmailError || '',
+    invalidToken: !!data?.invalidToken,
   };
 }
 

@@ -15,6 +15,7 @@ import { Booking, BookingStatus, Therapist } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { resendService } from './resendService';
 import { mapBooking, mapTherapist } from '../utils/mappers';
+import { logger } from '../utils/logger';
 
 const cleanPayload = (obj: any): any => {
   if (Array.isArray(obj)) {
@@ -61,6 +62,14 @@ export const bookingService = {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+
+        // Audit log
+        const auditRef = doc(collection(db, 'bookings', newBookingRef.id, 'audit_logs'));
+        transaction.set(auditRef, {
+          action: 'created',
+          timestamp: serverTimestamp(),
+          details: 'Booking requested by patient'
+        });
       });
 
       // Try to send email
@@ -82,12 +91,13 @@ export const bookingService = {
           }
         }
       } catch (err) {
-        if (import.meta.env.DEV) console.error("Failed to send notification email:", err);
+        logger.warn('BOOKING', "Failed to send notification email", err);
       }
 
+      logger.success('BOOKING', 'Created booking successfully', { bookingId: newBookingRef.id });
       return { bookingId: newBookingRef.id };
     } catch (err: any) {
-      if (import.meta.env.DEV) console.error('Firestore transaction failed:', err);
+      logger.error('BOOKING', 'Firestore transaction failed for createBooking', err);
       handleFirestoreError(err, OperationType.CREATE, 'bookings');
       throw err;
     }
@@ -191,6 +201,15 @@ export const bookingService = {
            const slotRef = doc(db, 'locked_slots', slotId);
            transaction.delete(slotRef);
         }
+
+        // Audit log
+        const auditRef = doc(collection(db, 'bookings', id, 'audit_logs'));
+        transaction.set(auditRef, {
+          action: 'status_updated',
+          status: status,
+          timestamp: serverTimestamp(),
+          details: `Booking status changed to ${status}`
+        });
       });
 
       if (status === 'confirmed') {
@@ -209,12 +228,14 @@ export const bookingService = {
             }
           }
         } catch (err) {
-          if (import.meta.env.DEV) console.error("Failed to send confirmed email:", err);
+          logger.warn('BOOKING', "Failed to send confirmed email", err);
         }
       }
 
+      logger.success('BOOKING', 'Updated booking status successfully', { bookingId: id, status });
       return { success: true };
     } catch (err: any) {
+      logger.error('BOOKING', `Failed to update status to ${status}`, err, { bookingId: id });
       handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
       throw err;
     }
@@ -257,6 +278,14 @@ export const bookingService = {
           updatedAt: serverTimestamp(),
           rescheduledAt: serverTimestamp(),
         });
+
+        // Audit log
+        const auditRef = doc(collection(db, 'bookings', id, 'audit_logs'));
+        transaction.set(auditRef, {
+          action: 'rescheduled',
+          timestamp: serverTimestamp(),
+          details: `Booking rescheduled from ${data.date} ${data.time} to ${newDate} ${newTime}`
+        });
       });
 
       // Send rescheduled email
@@ -271,11 +300,13 @@ export const bookingService = {
           }
         }
       } catch (err) {
-        if (import.meta.env.DEV) console.error("Failed to send reschedule emails:", err);
+        logger.warn('BOOKING', "Failed to send reschedule emails", err);
       }
 
+      logger.success('BOOKING', 'Rescheduled booking successfully', { bookingId: id, newDate, newTime });
       return { success: true };
     } catch (err: any) {
+      logger.error('BOOKING', 'Failed to reschedule booking', err, { bookingId: id });
       handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
       throw err;
     }
@@ -290,9 +321,11 @@ export const bookingService = {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to reschedule');
+      
+      logger.success('BOOKING', 'Rescheduled via token successfully', { token: token.slice(0, 5) + '...' });
       return data;
     } catch(err: any) {
-      console.error(err);
+      logger.error('BOOKING', 'Failed to reschedule via token', err);
       throw err;
     }
   },
@@ -304,7 +337,7 @@ export const bookingService = {
       if (!response.ok) throw new Error(data.error || 'Failed to load booking');
       return data;
     } catch(err: any) {
-      console.error(err);
+      logger.error('BOOKING', 'Failed to get booking by token API route', err);
       throw err;
     }
   }

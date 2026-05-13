@@ -5,7 +5,52 @@ import escapeHtml from 'escape-html';
 import { adminAuth, adminDb } from './_lib/firebaseAdmin.js';
 import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from './_lib/emailTemplates.js';
 
+import { logger } from './_lib/logger.js';
+import { FieldValue } from 'firebase-admin/firestore';
+
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendEmailWithRetry(options: any, bookingId: string, emailType: string): Promise<any> {
+    const maxRetries = 3;
+    let attempt = 0;
+    let lastError: any;
+
+    while (attempt < maxRetries) {
+        attempt++;
+        try {
+            logger.info('EMAIL', `Attempt ${attempt}/${maxRetries} to send ${emailType}`, {
+                to: options.to,
+                bookingId,
+            });
+            const data = await resend.emails.send(options);
+            
+            if (data.error) {
+              throw new Error(data.error.message || 'Unknown Resend error');
+            }
+
+            logger.success('EMAIL', `Successfully sent ${emailType}`, {
+                to: options.to,
+                bookingId,
+                resendId: data.data?.id
+            });
+            return data;
+        } catch (error: any) {
+            lastError = error;
+            logger.warn('EMAIL', `Failed to send ${emailType} (Attempt ${attempt}/${maxRetries})`, {
+                error: error.message,
+                to: options.to,
+                bookingId
+            });
+            if (attempt < maxRetries) {
+                // Exponential backoff
+                await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+            }
+        }
+    }
+    
+    logger.error('EMAIL', `Exhausted retries for ${emailType}`, { to: options.to, bookingId, error: lastError });
+    throw lastError;
+}
 
 const EmailPayloadSchema = z.object({
   type: z.enum(['booking-received', 'booking-confirmed', 'booking-rescheduled', 'therapist-notification']),
@@ -135,40 +180,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const patientPlainText = `Booking Request Received\nHi ${safePatientName},\nWe have successfully received your booking request with ${safeTherapistName}.\nDate: ${safeDate}\nTime: ${safeTime}\nWe will notify you once confirmed.\n- The Saarthi Team`.trim();
 
       const promises: Promise<any>[] = [
-        resend.emails.send({
-          from: 'Saarthi Contact <contact@saarthilife.com>',
+        sendEmailWithRetry({
+          from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
           to: patientEmail,
           subject: 'We’ve received your booking request | Saarthi',
           html: generateBookingReceivedEmail(emailData),
           text: patientPlainText,
-        })
+        }, bookingId, 'booking-received-patient')
       ];
 
       if (therapistEmail) {
         const therapistPlainText = `New Booking Request\nPatient: ${safePatientName}\nDate: ${safeDate}\nTime: ${safeTime}`.trim();
-        promises.push(resend.emails.send({
-          from: 'Saarthi Notifications <notifications@saarthilife.com>',
+        promises.push(sendEmailWithRetry({
+          from: 'Saarthi Notifications <healwithsaarthi@gmail.com>',
           to: therapistEmail,
           subject: 'New Booking Request Received',
           html: generateTherapistNotificationEmail(emailData, 'new'),
           text: therapistPlainText,
-        }));
+        }, bookingId, 'booking-received-therapist'));
       }
 
       const results = await Promise.all(promises);
+      await updateBookingEmailStatus(bookingId, 'sent');
       return res.status(200).json({ success: true, data: results });
     } 
     
     if (type === 'booking-confirmed') {
       const plainText = `Session Confirmed\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been confirmed!\nDate: ${safeDate}\nTime: ${safeTime}\nHave a great session!\n- The Saarthi Team`.trim();
 
-      const data = await resend.emails.send({
-        from: 'Saarthi Contact <contact@saarthilife.com>',
+      const data = await sendEmailWithRetry({
+        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
         to: patientEmail,
         subject: 'Your Saarthi session is confirmed',
         html: generateBookingConfirmedEmail(emailData),
         text: plainText,
-      });
+      }, bookingId, 'booking-confirmed');
+      
+      await updateBookingEmailStatus(bookingId, 'sent');
       return res.status(200).json({ success: true, data });
     }
 
@@ -176,36 +224,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const plainText = `Session Rescheduled\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been rescheduled to ${safeDate} at ${safeTime}.\n- The Saarthi Team`.trim();
 
       const promises: Promise<any>[] = [
-        resend.emails.send({
-          from: 'Saarthi Contact <contact@saarthilife.com>',
+        sendEmailWithRetry({
+          from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
           to: patientEmail,
           subject: 'Your session has been rescheduled',
           html: generateBookingRescheduledEmail(emailData, safeOriginalDate || '', safeOriginalTime || ''),
           text: plainText,
-        })
+        }, bookingId, 'booking-rescheduled-patient')
       ];
 
       if (therapistEmail) {
         const therapistPlainText = `Session Rescheduled\nPatient: ${safePatientName}\nNew Date: ${safeDate}\nNew Time: ${safeTime}`.trim();
-        promises.push(resend.emails.send({
-          from: 'Saarthi Notifications <notifications@saarthilife.com>',
+        promises.push(sendEmailWithRetry({
+          from: 'Saarthi Notifications <healwithsaarthi@gmail.com>',
           to: therapistEmail,
           subject: 'A Session Has Been Rescheduled',
           html: generateTherapistNotificationEmail(emailData, 'rescheduled', safeOriginalDate, safeOriginalTime),
           text: therapistPlainText,
-        }));
+        }, bookingId, 'booking-rescheduled-therapist'));
       }
 
       const results = await Promise.all(promises);
+      await updateBookingEmailStatus(bookingId, 'sent');
       return res.status(200).json({ success: true, data: results });
     }
 
     return res.status(400).json({ error: 'Invalid email type' });
     
   } catch (error: any) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Email API Error:', error);
-    }
+    logger.error('EMAIL', 'Email API Error', error);
+    
+    // Attempt to parse out bookingId if we got far enough before error
+    try {
+      const parsed = EmailPayloadSchema.safeParse(req.body);
+      if (parsed.success) {
+        await updateBookingEmailStatus(parsed.data.bookingId, 'failed', error.message);
+      }
+    } catch(e) { /* ignore */ }
+
     return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'failed', errorMsg?: string) {
+  if (!bookingId) return;
+  try {
+    await adminDb.collection('bookings').doc(bookingId).update({
+      emailStatus: status,
+      lastEmailAttemptAt: FieldValue.serverTimestamp(),
+      ...(errorMsg ? { lastEmailError: errorMsg } : {})
+    });
+  } catch (err) {
+    logger.warn('EMAIL', 'Could not update booking email status in DB', { error: String(err), bookingId });
   }
 }
