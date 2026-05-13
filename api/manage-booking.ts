@@ -2,8 +2,31 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { z } from "zod";
 import { adminDb } from "./_lib/firebaseAdmin.js";
 import { FieldValue } from "firebase-admin/firestore";
+import { logger } from "./_lib/logger.js";
+
+// In-memory rate limiting (basic protection since serverless wipes this constantly, but helps burst)
+const rateLimits = new Map<string, { count: number; timestamp: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimits.get(ip);
+  if (record && now - record.timestamp < 60000) { // 1 min window
+    if (record.count >= 10) return true;
+    record.count++;
+  } else {
+    rateLimits.set(ip, { count: 1, timestamp: now });
+  }
+  return false;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const clientIp = req.headers['x-forwarded-for']?.toString() || 'unknown';
+  
+  if (isRateLimited(clientIp)) {
+    logger.warn('MANAGE_BOOKING', 'Rate limit exceeded', { ip: clientIp });
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
+
   if (req.method === "GET") {
     const token = req.query.token as string;
     if (!token) return res.status(400).json({ error: "Missing token" });
@@ -14,13 +37,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .where("bookingToken", "==", token)
         .limit(1)
         .get();
-      if (snapshot.empty)
-        return res
-          .status(404)
-          .json({ error: "Booking not found or link expired." });
+        
+      if (snapshot.empty) {
+        logger.warn('MANAGE_BOOKING', 'Invalid token attempt', { token, ip: clientIp });
+        return res.status(404).json({ error: "Booking not found or link expired." });
+      }
 
       const doc = snapshot.docs[0];
       const data = doc.data();
+
+      if (data.invalidToken) {
+         logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { token, bookingId: doc.id });
+         return res.status(400).json({ error: "This booking link is no longer valid." });
+      }
 
       let therapistName = "Your Therapist";
       try {
@@ -32,8 +61,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           therapistName = therapistDoc.data()?.name || therapistName;
         }
       } catch (err) {
-        console.warn("Failed to fetch therapist info");
+        logger.warn('MANAGE_BOOKING', "Failed to fetch therapist info", { therapistId: data.therapistId });
       }
+
+      logger.info('MANAGE_BOOKING', 'Successfully fetched booking details for token', { bookingId: doc.id });
+
 
       // Return safe patient-facing data
       return res.status(200).json({
@@ -47,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         sessionMode: data.sessionMode,
       });
     } catch (err) {
-      console.error(err);
+      logger.error('MANAGE_BOOKING', 'Internal server error during fetch token', err, { ip: clientIp });
       return res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -128,6 +160,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           updatedAt: FieldValue.serverTimestamp(),
           rescheduledAt: FieldValue.serverTimestamp(),
         });
+
+        // Audit log
+        const auditRef = docRef.collection("audit_logs").doc();
+        transaction.set(auditRef, {
+          action: "rescheduled",
+          timestamp: FieldValue.serverTimestamp(),
+          details: `Booking rescheduled via manage link from ${latestData.date} ${latestData.time} to ${newDate} ${newTime}`,
+        });
       });
 
       // Fire email
@@ -146,15 +186,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
         });
       } catch (err) {
-        console.error(
-          "Failed to trigger reschedule email from manage-booking",
-          err,
-        );
+        logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId: docRef.id });
       }
 
+      logger.success('MANAGE_BOOKING', 'Booking rescheduled via token successfully', { bookingId: docRef.id, newDate, newTime });
       return res.status(200).json({ success: true, bookingId: docRef.id });
     } catch (err: any) {
-      console.error(err);
+      logger.error('MANAGE_BOOKING', 'Reschedule failed', err, { ip: clientIp });
       return res
         .status(500)
         .json({ error: err.message || "Reschedule failed" });

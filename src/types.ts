@@ -31,6 +31,11 @@ export interface Booking {
   rescheduledAt?: any;
   originalDate?: string;
   originalTime?: string;
+  emailStatus?: 'pending' | 'sent' | 'failed' | 'retrying';
+  emailAttempts?: number;
+  lastEmailAttemptAt?: any;
+  lastEmailError?: string;
+  invalidToken?: boolean;
 }
 
 export interface Therapist {
