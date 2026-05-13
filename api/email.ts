@@ -181,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const promises: Promise<any>[] = [
         sendEmailWithRetry({
-          from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+          from: 'Saarthi Contact <contact@saarthilife.com>',
           to: patientEmail,
           subject: 'We’ve received your booking request | Saarthi',
           html: generateBookingReceivedEmail(emailData),
@@ -192,7 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (therapistEmail) {
         const therapistPlainText = `New Booking Request\nPatient: ${safePatientName}\nDate: ${safeDate}\nTime: ${safeTime}`.trim();
         promises.push(sendEmailWithRetry({
-          from: 'Saarthi Notifications <healwithsaarthi@gmail.com>',
+          from: 'Saarthi Notifications <contact@saarthilife.com>',
           to: therapistEmail,
           subject: 'New Booking Request Received',
           html: generateTherapistNotificationEmail(emailData, 'new'),
@@ -209,7 +209,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const plainText = `Session Confirmed\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been confirmed!\nDate: ${safeDate}\nTime: ${safeTime}\nHave a great session!\n- The Saarthi Team`.trim();
 
       const data = await sendEmailWithRetry({
-        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+        from: 'Saarthi Contact <contact@saarthilife.com>',
         to: patientEmail,
         subject: 'Your Saarthi session is confirmed',
         html: generateBookingConfirmedEmail(emailData),
@@ -225,7 +225,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const promises: Promise<any>[] = [
         sendEmailWithRetry({
-          from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+          from: 'Saarthi Contact <contact@saarthilife.com>',
           to: patientEmail,
           subject: 'Your session has been rescheduled',
           html: generateBookingRescheduledEmail(emailData, safeOriginalDate || '', safeOriginalTime || ''),
@@ -236,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (therapistEmail) {
         const therapistPlainText = `Session Rescheduled\nPatient: ${safePatientName}\nNew Date: ${safeDate}\nNew Time: ${safeTime}`.trim();
         promises.push(sendEmailWithRetry({
-          from: 'Saarthi Notifications <healwithsaarthi@gmail.com>',
+          from: 'Saarthi Notifications <contact@saarthilife.com>',
           to: therapistEmail,
           subject: 'A Session Has Been Rescheduled',
           html: generateTherapistNotificationEmail(emailData, 'rescheduled', safeOriginalDate, safeOriginalTime),
