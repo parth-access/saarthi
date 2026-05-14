@@ -21,6 +21,7 @@ const NotFound = React.lazy(() => import("./pages/NotFound"))
 const BookingSystem = React.lazy(() => import("./components/booking/BookingSystem"))
 const Login = React.lazy(() => import("./pages/Login"))
 const ManageBooking = React.lazy(() => import("./pages/ManageBooking"))
+const Payment = React.lazy(() => import("./pages/Payment").then(m => ({ default: m.Payment })))
 
 const PageLoader = () => (
   <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -61,6 +62,7 @@ function App() {
                   </div>
                 } />
                 <Route path="/manage-booking" element={<ManageBooking />} />
+                <Route path="/payment" element={<Payment />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </React.Suspense>

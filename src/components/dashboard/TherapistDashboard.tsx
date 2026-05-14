@@ -78,8 +78,8 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
     try { return isToday(parseISO(b.date)) } catch { return false }
   }), [bookings]);
 
-  const pendingBookings = React.useMemo(() => bookings.filter(b => b.status === 'pending'), [bookings]);
-  const upcomingBookings = React.useMemo(() => bookings.filter(b => b.status === 'confirmed'), [bookings]);
+  const pendingBookings = React.useMemo(() => bookings.filter(b => b.status === 'pending' || b.status === 'pending_approval'), [bookings]);
+  const upcomingBookings = React.useMemo(() => bookings.filter(b => b.status === 'confirmed' || b.status === 'awaiting_payment'), [bookings]);
   const recentBookings = React.useMemo(() => bookings.filter(b => b.status === 'completed' || b.status === 'cancelled' || b.status === 'rejected').slice(0, 5), [bookings]);
 
   // Filtered master list
@@ -226,7 +226,8 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                     className="w-full h-12 rounded-xl bg-[#FCFAF7] border-none px-4 pr-10 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer outline-none"
                   >
                     <option value="all">All Request Status</option>
-                    <option value="pending">Pending</option>
+                    <option value="pending_approval">Pending Approval</option>
+                    <option value="awaiting_payment">Awaiting Payment</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="rejected">Rejected</option>
                     <option value="completed">Completed</option>
@@ -379,7 +380,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                       <div key={b.id} className="relative z-10 pl-10">
                         <div className={cn(
                           "absolute left-2.5 top-1.5 w-2 h-2 rounded-full ring-4 ring-white",
-                          b.status === 'confirmed' ? "bg-green-500" : b.status === 'pending' ? "bg-amber-400" : "bg-primary/20"
+                          b.status === 'confirmed' ? "bg-green-500" : (b.status === 'pending' || b.status === 'pending_approval') ? "bg-amber-400" : b.status === 'awaiting_payment' ? "bg-blue-400" : "bg-primary/20"
                         )} />
                         <div className="bg-[#FCFAF7] rounded-2xl p-4 border border-primary/5 group hover:border-primary/10 transition-colors">
                           <div className="text-xs font-bold text-primary/40 mb-1">{b.time}</div>
@@ -480,13 +481,14 @@ const EmptyState = ({ message }: { message: string }) => (
 const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
 
-  const StatusIcon = booking.status === 'pending' ? Clock : 
+  const StatusIcon = (booking.status === 'pending' || booking.status === 'pending_approval') ? Clock : 
                      booking.status === 'confirmed' ? CheckCircle2 :
                      booking.status === 'completed' ? Check : X;
 
   return (
     <div className="bg-white rounded-3xl p-5 md:p-6 border border-primary/5 hover:border-primary/10 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all group overflow-hidden relative">
-      {booking.status === 'pending' && <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />}
+      {(booking.status === 'pending' || booking.status === 'pending_approval') && <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />}
+      {booking.status === 'awaiting_payment' && <div className="absolute top-0 left-0 w-1 h-full bg-blue-400" />}
       {booking.status === 'confirmed' && <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />}
       
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -534,14 +536,14 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
           </div>
 
           <div className="flex flex-col gap-2 w-full">
-            {booking.status === 'pending' && (
+            {(booking.status === 'pending' || booking.status === 'pending_approval') && (
               <>
                 <button
                   disabled={isProcessing}
-                  onClick={() => onUpdateStatus(booking.id, 'confirmed')}
+                  onClick={() => onUpdateStatus(booking.id, 'awaiting_payment')}
                   className="w-full h-10 rounded-xl bg-primary text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Accept
+                  {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Send Payment Link
                 </button>
                 <button
                   disabled={isProcessing}
@@ -553,7 +555,7 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
               </>
             )}
             
-            {booking.status === 'confirmed' && (
+            {(booking.status === 'confirmed' || booking.status === 'awaiting_payment') && (
               <>
                 <button
                   disabled={isProcessing}

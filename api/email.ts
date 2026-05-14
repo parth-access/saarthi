@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { z } from 'zod';
 import escapeHtml from 'escape-html';
 import { adminAuth, adminDb } from './_lib/firebaseAdmin.js';
-import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from './_lib/emailTemplates.js';
+import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generatePaymentLinkEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from './_lib/emailTemplates.js';
 
 import { logger } from './_lib/logger.js';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -53,7 +53,7 @@ async function sendEmailWithRetry(options: any, bookingId: string, emailType: st
 }
 
 const EmailPayloadSchema = z.object({
-  type: z.enum(['booking-received', 'booking-confirmed', 'booking-rescheduled', 'therapist-notification']),
+  type: z.enum(['booking-received', 'booking-confirmed', 'booking-payment-link', 'booking-rescheduled', 'therapist-notification']),
   bookingId: z.string().min(1),
   therapistId: z.string().min(1),
   bookingDetails: z.object({
@@ -205,6 +205,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, data: results });
     } 
     
+    if (type === 'booking-payment-link') {
+      const plainText = `Payment Required\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been approved. Please complete payment to confirm your booking.\nDate: ${safeDate}\nTime: ${safeTime}\n- The Saarthi Team`.trim();
+
+      const data = await sendEmailWithRetry({
+        from: 'Saarthi Contact <contact@saarthilife.com>',
+        to: patientEmail,
+        subject: 'Action Required: Complete your session payment | Saarthi',
+        html: generatePaymentLinkEmail(emailData),
+        text: plainText,
+      }, bookingId, 'booking-payment-link');
+      
+      await updateBookingEmailStatus(bookingId, 'sent');
+      return res.status(200).json({ success: true, data });
+    }
+
     if (type === 'booking-confirmed') {
       const plainText = `Session Confirmed\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been confirmed!\nDate: ${safeDate}\nTime: ${safeTime}\nHave a great session!\n- The Saarthi Team`.trim();
 

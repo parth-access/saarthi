@@ -490,6 +490,8 @@ const AdminPage = () => {
 const StatusBadge = ({ status }: { status: BookingStatus }) => {
   const styles: Record<BookingStatus, string> = {
     pending: "bg-amber-50 text-amber-600 border-amber-100",
+    pending_approval: "bg-blue-50 text-blue-600 border-blue-100",
+    awaiting_payment: "bg-indigo-50 text-indigo-600 border-indigo-100",
     confirmed: "bg-green-50 text-green-600 border-green-100",
     rejected: "bg-red-50 text-red-600 border-red-100",
     completed: "bg-primary/5 text-primary border-primary/10",
@@ -498,6 +500,8 @@ const StatusBadge = ({ status }: { status: BookingStatus }) => {
 
   const icons: Record<BookingStatus, React.ReactNode> = {
     pending: <Loader2 className="w-3 h-3 animate-pulse" />,
+    pending_approval: <Loader2 className="w-3 h-3 animate-pulse" />,
+    awaiting_payment: <Loader2 className="w-3 h-3 flex-shrink-0" />,
     confirmed: <CheckCircle2 className="w-3 h-3" />,
     rejected: <XCircle className="w-3 h-3" />,
     completed: <CheckCircle2 className="w-3 h-3" />,
