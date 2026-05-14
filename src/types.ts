@@ -6,10 +6,14 @@ export interface User {
 
 export type BookingStatus =
   | 'pending'
+  | 'pending_approval'
+  | 'awaiting_payment'
   | 'confirmed'
   | 'rejected'
   | 'cancelled'
   | 'completed';
+
+export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
 
 export interface Booking {
   id: string;
@@ -24,6 +28,14 @@ export interface Booking {
   sessionType: string;
   message: string;
   status: BookingStatus;
+  paymentStatus?: PaymentStatus;
+  paymentId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  paymentAmount?: number;
+  paymentCurrency?: string;
+  paymentVerifiedAt?: any;
+  paymentLinkSentAt?: any;
   createdAt: any;
   updatedAt?: any;
   bookingToken?: string;

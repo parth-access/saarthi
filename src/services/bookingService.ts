@@ -56,7 +56,8 @@ export const bookingService = {
 
         transaction.set(newBookingRef, {
           ...cleanedData,
-          status: 'pending' as BookingStatus,
+          status: 'pending_approval' as BookingStatus,
+          paymentStatus: 'unpaid',
           bookingToken,
           sessionMode: cleanedData.sessionMode || 'Online',
           createdAt: serverTimestamp(),
@@ -80,7 +81,8 @@ export const bookingService = {
           const bData = {
             id: newBookingRef.id,
             ...bookingData,
-            status: 'pending' as BookingStatus,
+            status: 'pending_approval' as BookingStatus,
+            paymentStatus: 'unpaid',
             createdAt: null,
             updatedAt: null
           };
@@ -180,6 +182,23 @@ export const bookingService = {
   },
 
   updateStatus: async (id: string, status: BookingStatus) => {
+    // If status is awaiting_payment, call the API directly and return
+    if (status === 'awaiting_payment') {
+      try {
+        const response = await fetch('/api/payment/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: id })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to create payment order');
+        return { success: true };
+      } catch (err: any) {
+         logger.error('BOOKING', 'Failed to create payment order', err);
+         throw err;
+      }
+    }
+
     try {
       const ref = doc(db, 'bookings', id);
 

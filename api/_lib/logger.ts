@@ -1,6 +1,6 @@
 export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
-  category: 'BOOKING' | 'EMAIL' | 'FIRESTORE' | 'AUTH' | 'MANAGE_BOOKING' | 'SYSTEM';
+  category: 'BOOKING' | 'EMAIL' | 'FIRESTORE' | 'AUTH' | 'MANAGE_BOOKING' | 'SYSTEM' | 'PAYMENT';
   message: string;
   data?: any;
   error?: any;
