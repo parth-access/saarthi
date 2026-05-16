@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 // import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "motion/react"
@@ -24,7 +26,7 @@ import {
   Trash,
   CheckCircle
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter as useNavigate } from "next/navigation"
 import { format, parseISO } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"

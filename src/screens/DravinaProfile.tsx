@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 // import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
