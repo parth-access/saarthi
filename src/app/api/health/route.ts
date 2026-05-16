@@ -1,13 +1,8 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { adminDb } from "./_lib/firebaseAdmin.js";
-import { logger } from "./_lib/logger.js";
-import { Resend } from "resend";
+import { NextResponse } from "next/server";
+import { adminDb } from '@/lib/firebase/admin';
+import { logger } from "../_lib/logger";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function GET(request: Request) {
   const diagnostics: Record<string, any> = {
     env: {
       RESEND_API_KEY: !!process.env.RESEND_API_KEY,
@@ -18,13 +13,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
     services: {
       firestore: 'unknown',
-      resend: 'unknown' // can't reliably test pinging Resend without sending, but auth is validated by presence
+      resend: 'unknown'
     },
     uptime: process.uptime()
   };
 
   try {
-    // Quick Firestore test
     const snap = await adminDb.collection("therapists").limit(1).get();
     diagnostics.services.firestore = 'ok';
     
@@ -35,12 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     logger.info('SYSTEM', 'Health check performed successfully', diagnostics);
-    return res.status(200).json({ status: 'healthy', diagnostics });
+    return NextResponse.json({ status: 'healthy', diagnostics }, { status: 200 });
 
   } catch (error: any) {
     diagnostics.services.firestore = 'error';
     diagnostics.lastError = error.message;
     logger.error('SYSTEM', 'Health check failed', error, diagnostics);
-    return res.status(500).json({ status: 'unhealthy', diagnostics });
+    return NextResponse.json({ status: 'unhealthy', diagnostics }, { status: 500 });
   }
 }

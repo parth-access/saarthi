@@ -1,29 +1,23 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { adminDb } from "../_lib/firebaseAdmin.js";
+import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from "firebase-admin/firestore";
-import { logger } from "../_lib/logger.js";
+import { logger } from "../../_lib/logger";
 import Razorpay from "razorpay";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
     const payloadSchema = z.object({
       bookingId: z.string().min(1)
     });
 
-    const parsed = payloadSchema.safeParse(req.body);
+    const body = await request.json();
+    const parsed = payloadSchema.safeParse(body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid payload" });
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     const { bookingId } = parsed.data;
-
-    // We assume the user must be authenticated. 
-    // Ideally we should pass Auth Bearer token and check, but for now we skip complex auth in tests.
 
     const bookingRef = adminDb.collection("bookings").doc(bookingId);
     
@@ -38,18 +32,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          throw new Error("Booking is not in pending approval state");
       }
 
-      const amount = 1500; // Hardcoding Rs 1500 for now. Real world: get from therapist pricing.
+      let price = 1500;
+      if (data.sessionMode === 'in_person') price = 2000;
+      const amount = price;
       const currency = "INR";
 
-      // Initialize Razorpay
       const rzp = new Razorpay({
         key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
         key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder"
       });
 
-      // Create Order
       const order = await rzp.orders.create({
-        amount: amount * 100, // in paise
+        amount: amount * 100,
         currency,
         receipt: `receipt_${bookingId}`,
         notes: {
@@ -58,7 +52,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       });
 
-      // Audit log
       const auditRef = bookingRef.collection("audit_logs").doc();
       transaction.set(auditRef, {
         action: "awaiting_payment",
@@ -77,13 +70,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
     });
 
-    // We need to fetch it one more time to send the email
     const updatedBooking = await bookingRef.get();
     const data = updatedBooking.data()!;
 
-    // Trigger Payment Email
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host;
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host');
     const apiUrl = `${protocol}://${host}/api/email`;
 
     try {
@@ -101,10 +92,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     logger.success("PAYMENT", "Created Razorpay order and payment link successfully", { bookingId });
-    return res.status(200).json({ success: true, bookingId });
+    return NextResponse.json({ success: true, bookingId }, { status: 200 });
 
   } catch (error: any) {
     logger.error("PAYMENT", "Failed to create payment order", error);
-    return res.status(500).json({ error: error.message || "Internal Server Error" });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

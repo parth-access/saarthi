@@ -1,45 +1,41 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { adminDb } from "../_lib/firebaseAdmin.js";
+import { NextResponse } from "next/server";
+import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from "firebase-admin/firestore";
-import { logger } from "../_lib/logger.js";
+import { logger } from "../../_lib/logger";
 import crypto from "crypto";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
-    const webhookSignature = req.headers["x-razorpay-signature"] as string;
+    const webhookSignature = request.headers.get("x-razorpay-signature");
     if (!webhookSignature) {
-      return res.status(400).json({ error: "Missing signature" });
+      return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     }
 
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret) {
         logger.error("PAYMENT", "Missing webhook secret in env");
-        return res.status(500).json({ error: "Internal Server Error" });
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 
-    const bodyText = JSON.stringify(req.body);
+    const payloadText = await request.text();
     const expectedSignature = crypto
       .createHmac("sha256", secret)
-      .update(bodyText)
+      .update(payloadText)
       .digest("hex");
 
     if (expectedSignature !== webhookSignature) {
       logger.error("PAYMENT", "Invalid webhook signature");
-      return res.status(400).json({ error: "Invalid signature" });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    const { event, payload } = req.body;
+    const payload = JSON.parse(payloadText);
+    const event = payload.event;
 
     if (event === "payment.captured") {
-      const paymentData = payload.payment.entity;
+      const paymentData = payload.payload.payment.entity;
       const razorpayOrderId = paymentData.order_id;
       const razorpayPaymentId = paymentData.id;
 
-      // Find booking by razorpayOrderId
       const querySnap = await adminDb.collection("bookings")
         .where("razorpayOrderId", "==", razorpayOrderId)
         .limit(1)
@@ -47,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (querySnap.empty) {
         logger.error("PAYMENT", "No booking found for order", null, { razorpayOrderId });
-        return res.status(200).json({ success: true, note: "Ignored" });
+        return NextResponse.json({ success: true, note: "Ignored" }, { status: 200 });
       }
 
       const bookingRef = querySnap.docs[0].ref;
@@ -59,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         const data = bookingDoc.data()!;
         if (data.status === "confirmed" && data.paymentStatus === "paid") {
-           return; // Already processed by frontend verification 
+           return; 
         }
 
         const paymentRef = adminDb.collection("payments").doc(razorpayPaymentId);
@@ -93,14 +89,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       logger.success("PAYMENT", "Payment verified via webhook", { bookingId, razorpayPaymentId });
       
-      // Could trigger email here if via webhook reconciliation, assuming frontend failed.
-      // But for simplicity, we let it be.
     }
 
-    return res.status(200).json({ success: true });
+    return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
     logger.error("PAYMENT", "Webhook processing failed", error);
-    return res.status(500).json({ error: error.message || "Internal Server Error" });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }

@@ -35,7 +35,6 @@ function generateEmailLayout(content: string, previewText: string = ''): string 
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; max-width: 600px; background-color: ${COLORS.cardBackground}; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
             <tr>
               <td style="padding: 40px;">
-                <!-- Logo / Header -->
                 <div style="text-align: center; margin-bottom: 32px;">
                   <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: ${COLORS.accent}; letter-spacing: -0.5px;">Saarthi</h1>
                   <p style="margin: 4px 0 0 0; font-size: 14px; color: ${COLORS.textMuted}; font-style: italic;">A Path Forward</p>
@@ -47,7 +46,6 @@ function generateEmailLayout(content: string, previewText: string = ''): string 
             </tr>
           </table>
 
-          <!-- Footer -->
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="width: 100%; max-width: 600px; margin-top: 24px;">
             <tr>
               <td style="text-align: center; padding: 0 20px;">

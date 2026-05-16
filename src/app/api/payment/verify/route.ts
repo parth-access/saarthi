@@ -1,15 +1,11 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { NextResponse } from "next/server";
 import { z } from "zod";
-import { adminDb } from "../_lib/firebaseAdmin.js"; // adjust path
+import { adminDb } from '@/lib/firebase/admin'; 
 import { FieldValue } from "firebase-admin/firestore";
-import { logger } from "../_lib/logger.js";
+import { logger } from "../../_lib/logger";
 import crypto from "crypto";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
     const payloadSchema = z.object({
       bookingId: z.string().min(1),
@@ -18,9 +14,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       razorpay_signature: z.string().min(1)
     });
 
-    const parsed = payloadSchema.safeParse(req.body);
+    const body = await request.json();
+    const parsed = payloadSchema.safeParse(body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid payload" });
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
@@ -34,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (generated_signature !== razorpay_signature) {
        logger.error("PAYMENT", "Signature mismatch", null, { bookingId });
-       return res.status(400).json({ error: "Invalid signature" });
+       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
     const bookingRef = adminDb.collection("bookings").doc(bookingId);
@@ -45,10 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const data = bookingDoc.data()!;
       if (data.status === "confirmed" && data.paymentStatus === "paid") {
-         return; // Already processed
+         return; 
       }
 
-      // Record payment document
       const paymentRef = adminDb.collection("payments").doc(razorpay_payment_id);
       transaction.set(paymentRef, {
         bookingId,
@@ -64,7 +60,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         verifiedAt: FieldValue.serverTimestamp()
       });
 
-      // Update booking
       transaction.update(bookingRef, {
         status: "confirmed",
         paymentStatus: "paid",
@@ -73,7 +68,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedAt: FieldValue.serverTimestamp()
       });
 
-      // Audit log
       const auditRef = bookingRef.collection("audit_logs").doc();
       transaction.set(auditRef, {
         action: "payment_verified",
@@ -86,9 +80,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const updatedBooking = await bookingRef.get();
     const data = updatedBooking.data()!;
 
-    // Send Confirmation Email
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host;
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host');
     const apiUrl = `${protocol}://${host}/api/email`;
 
     try {
@@ -106,10 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     logger.success("PAYMENT", "Payment verified completely", { bookingId, razorpay_payment_id });
-    return res.status(200).json({ success: true });
+    return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error: any) {
     logger.error("PAYMENT", "Payment verification failed", error);
-    return res.status(500).json({ error: error.message || "Internal Server Error" });
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
