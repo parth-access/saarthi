@@ -1,5 +1,5 @@
 import { Booking, Therapist } from '../types';
-import { auth } from '../lib/firebase';
+import { auth } from '../lib/firebase/client';
 
 export const resendService = {
   sendBookingReceivedEmail: async (booking: Booking, therapist: Therapist) => {
@@ -32,7 +32,7 @@ export const resendService = {
       }
       return await response.json();
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV !== 'production') {
         console.error("resendService.sendBookingReceivedEmail Error:", error);
       }
       // Suppress throwing to not block the UI
@@ -76,7 +76,7 @@ export const resendService = {
       }
       return await response.json();
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV !== 'production') {
          console.error("resendService.sendBookingConfirmedEmail Error:", error);
       }
       // Suppress throwing to not block the UI
@@ -118,7 +118,7 @@ export const resendService = {
       }
       return await response.json();
     } catch (error) {
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV !== 'production') {
          console.error("resendService.sendBookingRescheduledEmail Error:", error);
       }
     }

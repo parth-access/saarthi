@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, updateDoc, doc, deleteDoc, startAfter } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db } from '../../lib/firebase/client';
 import { format } from 'date-fns';
 import { Button } from '../ui/Button';
 import { CheckCircle2, Circle, Search, ShieldAlert, Trash2, MailOpen, User, Archive } from 'lucide-react';

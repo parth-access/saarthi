@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 interface NavbarProps {
   onBookClick?: () => void;
@@ -26,8 +26,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           
           {/* Left: Logo */}
           <div className="flex items-center">
-            <Link
-              to="/"
+            <Link href="/"
               className="group flex items-center gap-2 text-primary font-serif transition-transform hover:scale-[1.02]"
             >
               {/* ✅ Use icon-style logo (IMPORTANT) */}
@@ -49,9 +48,8 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           <div className="hidden md:flex flex-1 justify-center">
             <div className="flex items-center space-x-10">
               {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
+                <Link key={link.name}
+                  href={link.href}
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                 >
                   {link.name}
@@ -66,7 +64,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
             {/* Desktop CTA */}
             <div className="hidden md:block">
               <Button asChild size="sm" variant="primary">
-                <Link to="/book">Book Session</Link>
+                <Link href="/book">Book Session</Link>
               </Button>
             </div>
 

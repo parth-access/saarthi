@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "motion/react"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 import { QuoteRotator } from "./QuoteRotator"
 
@@ -34,10 +34,10 @@ const Hero = ({ onBookClick }: HeroProps) => {
 
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-start sm:space-x-6 sm:space-y-0">
               <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg">
-                <Link to="/book">Book a Session</Link>
+                <Link href="/book">Book a Session</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="px-10 py-7 text-lg">
-                <Link to="/vision">Learn More</Link>
+                <Link href="/vision">Learn More</Link>
               </Button>
             </div>
           </motion.div>

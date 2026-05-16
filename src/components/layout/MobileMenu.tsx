@@ -3,7 +3,7 @@ import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "motion/react"
 import { X } from "lucide-react"
 import { Button } from "../ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 interface MobileMenuProps {
   isOpen: boolean
@@ -13,6 +13,12 @@ interface MobileMenuProps {
 }
 
 const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) => {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Disable scroll when menu is open
   React.useEffect(() => {
     if (isOpen) {
@@ -24,6 +30,8 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
       document.body.style.overflow = "unset"
     }
   }, [isOpen])
+
+  if (!mounted) return null;
 
   // Use Portal to render at the root of the document body
   // This avoids stacking context issues from parent components
@@ -39,7 +47,7 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
         >
           {/* Top Bar: Logo (Left) + Close (Right) */}
           <div className="flex items-center justify-between mb-12">
-            <Link to="/" className="flex items-center" onClick={onClose}>
+            <Link href="/" className="flex items-center" onClick={onClose}>
               <img 
                 src="/saarthi-logo-Photoroom.png" 
                 alt="Saarthi Logo" 
@@ -65,8 +73,7 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 + 0.2 }}
               >
-                <Link
-                  to={link.href}
+                <Link href={link.href}
                   className="text-4xl font-serif font-medium text-primary hover:text-accent transition-colors"
                   onClick={onClose}
                 >

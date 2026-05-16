@@ -1,4 +1,4 @@
-import { auth, isFirebaseEnabled, db } from '../lib/firebase';
+import { auth, isFirebaseEnabled, db } from '../lib/firebase/client';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { User } from '../types';

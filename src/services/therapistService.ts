@@ -8,7 +8,7 @@ import {
   where,
   updateDoc
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase/client';
 import { Therapist, AvailabilityConfig } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapTherapist } from '../utils/mappers';

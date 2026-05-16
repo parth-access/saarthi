@@ -7,7 +7,7 @@ export interface FrontendLogEntry {
 }
 
 function writeFrontendLog(entry: FrontendLogEntry) {
-  const isDev = import.meta.env.DEV;
+  const isDev = process.env.NODE_ENV !== 'production';
   
   if (isDev) {
     const styles = {

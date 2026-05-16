@@ -10,7 +10,7 @@ import {
   runTransaction,
   deleteDoc
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase/client';
 import { Booking, BookingStatus, Therapist } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { resendService } from './resendService';

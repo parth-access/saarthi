@@ -43,7 +43,7 @@ export function ContactForm() {
       setStatus('success')
       setFormData({ name: "", email: "", message: "", honeypot: "" })
     } catch (error: any) {
-      if (import.meta.env.DEV) console.error("Contact Form Error:", error);
+      if (process.env.NODE_ENV !== 'production') console.error("Contact Form Error:", error);
       setStatus('error');
       setErrorMessage(error.message || "Something went wrong while sending your message. Please try again in a moment.");
     }

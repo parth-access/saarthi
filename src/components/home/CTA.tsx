@@ -2,7 +2,7 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "motion/react"
 
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 interface CTAProps {
   onBookClick?: () => void;
@@ -30,7 +30,7 @@ const CTA = ({ onBookClick }: CTAProps) => {
               variant="accent" 
               className="text-primary font-bold"
             >
-              <Link to="/book">Book a Session</Link>
+              <Link href="/book">Book a Session</Link>
             </Button>
           </motion.div>
         </div>
