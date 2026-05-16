@@ -20,7 +20,7 @@ export default function NotFound() {
         <div className="space-y-4">
           <h1 className="text-5xl md:text-6xl text-primary font-serif">Lost your way?</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            Even the most intentional journeys have unexpected turns. Let's find your path back.
+            Even the most intentional journeys have unexpected turns. Let&apos;s find your path back.
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { CheckCircle2, Link } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
+import NextLink from "next/link"
 import { Button } from "../ui/Button"
 import { cn } from "../../lib/utils"
 import { SessionType, Therapist } from "../../types"
@@ -155,7 +156,7 @@ const BookingSystem = () => {
               <p className="text-muted-foreground">Your request has been sent. We will confirm via email within 24 hours.</p>
             </div>
             <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500">
-              <a href="/">Return to Home</a>
+              <NextLink href="/">Return to Home</NextLink>
             </Button>
           </motion.div>
         )

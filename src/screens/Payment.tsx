@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Link from 'next/link';
 import { ShieldCheck, ArrowRight, Loader2, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
 import { Booking } from '../types';
@@ -64,9 +65,9 @@ export const Payment: React.FC = () => {
              </div>
              <h2 className="text-2xl font-serif text-[#C48B1A] mb-4">Unavailable</h2>
              <p className="text-gray-600 mb-6">{error || 'Booking not found.'}</p>
-             <a href="/" className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
+             <Link href="/" className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
                  Return Home <ChevronRight className="w-4 h-4" />
-             </a>
+             </Link>
          </div>
       </div>
     );

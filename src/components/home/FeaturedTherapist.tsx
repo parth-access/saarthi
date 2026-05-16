@@ -54,8 +54,10 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
                   Know Your Saarthi
                 </Link>
               </Button>
-              <Button size="lg" onClick={onBookClick}>
-                Book Session
+              <Button asChild size="lg">
+                <Link href="/therapists">
+                  Book Session
+                </Link>
               </Button>
             </div>
           </motion.div>

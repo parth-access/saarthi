@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
+import Link from "next/link";
 import {
   Loader2,
   Calendar,
@@ -22,7 +25,7 @@ interface ManageState {
 }
 
 const ManageBooking = () => {
-  const [searchParams] = useSearchParams();
+  const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
   const [booking, setBooking] = React.useState<any>(null);
@@ -124,7 +127,7 @@ const ManageBooking = () => {
             className="w-full rounded-full h-12"
             variant="outline"
           >
-            <a href="/">Return to Home</a>
+            <Link href="/">Return to Home</Link>
           </Button>
         </div>
       </div>

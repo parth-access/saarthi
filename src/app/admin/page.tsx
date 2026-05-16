@@ -1,7 +1,12 @@
 "use client";
 
 import AdminPage from "@/screens/Admin";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function AdminRoute() {
-  return <AdminPage />;
+  return (
+    <ProtectedRoute>
+      <AdminPage />
+    </ProtectedRoute>
+  );
 }

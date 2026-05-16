@@ -30,7 +30,7 @@ const CTA = ({ onBookClick }: CTAProps) => {
               variant="accent" 
               className="text-primary font-bold"
             >
-              <Link href="/book">Book a Session</Link>
+              <Link href="/therapists">Book a Session</Link>
             </Button>
           </motion.div>
         </div>

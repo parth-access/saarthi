@@ -64,7 +64,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
             {/* Desktop CTA */}
             <div className="hidden md:block">
               <Button asChild size="sm" variant="primary">
-                <Link href="/book">Book Session</Link>
+                <Link href="/therapists">Book Session</Link>
               </Button>
             </div>
 

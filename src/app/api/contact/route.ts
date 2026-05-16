@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     if (resend) {
       // Send Notification to Admin
       await resend.emails.send({
-        from: 'Saarthi Contact <healwithsaarthi@gmail.com>',
+        from: 'Saarthi Contact <contact@saarthilife.com>',
         to: 'healwithsaarthi@gmail.com',
         subject: 'New Saarthi Contact Inquiry',
         html: `
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
       // Auto-Reply
       await resend.emails.send({
-        from: 'Saarthi <healwithsaarthi@gmail.com>',
+        from: 'Saarthi <contact@saarthilife.com>',
         to: safeEmail,
         subject: 'We received your message | Saarthi',
         html: `
