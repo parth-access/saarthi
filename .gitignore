@@ -16,3 +16,8 @@ coverage/
 *.swo
 firebase-applet-config.json
 firebase-blueprint.json
+node_modules
+.next
+.vercel
+dist
+.next
