@@ -20,7 +20,13 @@ export default function Login() {
 
   useEffect(() => {
     if (currentUser) {
-      router.replace("/admin");
+      if (currentUser.role === 'admin') {
+        router.replace("/admin");
+      } else if (currentUser.role === 'therapist') {
+        router.replace("/therapist");
+      } else {
+        router.replace("/admin");
+      }
     }
   }, [currentUser, router]);
 
@@ -32,9 +38,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-
-      // AuthContext + middleware/session API
-      // will handle authenticated state + redirects
+      // Wait for AuthContext and its onAuthStateChanged to resolve loading to false
     } catch (err: any) {
       setError(err.message || "Login failed");
       setLoading(false);
