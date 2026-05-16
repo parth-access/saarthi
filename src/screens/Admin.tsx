@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "motion/react"
 import { therapistService } from '../services/therapistService';
 import { 
@@ -24,7 +24,7 @@ import {
   Trash,
   CheckCircle
 } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { format, parseISO } from "date-fns"
 import { Button } from "../components/ui/Button"
 import { cn } from "../lib/utils"
@@ -466,9 +466,7 @@ const AdminPage = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{currentUser?.role === 'admin' ? 'Session Manager | Saarthi Admin' : 'Therapist Dashboard | Saarthi'}</title>
-      </Helmet>
+      {/* Helmet removed */}
       <TherapistDashboard 
         therapist={myTherapistProfile}
         bookings={currentUser?.role === 'admin' ? filteredBookings : bookings}

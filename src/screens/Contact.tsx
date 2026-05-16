@@ -1,8 +1,8 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { Mail, MapPin, Calendar, ArrowRight } from "lucide-react"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { ContactForm } from "../components/forms/ContactForm"
 
 interface ContactProps {
@@ -12,11 +12,7 @@ interface ContactProps {
 const Contact = ({ onBookClick }: ContactProps) => {
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
-      <Helmet>
-        <title>Contact Saarthi | Therapy & Mental Health Support</title>
-        <meta name="description" content="Get in touch with Saarthi for therapy sessions, questions, or guidance. Reach out for professional mental health support." />
-        <link rel="canonical" href="https://saarthilife.com/contact" />
-      </Helmet>
+      {/* Helmet removed */}
 
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
@@ -149,4 +145,3 @@ const Contact = ({ onBookClick }: ContactProps) => {
 }
 
 export default Contact
-

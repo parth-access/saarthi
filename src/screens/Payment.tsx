@@ -111,7 +111,7 @@ export const Payment: React.FC = () => {
     }
 
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // Enter the Key ID generated from the Dashboard
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // Enter the Key ID generated from the Dashboard
       amount: (booking.paymentAmount || 1500) * 100, // Amount is in currency subunits. Default 1500 ₹
       currency: booking.paymentCurrency || 'INR',
       name: 'Saarthi',

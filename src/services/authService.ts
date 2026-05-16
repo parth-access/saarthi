@@ -34,7 +34,7 @@ export const authService = {
 
   getCurrentUser: async () => {
     return new Promise((resolve) => {
-      if (!isFirebaseEnabled) return resolve(null);
+      if (!isFirebaseEnabled || !auth) return resolve(null);
       const unsubscribe = auth.onAuthStateChanged((user: any) => {
         unsubscribe();
         resolve(user);

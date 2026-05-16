@@ -1,8 +1,8 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { Button } from "../components/ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Heart, Shield, Sparkles, MessageCircle, Compass, Anchor, Sun, Wind, Quote, Users } from "lucide-react"
 
 const Vision = () => {
@@ -31,11 +31,7 @@ const Vision = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
-      <Helmet>
-        <title>Our Vision | Normalizing Mental Well-being | Saarthi</title>
-        <meta name="description" content="Explore Saarthi’s vision to normalize mental health conversations and provide accessible, judgment-free psychological support." />
-        <link rel="canonical" href="https://saarthilife.com/vision" />
-      </Helmet>
+      {/* Helmet removed */}
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[10%] -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-50" />
@@ -223,7 +219,7 @@ const Vision = () => {
             
             <div className="flex flex-col items-center gap-8">
               <Button asChild size="lg" className="h-20 px-16 text-xl rounded-[2rem] shadow-2xl shadow-primary/20 hover:shadow-accent/30 transition-all hover:-translate-y-2 bg-primary hover:bg-primary/95">
-                <Link to="/therapists">Find Your Saarthi</Link>
+                <Link href="/therapists">Find Your Saarthi</Link>
               </Button>
               <p className="text-muted-foreground text-sm tracking-widest uppercase">We’re here whenever you’re ready.</p>
             </div>

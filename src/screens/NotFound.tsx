@@ -1,7 +1,7 @@
 import * as React from "react"
 import { motion } from "motion/react"
 import { Button } from "../components/ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Compass } from "lucide-react"
 
 export default function NotFound() {
@@ -26,10 +26,10 @@ export default function NotFound() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
           <Button asChild size="lg" className="rounded-full px-8">
-            <Link to="/">Return to Home</Link>
+            <Link href="/">Return to Home</Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="rounded-full px-8">
-            <Link to="/therapists">Find a Saarthi</Link>
+            <Link href="/therapists">Find a Saarthi</Link>
           </Button>
         </div>
       </motion.div>

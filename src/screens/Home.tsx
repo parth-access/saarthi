@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import Hero from "../components/home/Hero"
 import Services from "../components/home/Services"
 import FeaturedTherapist from "../components/home/FeaturedTherapist"
@@ -14,11 +14,7 @@ interface HomeProps {
 const Home = ({ onBookClick }: HomeProps) => {
   return (
     <main>
-      <Helmet>
-        <title>Saarthi | Online Therapy & Mental Wellness Support India</title>
-        <meta name="description" content="Saarthi provides professional online therapy and psychology consultations for anxiety, stress, and emotional well-being. Find clarity and heal." />
-        <link rel="canonical" href="https://saarthilife.com/" />
-      </Helmet>
+      {/* Helmet removed */}
       <Hero onBookClick={onBookClick} />
       <Services />
       <FeaturedTherapist onBookClick={onBookClick} />

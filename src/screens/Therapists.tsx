@@ -1,9 +1,9 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "motion/react"
 import { MapPin, ArrowRight, ShieldCheck } from "lucide-react"
 import { Button } from "../components/ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/Card"
 import { Therapist } from "../types"
 
@@ -22,11 +22,7 @@ const hardcodedTherapists: Therapist[] = [
 const Therapists = () => {
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10">
-      <Helmet>
-        <title>Our Therapists | Find Your Saarthi for Mental Health</title>
-        <meta name="description" content="Browse qualified therapists at Saarthi and find the right support for anxiety, stress, relationships, and emotional well-being." />
-        <link rel="canonical" href="https://saarthilife.com/therapists" />
-      </Helmet>
+      {/* Helmet removed */}
       
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mb-20 text-center space-y-4">
@@ -96,7 +92,7 @@ const Therapists = () => {
                       </div>
                     </div>
                     <Button asChild className="w-full h-14 rounded-2xl group/btn bg-primary hover:bg-primary/95 text-base font-bold shadow-xl shadow-primary/10">
-                      <Link to={therapist.name === "Dravina Gupta" ? "/therapists/dravina" : "/contact"}>
+                      <Link href={therapist.name === "Dravina Gupta" ? "/therapists/dravina" : "/contact"}>
                         Know Your Saarthi
                         <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                       </Link>
@@ -120,7 +116,7 @@ const Therapists = () => {
                 <h3 className="text-2xl font-serif text-primary mb-2">Join our Team</h3>
                 <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a licensed psychologist? <br/>Help us redefine well-being.</p>
                 <Button asChild variant="outline" className="rounded-full px-8 hover:bg-primary hover:text-white transition-all">
-                  <Link to="/contact">Apply Now</Link>
+                  <Link href="/contact">Apply Now</Link>
                 </Button>
              </Card>
           </motion.div>

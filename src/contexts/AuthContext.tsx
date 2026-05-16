@@ -32,8 +32,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!role) {
             // Unrecognized role -> hard logout
             await auth.signOut();
+            await fetch('/api/auth/session', { method: 'DELETE' });
             setCurrentUser(null);
           } else {
+            // Sync session cookie
+            const idToken = await firebaseUser.getIdToken();
+            await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ idToken }),
+            });
+
             setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -41,9 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } else {
+          await fetch('/api/auth/session', { method: 'DELETE' });
           setCurrentUser(null);
         }
       } catch (err) {
+        await fetch('/api/auth/session', { method: 'DELETE' });
         setCurrentUser(null);
       } finally {
         setLoading(false);

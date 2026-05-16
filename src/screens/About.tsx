@@ -1,10 +1,9 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import { Button } from "../components/ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Heart, Shield, Sparkles, MessageCircle, Compass, Users, Lightbulb, Leaf } from "lucide-react"
-
 
 const About = () => {
   const differentiators = [
@@ -32,11 +31,7 @@ const About = () => {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10 overflow-x-hidden">
-      <Helmet>
-        <title>About Saarthi | Our Mission, Vision & Founders</title>
-        <meta name="description" content="Learn about Saarthi’s mission to make mental health support accessible through professional therapy and psychological guidance." />
-        <link rel="canonical" href="https://saarthilife.com/about" />
-      </Helmet>
+      {/* Helmet removed */}
       {/* Background Decorative Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
         <div className="absolute top-[10%] -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl opacity-50" />
@@ -230,7 +225,5 @@ const About = () => {
     </div>
   )
 }
-
-
 
 export default About

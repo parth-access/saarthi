@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Helmet } from "react-helmet-async"
+// import { Helmet } from "react-helmet-async"
 import { motion } from "motion/react"
 import ProfileHero from "../components/therapist/ProfileHero"
 import AboutSection from "../components/therapist/AboutSection"
@@ -70,14 +70,7 @@ const DravinaProfile = ({ onBookClick }: DravinaProfileProps) => {
 
   return (
     <main className="bg-background">
-      <Helmet>
-        <title>Dravina Gupta | Psychologist in Delhi | Saarthi</title>
-        <meta name="description" content="Consult Dravina Gupta, a psychologist in Delhi specializing in anxiety, stress, depression, and workplace issues. Book online therapy sessions with Saarthi." />
-        <link rel="canonical" href="https://saarthilife.com/therapists/dravina" />
-        <script type="application/ld+json">
-          {JSON.stringify(jsonLd)}
-        </script>
-      </Helmet>
+      {/* Helmet removed */}
       <ProfileHero 
         name={dravinaData.name}
         title={dravinaData.title}
