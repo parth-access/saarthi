@@ -94,7 +94,7 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
                 asChild
                 className="w-full h-14 text-base font-bold tracking-wider uppercase rounded-full bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/10" 
               >
-                <Link href="/therapists" onClick={onClose}>
+                <Link href="/book" onClick={onClose}>
                   Book a Session
                 </Link>
               </Button>

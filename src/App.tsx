@@ -10,18 +10,18 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 
 // Lazy load pages for better bundle size
-const Home = React.lazy(() => import("./pages/Home"))
-const Therapists = React.lazy(() => import("./pages/Therapists"))
-const Vision = React.lazy(() => import("./pages/Vision"))
-const About = React.lazy(() => import("./pages/About"))
-const Contact = React.lazy(() => import("./pages/Contact"))
-const Admin = React.lazy(() => import("./pages/Admin"))
-const DravinaProfile = React.lazy(() => import("./pages/DravinaProfile"))
-const NotFound = React.lazy(() => import("./pages/NotFound"))
+const Home = React.lazy(() => import("./screens/Home"))
+const Therapists = React.lazy(() => import("./screens/Therapists"))
+const Vision = React.lazy(() => import("./screens/Vision"))
+const About = React.lazy(() => import("./screens/About"))
+const Contact = React.lazy(() => import("./screens/Contact"))
+const Admin = React.lazy(() => import("./screens/Admin"))
+const DravinaProfile = React.lazy(() => import("./screens/DravinaProfile"))
+const NotFound = React.lazy(() => import("./screens/NotFound"))
 const BookingSystem = React.lazy(() => import("./components/booking/BookingSystem"))
-const Login = React.lazy(() => import("./pages/Login"))
-const ManageBooking = React.lazy(() => import("./pages/ManageBooking"))
-const Payment = React.lazy(() => import("./pages/Payment").then(m => ({ default: m.Payment })))
+const Login = React.lazy(() => import("./screens/Login"))
+const ManageBooking = React.lazy(() => import("./screens/ManageBooking"))
+const Payment = React.lazy(() => import("./screens/Payment").then(m => ({ default: m.Payment })))
 
 const PageLoader = () => (
   <div className="flex h-screen w-screen items-center justify-center bg-background">

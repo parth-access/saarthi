@@ -55,7 +55,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
                 </Link>
               </Button>
               <Button asChild size="lg">
-                <Link href="/therapists">
+                <Link href="/book">
                   Book Session
                 </Link>
               </Button>

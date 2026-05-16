@@ -1,12 +1,14 @@
 "use client";
 
-import AdminPage from "@/screens/Admin";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import React, { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 
-export default function TherapistRoute() {
+const Therapists = dynamic(() => import('@/screens/Therapists'), { ssr: false });
+
+export default function TherapistsPage() {
   return (
-    <ProtectedRoute>
-      <AdminPage />
-    </ProtectedRoute>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Therapists />
+    </Suspense>
   );
 }
