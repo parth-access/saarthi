@@ -37,15 +37,34 @@ export async function GET(request: Request) {
     const bookedTimes = bookingsSnapshot.docs.map((doc) => doc.data().time);
 
     const now = Date.now();
-    const lockedTimes = lockedSlotsSnapshot.docs
-      .map((doc) => {
-        const data = doc.data();
-        const expiresAt = data.expiresAt;
-        const isExpired = (expiresAt && typeof expiresAt.toMillis === 'function' && now >= expiresAt.toMillis()) || (expiresAt && typeof expiresAt === 'number' && now >= expiresAt);
-        return { time: data.time, isExpired };
-      })
-      .filter((slot) => !slot.isExpired)
-      .map((slot) => slot.time);
+    const lockedTimes: string[] = [];
+    const locksToDelete: string[] = [];
+
+    lockedSlotsSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      let isExpired = false;
+      
+      if (data?.expiresAt && typeof data.expiresAt.toDate === 'function' && data.expiresAt.toDate() < new Date()) {
+        isExpired = true;
+      } else if (data?.expiresAt && typeof data.expiresAt.toMillis === 'function' && data.expiresAt.toMillis() < Date.now()) {
+        isExpired = true;
+      } else if (data?.expiresAt && typeof data.expiresAt === 'number' && data.expiresAt < Date.now()) {
+        isExpired = true;
+      }
+      
+      if (isExpired) {
+        locksToDelete.push(doc.id);
+      } else {
+        lockedTimes.push(data.time);
+      }
+    });
+
+    // Cleanup stale locks in the background
+    if (locksToDelete.length > 0) {
+      Promise.all(locksToDelete.map(id => adminDb.collection('locked_slots').doc(id).delete())).catch(err => {
+         console.error("Failed background cleanup of locked_slots", err);
+      });
+    }
 
     return NextResponse.json({ bookedTimes, lockedTimes });
   } catch (error: any) {

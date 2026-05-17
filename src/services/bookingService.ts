@@ -42,20 +42,29 @@ export const bookingService = {
          const slotDoc = await transaction.get(slotRef);
          if (slotDoc.exists()) {
            const data = slotDoc.data();
-           const now = Date.now();
-           // Check if it's expired
-           if (data.expiresAt && data.expiresAt.toMillis) {
-             const expiresTime = data.expiresAt.toMillis();
-             if (now < expiresTime) {
-               throw new Error("This slot is currently locked by another user.");
-             }
-           } else if (data.expiresAt) {
-             const expiresTime = data.expiresAt;
-             if (now < expiresTime) {
-               throw new Error("This slot is currently locked by another user.");
-             }
-           } else {
+           
+           if (
+             data?.expiresAt &&
+             typeof data.expiresAt.toDate === 'function' &&
+             data.expiresAt.toDate() < new Date()
+           ) {
+             transaction.delete(slotRef);
+           } else if (
+             data?.expiresAt &&
+             typeof data.expiresAt.toMillis === 'function' &&
+             data.expiresAt.toMillis() < Date.now()
+           ) {
+             transaction.delete(slotRef);
+           } else if (
+             data?.expiresAt &&
+             typeof data.expiresAt === 'number' &&
+             data.expiresAt < Date.now()
+           ) {
+             transaction.delete(slotRef);
+           } else if (data?.bookingId) {
              throw new Error("This slot is already booked.");
+           } else {
+             throw new Error("This slot is currently locked by another user.");
            }
          }
          
@@ -94,21 +103,30 @@ export const bookingService = {
         
         if (slotDoc.exists()) {
            const data = slotDoc.data();
-           const now = Date.now();
-           const isExpired = (data.expiresAt && data.expiresAt.toMillis && now >= data.expiresAt.toMillis()) || (data.expiresAt && typeof data.expiresAt === 'number' && now >= data.expiresAt);
            
-           if (!isExpired) {
-             // If there's an active lock and the lockId doesn't match...
-             if (data.lockId && data.lockId !== cleanedData.lockId) {
-               throw new Error("This slot is currently locked by another user or has just been booked.");
-             }
-             // If no lockId was provided by the client, or it's permanently booked (no lockId/expiresAt)
-             if (!cleanedData.lockId && !data.lockId && !data.expiresAt) {
-               throw new Error("This slot has just been booked. Please select another time.");
-             }
+           if (
+             data?.expiresAt &&
+             typeof data.expiresAt.toDate === 'function' &&
+             data.expiresAt.toDate() < new Date()
+           ) {
+             transaction.delete(slotRef);
+           } else if (
+             data?.expiresAt &&
+             typeof data.expiresAt.toMillis === 'function' &&
+             data.expiresAt.toMillis() < Date.now()
+           ) {
+             transaction.delete(slotRef);
+           } else if (
+             data?.expiresAt &&
+             typeof data.expiresAt === 'number' &&
+             data.expiresAt < Date.now()
+           ) {
+             transaction.delete(slotRef);
+           } else if (data?.bookingId) {
+               throw new Error("This slot is already booked.");
+           } else if (data?.lockId && data.lockId !== cleanedData.lockId) {
+               throw new Error("This slot is currently locked by another user.");
            }
-        } else if (cleanedData.lockId) {
-           // Provide safe failover if lock mysteriously vanished but they have a lockId
         }
 
         // Lock the slot permanently by removing lockId and expiresAt
@@ -379,9 +397,28 @@ export const bookingService = {
         const newSlotDoc = await transaction.get(newSlotRef);
         if (newSlotDoc.exists()) {
            const newSlotData = newSlotDoc.data();
-           const now = Date.now();
-           const isExpired = (newSlotData.expiresAt && newSlotData.expiresAt.toMillis && now >= newSlotData.expiresAt.toMillis()) || (newSlotData.expiresAt && typeof newSlotData.expiresAt === 'number' && now >= newSlotData.expiresAt);
-           if (!isExpired) {
+           
+           if (
+             newSlotData?.expiresAt &&
+             typeof newSlotData.expiresAt.toDate === 'function' &&
+             newSlotData.expiresAt.toDate() < new Date()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if (
+             newSlotData?.expiresAt &&
+             typeof newSlotData.expiresAt.toMillis === 'function' &&
+             newSlotData.expiresAt.toMillis() < Date.now()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if (
+             newSlotData?.expiresAt &&
+             typeof newSlotData.expiresAt === 'number' &&
+             newSlotData.expiresAt < Date.now()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if ('bookingId' in newSlotData) {
+             throw new Error("This new slot is already booked.");
+           } else {
              throw new Error("This new slot is unavailable.");
            }
         }

@@ -140,11 +140,29 @@ export async function POST(request: Request) {
       if (newSlotSnap.exists) {
         const slotData = newSlotSnap.data();
         if (slotData) {
-          const now = Date.now();
-          const isExpired = (slotData.expiresAt && typeof slotData.expiresAt.toMillis === 'function' && now >= slotData.expiresAt.toMillis()) || (slotData.expiresAt && typeof slotData.expiresAt === 'number' && now >= slotData.expiresAt);
-          if (!isExpired) {
-            throw new Error("This new slot is no longer available.");
-          }
+           if (
+             slotData?.expiresAt &&
+             typeof slotData.expiresAt.toDate === 'function' &&
+             slotData.expiresAt.toDate() < new Date()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if (
+             slotData?.expiresAt &&
+             typeof slotData.expiresAt.toMillis === 'function' &&
+             slotData.expiresAt.toMillis() < Date.now()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if (
+             slotData?.expiresAt &&
+             typeof slotData.expiresAt === 'number' &&
+             slotData.expiresAt < Date.now()
+           ) {
+             transaction.delete(newSlotRef);
+           } else if ('bookingId' in slotData) {
+             throw new Error("This new slot is already booked.");
+           } else {
+             throw new Error("This new slot is no longer available.");
+           }
         }
       }
 
