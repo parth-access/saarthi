@@ -151,6 +151,9 @@ export async function POST(request: Request) {
       transaction.delete(oldSlotRef);
 
       transaction.set(newSlotRef, {
+        therapistId: latestData.therapistId,
+        date: newDate,
+        time: newTime,
         bookingId: docSnap.id,
         createdAt: FieldValue.serverTimestamp(),
       });

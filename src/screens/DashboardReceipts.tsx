@@ -37,13 +37,14 @@ export default function DashboardReceipts() {
     const fetchReceipts = async () => {
       try {
         const paymentsRef = collection(db, 'payments');
-        const q = query(
-          paymentsRef, 
-          where('userId', '==', currentUser.uid),
-        );
-        
-        const snap = await getDocs(q);
-        const allPayments = snap.docs.map(d => ({ id: d.id, ...d.data() } as PaymentReceipt));
+        const byUserQuery = query(paymentsRef, where('userId', '==', currentUser.uid));
+        const userSnap = await getDocs(byUserQuery);
+        let allPayments = userSnap.docs.map(d => ({ id: d.id, ...d.data() } as PaymentReceipt));
+        if (!allPayments.length && currentUser.email) {
+          const byEmailQuery = query(paymentsRef, where('patientEmail', '==', currentUser.email));
+          const emailSnap = await getDocs(byEmailQuery);
+          allPayments = emailSnap.docs.map(d => ({ id: d.id, ...d.data() } as PaymentReceipt));
+        }
         
         // Sorting manually if we didn't index createdAt
         allPayments.sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));

@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       const paymentRef = adminDb.collection("payments").doc(razorpay_payment_id);
       transaction.set(paymentRef, {
         bookingId,
+        userId: data.userId || null,
         therapistId: data.therapistId,
         patientEmail: data.email,
         amount: data.paymentAmount,
@@ -60,6 +61,8 @@ export async function POST(request: Request) {
         razorpayPaymentId: razorpay_payment_id,
         razorpaySignature: razorpay_signature,
         status: "success",
+        paymentStatus: "paid",
+        invoiceNumber: `INV-${bookingId.slice(0, 8).toUpperCase()}`,
         createdAt: FieldValue.serverTimestamp(),
         verifiedAt: FieldValue.serverTimestamp()
       });

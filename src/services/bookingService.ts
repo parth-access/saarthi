@@ -8,7 +8,8 @@ import {
   orderBy,
   where,
   runTransaction,
-  deleteDoc
+  deleteDoc,
+  Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase/client';
 import { Booking, BookingStatus, Therapist } from '../types';
@@ -58,7 +59,7 @@ export const bookingService = {
            }
          }
          
-         const expiresAt = new Date(Date.now() + 5 * 60000); // 5 minutes
+         const expiresAt = Timestamp.fromDate(new Date(Date.now() + 5 * 60000)); // 5 minutes
          const lockId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
          
          transaction.set(slotRef, {
@@ -112,6 +113,9 @@ export const bookingService = {
 
         // Lock the slot permanently by removing lockId and expiresAt
         transaction.set(slotRef, {
+           therapistId: cleanedData.therapistId,
+           date: cleanedData.date,
+           time: cleanedData.time,
            bookingId: newBookingRef.id,
            createdAt: serverTimestamp()
         });
@@ -444,6 +448,9 @@ export const bookingService = {
 
         transaction.delete(oldSlotRef);
         transaction.set(newSlotRef, {
+           therapistId: data.therapistId,
+           date: newDate,
+           time: newTime,
            bookingId: id,
            createdAt: serverTimestamp()
         });

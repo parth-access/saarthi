@@ -70,9 +70,15 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isAdmin() || isSignedIn();
       // Public can lock a slot only if it doesn't exist
-      allow create: if true && request.resource.data.keys().hasAll(['bookingId', 'createdAt']);
+      allow create: if request.resource.data.keys().hasAll(['therapistId', 'date', 'time', 'createdAt'])
+                    && request.resource.data.therapistId is string && request.resource.data.therapistId.size() > 0 && request.resource.data.therapistId.size() < 200
+                    && request.resource.data.date is string && request.resource.data.date.size() > 0 && request.resource.data.date.size() < 20
+                    && request.resource.data.time is string && request.resource.data.time.size() > 0 && request.resource.data.time.size() < 20
+                    && (request.resource.data.lockId is string || request.resource.data.bookingId is string)
+                    && (!('expiresAt' in request.resource.data) || request.resource.data.expiresAt is timestamp);
       // Therapists or admins can free slots (e.g. on cancellation)
-      allow delete: if isAdmin() || isSignedIn(); // Could be more strict, but adequate
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.therapistId != null && isTherapistDocOwner(resource.data.therapistId));
+      allow update: if false;
     }
     // Contacts / Inquiries
     match /contacts/{contactId} {
@@ -90,4 +96,3 @@ service cloud.firestore {
     }
   }
 }
-
