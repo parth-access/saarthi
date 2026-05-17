@@ -218,66 +218,6 @@ export const bookingService = {
     }
   },
 
-  getBookingsByDate: async (therapistId: string, date: string): Promise<Booking[]> => {
-    try {
-      const q = query(
-        collection(db, 'bookings'),
-        where('therapistId', '==', therapistId),
-        where('date', '==', date)
-      );
-
-      const snapshot = await getDocs(q);
-
-      return snapshot.docs.map((d) => mapBooking(d.id, d.data()));
-    } catch (err: any) {
-      handleFirestoreError(err, OperationType.LIST, 'bookings');
-      return [];
-    }
-  },
-
-  getLockedSlotsByDate: async (therapistId: string, date: string) => {
-    // Fetch slots that are locked for this day
-    try {
-      if (!therapistId || !date) return [];
-      const q = query(
-        collection(db, 'locked_slots'),
-        where('therapistId', '==', therapistId),
-        where('date', '==', date)
-      );
-      const snapshot = await getDocs(q);
-      const now = Date.now();
-      return snapshot.docs.map(doc => {
-        const data = doc.data();
-        const expiresAt = data.expiresAt;
-        const isExpired = (expiresAt && typeof expiresAt.toMillis === 'function' && now >= expiresAt.toMillis()) || (expiresAt && typeof expiresAt === 'number' && now >= expiresAt);
-        return {
-          id: doc.id,
-          time: data.time,
-          isExpired: !!isExpired
-        };
-      }).filter(slot => !slot.isExpired);
-    } catch (err: any) {
-      logger.error('BOOKING', 'Failed to fetch locked slots', err);
-      handleFirestoreError(err, OperationType.LIST, 'locked_slots');
-      return [];
-    }
-  },
-
-  getBookingByToken: async (token: string): Promise<Booking | null> => {
-    try {
-      const q = query(
-        collection(db, 'bookings'),
-        where('bookingToken', '==', token)
-      );
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) return null;
-      return mapBooking(snapshot.docs[0].id, snapshot.docs[0].data());
-    } catch (err: any) {
-      handleFirestoreError(err, OperationType.LIST, 'bookings');
-      return null;
-    }
-  },
-
   updateStatus: async (id: string, status: BookingStatus) => {
     // If status is awaiting_payment, call the API directly and return
     if (status === 'awaiting_payment') {

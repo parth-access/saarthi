@@ -40,8 +40,10 @@ export function useAvailability(therapistId: string | null, date: string | null)
     
     Promise.allSettled([
       therapistService.getAvailabilityRules(therapistId),
-      bookingService.getBookingsByDate(therapistId, date),
-      bookingService.getLockedSlotsByDate(therapistId, date)
+      fetch(`/api/availability?therapistId=${therapistId}&date=${date}`).then(res => {
+        if (!res.ok) throw new Error('Failed to fetch availability');
+        return res.json();
+      })
     ]).then((results) => {
       if (!mounted) return;
       
@@ -52,15 +54,10 @@ export function useAvailability(therapistId: string | null, date: string | null)
           ? results[0].value
           : [];
 
-      const bookingsData =
+      const availabilityData =
         results[1].status === "fulfilled"
           ? results[1].value
-          : [];
-
-      const lockedSlots =
-        results[2].status === "fulfilled"
-          ? results[2].value
-          : [];
+          : { bookedTimes: [], lockedTimes: [] };
       
       const [year, month, day] = date.split("-").map(Number);
       const dateObj = new Date(year, month - 1, day);
@@ -74,11 +71,7 @@ export function useAvailability(therapistId: string | null, date: string | null)
         generated.forEach(t => availableTimes.add(t));
       });
 
-      const bookedTimes = bookingsData
-        .filter((b: { status: string; time: string }) => b.status === "pending" || b.status === "pending_approval" || b.status === "awaiting_payment" || b.status === "confirmed")
-        .map((b: { time: string }) => b.time);
-
-      const lockedTimes = lockedSlots.map((l: { time: string }) => l.time);
+      const { bookedTimes, lockedTimes } = availabilityData;
       
       const slotObjects: Slot[] = Array.from(availableTimes).sort().map((time: string) => {
         const isBooked = bookedTimes.includes(time);
