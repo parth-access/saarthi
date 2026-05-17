@@ -47,6 +47,10 @@ export interface Booking {
   emailAttempts?: number;
   lastEmailAttemptAt?: any;
   lastEmailError?: string;
+  declineReason?: string;
+  declineCustomNote?: string;
+  declinedAt?: any;
+  declinedBy?: string;
   invalidToken?: boolean;
 }
 

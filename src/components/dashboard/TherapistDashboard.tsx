@@ -35,6 +35,7 @@ interface TherapistDashboardProps {
   onRefresh: () => void;
   onLogout: () => void;
   onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>;
+  onDeclineRequest: (booking: Booking) => void;
   processingId: string | null;
   scheduleBuilderNode?: React.ReactNode;
   adminTherapistsNode?: React.ReactNode;
@@ -57,6 +58,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   onRefresh,
   onLogout,
   onUpdateStatus,
+  onDeclineRequest,
   processingId,
   scheduleBuilderNode,
   adminTherapistsNode,
@@ -310,7 +312,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                     <EmptyState message="No pending session requests." />
                   ) : (
                     pendingBookings.map(b => (
-                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                     ))
                   )}
                 </div>
@@ -326,7 +328,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                     <EmptyState message="No upcoming confirmed sessions." />
                   ) : (
                     upcomingBookings.map(b => (
-                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                     ))
                   )}
                 </div>
@@ -436,7 +438,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               <div className="space-y-4">
                 <div className="text-xs uppercase font-bold tracking-widest text-primary/30 mb-6">Showing {filteredBookings.length} sessions</div>
                 {filteredBookings.map(b => (
-                  <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                  <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                 ))}
               </div>
             )}
@@ -478,7 +480,7 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 )
 
-const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
+const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: any) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
 
   const StatusIcon = (booking.status === 'pending' || booking.status === 'pending_approval') ? Clock : 
@@ -525,6 +527,14 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
             <span className="absolute top-4 right-4 text-primary/10 font-serif text-4xl leading-none">"</span>
             {booking.message || "No specific reasons provided for the session."}
           </div>
+
+          {booking.status === 'rejected' && booking.declineReason && (
+            <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-sm mt-4">
+              <div className="text-red-800 font-bold mb-1">Declined: {booking.declineReason}</div>
+              {booking.declineCustomNote && <div className="text-red-600 block">{booking.declineCustomNote}</div>}
+              {booking.declinedAt && <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">{format(booking.declinedAt?.toDate ? booking.declinedAt.toDate() : new Date(booking.declinedAt), "MMM d, yyyy h:mm a")}</div>}
+            </div>
+          )}
         </div>
 
         {/* Right Side: Date/Time & Action */}
@@ -547,7 +557,7 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
                 </button>
                 <button
                   disabled={isProcessing}
-                  onClick={() => onUpdateStatus(booking.id, 'rejected')}
+                  onClick={() => onDeclineRequest(booking)}
                   className="w-full h-10 rounded-xl bg-white border border-primary/10 text-primary/50 text-xs font-bold uppercase tracking-wider hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50"
                 >
                   Decline

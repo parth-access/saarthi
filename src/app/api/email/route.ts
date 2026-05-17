@@ -52,9 +52,11 @@ async function sendEmailWithRetry(options: any, bookingId: string, emailType: st
 }
 
 const EmailPayloadSchema = z.object({
-  type: z.enum(['booking-received', 'booking-confirmed', 'booking-payment-link', 'booking-rescheduled', 'therapist-notification']),
+  type: z.enum(['booking-received', 'booking-confirmed', 'booking-payment-link', 'booking-rescheduled', 'therapist-notification', 'booking-declined']),
   bookingId: z.string().min(1),
   therapistId: z.string().min(1),
+  declineReason: z.string().optional(),
+  declineCustomNote: z.string().optional(),
   bookingDetails: z.object({
     name: z.string(),
     email: z.string().email(),
@@ -76,9 +78,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request payload', details: parsed.error.issues }, { status: 400 });
     }
 
-    const { type, bookingId, therapistId, bookingDetails } = parsed.data;
+    const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote } = parsed.data;
 
-    if (type === 'booking-confirmed') {
+    if (type === 'booking-confirmed' || type === 'booking-declined') {
       const authHeader = request.headers.get('authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
@@ -251,6 +253,42 @@ export async function POST(request: Request) {
       const results = await Promise.all(promises);
       await updateBookingEmailStatus(bookingId, 'sent');
       return NextResponse.json({ success: true, data: results }, { status: 200 });
+    }
+
+    if (type === 'booking-declined') {
+      const safeReason = declineReason ? escapeHtml(declineReason) : '';
+      const safeNote = declineCustomNote ? escapeHtml(declineCustomNote) : '';
+      
+      const plainText = `Booking Request Unsuccessful\nHi ${safePatientName},\nWe're sorry, but we cannot proceed with your booking request for ${safeDate} at ${safeTime} at this time.\nReason: ${safeReason}\n${safeNote ? `Note: ${safeNote}\n` : ''}Please feel free to try another time slot or contact us for assistance.\n- The Saarthi Team`.trim();
+
+      const data = await sendEmailWithRetry({
+        from: 'Saarthi Contact <contact@saarthilife.com>',
+        to: patientEmail,
+        subject: 'Update regarding your booking request',
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h2 style="color: #6B4C1A; font-weight: normal;">Booking Request Update</h2>
+          <p>Hi ${safePatientName},</p>
+          <p>Thank you for reaching out to us. Unfortunately, we are unable to proceed with your requested session at this time.</p>
+          
+          <div style="background-color: #FFFBE7; border-left: 4px solid #E6A520; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Requested Session:</strong> ${safeDate} at ${safeTime}</p>
+            ${safeReason ? `<p style="margin: 10px 0 0 0;"><strong>Reason:</strong> ${safeReason}</p>` : ''}
+            ${safeNote ? `<p style="margin: 10px 0 0 0; font-style: italic;">"${safeNote}"</p>` : ''}
+          </div>
+
+          <p>We understand finding the right time is important. We warmly encourage you to return to our platform to explore other available time slots that might work for you.</p>
+          <p>If you have any questions or need immediate assistance, please reply directly to this email.</p>
+          <br/>
+          <p style="margin: 0;">Warm regards,</p>
+          <p style="margin: 5px 0 0 0; font-weight: bold;">The Saarthi Team</p>
+        </div>
+        `,
+        text: plainText,
+      }, bookingId, 'booking-declined');
+      
+      await updateBookingEmailStatus(bookingId, 'sent');
+      return NextResponse.json({ success: true, data }, { status: 200 });
     }
 
     return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });

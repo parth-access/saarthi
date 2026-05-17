@@ -40,31 +40,38 @@ export function useAvailability(therapistId: string | null, date: string | null)
     
     Promise.all([
       therapistService.getAvailabilityRules(therapistId),
-      bookingService.getBookingsByDate(therapistId, date)
-    ]).then(([rules, bookingsData]) => {
+      bookingService.getBookingsByDate(therapistId, date),
+      bookingService.getLockedSlotsByDate(therapistId, date)
+    ]).then(([rules, bookingsData, lockedSlots]) => {
       if (!mounted) return;
       
       const dateStrLocal = `${date}T00:00:00`;
       const dateObj = new Date(dateStrLocal);
       const dayOfWeek = dateObj.getDay();
 
-      const matchingRules = rules.filter(r => r.dayOfWeek === dayOfWeek);
+      const matchingRules = rules.filter((r: { dayOfWeek: number }) => r.dayOfWeek === dayOfWeek);
       // Create a set of all possible times across all matching rules for this day
-      let availableTimes = new Set<string>();
-      matchingRules.forEach(rule => {
+      const availableTimes = new Set<string>();
+      matchingRules.forEach((rule: { startTime: string; endTime: string; slotDuration: number }) => {
         const generated = generateTimeSlots(rule.startTime, rule.endTime, rule.slotDuration);
         generated.forEach(t => availableTimes.add(t));
       });
 
       const bookedTimes = bookingsData
-        .filter(b => b.status === "pending" || b.status === "confirmed")
-        .map(b => b.time);
+        .filter((b: { status: string; time: string }) => b.status === "pending" || b.status === "pending_approval" || b.status === "awaiting_payment" || b.status === "confirmed")
+        .map((b: { time: string }) => b.time);
+
+      const lockedTimes = lockedSlots.map((l: { time: string }) => l.time);
       
-      const slotObjects: Slot[] = Array.from(availableTimes).sort().map((time: string) => ({
-        time,
-        isAvailable: !bookedTimes.includes(time),
-        reason: bookedTimes.includes(time) ? 'Booked' : null
-      }));
+      const slotObjects: Slot[] = Array.from(availableTimes).sort().map((time: string) => {
+        const isBooked = bookedTimes.includes(time);
+        const isLocked = lockedTimes.includes(time);
+        return {
+          time,
+          isAvailable: !isBooked && !isLocked,
+          reason: isBooked ? 'Booked' : isLocked ? 'Locked' : null
+        };
+      });
       
       setSlots(slotObjects);
       setLoading(false);

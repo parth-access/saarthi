@@ -8,8 +8,21 @@ export function useBooking() {
   const { handleError, handleSuccess } = useGlobalError();
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
-    // With backend verification at booking, we don't strictly need a separate lock right now
-    return { success: true };
+    setError(null);
+    try {
+      const response = await bookingService.lockSlot(params.therapistId, params.date, params.time);
+      if (response.success) {
+        return response;
+      } else {
+        const msg = response.error || 'Slot unavailable';
+        setError(msg);
+        return { success: false, error: msg };
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Network error';
+      setError(msg);
+      return { success: false, error: msg };
+    }
   }
 
   async function createBooking(bookingData: any) {

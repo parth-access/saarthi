@@ -138,7 +138,14 @@ export async function POST(request: Request) {
 
       const newSlotSnap = await transaction.get(newSlotRef);
       if (newSlotSnap.exists) {
-        throw new Error("This new slot is no longer available.");
+        const slotData = newSlotSnap.data();
+        if (slotData) {
+          const now = Date.now();
+          const isExpired = (slotData.expiresAt && typeof slotData.expiresAt.toMillis === 'function' && now >= slotData.expiresAt.toMillis()) || (slotData.expiresAt && typeof slotData.expiresAt === 'number' && now >= slotData.expiresAt);
+          if (!isExpired) {
+            throw new Error("This new slot is no longer available.");
+          }
+        }
       }
 
       transaction.delete(oldSlotRef);

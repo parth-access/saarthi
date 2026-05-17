@@ -67,6 +67,12 @@ const AdminPage = () => {
   const [allTherapists, setAllTherapists] = React.useState<Therapist[]>([])
   const [adminSelectedTherapistId, setAdminSelectedTherapistId] = React.useState<string>("")
 
+  // Decline states
+  const [declineBookingDoc, setDeclineBookingDoc] = React.useState<Booking | null>(null)
+  const [declineReason, setDeclineReason] = React.useState("Therapist unavailable")
+  const [declineNote, setDeclineNote] = React.useState("")
+  const [isDeclining, setIsDeclining] = React.useState(false)
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -129,6 +135,23 @@ const AdminPage = () => {
     }
   }
 
+  const handleDeclineConfirm = async () => {
+    if (!declineBookingDoc || !currentUser?.uid) return;
+    try {
+      setIsDeclining(true);
+      await bookingService.declineBooking(declineBookingDoc.id, currentUser.uid, declineReason, declineNote);
+      setBookings(prev => prev.map(b => b.id === declineBookingDoc.id ? { ...b, status: 'rejected' as BookingStatus } : b))
+      setDeclineBookingDoc(null);
+      setDeclineReason("Therapist unavailable");
+      setDeclineNote("");
+    } catch (err: any) {
+      console.error("Decline status error:", err)
+      setError(err?.message || "Failed to decline booking.")
+    } finally {
+      setIsDeclining(false);
+    }
+  }
+
   const handleSaveAvailability = async () => {
     const targetTherapistId = currentUser?.role === 'admin' ? adminSelectedTherapistId : myTherapistProfile?.id;
     if (!availStart || !availEnd || !targetTherapistId) return;
@@ -168,7 +191,7 @@ const AdminPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate.push('/'); // Redirect to home
   }
 
   const previewSlots = React.useMemo(() => {
@@ -477,12 +500,98 @@ const AdminPage = () => {
         onRefresh={fetchData}
         onLogout={handleLogout}
         onUpdateStatus={handleUpdateStatus}
+        onDeclineRequest={setDeclineBookingDoc}
         processingId={processingId}
         scheduleBuilderNode={scheduleBuilderNode}
         adminTherapistsNode={adminTherapistsNode}
         contactsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><ContactsPanel /></div> : null}
         isAdmin={currentUser?.role === 'admin'}
       />
+
+      <AnimatePresence>
+        {declineBookingDoc && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
+              onClick={() => !isDeclining && setDeclineBookingDoc(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-primary/10 overflow-hidden"
+            >
+              <div className="p-6 md:p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                    <XCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Decline Booking</h3>
+                    <p className="text-sm text-primary/60 mt-1">
+                      For {declineBookingDoc.name}'s session on {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""} at {declineBookingDoc.time}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2">Reason</label>
+                    <div className="relative group">
+                      <select
+                        value={declineReason}
+                        onChange={(e) => setDeclineReason(e.target.value)}
+                        disabled={isDeclining}
+                        className="w-full h-12 rounded-xl bg-[#FCFAF7] border border-primary/5 px-4 pr-10 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all outline-none"
+                      >
+                        <option value="Therapist unavailable">Therapist unavailable</option>
+                        <option value="Requested slot unavailable">Requested slot unavailable</option>
+                        <option value="Unable to match requirements">Unable to match requirements</option>
+                        <option value="Service currently unavailable">Service currently unavailable</option>
+                        <option value="Duplicate booking detected">Duplicate booking detected</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2">Custom Note (Optional)</label>
+                    <textarea
+                      value={declineNote}
+                      onChange={(e) => setDeclineNote(e.target.value)}
+                      disabled={isDeclining}
+                      placeholder="Add a polite note to be included in the email..."
+                      className="w-full h-24 rounded-xl bg-[#FCFAF7] border border-primary/5 p-4 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none resize-none placeholder:font-normal placeholder:text-primary/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-8">
+                  <button
+                    disabled={isDeclining}
+                    onClick={() => setDeclineBookingDoc(null)}
+                    className="px-6 h-12 rounded-xl text-sm font-bold text-primary/60 hover:text-primary hover:bg-primary/5 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={isDeclining}
+                    onClick={handleDeclineConfirm}
+                    className="px-6 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:transform-none"
+                  >
+                    {isDeclining ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    Confirm Decline
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

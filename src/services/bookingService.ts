@@ -32,8 +32,54 @@ const cleanPayload = (obj: any): any => {
 };
 
 export const bookingService = {
+  lockSlot: async (therapistId: string, date: string, time: string) => {
+    try {
+      const slotId = `${therapistId}_${date}_${time}`.replace(/\//g, '-');
+      const slotRef = doc(db, 'locked_slots', slotId);
+      
+      const lockData = await runTransaction(db, async (transaction) => {
+         const slotDoc = await transaction.get(slotRef);
+         if (slotDoc.exists()) {
+           const data = slotDoc.data();
+           const now = Date.now();
+           // Check if it's expired
+           if (data.expiresAt && data.expiresAt.toMillis) {
+             const expiresTime = data.expiresAt.toMillis();
+             if (now < expiresTime) {
+               throw new Error("This slot is currently locked by another user.");
+             }
+           } else if (data.expiresAt) {
+             const expiresTime = data.expiresAt;
+             if (now < expiresTime) {
+               throw new Error("This slot is currently locked by another user.");
+             }
+           } else {
+             throw new Error("This slot is already booked.");
+           }
+         }
+         
+         const expiresAt = new Date(Date.now() + 5 * 60000); // 5 minutes
+         const lockId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+         
+         transaction.set(slotRef, {
+           lockId,
+           therapistId,
+           date,
+           time,
+           createdAt: serverTimestamp(),
+           expiresAt
+         });
+         return { lockId };
+      });
+      return { success: true, lockId: lockData.lockId };
+    } catch (err: any) {
+      logger.error('BOOKING', 'Lock slot failed', err);
+      return { success: false, error: err.message };
+    }
+  },
+
   createBooking: async (
-    bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'>
+    bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { lockId?: string }
   ) => {
     try {
       const cleanedData = cleanPayload(bookingData);
@@ -44,15 +90,34 @@ export const bookingService = {
 
       await runTransaction(db, async (transaction) => {
         const slotDoc = await transaction.get(slotRef);
+        
         if (slotDoc.exists()) {
-           throw new Error("This slot has just been booked. Please select another time.");
+           const data = slotDoc.data();
+           const now = Date.now();
+           const isExpired = (data.expiresAt && data.expiresAt.toMillis && now >= data.expiresAt.toMillis()) || (data.expiresAt && typeof data.expiresAt === 'number' && now >= data.expiresAt);
+           
+           if (!isExpired) {
+             // If there's an active lock and the lockId doesn't match...
+             if (data.lockId && data.lockId !== cleanedData.lockId) {
+               throw new Error("This slot is currently locked by another user or has just been booked.");
+             }
+             // If no lockId was provided by the client, or it's permanently booked (no lockId/expiresAt)
+             if (!cleanedData.lockId && !data.lockId && !data.expiresAt) {
+               throw new Error("This slot has just been booked. Please select another time.");
+             }
+           }
+        } else if (cleanedData.lockId) {
+           // Provide safe failover if lock mysteriously vanished but they have a lockId
         }
 
-        // Lock the slot
+        // Lock the slot permanently by removing lockId and expiresAt
         transaction.set(slotRef, {
            bookingId: newBookingRef.id,
            createdAt: serverTimestamp()
         });
+
+        // Delete lockId from cleaned data before saving
+        delete cleanedData.lockId;
 
         transaction.set(newBookingRef, {
           ...cleanedData,
@@ -166,6 +231,34 @@ export const bookingService = {
     }
   },
 
+  getLockedSlotsByDate: async (therapistId: string, date: string) => {
+    // Fetch slots that are locked for this day
+    try {
+      if (!therapistId || !date) return [];
+      const q = query(
+        collection(db, 'locked_slots'),
+        where('therapistId', '==', therapistId),
+        where('date', '==', date)
+      );
+      const snapshot = await getDocs(q);
+      const now = Date.now();
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const expiresAt = data.expiresAt;
+        const isExpired = (expiresAt && typeof expiresAt.toMillis === 'function' && now >= expiresAt.toMillis()) || (expiresAt && typeof expiresAt === 'number' && now >= expiresAt);
+        return {
+          id: doc.id,
+          time: data.time,
+          isExpired: !!isExpired
+        };
+      }).filter(slot => !slot.isExpired);
+    } catch (err: any) {
+      logger.error('BOOKING', 'Failed to fetch locked slots', err);
+      handleFirestoreError(err, OperationType.LIST, 'locked_slots');
+      return [];
+    }
+  },
+
   getBookingByToken: async (token: string): Promise<Booking | null> => {
     try {
       const q = query(
@@ -260,6 +353,67 @@ export const bookingService = {
     }
   },
 
+  declineBooking: async (id: string, adminUid: string, reason: string, customNote: string) => {
+    try {
+      const ref = doc(db, 'bookings', id);
+      const status: BookingStatus = 'rejected';
+
+      await runTransaction(db, async (transaction) => {
+        const bookingSnap = await transaction.get(ref);
+        if (!bookingSnap.exists()) {
+           throw new Error("Booking does not exist");
+        }
+        const data = bookingSnap.data();
+
+        transaction.update(ref, {
+          status,
+          declineReason: reason,
+          declineCustomNote: customNote,
+          declinedAt: serverTimestamp(),
+          declinedBy: adminUid,
+          updatedAt: serverTimestamp()
+        });
+
+        const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+        const slotRef = doc(db, 'locked_slots', slotId);
+        transaction.delete(slotRef);
+
+        const auditRef = doc(collection(db, 'bookings', id, 'audit_logs'));
+        transaction.set(auditRef, {
+          action: 'status_updated',
+          status: status,
+          reason: reason,
+          timestamp: serverTimestamp(),
+          details: `Booking declined by admin: ${reason}`
+        });
+      });
+
+      // Send email
+      try {
+        const bookingSnap = await getDoc(ref);
+        if (bookingSnap.exists()) {
+          const booking = mapBooking(bookingSnap.id, bookingSnap.data());
+          if (booking.email && booking.name && booking.date && booking.time) {
+            const therapistSnap = await getDoc(doc(db, 'therapists', booking.therapistId));
+            if (therapistSnap.exists()) {
+              const therapist = mapTherapist(therapistSnap.id, therapistSnap.data());
+              await resendService.sendBookingDeclinedEmail(booking, therapist, reason, customNote);
+            }
+          }
+        }
+      } catch (err) {
+        logger.warn('BOOKING', "Failed to send decline email", err);
+      }
+
+      logger.success('BOOKING', 'Declined booking successfully', { bookingId: id });
+      return { success: true };
+    } catch (err: any) {
+      logger.error('BOOKING', 'Failed to decline booking', err, { bookingId: id });
+      handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
+      throw err;
+    }
+  },
+
   rescheduleBooking: async (id: string, newDate: string, newTime: string) => {
     try {
       const ref = doc(db, 'bookings', id);
@@ -280,7 +434,12 @@ export const bookingService = {
 
         const newSlotDoc = await transaction.get(newSlotRef);
         if (newSlotDoc.exists()) {
-          throw new Error("This new slot is unavailable.");
+           const newSlotData = newSlotDoc.data();
+           const now = Date.now();
+           const isExpired = (newSlotData.expiresAt && newSlotData.expiresAt.toMillis && now >= newSlotData.expiresAt.toMillis()) || (newSlotData.expiresAt && typeof newSlotData.expiresAt === 'number' && now >= newSlotData.expiresAt);
+           if (!isExpired) {
+             throw new Error("This new slot is unavailable.");
+           }
         }
 
         transaction.delete(oldSlotRef);
