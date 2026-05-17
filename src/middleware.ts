@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const isProtectedPath = pathname.startsWith('/admin') || pathname.startsWith('/therapist');
+  const isProtectedPath = pathname.startsWith('/admin') || pathname.startsWith('/therapist') || pathname.startsWith('/dashboard');
   const isAuthPath = pathname.startsWith('/login');
 
   if (isProtectedPath && !session) {
@@ -14,12 +14,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPath && session) {
-    return NextResponse.redirect(new URL('/admin', request.url)); // Optionally, redirect to the right dashboard based on role
+    // If logged in and going to /login, just go to abstract dashboard 
+    // They will eventually be correctly routed by UI redirect loop
+    return NextResponse.redirect(new URL('/dashboard', request.url)); 
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/therapist/:path*', '/login'],
+  matcher: ['/admin/:path*', '/therapist/:path*', '/dashboard/:path*', '/login'],
 };

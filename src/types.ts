@@ -1,7 +1,8 @@
 export interface User {
   uid: string;
   email: string;
-  role: 'admin' | 'therapist';
+  name?: string;
+  role: 'admin' | 'therapist' | 'client';
 }
 
 export type BookingStatus =

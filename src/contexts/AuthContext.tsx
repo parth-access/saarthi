@@ -11,6 +11,7 @@ interface AuthContextType {
   currentUser: CustomUser | null;
   loading: boolean;
   login: (email: string, pw: string) => Promise<void>;
+  register: (email: string, pw: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -36,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
-          const role = await authService.getUserRole(firebaseUser.uid);
+          let role = await authService.getUserRole(firebaseUser.uid);
           
           if (!isMounted.current) return;
           
@@ -61,7 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setCurrentUser({
                 uid: firebaseUser.uid,
                 email: firebaseUser.email || '',
-                role: role as 'admin' | 'therapist'
+                role: role as 'admin' | 'therapist' | 'client',
+                name: firebaseUser.displayName || undefined
               });
               setLoading(false);
               router.refresh();
@@ -100,6 +102,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (email: string, pw: string, name: string) => {
+    setLoading(true);
+    try {
+      await authService.register(email, pw, name);
+    } catch (error) {
+      if (isMounted.current) setLoading(false);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -117,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

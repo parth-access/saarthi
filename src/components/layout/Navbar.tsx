@@ -1,7 +1,10 @@
+"use client";
+
 import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
 import Link from "next/link"
+import { useAuth } from "../../contexts/AuthContext"
 
 interface NavbarProps {
   onBookClick?: () => void;
@@ -9,6 +12,7 @@ interface NavbarProps {
 
 const Navbar = ({ onBookClick }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false)
+  const { currentUser } = useAuth()
 
   const navLinks = [
     { name: "Therapists", href: "/therapists" },
@@ -16,6 +20,21 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
     { name: "Our Vision", href: "/vision" },
     { name: "Contact", href: "/contact" },
   ]
+
+  let portalLink = "/login";
+  let portalText = "Sign In";
+  if (currentUser) {
+    if (currentUser.role === 'admin') {
+      portalLink = "/admin";
+      portalText = "Admin Portal";
+    } else if (currentUser.role === 'therapist') {
+      portalLink = "/therapist";
+      portalText = "Therapist Portal";
+    } else {
+      portalLink = "/dashboard";
+      portalText = "My Dashboard";
+    }
+  }
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-primary/5 bg-background/80 backdrop-blur-md">
@@ -62,7 +81,10 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           <div className="flex items-center gap-4">
             
             {/* Desktop CTA */}
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-4">
+              <Link href={portalLink} className="text-sm font-medium text-primary hover:underline transition-all">
+                {portalText}
+              </Link>
               <Button asChild size="sm" variant="primary">
                 <Link href="/book">Book Session</Link>
               </Button>

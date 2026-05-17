@@ -166,5 +166,33 @@ export const resendService = {
          console.error("resendService.sendBookingRescheduledEmail Error:", error);
       }
     }
+  sendReconnectRequestEmail: async (params: { userName: string; userEmail: string; therapistName: string }) => {
+    try {
+      const payload = { 
+        type: 'reconnect-request', 
+        ...params
+      };
+      
+      const currentUser = auth?.currentUser;
+      const token = currentUser ? await currentUser.getIdToken() : '';
+
+      const response = await fetch('/api/email', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to send reconnect request email. Status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+         console.error("resendService.sendReconnectRequestEmail Error:", error);
+      }
+    }
   }
 };

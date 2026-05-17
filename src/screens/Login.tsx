@@ -6,17 +6,19 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { motion } from "motion/react";
-import { Lock } from "lucide-react";
+import { Lock, User as UserIcon } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
 
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login, currentUser } = useAuth();
+  const { login, register, currentUser } = useAuth();
 
   useEffect(() => {
     if (currentUser) {
@@ -24,23 +26,32 @@ export default function Login() {
         router.replace("/admin");
       } else if (currentUser.role === 'therapist') {
         router.replace("/therapist");
+      } else if (currentUser.role === 'client') {
+        router.replace("/dashboard");
       } else {
-        router.replace("/admin");
+        router.replace("/dashboard");
       }
     }
   }, [currentUser, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setLoading(true);
     setError("");
 
     try {
-      await login(email, password);
+      if (isRegister) {
+        if (!name) {
+          throw new Error("Name is required");
+        }
+        await register(email, password, name);
+      } else {
+        await login(email, password);
+      }
       // Wait for AuthContext and its onAuthStateChanged to resolve loading to false
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      setError(err.message || (isRegister ? "Registration failed" : "Login failed"));
       setLoading(false);
     }
   };
@@ -53,15 +64,17 @@ export default function Login() {
         className="w-full max-w-md bg-white p-8 rounded-[2rem] shadow-sm border border-primary/10"
       >
         <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 mx-auto">
-          <Lock className="w-6 h-6" />
+          {isRegister ? <UserIcon className="w-6 h-6" /> : <Lock className="w-6 h-6" />}
         </div>
 
         <h1 className="text-2xl font-serif text-center text-primary mb-2">
-          Platform Login
+          {isRegister ? "Create an Account" : "Platform Login"}
         </h1>
 
         <p className="text-center text-muted-foreground mb-8 text-sm">
-          Sign in to manage the platform or your practice.
+          {isRegister 
+            ? "Sign up to track your therapy progress." 
+            : "Sign in to manage your bookings or practice."}
         </p>
 
         {error && (
@@ -70,7 +83,23 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegister && (
+            <div>
+              <label className="block text-sm font-medium mb-1.5 text-primary">
+                Full Name
+              </label>
+
+              <Input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Doe"
+              />
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-1.5 text-primary">
               Email
@@ -81,7 +110,7 @@ export default function Login() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@saarthi.com"
+              placeholder="name@example.com"
             />
           </div>
 
@@ -104,9 +133,22 @@ export default function Login() {
             disabled={loading}
             className="w-full mt-4 h-12 text-base"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (isRegister ? "Creating account..." : "Signing in...") : (isRegister ? "Create Account" : "Sign In")}
           </Button>
         </form>
+
+        <div className="mt-6 text-center text-sm">
+          <button
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError("");
+            }}
+            className="text-primary/70 hover:text-primary transition-colors hover:underline"
+            type="button"
+          >
+            {isRegister ? "Already have an account? Sign In" : "Need an account? Sign Up"}
+          </button>
+        </div>
       </motion.div>
     </div>
   );
