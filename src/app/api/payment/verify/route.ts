@@ -22,7 +22,11 @@ export async function POST(request: Request) {
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || "placeholder";
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      logger.error("PAYMENT", "RAZORPAY_KEY_SECRET missing for signature verification");
+      return NextResponse.json({ error: "Payment configuration is incomplete" }, { status: 500 });
+    }
 
     const generated_signature = crypto
       .createHmac("sha256", secret)

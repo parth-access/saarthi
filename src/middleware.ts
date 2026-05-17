@@ -14,9 +14,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthPath && session) {
-    // If logged in and going to /login, just go to abstract dashboard 
-    // They will eventually be correctly routed by UI redirect loop
-    return NextResponse.redirect(new URL('/dashboard', request.url)); 
+    // Let the login page perform role-aware client redirect.
+    // Forcing /dashboard here can break admin/therapist flow.
+    return NextResponse.next();
   }
 
   return NextResponse.next();

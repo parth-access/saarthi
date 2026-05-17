@@ -7,6 +7,13 @@ import Razorpay from "razorpay";
 
 export async function POST(request: Request) {
   try {
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
+    const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!razorpayKeyId || !razorpayKeySecret) {
+      logger.error("PAYMENT", "Razorpay keys are missing");
+      return NextResponse.json({ error: "Payment configuration is incomplete" }, { status: 500 });
+    }
+
     const payloadSchema = z.object({
       bookingId: z.string().min(1)
     });
@@ -38,8 +45,8 @@ export async function POST(request: Request) {
       const currency = "INR";
 
       const rzp = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder"
+        key_id: razorpayKeyId,
+        key_secret: razorpayKeySecret
       });
 
       const order = await rzp.orders.create({

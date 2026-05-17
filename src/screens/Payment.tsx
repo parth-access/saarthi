@@ -26,7 +26,7 @@ export const Payment: React.FC = () => {
 
     bookingService.getBookingByTokenAPIRoute(token)
       .then(data => {
-        setBooking(data.booking);
+        setBooking(data);
       })
       .catch((err) => {
         setError(err.message || 'Failed to load booking details.');
@@ -82,9 +82,9 @@ export const Payment: React.FC = () => {
              </div>
              <h2 className="text-2xl font-serif text-[#2F855A] mb-4">Payment Successful!</h2>
              <p className="text-gray-600 mb-6">Your session with {booking.therapistId} is now confirmed. We've sent a confirmation email to {booking.email}.</p>
-             <a href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
+             <Link href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
                  Manage Booking <ArrowRight className="w-4 h-4" />
-             </a>
+             </Link>
          </div>
       </div>
     );
@@ -99,9 +99,9 @@ export const Payment: React.FC = () => {
                 </div>
                 <h2 className="text-2xl font-serif text-[#C48B1A] mb-4">Status Update</h2>
                 <p className="text-gray-600 mb-6">This booking is currently {booking.status.replace("_", " ")}. Payment is not available at this moment.</p>
-                <a href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
+                <Link href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
                     Manage Booking <ChevronRight className="w-4 h-4" />
-                </a>
+                </Link>
             </div>
          </div>
       );

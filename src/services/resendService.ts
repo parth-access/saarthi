@@ -166,6 +166,7 @@ export const resendService = {
          console.error("resendService.sendBookingRescheduledEmail Error:", error);
       }
     }
+  },
   sendReconnectRequestEmail: async (params: { userName: string; userEmail: string; therapistName: string }) => {
     try {
       const payload = { 

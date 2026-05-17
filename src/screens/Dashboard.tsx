@@ -215,7 +215,7 @@ export default function Dashboard() {
                         <p className="font-medium text-sm text-primary">{therapists[session.therapistId]?.name || "Therapist"}</p>
                         <p className="text-xs text-primary/60">{session.date} — {session.status}</p>
                       </div>
-                      <Link href={`/dashboard/bookings/${session.id}`} className="text-primary/40 hover:text-primary transition-colors">
+                      <Link href="/dashboard/bookings" className="text-primary/40 hover:text-primary transition-colors" aria-label={`View booking ${session.id}`}>
                         <ChevronRight className="w-5 h-5" />
                       </Link>
                     </div>

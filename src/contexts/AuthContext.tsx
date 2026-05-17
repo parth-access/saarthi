@@ -23,6 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
   
   const isMounted = useRef(true);
+  const lastSyncedUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -66,7 +67,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name: firebaseUser.displayName || undefined
               });
               setLoading(false);
-              router.refresh();
+              if (lastSyncedUidRef.current !== firebaseUser.uid) {
+                lastSyncedUidRef.current = firebaseUser.uid;
+                router.refresh();
+              }
             }
           }
         } else {
@@ -74,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (isMounted.current) {
             setCurrentUser(null);
             setLoading(false);
+            lastSyncedUidRef.current = null;
           }
         }
       } catch (err) {
@@ -81,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isMounted.current) {
           setCurrentUser(null);
           setLoading(false);
+          lastSyncedUidRef.current = null;
         }
       }
     });
@@ -120,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isMounted.current) {
         setCurrentUser(null);
         setLoading(false);
+        lastSyncedUidRef.current = null;
         router.refresh();
       }
     } catch (error) {
