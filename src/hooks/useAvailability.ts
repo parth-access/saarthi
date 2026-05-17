@@ -45,8 +45,8 @@ export function useAvailability(therapistId: string | null, date: string | null)
     ]).then(([rules, bookingsData, lockedSlots]) => {
       if (!mounted) return;
       
-      const dateStrLocal = `${date}T00:00:00`;
-      const dateObj = new Date(dateStrLocal);
+      const [year, month, day] = date.split("-").map(Number);
+      const dateObj = new Date(year, month - 1, day);
       const dayOfWeek = dateObj.getDay();
 
       const matchingRules = rules.filter((r: { dayOfWeek: number }) => r.dayOfWeek === dayOfWeek);
