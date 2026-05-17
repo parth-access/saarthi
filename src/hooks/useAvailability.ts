@@ -38,12 +38,29 @@ export function useAvailability(therapistId: string | null, date: string | null)
     let mounted = true;
     setLoading(true);
     
-    Promise.all([
+    Promise.allSettled([
       therapistService.getAvailabilityRules(therapistId),
       bookingService.getBookingsByDate(therapistId, date),
       bookingService.getLockedSlotsByDate(therapistId, date)
-    ]).then(([rules, bookingsData, lockedSlots]) => {
+    ]).then((results) => {
       if (!mounted) return;
+      
+      console.log("Availability Debug:", results);
+
+      const rules =
+        results[0].status === "fulfilled"
+          ? results[0].value
+          : [];
+
+      const bookingsData =
+        results[1].status === "fulfilled"
+          ? results[1].value
+          : [];
+
+      const lockedSlots =
+        results[2].status === "fulfilled"
+          ? results[2].value
+          : [];
       
       const [year, month, day] = date.split("-").map(Number);
       const dateObj = new Date(year, month - 1, day);
