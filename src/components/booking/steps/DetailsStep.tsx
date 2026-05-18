@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
+import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validators/booking.schema"
 import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { Input } from "../../ui/Input"
