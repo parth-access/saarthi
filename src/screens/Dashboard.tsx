@@ -141,8 +141,28 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-32 pb-24 flex items-center justify-center bg-[#FFFBE7]">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      <div className="min-h-screen pt-32 pb-24 bg-[#FFFBE7] animate-pulse">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+            <div className="space-y-4 w-full max-w-md">
+              <div className="h-10 bg-primary/5 rounded-2xl w-3/4"></div>
+              <div className="h-5 bg-primary/5 rounded-xl w-1/2"></div>
+            </div>
+            <div className="h-10 bg-primary/5 rounded-full w-28 shrink-0"></div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 space-y-8">
+               <div className="h-8 bg-primary/5 rounded-xl w-48 mb-6"></div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+            <div className="lg:col-span-4 space-y-8">
+               <div className="h-64 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-48 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

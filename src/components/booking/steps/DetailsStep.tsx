@@ -1,26 +1,13 @@
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
+import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
 import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { Input } from "../../ui/Input"
 import { Textarea } from "../../ui/Textarea"
 
-const phoneRegex = new RegExp(
-  /^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/
-);
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(6, "Phone number is too short").max(20, "Phone number is too long").regex(phoneRegex, "Please enter a valid phone number").transform(val => val.trim()),
-  gender: z.string().min(1, "Please select gender"),
-  age: z.string().refine(v => !isNaN(parseInt(v)) && parseInt(v) > 0, "Invalid age"),
-  message: z.string().optional()
-})
-
-type FormData = z.infer<typeof formSchema>
+const formSchema = bookingFormSchema;
 
 interface Props {
   initialData: any;
