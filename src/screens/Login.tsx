@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { motion } from "motion/react";
-import { Lock, User as UserIcon } from "lucide-react";
+import { Lock, User as UserIcon, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function Login() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -118,14 +119,27 @@ export default function Login() {
             <label className="block text-sm font-medium mb-1.5 text-primary">
               Password
             </label>
-
-            <Input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div className="relative group">
+              <Input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pr-10 transition-colors focus:ring-2 focus:ring-[#E6A520] focus:border-[#E6A520]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-primary/40 hover:text-primary transition-colors focus:outline-none"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 drop-shadow-sm transition-transform duration-200" />
+                ) : (
+                  <Eye className="h-4 w-4 drop-shadow-sm transition-transform duration-200" />
+                )}
+              </button>
+            </div>
           </div>
 
           <Button

@@ -103,6 +103,40 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
 
   const displayName = isAdmin ? "Administrator" : (therapist?.name?.split(' ')[0] || 'Therapist');
 
+  const isInitialLoading = loading && bookings.length === 0 && !therapist && !isAdmin;
+
+  if (isInitialLoading) {
+    return (
+      <div className="pt-16 min-h-screen bg-[#FCFAF7] animate-pulse">
+        <header className="bg-white border-b border-primary/5 h-20 flex items-center px-4 sm:px-8 max-w-7xl mx-auto">
+          <div className="h-10 bg-primary/5 rounded-2xl w-2/3 max-w-sm"></div>
+        </header>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex gap-6 mb-8 border-b border-primary/5 pb-4">
+             <div className="h-6 w-24 bg-primary/5 rounded-xl"></div>
+             <div className="h-6 w-24 bg-primary/5 rounded-xl"></div>
+             <div className="h-6 w-32 bg-primary/5 rounded-xl"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-8 space-y-8">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               </div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+            <div className="lg:col-span-4 space-y-8">
+               <div className="h-64 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-48 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-16 min-h-screen bg-[#FCFAF7] selection:bg-primary/10 font-sans text-primary">
@@ -309,7 +343,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 </div>
                 <div className="space-y-4">
                   {pendingBookings.length === 0 ? (
-                    <EmptyState message="No pending session requests." />
+                    <EmptyState message="🌿 No pending requests right now." />
                   ) : (
                     pendingBookings.map(b => (
                       <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
@@ -325,7 +359,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 </div>
                 <div className="space-y-4">
                   {upcomingBookings.length === 0 ? (
-                    <EmptyState message="No upcoming confirmed sessions." />
+                    <EmptyState message="🌿 Your upcoming schedule is clear." />
                   ) : (
                     upcomingBookings.map(b => (
                       <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
@@ -340,23 +374,23 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               
               {/* NEEDS ATTENTION WIDGET */}
               {pendingBookings.length > 0 && (
-                <div className="bg-red-50/50 rounded-[2rem] border border-red-100 p-6 md:p-8 shadow-sm relative overflow-hidden group">
+                <div className="bg-[#FFFBE7] rounded-[2rem] border border-[#E6A520]/20 p-6 md:p-8 shadow-sm relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                     <AlertCircle className="w-24 h-24 text-red-500" />
+                     <AlertCircle className="w-24 h-24 text-[#E6A520]" />
                   </div>
                   <div className="flex items-center gap-3 mb-6 relative z-10">
-                     <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                     <div className="w-8 h-8 rounded-full bg-[#E6A520]/20 flex items-center justify-center text-amber-600">
                        <AlertCircle className="w-4 h-4" />
                      </div>
-                     <h3 className="font-serif text-lg text-red-900">Needs Attention</h3>
+                     <h3 className="font-serif text-lg text-amber-900">Needs Attention</h3>
                   </div>
                   <div className="space-y-3 relative z-10">
-                    <div className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm flex items-center justify-between">
+                    <div className="bg-white rounded-2xl p-4 border border-[#E6A520]/20 shadow-sm flex items-center justify-between">
                        <div>
-                         <div className="text-red-900 font-bold mb-0.5">{pendingBookings.length} Session Request{pendingBookings.length > 1 ? 's' : ''}</div>
-                         <div className="text-xs text-red-600">Awaiting your response</div>
+                         <div className="text-amber-900 font-bold mb-0.5">{pendingBookings.length} Session Request{pendingBookings.length > 1 ? 's' : ''}</div>
+                         <div className="text-xs text-amber-700">Awaiting your response</div>
                        </div>
-                       <button onClick={() => window.scrollTo({top: 200, behavior: 'smooth'})} className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors">
+                       <button onClick={() => window.scrollTo({top: 200, behavior: 'smooth'})} className="w-8 h-8 rounded-full bg-[#E6A520]/10 flex items-center justify-center text-amber-600 hover:bg-[#E6A520]/20 transition-colors">
                           <ChevronRight className="w-4 h-4" />
                        </button>
                     </div>
@@ -376,7 +410,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 <div className="space-y-4 relative">
                   <div className="absolute left-3.5 top-2 bottom-4 w-px bg-primary/5" />
                   {todayBookings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic relative z-10 pl-10">Schedule is clear for today.</p>
+                    <p className="text-sm text-muted-foreground italic relative z-10 pl-10">🌿 Your schedule is clear. Take a breather before your next session.</p>
                   ) : (
                     todayBookings.map((b) => (
                       <div key={b.id} className="relative z-10 pl-10">
@@ -402,7 +436,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                  <h3 className="font-serif text-lg mb-6">Recent Activity</h3>
                  <div className="space-y-3">
                    {recentBookings.length === 0 ? (
-                     <p className="text-sm text-muted-foreground italic">No recent activity.</p>
+                     <p className="text-sm text-muted-foreground italic">🌿 Your recent activity will appear here.</p>
                    ) : (
                      recentBookings.map(b => (
                        <div key={b.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-[#FCFAF7] transition-colors border border-transparent hover:border-primary/5 cursor-default">
@@ -433,7 +467,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
         ) : activeTab === 'sessions' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {filteredBookings.length === 0 ? (
-              <EmptyState message="No sessions match your filters." />
+              <EmptyState message="🌿 No sessions found for this search." />
             ) : (
               <div className="space-y-4">
                 <div className="text-xs uppercase font-bold tracking-widest text-primary/30 mb-6">Showing {filteredBookings.length} sessions</div>
@@ -462,7 +496,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
 }
 
 const StatCard = ({ title, value, icon: Icon, colorClass }: any) => (
-  <div className={cn("p-5 rounded-3xl border transition-all hover:-translate-y-0.5 hover:shadow-md", colorClass)}>
+  <div className={cn("p-5 rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg", colorClass)}>
     <div className="flex items-center gap-3 mb-4 opacity-70">
       <Icon className="w-4 h-4" />
       <span className="text-xs font-bold uppercase tracking-widest">{title}</span>

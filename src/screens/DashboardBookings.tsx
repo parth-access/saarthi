@@ -139,7 +139,7 @@ export default function DashboardBookings() {
           {filteredBookings.length === 0 ? (
             <div className="text-center py-16 text-primary/60 bg-white rounded-3xl border border-primary/5">
               <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>No {filter !== 'all' ? filter.replace('_', ' ') : ''} sessions found.</p>
+              <p>🌿 Your wellness journey awaits. No {filter !== 'all' ? filter.replace('_', ' ') : ''} sessions found.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -152,7 +152,7 @@ export default function DashboardBookings() {
                         setSelectedSession(session);
                         setIsDetailsOpen(true);
                     }}
-                    className="border border-primary/10 bg-white rounded-3xl p-6 sm:p-8 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
+                    className="border border-primary/10 bg-white rounded-3xl p-6 sm:p-8 hover:border-primary/20 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col h-full"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                       <div className="flex gap-4 items-center sm:items-start">
@@ -200,8 +200,8 @@ export default function DashboardBookings() {
                        </div>
                     </div>
 
-                    <div className="flex justify-end items-center text-xs sm:text-sm font-medium text-primary/40 group-hover:text-primary transition-colors">
-                      View details <ChevronRight className="w-4 h-4 ml-1" />
+                    <div className="flex justify-end items-center text-xs sm:text-sm font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors">
+                      View details <ChevronRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
                     </div>
                   </div>
                 );

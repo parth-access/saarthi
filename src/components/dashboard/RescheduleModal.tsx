@@ -90,7 +90,7 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Please briefly explain why you need to reschedule..."
-                    className="w-full rounded-2xl border-primary/20 bg-transparent px-4 py-3 text-sm text-primary placeholder:text-primary/30 focus:border-[#E6A520] focus:ring-[#E6A520] transition-colors resize-none"
+                    className="w-full rounded-2xl border border-primary/20 bg-white/50 px-4 py-3 text-sm text-primary placeholder:text-primary/30 transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30 resize-none"
                   />
                   {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
                 </div>
@@ -109,7 +109,7 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
                         id="pref-date"
                         value={preferredDate}
                         onChange={(e) => setPreferredDate(e.target.value)}
-                        className="w-full rounded-xl border-primary/20 bg-transparent pl-10 pr-4 py-2.5 text-sm text-primary focus:border-[#E6A520] focus:ring-[#E6A520] transition-colors"
+                        className="w-full rounded-2xl border border-primary/20 bg-white/50 pl-10 pr-4 py-2.5 text-sm text-primary transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30"
                       />
                     </div>
                   </div>
@@ -126,7 +126,7 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
                         id="pref-time"
                         value={preferredTime}
                         onChange={(e) => setPreferredTime(e.target.value)}
-                        className="w-full rounded-xl border-primary/20 bg-transparent pl-10 pr-4 py-2.5 text-sm text-primary focus:border-[#E6A520] focus:ring-[#E6A520] transition-colors"
+                        className="w-full rounded-2xl border border-primary/20 bg-white/50 pl-10 pr-4 py-2.5 text-sm text-primary transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30"
                       />
                     </div>
                   </div>
@@ -136,14 +136,14 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-primary border border-primary/20 bg-transparent hover:bg-primary/5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#E6A520] hover:bg-[#E6A520]/90 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#E6A520] hover:bg-[#E6A520]/90 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:-translate-y-0 disabled:hover:shadow-sm flex items-center justify-center gap-2"
                   >
                     {isSubmitting ? (
                       <React.Fragment>

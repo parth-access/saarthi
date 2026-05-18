@@ -4,22 +4,24 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-primary/90",
         outline:
-          "border border-primary bg-transparent text-primary hover:bg-primary/10",
+          "border border-primary/20 bg-transparent text-primary shadow-sm hover:bg-primary/5 hover:border-primary/40 hover:-translate-y-0.5",
         accent:
-          "bg-accent text-accent-foreground shadow hover:bg-accent/90",
-        ghost: "hover:bg-primary/10 text-primary",
+          "bg-[#E6A520] text-white shadow-sm hover:shadow-md hover:bg-[#E6A520]/90 hover:-translate-y-0.5",
+        destructive:
+          "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100/80 hover:text-red-700 shadow-sm hover:-translate-y-0.5",
+        ghost: "hover:bg-primary/5 text-primary hover:text-primary transition-colors",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 px-8 py-2",
-        sm: "h-9 px-4",
+        sm: "h-9 px-4 text-xs",
         lg: "h-12 px-10 text-base",
         icon: "h-9 w-9",
       },

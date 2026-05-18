@@ -86,23 +86,23 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
 
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white border border-primary/10 rounded-2xl p-4">
-                  <Calendar className="w-5 h-5 text-primary/40 mb-2" />
+                <div className="bg-white border border-primary/10 rounded-2xl p-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200 group">
+                  <Calendar className="w-5 h-5 text-primary/40 mb-2 group-hover:text-primary transition-colors" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-0.5">Date</p>
                   <p className="font-medium text-primary">{session.date}</p>
                 </div>
-                <div className="bg-white border border-primary/10 rounded-2xl p-4">
-                  <Clock className="w-5 h-5 text-primary/40 mb-2" />
+                <div className="bg-white border border-primary/10 rounded-2xl p-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200 group">
+                  <Clock className="w-5 h-5 text-primary/40 mb-2 group-hover:text-primary transition-colors" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-0.5">Time</p>
                   <p className="font-medium text-primary">{session.time}</p>
                 </div>
-                <div className="bg-white border border-primary/10 rounded-2xl p-4">
-                  <Video className="w-5 h-5 text-primary/40 mb-2" />
+                <div className="bg-white border border-primary/10 rounded-2xl p-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200 group">
+                  <Video className="w-5 h-5 text-primary/40 mb-2 group-hover:text-primary transition-colors" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-0.5">Mode</p>
                   <p className="font-medium text-primary capitalize">{session.sessionMode || 'Video Call'}</p>
                 </div>
-                <div className="bg-white border border-primary/10 rounded-2xl p-4">
-                  <CreditCard className="w-5 h-5 text-primary/40 mb-2" />
+                <div className="bg-white border border-primary/10 rounded-2xl p-4 hover:border-primary/20 hover:shadow-sm transition-all duration-200 group">
+                  <CreditCard className="w-5 h-5 text-primary/40 mb-2 group-hover:text-primary transition-colors" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-0.5">Payment</p>
                   <p className={`font-medium capitalize ${session.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-[#E6A520]'}`}>
                     {session.paymentStatus || 'Unpaid'}
@@ -131,7 +131,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                     onClose();
                     onReschedule();
                   }}
-                  className="w-full py-3 text-sm font-medium text-[#E6A520] border border-[#E6A520]/20 hover:bg-[#E6A520]/5 rounded-xl transition-colors"
+                  className="w-full py-3 text-sm font-medium text-[#E6A520] border border-[#E6A520]/20 hover:bg-[#E6A520]/5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 shadow-sm"
                 >
                   Request Reschedule
                 </button>
@@ -139,16 +139,16 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               {session.paymentStatus !== 'paid' && session.status !== 'cancelled' && session.status !== 'rejected' && (
                 <a
                   href={`/payment?token=${session.bookingToken || session.id}`}
-                  className="flex items-center justify-center w-full py-3 px-4 bg-[#E6A520] hover:bg-[#E6A520]/90 text-white rounded-xl font-medium text-sm transition-colors"
+                  className="flex items-center justify-center w-full py-3 px-4 bg-[#E6A520] hover:bg-[#E6A520]/90 text-white rounded-2xl font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5"
                 >
                   Complete Payment
                 </a>
               )}
               <a
                 href={`mailto:support@saarthilife.com?subject=Re: Session ${session.id}`}
-                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-primary/60 hover:text-primary transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-primary/60 hover:text-primary transition-all duration-200 hover:bg-primary/5 rounded-2xl group"
               >
-                <UserCog className="w-4 h-4" /> Contact Support
+                <UserCog className="w-4 h-4 group-hover:scale-110 transition-transform" /> Contact Support
               </a>
             </div>
           </motion.div>

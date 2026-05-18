@@ -394,7 +394,7 @@ const AdminPage = () => {
                   className="col-span-1 sm:col-span-2 text-center py-16 bg-[#FAFAFA] rounded-3xl border-2 border-dashed border-primary/5"
                 >
                   <Calendar className="w-10 h-10 text-primary/10 mx-auto mb-4" />
-                  <p className="text-primary/40 font-medium">No rules have been created yet.</p>
+                  <p className="text-primary/40 font-medium">🌿 Cultivate your schedule.</p>
                   <p className="text-xs text-primary/30 mt-1">Add a rule from the builder to get started.</p>
                 </motion.div>
               ) : (
@@ -594,38 +594,6 @@ const AdminPage = () => {
       </AnimatePresence>
     </>
   );
-}
-
-const StatusBadge = ({ status }: { status: BookingStatus }) => {
-  const styles: Record<BookingStatus, string> = {
-    pending: "bg-amber-50 text-amber-600 border-amber-100",
-    pending_approval: "bg-blue-50 text-blue-600 border-blue-100",
-    awaiting_payment: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    confirmed: "bg-green-50 text-green-600 border-green-100",
-    rejected: "bg-red-50 text-red-600 border-red-100",
-    completed: "bg-primary/5 text-primary border-primary/10",
-    cancelled: "bg-slate-50 text-slate-500 border-slate-100"
-  }
-
-  const icons: Record<BookingStatus, React.ReactNode> = {
-    pending: <Loader2 className="w-3 h-3 animate-pulse" />,
-    pending_approval: <Loader2 className="w-3 h-3 animate-pulse" />,
-    awaiting_payment: <Loader2 className="w-3 h-3 flex-shrink-0" />,
-    confirmed: <CheckCircle2 className="w-3 h-3" />,
-    rejected: <XCircle className="w-3 h-3" />,
-    completed: <CheckCircle2 className="w-3 h-3" />,
-    cancelled: <Trash2 className="w-3 h-3" />
-  }
-
-  return (
-    <span className={cn(
-      "px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border shadow-sm flex items-center gap-2", 
-      styles[status]
-    )}>
-      {icons[status]}
-      {status}
-    </span>
-  )
 }
 
 export default AdminPage

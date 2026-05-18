@@ -190,7 +190,7 @@ export default function Dashboard() {
                   <div className="w-16 h-16 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Calendar className="w-8 h-8 text-primary/40" />
                   </div>
-                  <p className="text-primary/70 mb-6 font-medium">You have no upcoming sessions.</p>
+                  <p className="text-primary/70 mb-6 font-medium">🌿 Your schedule is clear. Take a breather before your next session.</p>
                   <Link href="/therapists" className="inline-flex items-center justify-center rounded-2xl text-sm font-medium transition-colors bg-[#E6A520] text-white hover:bg-[#E6A520]/90 px-8 py-3 shadow-sm">
                     Book a Session
                   </Link>
@@ -208,7 +208,7 @@ export default function Dashboard() {
                           setSelectedSession(session);
                           setIsDetailsOpen(true);
                         }}
-                        className="group bg-white border border-primary/10 hover:border-primary/20 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                        className="group bg-white border border-primary/10 hover:border-primary/20 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                           <div className="flex gap-4 items-center sm:items-start">
@@ -257,8 +257,8 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="flex justify-end items-center text-sm font-medium text-primary/40 group-hover:text-primary transition-colors">
-                          View details <ChevronRight className="w-4 h-4 ml-1" />
+                        <div className="flex justify-end items-center text-sm font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors">
+                          View details <ChevronRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
                         </div>
                       </motion.div>
                     );
@@ -276,7 +276,7 @@ export default function Dashboard() {
 
               {pastSessions.length === 0 ? (
                 <div className="bg-white/50 border border-primary/10 rounded-3xl p-8 text-center text-sm text-primary/70 shadow-sm">
-                  <p>Your previous sessions will appear here.</p>
+                  <p>🌱 Your wellness journey will be documented here.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -289,7 +289,7 @@ export default function Dashboard() {
                           setSelectedSession(session);
                           setIsDetailsOpen(true);
                         }}
-                        className="bg-white border border-primary/10 hover:border-primary/20 rounded-2xl p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:shadow-sm transition-all group"
+                        className="bg-white border border-primary/10 hover:border-primary/20 rounded-2xl p-4 sm:p-5 flex items-center justify-between cursor-pointer hover:shadow-sm hover:-translate-y-0.5 transition-all duration-300 group"
                       >
                         <div className="flex items-center gap-4">
                           {t?.image ? (
@@ -310,8 +310,8 @@ export default function Dashboard() {
                             </p>
                           </div>
                         </div>
-                        <div className="text-primary/40 group-hover:text-primary transition-colors bg-primary/5 group-hover:bg-primary/10 p-2 rounded-full">
-                          <ChevronRight className="w-4 h-4" />
+                        <div className="text-primary/40 group-hover:text-[#E6A520] transition-colors bg-primary/5 group-hover:bg-[#E6A520]/10 p-2 rounded-full">
+                          <ChevronRight className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-300" />
                         </div>
                       </div>
                     );
@@ -355,7 +355,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-serif text-primary mb-6">My Therapists</h2>
               {Object.values(therapists).length === 0 ? (
                 <div className="bg-primary/5 rounded-2xl p-6 text-center">
-                  <p className="text-sm text-primary/60">You haven't interacted with any therapists yet.</p>
+                  <p className="text-sm text-primary/60">🌿 Find a guide to support your journey.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
