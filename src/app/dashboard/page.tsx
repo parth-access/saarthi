@@ -1,5 +1,3 @@
-"use client";
-
 import DashboardPage from "@/screens/Dashboard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
