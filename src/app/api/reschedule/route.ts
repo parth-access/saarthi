@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminAuth } from "@/lib/firebase/admin";
 import { Resend } from "resend";
 import { FieldValue } from "firebase-admin/firestore";
+import { cookies } from "next/headers";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = 'admin@saarthi.com';
@@ -9,7 +10,16 @@ const FROM_EMAIL = 'Saarthi <noreply@saarthi.com>';
 
 export async function POST(req: Request) {
   try {
+    const sessionCookie = (await cookies()).get('__session')?.value;
+    if (!sessionCookie) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+
     const { userId, bookingId, therapistId, userName, userEmail, reason } = await req.json();
+
+    if (userId !== decodedClaims.uid) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     if (!userId || !bookingId || !therapistId || !userEmail) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

@@ -20,6 +20,10 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
     { name: "Our Vision", href: "/vision" },
     { name: "Contact", href: "/contact" },
   ]
+  
+  if (currentUser) {
+    navLinks.push({ name: "Resources", href: "/dashboard/resources" })
+  }
 
   let portalLink = "/login";
   let portalText = "Sign In";

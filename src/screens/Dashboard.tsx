@@ -14,6 +14,9 @@ import { db } from "../lib/firebase/client";
 import { Booking, Therapist } from "../types";
 import { SessionDetailsModal } from "../components/dashboard/SessionDetailsModal";
 import { RescheduleModal } from "../components/dashboard/RescheduleModal";
+import { Skeleton } from "../components/ui/Skeleton";
+import { toast } from "sonner";
+import { User } from "lucide-react";
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -101,9 +104,9 @@ export default function Dashboard() {
         })
       });
       if (!res.ok) throw new Error("Failed to send request");
-      alert("Reconnect request sent to admin. We will contact you soon.");
+      toast.success("Reconnect request sent quietly. We will contact you soon.");
     } catch (err) {
-      alert("Failed to send reconnect request. Please try again or contact support.");
+      toast.error("Failed to send reconnect request. Please try again later.");
     } finally {
       setReconnecting(null);
     }
@@ -127,7 +130,7 @@ export default function Dashboard() {
       })
     });
     if (!res.ok) throw new Error("Failed to send request");
-    // Show success (could add a toast here)
+    toast.success("Reschedule request submitted successfully.");
   };
 
   const getStatusClasses = (status: string) => {
@@ -141,25 +144,25 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-32 pb-24 bg-[#FFFBE7] animate-pulse">
+      <div className="min-h-screen pt-32 pb-24 bg-[#FFFBE7]">
         <div className="container mx-auto px-6 max-w-7xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
             <div className="space-y-4 w-full max-w-md">
-              <div className="h-10 bg-primary/5 rounded-2xl w-3/4"></div>
-              <div className="h-5 bg-primary/5 rounded-xl w-1/2"></div>
+              <Skeleton className="h-10 w-3/4 rounded-2xl" />
+              <Skeleton className="h-5 w-1/2 rounded-xl" />
             </div>
-            <div className="h-10 bg-primary/5 rounded-full w-28 shrink-0"></div>
+            <Skeleton className="h-10 w-28 rounded-full shrink-0" />
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-8">
-               <div className="h-8 bg-primary/5 rounded-xl w-48 mb-6"></div>
-               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
-               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <Skeleton className="h-8 w-48 rounded-xl mb-6" />
+               <Skeleton className="h-40 w-full rounded-3xl" />
+               <Skeleton className="h-40 w-full rounded-3xl" />
             </div>
             <div className="lg:col-span-4 space-y-8">
-               <div className="h-64 bg-white border border-primary/5 rounded-3xl w-full"></div>
-               <div className="h-48 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <Skeleton className="h-64 w-full rounded-3xl" />
+               <Skeleton className="h-48 w-full rounded-3xl" />
             </div>
           </div>
         </div>
@@ -355,11 +358,23 @@ export default function Dashboard() {
                   </div>
                   Find a Therapist
                 </Link>
+                <Link href="/dashboard/profile" className="flex items-center gap-4 text-sm font-medium text-primary/80 hover:text-primary hover:bg-[#FFFBE7] p-3 rounded-2xl transition-all border border-transparent hover:border-primary/10 group">
+                  <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <User className="w-4 h-4 text-[#E6A520]" />
+                  </div>
+                  Edit Profile
+                </Link>
                 <Link href="/dashboard/receipts" className="flex items-center gap-4 text-sm font-medium text-primary/80 hover:text-primary hover:bg-[#FFFBE7] p-3 rounded-2xl transition-all border border-transparent hover:border-primary/10 group">
                   <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                     <FileText className="w-4 h-4 text-[#E6A520]" />
                   </div>
                   View Receipts
+                </Link>
+                <Link href="/dashboard/resources" className="flex items-center gap-4 text-sm font-medium text-primary/80 hover:text-primary hover:bg-[#FFFBE7] p-3 rounded-2xl transition-all border border-transparent hover:border-primary/10 group">
+                  <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Activity className="w-4 h-4 text-[#E6A520]" />
+                  </div>
+                  Wellness Hub
                 </Link>
                 <Link href="/contact" className="flex items-center gap-4 text-sm font-medium text-primary/80 hover:text-primary hover:bg-[#FFFBE7] p-3 rounded-2xl transition-all border border-transparent hover:border-primary/10 group">
                   <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">

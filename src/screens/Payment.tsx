@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
+import { toast } from "sonner";
 import { ShieldCheck, ArrowRight, Loader2, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { bookingService } from '../services/bookingService';
 import { Booking } from '../types';
@@ -26,7 +27,7 @@ export const Payment: React.FC = () => {
 
     bookingService.getBookingByTokenAPIRoute(token)
       .then(data => {
-        setBooking(data);
+        setBooking(data.booking);
       })
       .catch((err) => {
         setError(err.message || 'Failed to load booking details.');
@@ -82,9 +83,9 @@ export const Payment: React.FC = () => {
              </div>
              <h2 className="text-2xl font-serif text-[#2F855A] mb-4">Payment Successful!</h2>
              <p className="text-gray-600 mb-6">Your session with {booking.therapistId} is now confirmed. We've sent a confirmation email to {booking.email}.</p>
-             <Link href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
+             <a href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
                  Manage Booking <ArrowRight className="w-4 h-4" />
-             </Link>
+             </a>
          </div>
       </div>
     );
@@ -99,9 +100,9 @@ export const Payment: React.FC = () => {
                 </div>
                 <h2 className="text-2xl font-serif text-[#C48B1A] mb-4">Status Update</h2>
                 <p className="text-gray-600 mb-6">This booking is currently {booking.status.replace("_", " ")}. Payment is not available at this moment.</p>
-                <Link href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
+                <a href={`/manage-booking?token=${booking.bookingToken}`} className="inline-flex items-center gap-2 text-[#E6A520] font-medium hover:text-[#C48B1A] transition-colors">
                     Manage Booking <ChevronRight className="w-4 h-4" />
-                </Link>
+                </a>
             </div>
          </div>
       );
@@ -109,7 +110,7 @@ export const Payment: React.FC = () => {
 
   const handlePayment = async () => {
     if (typeof window === 'undefined' || !(window as any).Razorpay) {
-      alert('Razorpay SDK failed to load. Are you online?');
+      toast.error('Razorpay SDK failed to load. Are you online?');
       return;
     }
 
