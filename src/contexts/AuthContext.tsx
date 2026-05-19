@@ -11,6 +11,7 @@ interface AuthContextType {
   currentUser: CustomUser | null;
   loading: boolean;
   login: (email: string, pw: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   register: (email: string, pw: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -23,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
   
   const isMounted = useRef(true);
-  const lastSyncedUidRef = useRef<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
-          let role = await authService.getUserRole(firebaseUser.uid);
+          const role = await authService.getUserRole(firebaseUser.uid);
           
           if (!isMounted.current) return;
           
@@ -67,10 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name: firebaseUser.displayName || undefined
               });
               setLoading(false);
-              if (lastSyncedUidRef.current !== firebaseUser.uid) {
-                lastSyncedUidRef.current = firebaseUser.uid;
-                router.refresh();
-              }
+              router.refresh();
             }
           }
         } else {
@@ -78,15 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (isMounted.current) {
             setCurrentUser(null);
             setLoading(false);
-            lastSyncedUidRef.current = null;
           }
         }
       } catch (err) {
+        console.error('Auth state change error', err);
         await fetch('/api/auth/session', { method: 'DELETE' });
         if (isMounted.current) {
           setCurrentUser(null);
           setLoading(false);
-          lastSyncedUidRef.current = null;
         }
       }
     });
@@ -102,6 +98,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.login(email, pw);
       // onAuthStateChanged will detect the new user, fetch role, update currentUser, and setLoading(false)
+    } catch (error) {
+      if (isMounted.current) setLoading(false);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    try {
+      await authService.loginWithGoogle();
     } catch (error) {
       if (isMounted.current) setLoading(false);
       throw error;
@@ -126,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isMounted.current) {
         setCurrentUser(null);
         setLoading(false);
-        lastSyncedUidRef.current = null;
         router.refresh();
       }
     } catch (error) {
@@ -136,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ currentUser, loading, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

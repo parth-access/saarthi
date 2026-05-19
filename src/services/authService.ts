@@ -1,9 +1,35 @@
 import { auth, isFirebaseEnabled, db } from '../lib/firebase/client';
-import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { User } from '../types';
 
 export const authService = {
+  loginWithGoogle: async () => {
+    if (!isFirebaseEnabled) throw new Error("Firebase is not enabled.");
+    const provider = new GoogleAuthProvider();
+    const userCred = await signInWithPopup(auth, provider);
+    const user = userCred.user;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        name: user.displayName || 'User',
+        email: user.email,
+        role: 'client',
+        provider: 'google',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        totalSessions: 0,
+        activeBookings: 0,
+        preferredTherapists: [],
+        lastSessionDate: null
+      });
+    }
+    return user;
+  },
+
   register: async (email: string, password: string, name: string) => {
     if (!isFirebaseEnabled) throw new Error("Firebase is not enabled.");
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
@@ -60,7 +86,7 @@ export const authService = {
   getCurrentUser: async () => {
     return new Promise((resolve) => {
       if (!isFirebaseEnabled || !auth) return resolve(null);
-      const unsubscribe = auth.onAuthStateChanged((user: any) => {
+      const unsubscribe = auth.onAuthStateChanged((user: FirebaseUser | null) => {
         unsubscribe();
         resolve(user);
       });
