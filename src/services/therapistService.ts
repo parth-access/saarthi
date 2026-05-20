@@ -9,7 +9,7 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase/client';
-import { Therapist, AvailabilityConfig } from '../types';
+import { Therapist, TherapistAvailabilityRule, TherapistOverride } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapTherapist } from '../utils/mappers';
 
@@ -26,7 +26,7 @@ export const therapistService = {
 
       const d = snapshot.docs[0];
       return mapTherapist(d.id, d.data());
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleFirestoreError(err, OperationType.LIST, 'therapists');
       return null;
     }
@@ -42,7 +42,7 @@ export const therapistService = {
       const snapshot = await getDocs(q);
 
       return snapshot.docs.map((d) => mapTherapist(d.id, d.data()));
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleFirestoreError(err, OperationType.LIST, 'therapists');
       return [];
     }
@@ -50,42 +50,79 @@ export const therapistService = {
 
   getAvailabilityRules: async (
     therapistId: string
-  ): Promise<AvailabilityConfig[]> => {
+  ): Promise<TherapistAvailabilityRule[]> => {
     try {
-      const ref = collection(db, 'availability_rules');
-      const q = query(ref, where('therapistId', '==', therapistId));
-      const snapshot = await getDocs(q);
+      const ref = collection(db, `therapistAvailability/${therapistId}/recurringRules`);
+      const snapshot = await getDocs(ref);
 
       return snapshot.docs.map((d) => ({
         id: d.id,
-        ...(d.data() as Omit<AvailabilityConfig, 'id'>)
+        ...(d.data() as Omit<TherapistAvailabilityRule, 'id'>)
       }));
-    } catch (err: any) {
-      handleFirestoreError(err, OperationType.LIST, 'availability_rules');
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.LIST, `therapistAvailability/${therapistId}/recurringRules`);
       return [];
     }
   },
 
-  addAvailabilityRule: async (
-    rule: Omit<AvailabilityConfig, 'id'>
+  saveAvailabilityRule: async (
+    therapistId: string,
+    rule: Omit<TherapistAvailabilityRule, 'id'>
   ) => {
     try {
-      const ref = collection(db, 'availability_rules');
+      const ref = collection(db, `therapistAvailability/${therapistId}/recurringRules`);
       const docRef = await addDoc(ref, rule);
       return { success: true, id: docRef.id };
-    } catch (err: any) {
-      handleFirestoreError(err, OperationType.CREATE, 'availability_rules');
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.CREATE, `therapistAvailability/${therapistId}/recurringRules`);
       throw err;
     }
   },
 
-  deleteAvailabilityRule: async (id: string) => {
+  deleteAvailabilityRule: async (therapistId: string, ruleId: string) => {
     try {
-      const ref = doc(db, 'availability_rules', id);
+      const ref = doc(db, `therapistAvailability/${therapistId}/recurringRules`, ruleId);
       await deleteDoc(ref);
       return { success: true };
-    } catch (err: any) {
-      handleFirestoreError(err, OperationType.DELETE, `availability_rules/${id}`);
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.DELETE, `therapistAvailability/${therapistId}/recurringRules/${ruleId}`);
+      throw err;
+    }
+  },
+
+  getOverrides: async (therapistId: string): Promise<TherapistOverride[]> => {
+    try {
+      const ref = collection(db, `therapistAvailability/${therapistId}/overrides`);
+      const snapshot = await getDocs(ref);
+
+      return snapshot.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<TherapistOverride, 'id'>)
+      }));
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.LIST, `therapistAvailability/${therapistId}/overrides`);
+      return [];
+    }
+  },
+
+  saveOverride: async (therapistId: string, override: Omit<TherapistOverride, 'id'>) => {
+    try {
+      const ref = collection(db, `therapistAvailability/${therapistId}/overrides`);
+      const docRef = await addDoc(ref, override);
+      return { success: true, id: docRef.id };
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.CREATE, `therapistAvailability/${therapistId}/overrides`);
+      throw err;
+    }
+  },
+
+  deleteOverride: async (therapistId: string, overrideId: string) => {
+    try {
+      const ref = doc(db, `therapistAvailability/${therapistId}/overrides`, overrideId);
+      await deleteDoc(ref);
+      return { success: true };
+    } catch (err: unknown) {
+      handleFirestoreError(err, OperationType.DELETE, `therapistAvailability/${therapistId}/overrides/${overrideId}`);
       throw err;
     }
   },
@@ -95,7 +132,7 @@ export const therapistService = {
       const ref = doc(db, 'therapists', therapistId);
       await updateDoc(ref, { active });
       return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
       handleFirestoreError(err, OperationType.UPDATE, `therapists/${therapistId}`);
       throw err;
     }

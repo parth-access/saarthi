@@ -16,6 +16,13 @@ export type BookingStatus =
 
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
 
+export interface FirebaseTimestamp {
+  seconds: number;
+  nanoseconds: number;
+  toDate: () => Date;
+  toMillis: () => number;
+}
+
 export interface Booking {
   id: string;
   therapistId: string;
@@ -35,24 +42,55 @@ export interface Booking {
   razorpayPaymentId?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
-  paymentVerifiedAt?: any;
-  paymentLinkSentAt?: any;
-  createdAt: any;
-  updatedAt?: any;
+  paymentVerifiedAt?: FirebaseTimestamp | Date | string | null;
+  paymentLinkSentAt?: FirebaseTimestamp | Date | string | null;
+  createdAt: FirebaseTimestamp | Date | string | null;
+  updatedAt?: FirebaseTimestamp | Date | string | null;
   bookingToken?: string;
   sessionMode?: string;
-  rescheduledAt?: any;
+  rescheduledAt?: FirebaseTimestamp | Date | string | null;
   originalDate?: string;
   originalTime?: string;
   emailStatus?: 'pending' | 'sent' | 'failed' | 'retrying';
   emailAttempts?: number;
-  lastEmailAttemptAt?: any;
+  lastEmailAttemptAt?: FirebaseTimestamp | Date | string | null;
   lastEmailError?: string;
   declineReason?: string;
   declineCustomNote?: string;
-  declinedAt?: any;
+  declinedAt?: FirebaseTimestamp | Date | string | null;
   declinedBy?: string;
   invalidToken?: boolean;
+  utcDateTime?: string; // Standard UTC storage architecture
+}
+
+export interface BreakPreference {
+  startTime: string;
+  endTime: string;
+}
+
+export interface TherapistAvailabilityRule {
+  id: string;
+  therapistId: string;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday ...
+  isActive: boolean;
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  cooldownGap: number;
+  breaks: BreakPreference[];
+}
+
+export interface TherapistOverride {
+  id: string;
+  therapistId: string;
+  date: string; // YYYY-MM-DD
+  type: 'blocked' | 'available';
+  startTime?: string;
+  endTime?: string;
+  slotDuration?: number;
+  cooldownGap?: number;
+  breaks?: BreakPreference[];
+  reason?: string;
 }
 
 export interface Therapist {
@@ -65,15 +103,6 @@ export interface Therapist {
   active: boolean;
   authId?: string;
   email?: string;
-}
-
-export interface AvailabilityConfig {
-  id: string;
-  therapistId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  slotDuration: number;
 }
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import { Resend, CreateEmailOptions } from 'resend';
 import { z } from 'zod';
 import escapeHtml from 'escape-html';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
@@ -10,10 +10,10 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendEmailWithRetry(options: any, bookingId: string, emailType: string): Promise<any> {
+async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string, emailType: string): Promise<unknown> {
     const maxRetries = 3;
     let attempt = 0;
-    let lastError: any;
+    let lastError: unknown;
 
     while (attempt < maxRetries) {
         attempt++;
@@ -34,10 +34,10 @@ async function sendEmailWithRetry(options: any, bookingId: string, emailType: st
                 resendId: data.data?.id
             });
             return data;
-        } catch (error: any) {
+        } catch (error) {
             lastError = error;
             logger.warn('EMAIL', `Failed to send ${emailType} (Attempt ${attempt}/${maxRetries})`, {
-                error: error.message,
+                error: (error instanceof Error ? error.message : String(error)),
                 to: options.to,
                 bookingId
             });
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
     if (type === 'booking-received') {
       const patientPlainText = `Booking Request Received\nHi ${safePatientName},\nWe have successfully received your booking request with ${safeTherapistName}.\nDate: ${safeDate}\nTime: ${safeTime}\nWe will notify you once confirmed.\n- The Saarthi Team`.trim();
 
-      const promises: Promise<any>[] = [
+      const promises: Promise<unknown>[] = [
         sendEmailWithRetry({
           from: 'Saarthi Contact <contact@saarthilife.com>',
           to: patientEmail,
@@ -229,7 +229,7 @@ export async function POST(request: Request) {
     if (type === 'booking-rescheduled') {
       const plainText = `Session Rescheduled\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been rescheduled to ${safeDate} at ${safeTime}.\n- The Saarthi Team`.trim();
 
-      const promises: Promise<any>[] = [
+      const promises: Promise<unknown>[] = [
         sendEmailWithRetry({
           from: 'Saarthi Contact <contact@saarthilife.com>',
           to: patientEmail,
@@ -293,7 +293,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
     
-  } catch (error: any) {
+  } catch (error) {
     logger.error('EMAIL', 'Email API Error', error);
     
     try {

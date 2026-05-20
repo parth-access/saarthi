@@ -8,6 +8,7 @@ import Link from "next/link";
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase/client";
 import { Therapist } from "../types";
+import { toDateSafe } from "../lib/utils";
 
 interface PaymentReceipt {
   id: string;
@@ -18,7 +19,7 @@ interface PaymentReceipt {
   currency: string;
   paymentStatus: string;
   razorpayPaymentId: string;
-  createdAt: any;
+  createdAt: unknown;
   invoiceNumber: string;
 }
 
@@ -47,7 +48,11 @@ export default function DashboardReceipts() {
         const allPayments = snap.docs.map(d => ({ id: d.id, ...d.data() } as PaymentReceipt));
         
         // Sorting manually if we didn't index createdAt
-        allPayments.sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        allPayments.sort((a,b) => {
+           const timeA = a.createdAt && typeof a.createdAt === 'object' && 'toMillis' in a.createdAt ? (a.createdAt as { toMillis: () => number }).toMillis() : 0;
+           const timeB = b.createdAt && typeof b.createdAt === 'object' && 'toMillis' in b.createdAt ? (b.createdAt as { toMillis: () => number }).toMillis() : 0;
+           return timeB - timeA;
+        });
         
         setPayments(allPayments);
         
@@ -114,7 +119,7 @@ export default function DashboardReceipts() {
                     {payments.map(payment => (
                       <tr key={payment.id} className="border-b border-primary/5 hover:bg-black/[0.02]">
                         <td className="py-4 text-primary whitespace-nowrap">
-                          {payment.createdAt?.toDate ? payment.createdAt.toDate().toLocaleDateString() : 'N/A'}
+                          {payment.createdAt ? (toDateSafe(payment.createdAt)?.toLocaleDateString() || 'N/A') : 'N/A'}
                         </td>
                         <td className="py-4 text-primary font-mono text-xs">{payment.invoiceNumber || '-'}</td>
                         <td className="py-4 text-primary">{therapists[payment.therapistId]?.name || 'Unknown'}</td>

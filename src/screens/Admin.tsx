@@ -2,29 +2,14 @@
 
 import * as React from "react"
 // import { Helmet } from "react-helmet-async"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { therapistService } from '../services/therapistService';
 import { 
-  Mail, 
-  Calendar, 
   User, 
-  ShieldCheck, 
   CheckCircle2, 
   XCircle, 
   Loader2, 
-  Filter, 
-  Info, 
-  ChevronDown,
-  Trash2,
-  Check,
-  RefreshCw,
-  LogOut,
-  Clock,
-  Timer,
-  LayoutGrid,
-  Plus,
-  Trash,
-  CheckCircle
+  ChevronDown
 } from "lucide-react"
 import { useRouter as useNavigate } from "next/navigation"
 import { format, parseISO } from "date-fns"
@@ -33,30 +18,18 @@ import { cn } from "../lib/utils"
 import { BookingStatus, Booking, Therapist } from "../types"
 import { bookingService } from "../services/bookingService"
 import { useAuth } from "../contexts/AuthContext"
-import { useTherapists } from "../hooks/useTherapists"
 import { TherapistDashboard } from "../components/dashboard/TherapistDashboard"
+import { ScheduleBuilder } from "../components/dashboard/ScheduleBuilder"
 import { ContactsPanel } from "../components/admin/ContactsPanel"
 
 const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
-  const { therapists } = useTherapists();
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
   
   // Tab/Filter states
-  const [activeTab, setActiveTab] = React.useState<'bookings' | 'availability'>('bookings')
-  const [statusFilter, setStatusFilter] = React.useState<BookingStatus | 'all'>('all')
-  const [dateFilter, setDateFilter] = React.useState("")
-  const [therapistFilter, setTherapistFilter] = React.useState<string>('all')
-
-  // Availability states
-  const [availDay, setAvailDay] = React.useState(1)
-  const [availStart, setAvailStart] = React.useState("09:00")
-  const [availEnd, setAvailEnd] = React.useState("17:00")
-  const [availDuration, setAvailDuration] = React.useState(60)
-  const [myRules, setMyRules] = React.useState<any[]>([])
-  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'success'>('idle')
+  // Filter state for dashboard removed as it's handled internally
   const { currentUser } = useAuth()
   const [myTherapistProfile, setMyTherapistProfile] = React.useState<Therapist | null>(null)
 
@@ -73,7 +46,7 @@ const AdminPage = () => {
   const [declineNote, setDeclineNote] = React.useState("")
   const [isDeclining, setIsDeclining] = React.useState(false)
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       setLoading(true)
       setError("")
@@ -91,8 +64,7 @@ const AdminPage = () => {
         setBookings(data)
         
         if (adminSelectedTherapistId || ths.length > 0) {
-          const rules = await therapistService.getAvailabilityRules(adminSelectedTherapistId || ths[0].id);
-          setMyRules(rules);
+          
         }
       } else {
         // Therapist Logic
@@ -103,33 +75,32 @@ const AdminPage = () => {
           const data = await bookingService.getBookingsByTherapist(therapist.id);
           setBookings(data)
           
-          const rules = await therapistService.getAvailabilityRules(therapist.id);
-          setMyRules(rules);
+          
         } else {
           setError('No therapist profile found mapped to your account. Please contact support.')
         }
       }
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("Fetch data error:", err)
-      setError(err.message || "An unexpected error occurred while fetching data.")
+      setError(err instanceof Error ? err.message : "An unexpected error occurred while fetching data.")
     } finally {
       setLoading(false)
     }
-  }
+  }, [adminSelectedTherapistId, currentUser?.role, currentUser?.uid, navigate]);
 
   React.useEffect(() => {
     fetchData()
-  }, [navigate, currentUser?.uid, currentUser?.role, adminSelectedTherapistId])
+  }, [fetchData])
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
       setProcessingId(id)
       await bookingService.updateStatus(id, status);
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
-    } catch (err: any) {
+    } catch (err) {
       console.error("Update status error:", err)
-      setError(err?.message || "Something went wrong while updating the booking status.")
+      setError(err instanceof Error ? err.message : "Something went wrong while updating the booking status.")
     } finally {
       setProcessingId(null)
     }
@@ -144,48 +115,11 @@ const AdminPage = () => {
       setDeclineBookingDoc(null);
       setDeclineReason("Therapist unavailable");
       setDeclineNote("");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Decline status error:", err)
-      setError(err?.message || "Failed to decline booking.")
+      setError(err instanceof Error ? err.message : "Failed to decline booking.")
     } finally {
       setIsDeclining(false);
-    }
-  }
-
-  const handleSaveAvailability = async () => {
-    const targetTherapistId = currentUser?.role === 'admin' ? adminSelectedTherapistId : myTherapistProfile?.id;
-    if (!availStart || !availEnd || !targetTherapistId) return;
-    try {
-      setLoading(true);
-      setSaveStatus('saving');
-      await therapistService.addAvailabilityRule({
-        therapistId: targetTherapistId,
-        dayOfWeek: availDay,
-        startTime: availStart,
-        endTime: availEnd,
-        slotDuration: availDuration
-      });
-      await fetchData();
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to save availability rule");
-      setSaveStatus('idle');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleDeleteAvailability = async (id: string) => {
-    if (!currentUser?.uid) return;
-    try {
-      setLoading(true);
-      await therapistService.deleteAvailabilityRule(id);
-      await fetchData();
-    } catch (err: any) {
-      setError(err.message || "Failed to delete availability rule");
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -194,253 +128,27 @@ const AdminPage = () => {
     navigate.push('/'); // Redirect to home
   }
 
-  const previewSlots = React.useMemo(() => {
-    const slots = [];
-    try {
-      const [startH, startM] = availStart.split(':').map(Number);
-      const [endH, endM] = availEnd.split(':').map(Number);
-      
-      let currentMin = startH * 60 + startM;
-      const endMin = endH * 60 + endM;
-
-      while (currentMin + availDuration <= endMin) {
-        const h = Math.floor(currentMin / 60);
-        const m = currentMin % 60;
-        slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-        currentMin += availDuration;
-      }
-    } catch {
-       // Ignore parsing errors
-    }
-    return slots;
-  }, [availStart, availEnd, availDuration]);
-
-  const filteredBookings = bookings.filter(b => {
-    const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
-    const matchesDate = !dateFilter || b.date === dateFilter;
-    const matchesTherapist = therapistFilter === 'all' || b.therapistId === therapistFilter;
-    return matchesStatus && matchesDate && matchesTherapist;
-  })
-
-  const getTherapistName = (id: string) => {
-    const th = allTherapists.find(t => t.id === id);
-    return th?.name || "Unknown Therapist";
-  };
+  const filteredBookings = bookings;
 
   const scheduleBuilderNode = (
-    <div className="flex flex-col lg:flex-row gap-8 items-start">
-      
-      {/* LEFT: RULE BUILDER */}
-      <div className="flex-1 lg:flex-[0.4] bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border border-primary/5 w-full sticky top-32">
-        <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Schedule Builder</h2>
-        
-        <div className="space-y-8">
-          {currentUser?.role === 'admin' && (
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
-                <User className="w-3 h-3" /> Select Therapist
-              </label>
-              <div className="relative group">
-                <select 
-                  value={adminSelectedTherapistId}
-                  onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
-                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-Hover:border-primary/10"
-                >
-                  {allTherapists.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
-              </div>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
-              <Calendar className="w-3 h-3" /> Day of Week
-            </label>
-            <div className="relative group">
-              <select 
-                value={availDay}
-                onChange={(e) => setAvailDay(Number(e.target.value))}
-                className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-hover:border-primary/10"
-              >
-                <option value={0}>Sunday</option>
-                <option value={1}>Monday</option>
-                <option value={2}>Tuesday</option>
-                <option value={3}>Wednesday</option>
-                <option value={4}>Thursday</option>
-                <option value={5}>Friday</option>
-                <option value={6}>Saturday</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
-              <Clock className="w-3 h-3" /> Time Range
-            </label>
-            <div className="flex gap-4">
-              <div className="flex-1 relative group">
-                <input 
-                  type="time"
-                  value={availStart}
-                  onChange={(e) => setAvailStart(e.target.value)}
-                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer group-hover:border-primary/10"
-                />
-              </div>
-              <div className="flex items-center text-primary/20 font-bold">-</div>
-              <div className="flex-1 relative group">
-                <input 
-                  type="time"
-                  value={availEnd}
-                  onChange={(e) => setAvailEnd(e.target.value)}
-                  className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer group-hover:border-primary/10"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60">
-              <Timer className="w-3 h-3" /> Slot Duration
-            </label>
-            <div className="relative group">
-              <select 
-                value={availDuration}
-                onChange={(e) => setAvailDuration(Number(e.target.value))}
-                className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none group-hover:border-primary/10"
-              >
-                <option value={30}>30 Minutes</option>
-                <option value={45}>45 Minutes</option>
-                <option value={60}>60 Minutes</option>
-                <option value={90}>90 Minutes</option>
-              </select>
-              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/30 pointer-events-none group-hover:text-primary/60 transition-colors" />
-            </div>
-          </div>
-
-          <Button 
-            onClick={handleSaveAvailability} 
-            disabled={saveStatus === 'saving' || !availStart || !availEnd}
-            className={cn(
-              "w-full h-14 rounded-2xl text-sm mt-4 font-bold tracking-wide transition-all duration-300",
-              saveStatus === 'success' 
-                ? "bg-green-500 hover:bg-green-600 shadow-green-500/20 shadow-lg" 
-                : "bg-primary hover:bg-primary/90 shadow-primary/20 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-            )}
+    <div className="w-full">
+      {currentUser?.role === 'admin' && (
+        <div className="mb-8">
+          <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">
+            Select Therapist to edit schedule
+          </label>
+          <select 
+            value={adminSelectedTherapistId}
+            onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
+            className="block w-full max-w-sm h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none"
           >
-            {saveStatus === 'saving' ? (
-              <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Saving...</span>
-            ) : saveStatus === 'success' ? (
-              <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Rule Saved</span>
-            ) : (
-              <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Add Rule</span>
-            )}
-          </Button>
+            {allTherapists.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
         </div>
-      </div>
-
-      {/* RIGHT: PREVIEW & ACTIVE RULES */}
-      <div className="flex-1 lg:flex-[0.6] flex flex-col gap-8 w-full">
-        
-        {/* REAL-TIME PREVIEW */}
-        <div className="bg-[#FCFAF7] p-8 md:p-12 rounded-[3.5rem] border border-primary/5 shadow-inner">
-           <h3 className="font-serif text-2xl tracking-tight text-primary mb-6 flex flex-wrap items-center justify-between gap-4">
-             <div className="flex items-center gap-3">
-               <LayoutGrid className="w-5 h-5 text-accent" /> Layout Preview
-             </div>
-             <span className="text-[10px] uppercase font-bold tracking-widest text-primary/40 bg-white px-4 py-1.5 rounded-full border border-primary/5 shadow-sm">
-               {previewSlots.length} slots generated
-             </span>
-           </h3>
-           
-           {previewSlots.length > 0 ? (
-             <div className="flex flex-wrap gap-2 md:gap-3">
-               {previewSlots.map((slot, i) => (
-                 <motion.div 
-                   initial={{ opacity: 0, scale: 0.9 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   transition={{ delay: i * 0.02 }}
-                   key={slot}
-                   className="px-4 py-2.5 bg-white rounded-xl border border-primary/5 text-sm font-bold text-primary shadow-sm hover:border-accent/30 hover:text-accent hover:-translate-y-0.5 transition-all cursor-default"
-                 >
-                   {slot}
-                 </motion.div>
-               ))}
-             </div>
-           ) : (
-             <div className="text-center py-12 px-4 border-2 border-dashed border-primary/10 rounded-3xl bg-white/50">
-               <Calendar className="w-8 h-8 text-primary/10 mx-auto mb-3" />
-               <p className="text-primary/40 text-sm font-medium">No valid time range selected.</p>
-             </div>
-           )}
-        </div>
-
-        {/* ACTIVE RULES */}
-        <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-primary/5 shadow-sm">
-          <h3 className="font-serif text-2xl tracking-tight text-primary mb-8 flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-accent" /> Active Schedule Rules
-          </h3>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <AnimatePresence mode="popLayout">
-              {myRules.length === 0 ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="col-span-1 sm:col-span-2 text-center py-16 bg-[#FAFAFA] rounded-3xl border-2 border-dashed border-primary/5"
-                >
-                  <Calendar className="w-10 h-10 text-primary/10 mx-auto mb-4" />
-                  <p className="text-primary/40 font-medium">🌿 Cultivate your schedule.</p>
-                  <p className="text-xs text-primary/30 mt-1">Add a rule from the builder to get started.</p>
-                </motion.div>
-              ) : (
-                myRules.map((rule: any) => {
-                  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                  return (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={rule.id} 
-                    className="group bg-[#FAFAFA] hover:bg-white p-6 rounded-3xl border border-primary/5 hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 flex flex-col relative overflow-hidden"
-                  >
-                    {/* Accent line */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent/40 to-accent/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="bg-accent/10 text-accent font-bold text-[10px] px-3 py-1 rounded-full uppercase tracking-widest border border-accent/10">
-                        {days[rule.dayOfWeek]}
-                      </div>
-                      <button 
-                        onClick={() => handleDeleteAvailability(rule.id)}
-                        className="w-8 h-8 rounded-full bg-white border border-primary/5 flex items-center justify-center text-primary/20 hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-colors shadow-sm"
-                        title="Delete Rule"
-                      >
-                        <Trash className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    
-                    <div className="mt-auto">
-                      <div className="text-2xl font-serif text-primary tracking-tight mb-1 flex items-center gap-2">
-                        {rule.startTime} <span className="text-primary/20 text-lg font-sans">-</span> {rule.endTime}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary/40">
-                        <Timer className="w-3 h-3 opacity-60" /> {rule.slotDuration} min sessions
-                      </div>
-                    </div>
-                  </motion.div>
-                )})
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-      </div>
+      )}
+      <ScheduleBuilder therapistId={currentUser?.role === 'admin' ? adminSelectedTherapistId : (myTherapistProfile?.id || "")} />
     </div>
   );
 
@@ -532,7 +240,7 @@ const AdminPage = () => {
                   <div>
                     <h3 className="text-xl font-serif text-primary">Decline Booking</h3>
                     <p className="text-sm text-primary/60 mt-1">
-                      For {declineBookingDoc.name}'s session on {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""} at {declineBookingDoc.time}
+                      For {declineBookingDoc.name}&apos;s session on {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""} at {declineBookingDoc.time}
                     </p>
                   </div>
                 </div>

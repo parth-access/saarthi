@@ -18,14 +18,14 @@ export function useBooking() {
         setError(msg);
         return { success: false, error: msg };
       }
-    } catch (err: any) {
-      const msg = err.message || 'Network error';
+    } catch (err) {
+      const msg = (err instanceof Error ? err.message : String(err)) || 'Network error';
       setError(msg);
       return { success: false, error: msg };
     }
   }
 
-  async function createBooking(bookingData: any) {
+  async function createBooking(bookingData: Parameters<typeof bookingService.createBooking>[0]) {
     setSubmitting(true);
     setError(null);
     try {
@@ -35,8 +35,8 @@ export function useBooking() {
       
       handleSuccess('Booking request sent successfully!');
       return { success: true, data: { id: response.bookingId } };
-    } catch (err: any) {
-      const msg = err.message || 'Network error';
+    } catch (err) {
+      const msg = (err instanceof Error ? err.message : String(err)) || 'Network error';
       setError(msg);
       handleError(err, 'Failed to submit booking.');
       return { success: false, error: msg };

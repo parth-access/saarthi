@@ -9,8 +9,8 @@ export const theme = {
     background: "var(--color-background)",
   },
   animation: {
-    transition: { ease: "easeOut" as const, duration: 0.3 },
-    spring: { type: "spring", stiffness: 200, damping: 20 },
+    transition: { ease: "easeOut", duration: 0.3 } as const,
+    spring: { type: "spring", stiffness: 200, damping: 20 } as const,
   },
 }
 

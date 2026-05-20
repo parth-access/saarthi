@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 
+interface Diagnostics {
+  env: Record<string, boolean>;
+  services: Record<string, string>;
+  uptime: number;
+  lastError?: string;
+}
+
 export async function GET(request: Request) {
-  const diagnostics: Record<string, any> = {
+  const diagnostics: Diagnostics = {
     env: {
       RESEND_API_KEY: !!process.env.RESEND_API_KEY,
       APP_URL: !!process.env.APP_URL,
@@ -31,9 +38,9 @@ export async function GET(request: Request) {
     logger.info('SYSTEM', 'Health check performed successfully', diagnostics);
     return NextResponse.json({ status: 'healthy', diagnostics }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error) {
     diagnostics.services.firestore = 'error';
-    diagnostics.lastError = error.message;
+    diagnostics.lastError = (error instanceof Error ? error.message : String(error));
     logger.error('SYSTEM', 'Health check failed', error, diagnostics);
     return NextResponse.json({ status: 'unhealthy', diagnostics }, { status: 500 });
   }

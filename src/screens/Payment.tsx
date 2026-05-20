@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from "sonner";
 import { ShieldCheck, ArrowRight, Loader2, CreditCard, ChevronRight, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -30,7 +30,7 @@ export const Payment: React.FC = () => {
         setBooking(data.booking);
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load booking details.');
+        setError((err instanceof Error ? err.message : String(err)) || 'Failed to load booking details.');
       })
       .finally(() => {
         setLoading(false);
@@ -140,8 +140,8 @@ export const Payment: React.FC = () => {
            if (!verifyRes.ok) throw new Error(data.error || 'Payment verification failed');
            
            setSuccess(true);
-         } catch (err: any) {
-           setError(err.message || 'Payment verification failed. Please contact support if amount was deducted.');
+         } catch (err) {
+           setError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support if amount was deducted.');
          } finally {
            setVerifying(false);
          }

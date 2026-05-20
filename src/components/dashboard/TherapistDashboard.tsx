@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { format, parseISO, isToday, isPast, parse } from "date-fns"
 import { 
   LogOut, 
@@ -25,7 +25,7 @@ import {
   ChevronDown
 } from "lucide-react"
 import { Booking, BookingStatus, Therapist } from "../../types"
-import { cn } from "../../lib/utils"
+import { cn, toDateSafe } from "../../lib/utils"
 
 interface TherapistDashboardProps {
   therapist: Therapist | null;
@@ -258,7 +258,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 <div className="relative group min-w-[200px]">
                   <select 
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value as BookingStatus | 'all')}
                     className="w-full h-12 rounded-xl bg-[#FCFAF7] border-none px-4 pr-10 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer outline-none"
                   >
                     <option value="all">All Request Status</option>
@@ -495,7 +495,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   )
 }
 
-const StatCard = ({ title, value, icon: Icon, colorClass }: any) => (
+const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string; value: React.ReactNode; icon: React.ElementType; colorClass?: string }) => (
   <div className={cn("p-5 rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg", colorClass)}>
     <div className="flex items-center gap-3 mb-4 opacity-70">
       <Icon className="w-4 h-4" />
@@ -514,7 +514,7 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 )
 
-const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: any) => {
+const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: { booking: Booking; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void; isProcessing: boolean }) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
 
   const StatusIcon = (booking.status === 'pending' || booking.status === 'pending_approval') ? Clock : 
@@ -566,7 +566,7 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
             <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-sm mt-4">
               <div className="text-red-800 font-bold mb-1">Declined: {booking.declineReason}</div>
               {booking.declineCustomNote && <div className="text-red-600 block">{booking.declineCustomNote}</div>}
-              {booking.declinedAt && <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">{format(booking.declinedAt?.toDate ? booking.declinedAt.toDate() : new Date(booking.declinedAt), "MMM d, yyyy h:mm a")}</div>}
+              {booking.declinedAt && <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">{format(toDateSafe(booking.declinedAt) || new Date(), "MMM d, yyyy h:mm a")}</div>}
             </div>
           )}
         </div>
