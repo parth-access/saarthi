@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { SignJWT } from 'jose';
 
 export async function POST(request: Request) {
   try {
@@ -9,16 +10,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing ID token' }, { status: 400 });
     }
 
-    // Set session expiration to 5 days.
-    const expiresIn = 60 * 60 * 24 * 5 * 1000;
+    // Verify token to ensure authenticity
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
     
-    // Create the session cookie. This will also verify the ID token.
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    // Fetch user role from database
+    const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();
+    let role = 'client';
+    if (userDoc.exists) {
+       const userData = userDoc.data();
+       role = userData?.role || 'client';
+    }
+
+    // Create a Custom Edge-Verifiable JWT
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+    const alg = 'HS256';
+    
+    const expiresInSeconds = 60 * 60 * 24 * 5; // 5 days
+
+    const sessionCookie = await new SignJWT({ 
+      uid: decodedToken.uid, 
+      email: decodedToken.email,
+      role 
+    })
+      .setProtectedHeader({ alg })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
 
     const response = NextResponse.json({ success: true }, { status: 200 });
     
     response.cookies.set('__session', sessionCookie, {
-      maxAge: expiresIn / 1000,
+      maxAge: expiresInSeconds,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
@@ -26,7 +48,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error('Error creating session cookie:', error);
+    console.error('Error creating custom session cookie:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
