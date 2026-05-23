@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { checkTherapistAccess } from "../../_lib/authCheck";
-import { logger } from "../../../_lib/logger";
+import { logger } from "@/app/api/_lib/logger";
 
 export async function POST(request: Request) {
   try {
