@@ -160,7 +160,7 @@ export function generateBookingConfirmedEmail(data: BookingEmailData): string {
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthi.vercel.app'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
     </div>
     ` : ''}
 
@@ -205,7 +205,7 @@ export function generateBookingRescheduledEmail(data: BookingEmailData, original
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthi.vercel.app'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
     </div>
     ` : ''}
 

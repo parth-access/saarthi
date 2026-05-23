@@ -1,73 +1,56 @@
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
-import { requireTherapist } from '../../../../lib/auth/requireRole';
-import { BookingService } from '@/server/services/BookingService';
+import { NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase/admin";
+import { Resend } from "resend";
+import { FieldValue } from "firebase-admin/firestore";
+import { verifySession } from "@/lib/auth/verifySession";
 
-const schema = z.object({
-  bookingId: z.string(),
-  newDate: z.string(),
-  newTime: z.string()
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+const ADMIN_EMAIL = 'admin@saarthilife.com';
+const FROM_EMAIL = 'Saarthi <noreply@saarthilife.com>';
 
 export async function POST(req: Request) {
   try {
-    const authResult = await requireTherapist(req);
-    if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
+    const decodedClaims = await verifySession(req);
+    if (!decodedClaims) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
-    
-    const { bookingId, newDate, newTime } = parsed.data;
+    const { userId, bookingId, therapistId, userName, userEmail, reason } = await req.json();
 
-    const bookingData = await BookingService.rescheduleBooking(bookingId, newDate, newTime, {
-      uid: session.uid,
-      role: session.role
+    if (userId !== decodedClaims.uid) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (!userId || !bookingId || !therapistId || !userEmail) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Create reschedule request in Firestore
+    const docRef = await adminDb.collection("reschedule_requests").add({
+      userId,
+      bookingId,
+      therapistId,
+      reason: reason || "No reason provided",
+      status: "pending",
+      createdAt: FieldValue.serverTimestamp()
     });
 
-    const therapistId = bookingData.therapistId;
+    // Send email to admin
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `Reschedule Request: ${userName}`,
+      html: `
+        <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+          <h2 style="color: #E6A520;">New Reschedule Request</h2>
+          <p><strong>${userName}</strong> (${userEmail}) wants to reschedule booking <strong>${bookingId}</strong>.</p>
+          <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
+          <p>Please log in to the admin dashboard to coordinate further.</p>
+        </div>
+      `,
+    });
 
-    try {
-        const protocol = req.headers.get('x-forwarded-proto') || 'http';
-        const host = req.headers.get('host');
-        const origin = `${protocol}://${host}`;
-        
-        try {
-          await fetch(`${origin}/api/email`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': req.headers.get('Authorization') || '' 
-            },
-            body: JSON.stringify({ 
-              type: 'booking-rescheduled', 
-              bookingId, 
-              therapistId,
-              bookingDetails: {
-                  name: bookingData.name,
-                  email: bookingData.email,
-                  phone: bookingData.phone,
-                  date: newDate,
-                  time: newTime,
-                  originalDate: bookingData.date,
-                  originalTime: bookingData.time,
-                  sessionMode: bookingData.sessionMode,
-                  bookingToken: bookingData.bookingToken,
-              }
-            })
-          });
-        } catch(err) {
-          console.error('Failed to send reschedule email:', err);
-        }
-    } catch {}
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id: docRef.id });
   } catch (error) {
-    const msg = (error instanceof Error ? error.message : String(error)).includes("unavailable") ? "This new slot is unavailable." :
-                (error instanceof Error ? error.message : String(error)).includes("booked") ? "This new slot is already booked." :
-                (error instanceof Error ? error.message : String(error)).includes("Unauthorized") ? "Unauthorized" :
-                "Failed to reschedule booking";
-    return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    console.error("Error creating reschedule request:", error);
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }

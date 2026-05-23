@@ -5,8 +5,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/verifySession";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const ADMIN_EMAIL = 'admin@saarthi.com';
-const FROM_EMAIL = 'Saarthi <noreply@saarthi.com>';
+const ADMIN_EMAIL = 'admin@saarthilife.com';
+const FROM_EMAIL = 'Saarthi <noreply@saarthilife.com>';
 
 export async function POST(req: Request) {
   try {
