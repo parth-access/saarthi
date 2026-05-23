@@ -14,7 +14,7 @@ import { logger } from '../utils/logger';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const currentUser = auth?.currentUser;
-  let headers: HeadersInit = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   
   if (currentUser) {
     const token = await currentUser.getIdToken();
@@ -102,7 +102,7 @@ export const bookingService = {
   updateStatus: async (id: string, status: BookingStatus) => {
     if (status === 'awaiting_payment') {
       try {
-        const data = await fetchWithAuth('/api/payment/create-order', {
+        await fetchWithAuth('/api/payment/create-order', {
           method: 'POST',
           body: JSON.stringify({ bookingId: id })
         });

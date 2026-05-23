@@ -4,7 +4,7 @@ import { CheckCircle2 } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../ui/Button"
 import { cn } from "../../lib/utils"
-import { SessionType, Therapist } from "../../types"
+import { SessionType } from "../../types"
 
 // Step Components
 import { TherapistStep } from "./steps/TherapistStep"

@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react"
-// import { Helmet } from "react-helmet-async"
 import { motion, AnimatePresence } from "framer-motion"
-import { therapistService } from '../services/therapistService';
+import { therapistService } from '@/services/therapistService';
 import { 
   User, 
   CheckCircle2, 
@@ -11,29 +10,27 @@ import {
   Loader2, 
   ChevronDown
 } from "lucide-react"
-import { useRouter as useNavigate } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { format, parseISO } from "date-fns"
-import { Button } from "../components/ui/Button"
-import { cn } from "../lib/utils"
-import { BookingStatus, Booking, Therapist } from "../types"
-import { bookingService } from "../services/bookingService"
-import { useAuth } from "../contexts/AuthContext"
-import { TherapistDashboard } from "../components/dashboard/TherapistDashboard"
-import { ScheduleBuilder } from "../components/dashboard/ScheduleBuilder"
-import { ContactsPanel } from "../components/admin/ContactsPanel"
+import { Button } from "@/components/ui/Button"
+import { cn } from "@/lib/utils"
+import { BookingStatus, Booking, Therapist } from "@/types"
+import { bookingService } from "@/services/bookingService"
+import { useAuth } from "@/contexts/AuthContext"
+import { TherapistDashboard } from "@/components/dashboard/TherapistDashboard"
+import { ScheduleBuilder } from "@/components/dashboard/ScheduleBuilder"
+import { ContactsPanel } from "@/components/admin/ContactsPanel"
 
-const AdminPage = () => {
+export const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
   
-  // Tab/Filter states
-  // Filter state for dashboard removed as it's handled internally
   const { currentUser } = useAuth()
   const [myTherapistProfile, setMyTherapistProfile] = React.useState<Therapist | null>(null)
 
-  const navigate = useNavigate()
+  const navigate = useRouter()
   const { logout } = useAuth()
 
   // Global Admin States
@@ -62,10 +59,6 @@ const AdminPage = () => {
 
         const data = await bookingService.getBookings();
         setBookings(data)
-        
-        if (adminSelectedTherapistId || ths.length > 0) {
-          
-        }
       } else {
         // Therapist Logic
         const therapist = await therapistService.getTherapistByAuthId(currentUser.uid);
@@ -74,8 +67,6 @@ const AdminPage = () => {
         if (therapist) {
           const data = await bookingService.getBookingsByTherapist(therapist.id);
           setBookings(data)
-          
-          
         } else {
           setError('No therapist profile found mapped to your account. Please contact support.')
         }
@@ -83,11 +74,11 @@ const AdminPage = () => {
 
     } catch (err) {
       console.error("Fetch data error:", err)
-      setError(err instanceof Error ? err.message : "An unexpected error occurred while fetching data.")
+      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "An unexpected error occurred while fetching data.")
     } finally {
       setLoading(false)
     }
-  }, [adminSelectedTherapistId, currentUser?.role, currentUser?.uid, navigate]);
+  }, [adminSelectedTherapistId, currentUser?.role, currentUser?.uid]);
 
   React.useEffect(() => {
     fetchData()
@@ -100,7 +91,7 @@ const AdminPage = () => {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
     } catch (err) {
       console.error("Update status error:", err)
-      setError(err instanceof Error ? err.message : "Something went wrong while updating the booking status.")
+      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "Something went wrong while updating the booking status.")
     } finally {
       setProcessingId(null)
     }
@@ -117,7 +108,7 @@ const AdminPage = () => {
       setDeclineNote("");
     } catch (err) {
       console.error("Decline status error:", err)
-      setError(err instanceof Error ? err.message : "Failed to decline booking.")
+      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "Failed to decline booking.")
     } finally {
       setIsDeclining(false);
     }
@@ -125,7 +116,7 @@ const AdminPage = () => {
 
   const handleLogout = () => {
     logout();
-    navigate.push('/'); // Redirect to home
+    navigate.push('/');
   }
 
   const filteredBookings = bookings;
@@ -133,19 +124,22 @@ const AdminPage = () => {
   const scheduleBuilderNode = (
     <div className="w-full">
       {currentUser?.role === 'admin' && (
-        <div className="mb-8">
+        <div className="mb-8 text-left">
           <label className="flex items-center gap-2 text-[10px] uppercase font-bold text-accent tracking-widest opacity-60 mb-2">
             Select Therapist to edit schedule
           </label>
-          <select 
-            value={adminSelectedTherapistId}
-            onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
-            className="block w-full max-w-sm h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none"
-          >
-            {allTherapists.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
+          <div className="relative w-full max-w-sm">
+            <select 
+              value={adminSelectedTherapistId}
+              onChange={(e) => setAdminSelectedTherapistId(e.target.value)}
+              className="block w-full h-14 rounded-2xl bg-[#FCFAF7] border border-primary/5 px-6 text-sm font-semibold text-primary focus:ring-2 focus:ring-accent/20 transition-all cursor-pointer appearance-none outline-none font-sans"
+            >
+              {allTherapists.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40 pointer-events-none" />
+          </div>
         </div>
       )}
       <ScheduleBuilder therapistId={currentUser?.role === 'admin' ? adminSelectedTherapistId : (myTherapistProfile?.id || "")} />
@@ -153,13 +147,13 @@ const AdminPage = () => {
   );
 
   const adminTherapistsNode = currentUser?.role === 'admin' ? (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans">
       <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Therapists</h2>
       {allTherapists.map(t => (
-        <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[#FCFAF7] rounded-3xl border border-primary/5 gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)]">
+        <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[#FCFAF7] rounded-3xl border border-primary/5 gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] text-left">
           <div className="flex items-center gap-4">
             {t.image ? (
-              <img src={t.image} alt={t.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary/5" />
+              <img src={t.image} alt={t.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary/5 shadow-sm" referrerPolicy="no-referrer" />
             ) : (
               <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary/40"><User className="w-6 h-6" /></div>
             )}
@@ -176,7 +170,7 @@ const AdminPage = () => {
               variant="outline"
               size="sm"
               disabled={loading}
-              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide"
+              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide cursor-pointer"
               onClick={async () => {
                 try {
                   setLoading(true);
@@ -199,7 +193,6 @@ const AdminPage = () => {
 
   return (
     <>
-      {/* Helmet removed */}
       <TherapistDashboard 
         therapist={myTherapistProfile}
         bookings={currentUser?.role === 'admin' ? filteredBookings : bookings}
@@ -234,12 +227,12 @@ const AdminPage = () => {
             >
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 animate-pulse">
                     <XCircle className="w-6 h-6" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <h3 className="text-xl font-serif text-primary">Decline Booking</h3>
-                    <p className="text-sm text-primary/60 mt-1">
+                    <p className="text-sm text-primary/60 mt-1 font-sans">
                       For {declineBookingDoc.name}&apos;s session on {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""} at {declineBookingDoc.time}
                     </p>
                   </div>
@@ -247,13 +240,13 @@ const AdminPage = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2">Reason</label>
-                    <div className="relative group">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2 font-sans">Reason</label>
+                    <div className="relative group text-left">
                       <select
                         value={declineReason}
                         onChange={(e) => setDeclineReason(e.target.value)}
                         disabled={isDeclining}
-                        className="w-full h-12 rounded-xl bg-[#FCFAF7] border border-primary/5 px-4 pr-10 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all outline-none"
+                        className="w-full h-12 rounded-xl bg-[#FCFAF7] border border-primary/5 px-4 pr-10 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all outline-none cursor-pointer font-sans"
                       >
                         <option value="Therapist unavailable">Therapist unavailable</option>
                         <option value="Requested slot unavailable">Requested slot unavailable</option>
@@ -267,29 +260,29 @@ const AdminPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2">Custom Note (Optional)</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2 font-sans">Custom Note (Optional)</label>
                     <textarea
                       value={declineNote}
                       onChange={(e) => setDeclineNote(e.target.value)}
                       disabled={isDeclining}
                       placeholder="Add a polite note to be included in the email..."
-                      className="w-full h-24 rounded-xl bg-[#FCFAF7] border border-primary/5 p-4 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none resize-none placeholder:font-normal placeholder:text-primary/30"
+                      className="w-full h-24 rounded-xl bg-[#FCFAF7] border border-primary/5 p-4 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none resize-none placeholder:font-normal placeholder:text-primary/30 font-sans text-left"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 mt-8">
+                <div className="flex items-center justify-end gap-3 mt-8 font-sans">
                   <button
                     disabled={isDeclining}
                     onClick={() => setDeclineBookingDoc(null)}
-                    className="px-6 h-12 rounded-xl text-sm font-bold text-primary/60 hover:text-primary hover:bg-primary/5 transition-all"
+                    className="px-6 h-12 rounded-xl text-sm font-bold text-primary/60 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     disabled={isDeclining}
                     onClick={handleDeclineConfirm}
-                    className="px-6 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:transform-none"
+                    className="px-6 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:transform-none cursor-pointer"
                   >
                     {isDeclining ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                     Confirm Decline
@@ -303,5 +296,3 @@ const AdminPage = () => {
     </>
   );
 }
-
-export default AdminPage

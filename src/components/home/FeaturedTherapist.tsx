@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import { Button } from "../ui/Button"
 import Link from "next/link"
 
@@ -54,7 +54,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
                   Know Your Saarthi
                 </Link>
               </Button>
-              <Button asChild size="lg">
+              <Button asChild size="lg" onClick={onBookClick}>
                 <Link href="/book">
                   Book Session
                 </Link>

@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
       const { payload } = await jwtVerify(session, secret);
       decodedRole = payload.role as string | undefined;
-    } catch (error) {
+    } catch {
       // Invalid session: clear cookie and redirect safely
       if (isAuthPath) {
         const response = NextResponse.next();

@@ -3,9 +3,9 @@ import { collection, query, orderBy, limit, getDocs, updateDoc, doc, deleteDoc, 
 import { db } from '../../lib/firebase/client';
 import { format } from 'date-fns';
 import { Button } from '../ui/Button';
-import { CheckCircle2, Circle, Search, ShieldAlert, Trash2, MailOpen, User, Archive } from 'lucide-react';
-import { Input } from '../ui/Input';
-import { cn } from '../../lib/utils';
+import { CheckCircle2, Search, ShieldAlert, Trash2, MailOpen, User } from 'lucide-react';
+
+import { toDateSafe, cn } from '../../lib/utils';
 
 interface Contact {
   id: string;
@@ -14,14 +14,14 @@ interface Contact {
   message: string;
   status: 'unread' | 'in-progress' | 'resolved' | 'spam';
   priority: 'normal' | 'high';
-  createdAt: any;
+  createdAt: unknown;
   source: string;
 }
 
 export function ContactsPanel() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [lastDoc, setLastDoc] = useState<unknown>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'resolved' | 'spam'>('all');
 
@@ -60,6 +60,7 @@ export function ContactsPanel() {
 
   useEffect(() => {
     fetchContacts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateStatus = async (id: string, status: Contact['status']) => {
@@ -110,7 +111,7 @@ export function ContactsPanel() {
           <select 
             className="h-12 px-4 pr-10 rounded-2xl bg-white border border-primary/10 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-primary/5 outline-none cursor-pointer"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'unread' | 'resolved' | 'spam')}
           >
             <option value="all">All</option>
             <option value="unread">Unread</option>
@@ -144,7 +145,7 @@ export function ContactsPanel() {
                           <User className="w-3.5 h-3.5" /> {contact.email}
                         </a>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {contact.createdAt ? format(contact.createdAt.toDate(), "MMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
+                          {contact.createdAt ? format(toDateSafe(contact.createdAt) || new Date(), "MMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
                         </div>
                       </div>
                     </div>
@@ -182,7 +183,7 @@ export function ContactsPanel() {
           </div>
         )}
         
-        {lastDoc && filteredContacts.length >= 20 && (
+        {!!lastDoc && filteredContacts.length >= 20 && (
           <div className="p-4 border-t border-primary/5 flex justify-center">
             <Button variant="outline" onClick={() => fetchContacts(true)} disabled={loading}>
               {loading ? 'Loading...' : 'Load More'}

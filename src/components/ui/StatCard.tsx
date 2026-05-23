@@ -1,7 +1,7 @@
 import * as React from "react"
-import { motion, HTMLMotionProps } from "framer-motion"
+import { HTMLMotionProps } from "framer-motion"
 import { cn } from "../../lib/utils"
-import { DashboardCard, theme } from "./DashboardCard"
+import { DashboardCard } from "./DashboardCard"
 import { ArrowUpRight, ArrowDownRight, LucideIcon } from "lucide-react"
 
 interface StatCardProps extends HTMLMotionProps<"div"> {

@@ -121,8 +121,6 @@ export function generateBookingReceivedEmail(data: BookingEmailData): string {
 }
 
 export function generateBookingConfirmedEmail(data: BookingEmailData): string {
-  const isOnline = !data.sessionMode || data.sessionMode.toLowerCase() === 'online';
-  
   const content = `
     <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">We are pleased to let you know that your session with <strong>${data.therapistName}</strong> has been officially confirmed.</p>

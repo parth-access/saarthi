@@ -22,7 +22,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
       const period = hours >= 12 ? 'PM' : 'AM'
       const h12 = hours % 12 || 12
       return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`
-    } catch (e) {
+    } catch {
       return time24
     }
   }
@@ -31,7 +31,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     return (
       <div className="py-20 flex flex-col items-center">
         <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-        <p className="font-serif italic text-primary/60">Checking the specialist's availability...</p>
+        <p className="font-serif italic text-primary/60">{"Checking the specialist's availability..."}</p>
       </div>
     );
   }

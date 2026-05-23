@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import Link from "next/link"
 
 import { QuoteRotator } from "./QuoteRotator"
@@ -25,7 +25,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
               <span className="italic text-accent">Move forward.</span>
             </h1>
             <p className="mb-8 text-lg text-muted-foreground md:text-xl lg:max-w-lg">
-              Professional psychological guidance to help you navigate life's complexities with emotional clarity and mental wellness.
+              {"Professional psychological guidance to help you navigate life's complexities with emotional clarity and mental wellness."}
             </p>
             
             <div className="mb-10 w-full lg:max-w-md">
@@ -33,7 +33,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
             </div>
 
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-start sm:space-x-6 sm:space-y-0">
-              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg">
+              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg" onClick={onBookClick}>
                 <Link href="/book">Book a Session</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="px-10 py-7 text-lg">

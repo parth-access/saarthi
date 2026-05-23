@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
 import { MapPin, Languages, Calendar } from "lucide-react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import Link from "next/link"
 
 interface ProfileHeroProps {
@@ -57,10 +57,10 @@ const ProfileHero = ({
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" variant="primary">
+              <Button asChild size="lg" variant="primary" onClick={onBookClick}>
                 <Link href="/book">Book Session</Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="outline" onClick={onBookClick}>
                 <Link href="/book">View Schedule</Link>
               </Button>
             </div>

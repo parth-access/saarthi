@@ -9,7 +9,7 @@ interface Diagnostics {
   lastError?: string;
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const diagnostics: Diagnostics = {
     env: {
       RESEND_API_KEY: !!process.env.RESEND_API_KEY,
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   };
 
   try {
-    const snap = await adminDb.collection("therapists").limit(1).get();
+    await adminDb.collection("therapists").limit(1).get();
     diagnostics.services.firestore = 'ok';
     
     if (process.env.RESEND_API_KEY) {

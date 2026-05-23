@@ -2,7 +2,7 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
-import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { Input } from "../../ui/Input"
 import { Textarea } from "../../ui/Textarea"
@@ -10,7 +10,7 @@ import { Textarea } from "../../ui/Textarea"
 const formSchema = bookingFormSchema;
 
 interface Props {
-  initialData: any;
+  initialData: Partial<FormData>;
   onNext: (data: FormData) => void;
   onBack: () => void;
 }

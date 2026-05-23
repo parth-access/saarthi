@@ -1,6 +1,5 @@
 import * as React from "react"
-import { Loader2, ShieldCheck, AlertCircle, ChevronRight } from "lucide-react"
-import { Therapist } from "../../../types"
+import { ShieldCheck, AlertCircle, ChevronRight } from "lucide-react"
 import { useTherapists } from "../../../hooks/useTherapists"
 import { cn } from "../../../lib/utils"
 import { Skeleton } from "../../ui/Skeleton"

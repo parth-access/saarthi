@@ -1,6 +1,6 @@
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { X } from "lucide-react"
 import { Button } from "../ui/Button"
 import Link from "next/link"
@@ -93,6 +93,10 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
               <Button 
                 asChild
                 className="w-full h-14 text-base font-bold tracking-wider uppercase rounded-full bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/10" 
+                onClick={() => {
+                  onClose();
+                  if (onBookClick) onBookClick();
+                }}
               >
                 <Link href="/book" onClick={onClose}>
                   Book a Session

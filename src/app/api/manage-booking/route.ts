@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../_lib/logger";
+import { BookingService } from "@/server/services/BookingService";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       if (therapistDoc.exists) {
         therapistName = therapistDoc.data()?.name || therapistName;
       }
-    } catch (err) {
+    } catch {
       logger.warn('MANAGE_BOOKING', "Failed to fetch therapist info", { therapistId: data.therapistId });
     }
 
@@ -110,87 +110,11 @@ export async function POST(request: Request) {
     if (snapshot.empty)
       return NextResponse.json({ error: "Booking not found or link expired." }, { status: 404 });
 
-    const docRef = snapshot.docs[0].ref;
+    const bookingId = snapshot.docs[0].id;
     const data = snapshot.docs[0].data();
 
-    if (data.status === "cancelled" || data.status === "rejected") {
-      return NextResponse.json({
-          error: "Cannot reschedule a cancelled or rejected booking.",
-        }, { status: 400 });
-    }
-
-    await adminDb.runTransaction(async (transaction) => {
-      const docSnap = await transaction.get(docRef);
-      if (!docSnap.exists) throw new Error("Booking not found");
-
-      const latestData = docSnap.data()!;
-
-      const oldSlotId =
-        `${latestData.therapistId}_${latestData.date}_${latestData.time}`.replace(
-          /\//g,
-          "-",
-        );
-      const oldSlotRef = adminDb.collection("locked_slots").doc(oldSlotId);
-
-      const newSlotId =
-        `${latestData.therapistId}_${newDate}_${newTime}`.replace(/\//g, "-");
-      const newSlotRef = adminDb.collection("locked_slots").doc(newSlotId);
-
-      const newSlotSnap = await transaction.get(newSlotRef);
-      if (newSlotSnap.exists) {
-        const slotData = newSlotSnap.data();
-        if (slotData) {
-           if (
-             slotData?.expiresAt &&
-             typeof slotData.expiresAt.toDate === 'function' &&
-             slotData.expiresAt.toDate() < new Date()
-           ) {
-             transaction.delete(newSlotRef);
-           } else if (
-             slotData?.expiresAt &&
-             typeof slotData.expiresAt.toMillis === 'function' &&
-             slotData.expiresAt.toMillis() < Date.now()
-           ) {
-             transaction.delete(newSlotRef);
-           } else if (
-             slotData?.expiresAt &&
-             typeof slotData.expiresAt === 'number' &&
-             slotData.expiresAt < Date.now()
-           ) {
-             transaction.delete(newSlotRef);
-           } else if ('bookingId' in slotData) {
-             throw new Error("This new slot is already booked.");
-           } else {
-             throw new Error("This new slot is no longer available.");
-           }
-        }
-      }
-
-      transaction.delete(oldSlotRef);
-
-      transaction.set(newSlotRef, {
-        therapistId: latestData.therapistId,
-        date: newDate,
-        time: newTime,
-        bookingId: docSnap.id,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-
-      transaction.update(docRef, {
-        originalDate: latestData.date,
-        originalTime: latestData.time,
-        date: newDate,
-        time: newTime,
-        updatedAt: FieldValue.serverTimestamp(),
-        rescheduledAt: FieldValue.serverTimestamp(),
-      });
-
-      const auditRef = docRef.collection("audit_logs").doc();
-      transaction.set(auditRef, {
-        action: "rescheduled",
-        timestamp: FieldValue.serverTimestamp(),
-        details: `Booking rescheduled via manage link from ${latestData.date} ${latestData.time} to ${newDate} ${newTime}`,
-      });
+    await BookingService.rescheduleBooking(bookingId, newDate, newTime, {
+      isTokenFlow: true
     });
 
     try {
@@ -203,18 +127,18 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "booking-rescheduled",
-          bookingId: docRef.id,
+          bookingId: bookingId,
           therapistId: data.therapistId,
         }),
       });
     } catch (err) {
-      logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId: docRef.id });
+      logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId });
     }
 
-    logger.success('MANAGE_BOOKING', 'Booking rescheduled via token successfully', { bookingId: docRef.id, newDate, newTime });
-    return NextResponse.json({ success: true, bookingId: docRef.id }, { status: 200 });
-  } catch (err: any) {
+    logger.success('MANAGE_BOOKING', 'Booking rescheduled via token successfully', { bookingId, newDate, newTime });
+    return NextResponse.json({ success: true, bookingId: bookingId }, { status: 200 });
+  } catch (err) {
     logger.error('MANAGE_BOOKING', 'Reschedule failed', err, { ip: clientIp });
-    return NextResponse.json({ error: err.message || "Reschedule failed" }, { status: 500 });
+    return NextResponse.json({ error: (err instanceof Error ? err.message : String(err)) || "Reschedule failed" }, { status: 500 });
   }
 }

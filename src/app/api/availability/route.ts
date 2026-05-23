@@ -36,7 +36,6 @@ export async function GET(request: Request) {
 
     const bookedTimes = bookingsSnapshot.docs.map((doc) => doc.data().time);
 
-    const now = Date.now();
     const lockedTimes: string[] = [];
     const locksToDelete: string[] = [];
 
@@ -67,7 +66,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ bookedTimes, lockedTimes });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching availability:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

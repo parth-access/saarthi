@@ -3,7 +3,6 @@ import { format, addDays, startOfToday, isToday, isTomorrow } from "date-fns"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { cn } from "../../../lib/utils"
-import { motion } from "framer-motion"
 
 interface Props {
   selectedDate: string;

@@ -92,7 +92,7 @@ export async function POST(request: Request) {
         if (!decodedToken) {
           throw new Error('Invalid token');
         }
-      } catch (err) {
+      } catch {
         return NextResponse.json({ error: 'Forbidden: Invalid token' }, { status: 403 });
       }
     }
@@ -300,7 +300,7 @@ export async function POST(request: Request) {
       if (typeof Request !== 'undefined') {
         // Not reliable here if we consumed body already 
       }
-    } catch(e) { /* ignore */ }
+    } catch { /* ignore */ }
 
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
