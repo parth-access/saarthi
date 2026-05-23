@@ -1,9 +1,9 @@
 export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
-  category: 'BOOKING' | 'EMAIL' | 'FIRESTORE' | 'AUTH' | 'MANAGE_BOOKING' | 'SYSTEM' | 'PAYMENT';
+  category: 'BOOKING' | 'EMAIL' | 'FIRESTORE' | 'AUTH' | 'MANAGE_BOOKING' | 'SYSTEM' | 'THERAPIST_MUTATION' | 'PAYMENT' | 'THERAPIST_AUTH' | 'THERAPIST_AUTH2';
   message: string;
-  data?: any;
-  error?: any;
+  data?: unknown;
+  error?: unknown;
   requestId?: string;
   timestamp: string;
 }
@@ -46,16 +46,16 @@ function writeLog(entry: LogEntry) {
 }
 
 export const logger = {
-  info: (category: LogEntry['category'], message: string, data?: any, requestId?: string) => {
+  info: (category: LogEntry['category'], message: string, data?: unknown, requestId?: string) => {
     writeLog({ level: 'info', category, message, data, requestId, timestamp: new Date().toISOString() });
   },
-  warn: (category: LogEntry['category'], message: string, data?: any, requestId?: string) => {
+  warn: (category: LogEntry['category'], message: string, data?: unknown, requestId?: string) => {
     writeLog({ level: 'warn', category, message, data, requestId, timestamp: new Date().toISOString() });
   },
-  error: (category: LogEntry['category'], message: string, error?: any, data?: any, requestId?: string) => {
+  error: (category: LogEntry['category'], message: string, error?: unknown, data?: unknown, requestId?: string) => {
     writeLog({ level: 'error', category, message, error, data, requestId, timestamp: new Date().toISOString() });
   },
-  success: (category: LogEntry['category'], message: string, data?: any, requestId?: string) => {
+  success: (category: LogEntry['category'], message: string, data?: unknown, requestId?: string) => {
     writeLog({ level: 'success', category, message, data, requestId, timestamp: new Date().toISOString() });
   }
 };

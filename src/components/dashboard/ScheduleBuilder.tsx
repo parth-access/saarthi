@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { therapistService } from "../../services/therapistService";
 import { TherapistAvailabilityRule, TherapistOverride } from "../../types";
-import { motion, AnimatePresence } from "framer-motion";
 import { 
-  CalendarInfo, Clock, Settings, Save, Trash, CalendarOff, Plus, AlertCircle 
+  CalendarDays, Clock, Settings, Save, Trash, CalendarOff, AlertCircle 
 } from "lucide-react";
 
 interface ScheduleBuilderProps {
@@ -27,7 +26,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
   const [breakStart, setBreakStart] = useState("");
   const [breakEnd, setBreakEnd] = useState("");
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     try {
       const fetchedRules = await therapistService.getAvailabilityRules(therapistId);
@@ -38,11 +37,11 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
       console.error(error);
     }
     setLoading(false);
-  };
+  }, [therapistId]);
 
   useEffect(() => {
     if (therapistId) loadData();
-  }, [therapistId]);
+  }, [therapistId, loadData]);
 
   const toggleDay = (idx: number) => {
     setSelectedDays(prev => 
@@ -60,8 +59,8 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
     let currentM = startH * 60 + startM;
     const endTotalM = endH * 60 + endM;
 
-    let bStartM = breakStart ? parseInt(breakStart.split(':')[0])*60 + parseInt(breakStart.split(':')[1]) : 0;
-    let bEndM = breakEnd ? parseInt(breakEnd.split(':')[0])*60 + parseInt(breakEnd.split(':')[1]) : 0;
+    const bStartM = breakStart ? parseInt(breakStart.split(':')[0])*60 + parseInt(breakStart.split(':')[1]) : 0;
+    const bEndM = breakEnd ? parseInt(breakEnd.split(':')[0])*60 + parseInt(breakEnd.split(':')[1]) : 0;
     
     // sanity check
     if (duration <= 0) return slots;
@@ -264,7 +263,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* ACTIVE RULES */}
         <div className="bg-white rounded-[2.5rem] p-8 border border-primary/5">
           <h3 className="font-serif text-xl mb-6 flex items-center gap-2 tracking-tight">
-            <CalendarInfo className="w-4 h-4 text-[#E6A520]" /> Configured Rules
+            <CalendarDays className="w-4 h-4 text-[#E6A520]" /> Configured Rules
           </h3>
           <div className="space-y-3">
             {rules.length === 0 ? (

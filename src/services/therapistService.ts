@@ -1,17 +1,33 @@
 import {
   collection,
   getDocs,
-  doc,
-  addDoc,
-  deleteDoc,
   query,
-  where,
-  updateDoc
+  where
 } from 'firebase/firestore';
-import { db } from '../lib/firebase/client';
+import { db, auth } from '../lib/firebase/client';
 import { Therapist, TherapistAvailabilityRule, TherapistOverride } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapTherapist } from '../utils/mappers';
+
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const currentUser = auth?.currentUser;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  options.headers = { ...headers, ...options.headers };
+  const response = await fetch(url, options);
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || 'API Request Failed');
+  }
+  
+  return data;
+}
 
 export const therapistService = {
   getTherapistByAuthId: async (authId: string): Promise<Therapist | null> => {
@@ -70,9 +86,11 @@ export const therapistService = {
     rule: Omit<TherapistAvailabilityRule, 'id'>
   ) => {
     try {
-      const ref = collection(db, `therapistAvailability/${therapistId}/recurringRules`);
-      const docRef = await addDoc(ref, rule);
-      return { success: true, id: docRef.id };
+      const result = await fetchWithAuth('/api/therapist/availability/rule', {
+        method: 'POST',
+        body: JSON.stringify({ therapistId, rule })
+      });
+      return result;
     } catch (err: unknown) {
       handleFirestoreError(err, OperationType.CREATE, `therapistAvailability/${therapistId}/recurringRules`);
       throw err;
@@ -81,9 +99,10 @@ export const therapistService = {
 
   deleteAvailabilityRule: async (therapistId: string, ruleId: string) => {
     try {
-      const ref = doc(db, `therapistAvailability/${therapistId}/recurringRules`, ruleId);
-      await deleteDoc(ref);
-      return { success: true };
+      const result = await fetchWithAuth(`/api/therapist/availability/rule?therapistId=${therapistId}&ruleId=${ruleId}`, {
+        method: 'DELETE'
+      });
+      return result;
     } catch (err: unknown) {
       handleFirestoreError(err, OperationType.DELETE, `therapistAvailability/${therapistId}/recurringRules/${ruleId}`);
       throw err;
@@ -107,9 +126,11 @@ export const therapistService = {
 
   saveOverride: async (therapistId: string, override: Omit<TherapistOverride, 'id'>) => {
     try {
-      const ref = collection(db, `therapistAvailability/${therapistId}/overrides`);
-      const docRef = await addDoc(ref, override);
-      return { success: true, id: docRef.id };
+      const result = await fetchWithAuth('/api/therapist/availability/override', {
+        method: 'POST',
+        body: JSON.stringify({ therapistId, override })
+      });
+      return result;
     } catch (err: unknown) {
       handleFirestoreError(err, OperationType.CREATE, `therapistAvailability/${therapistId}/overrides`);
       throw err;
@@ -118,9 +139,10 @@ export const therapistService = {
 
   deleteOverride: async (therapistId: string, overrideId: string) => {
     try {
-      const ref = doc(db, `therapistAvailability/${therapistId}/overrides`, overrideId);
-      await deleteDoc(ref);
-      return { success: true };
+      const result = await fetchWithAuth(`/api/therapist/availability/override?therapistId=${therapistId}&overrideId=${overrideId}`, {
+        method: 'DELETE'
+      });
+      return result;
     } catch (err: unknown) {
       handleFirestoreError(err, OperationType.DELETE, `therapistAvailability/${therapistId}/overrides/${overrideId}`);
       throw err;
@@ -129,9 +151,11 @@ export const therapistService = {
 
   updateTherapistStatus: async (therapistId: string, active: boolean) => {
     try {
-      const ref = doc(db, 'therapists', therapistId);
-      await updateDoc(ref, { active });
-      return { success: true };
+      const result = await fetchWithAuth('/api/therapist/status', {
+        method: 'POST',
+        body: JSON.stringify({ therapistId, active })
+      });
+      return result;
     } catch (err: unknown) {
       handleFirestoreError(err, OperationType.UPDATE, `therapists/${therapistId}`);
       throw err;
