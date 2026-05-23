@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
-import { adminDb, adminAuth } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/firebase/admin";
 import { Resend } from "resend";
 import { FieldValue } from "firebase-admin/firestore";
-import { cookies } from "next/headers";
+import { verifySession } from "@/lib/auth/verifySession";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const ADMIN_EMAIL = 'admin@saarthi.com';
-const FROM_EMAIL = 'Saarthi <noreply@saarthi.com>';
+const ADMIN_EMAIL = 'admin@saarthilife.com';
+const FROM_EMAIL = 'Saarthi <noreply@saarthilife.com>';
 
 export async function POST(req: Request) {
   try {
-    const sessionCookie = (await cookies()).get('__session')?.value;
-    if (!sessionCookie) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+    const decodedClaims = await verifySession(req);
+    if (!decodedClaims) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { userId, bookingId, therapistId, userName, userEmail, reason } = await req.json();
 
@@ -51,8 +49,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, id: docRef.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error creating reschedule request:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }

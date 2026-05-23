@@ -1,0 +1,285 @@
+import { Resend, CreateEmailOptions } from 'resend';
+import escapeHtml from 'escape-html';
+import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generatePaymentLinkEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
+import { logger } from '../_lib/logger';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string, emailType: string): Promise<unknown> {
+  const maxRetries = 3;
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt < maxRetries) {
+    attempt++;
+    try {
+      logger.info('EMAIL', `Attempt ${attempt}/${maxRetries} to send ${emailType}`, {
+        to: options.to,
+        bookingId,
+      });
+      const data = await resend.emails.send(options);
+      
+      if (data.error) {
+        throw new Error(data.error.message || 'Unknown Resend error');
+      }
+
+      logger.success('EMAIL', `Successfully sent ${emailType}`, {
+        to: options.to,
+        bookingId,
+        resendId: data.data?.id
+      });
+      return data;
+    } catch (error) {
+      lastError = error;
+      logger.warn('EMAIL', `Failed to send ${emailType} (Attempt ${attempt}/${maxRetries})`, {
+        error: (error instanceof Error ? error.message : String(error)),
+        to: options.to,
+        bookingId
+      });
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+      }
+    }
+  }
+  
+  logger.error('EMAIL', `Exhausted retries for ${emailType}`, { to: options.to, bookingId, error: lastError });
+  throw lastError;
+}
+
+async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'failed', errorMsg?: string) {
+  if (!bookingId) return;
+  try {
+    await adminDb.collection('bookings').doc(bookingId).update({
+      emailStatus: status,
+      lastEmailAttemptAt: FieldValue.serverTimestamp(),
+      ...(errorMsg ? { lastEmailError: errorMsg } : {})
+    });
+  } catch (err) {
+    logger.warn('EMAIL', 'Could not update booking email status in DB', { error: String(err), bookingId });
+  }
+}
+
+export interface EmailPayload {
+  type: 'booking-received' | 'booking-confirmed' | 'booking-payment-link' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
+  bookingId: string;
+  therapistId: string;
+  declineReason?: string;
+  declineCustomNote?: string;
+  bookingDetails?: {
+    name: string;
+    email: string;
+    phone?: string;
+    date: string;
+    time: string;
+    originalDate?: string;
+    originalTime?: string;
+    sessionMode?: string;
+    bookingToken?: string;
+  };
+}
+
+export async function sendEmailAction(payload: EmailPayload) {
+  const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote } = payload;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let bookingData: any;
+  try {
+    const bookingSnap = await adminDb.collection('bookings').doc(bookingId).get();
+    if (bookingSnap.exists) {
+      bookingData = bookingSnap.data();
+    } else {
+      logger.warn("EMAIL", "Booking not found in database, proceeding with fallback metadata", { bookingId });
+      bookingData = bookingDetails;
+    }
+    
+    if (type === 'booking-received') {
+      const createdAt = bookingData?.createdAt?.toDate();
+      if (createdAt && (Date.now() - createdAt.getTime() > 1000 * 60 * 15)) {
+        logger.warn("EMAIL", "Booking is too old for initial receipt email", { bookingId, createdAt });
+        return { success: false, error: 'Booking is too old for initial receipt email' };
+      }
+    }
+  } catch(err) {
+    logger.warn("EMAIL", "Could not verify booking via admin DB, proceeding with payload if provided", { error: err });
+    bookingData = bookingDetails;
+  }
+
+  if (!bookingData) {
+    throw new Error('Missing booking details');
+  }
+
+  let therapistData;
+  try {
+    const therapistSnap = await adminDb.collection('therapists').doc(therapistId).get();
+    if (therapistSnap.exists) therapistData = therapistSnap.data();
+  } catch(err) {
+    logger.warn("EMAIL", "Could not fetch therapist via admin DB", { error: err });
+  }
+
+  const therapistName = therapistData?.name || 'our therapist';
+  const therapistEmail = therapistData?.email;
+  const patientName = bookingData.name || bookingDetails?.name;
+  const patientEmail = bookingData.email || bookingDetails?.email;
+  const patientPhone = bookingData.phone || bookingDetails?.phone;
+  const bookingDate = bookingData.date || bookingDetails?.date;
+  const bookingTime = bookingData.time || bookingDetails?.time;
+
+  if (!patientEmail || !patientName || !bookingDate || !bookingTime) {
+    throw new Error('Booking missing required fields for email');
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('EMAIL', 'RESEND_API_KEY is not set. Simulating email send.', { bookingId });
+    return { success: true, simulated: true };
+  }
+
+  const safePatientName = escapeHtml(patientName);
+  const safePatientPhone = patientPhone ? escapeHtml(patientPhone) : 'Not provided';
+  const safeTherapistName = escapeHtml(therapistName);
+  const safeTherapistSpecialization = therapistData?.specialization ? escapeHtml(therapistData.specialization) : undefined;
+  const safeDate = escapeHtml(bookingDate);
+  const safeTime = escapeHtml(bookingTime);
+  const safeOriginalDate = bookingData.originalDate || bookingDetails?.originalDate ? escapeHtml(bookingData.originalDate || bookingDetails?.originalDate || '') : undefined;
+  const safeOriginalTime = bookingData.originalTime || bookingDetails?.originalTime ? escapeHtml(bookingData.originalTime || bookingDetails?.originalTime || '') : undefined;
+  const safeSessionMode = bookingData.sessionMode || bookingDetails?.sessionMode ? escapeHtml(bookingData.sessionMode || bookingDetails?.sessionMode || '') : undefined;
+  const safeBookingToken = bookingData.bookingToken || bookingDetails?.bookingToken;
+
+  const emailData: BookingEmailData = {
+    patientName: safePatientName,
+    therapistName: safeTherapistName,
+    therapistSpecialization: safeTherapistSpecialization,
+    date: safeDate,
+    time: safeTime,
+    phone: safePatientPhone,
+    sessionMode: safeSessionMode,
+    bookingToken: safeBookingToken,
+  };
+
+  if (type === 'booking-received') {
+    const patientPlainText = `Booking Request Received\nHi ${safePatientName},\nWe have successfully received your booking request with ${safeTherapistName}.\nDate: ${safeDate}\nTime: ${safeTime}\nWe will notify you once confirmed.\n- The Saarthi Team`.trim();
+
+    const promises: Promise<unknown>[] = [
+      sendEmailWithRetry({
+        from: 'Saarthi Contact <contact@saarthilife.com>',
+        to: patientEmail,
+        subject: 'We’ve received your booking request | Saarthi',
+        html: generateBookingReceivedEmail(emailData),
+        text: patientPlainText,
+      }, bookingId, 'booking-received-patient')
+    ];
+
+    if (therapistEmail) {
+      const therapistPlainText = `New Booking Request\nPatient: ${safePatientName}\nDate: ${safeDate}\nTime: ${safeTime}`.trim();
+      promises.push(sendEmailWithRetry({
+        from: 'Saarthi Notifications <contact@saarthilife.com>',
+        to: therapistEmail,
+        subject: 'New Booking Request Received',
+        html: generateTherapistNotificationEmail(emailData, 'new'),
+        text: therapistPlainText,
+      }, bookingId, 'booking-received-therapist'));
+    }
+
+    const results = await Promise.all(promises);
+    await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data: results };
+  } 
+  
+  if (type === 'booking-payment-link') {
+    const plainText = `Payment Required\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been approved. Please complete payment to confirm your booking.\nDate: ${safeDate}\nTime: ${safeTime}\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Contact <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Action Required: Complete your session payment | Saarthi',
+      html: generatePaymentLinkEmail(emailData),
+      text: plainText,
+    }, bookingId, 'booking-payment-link');
+    
+    await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data };
+  }
+
+  if (type === 'booking-confirmed') {
+    const plainText = `Session Confirmed\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been confirmed!\nDate: ${safeDate}\nTime: ${safeTime}\nHave a great session!\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Contact <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Your Saarthi session is confirmed',
+      html: generateBookingConfirmedEmail(emailData),
+      text: plainText,
+    }, bookingId, 'booking-confirmed');
+    
+    await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data };
+  }
+
+  if (type === 'booking-rescheduled') {
+    const plainText = `Session Rescheduled\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been rescheduled to ${safeDate} at ${safeTime}.\n- The Saarthi Team`.trim();
+
+    const promises: Promise<unknown>[] = [
+      sendEmailWithRetry({
+        from: 'Saarthi Contact <contact@saarthilife.com>',
+        to: patientEmail,
+        subject: 'Your session has been rescheduled',
+        html: generateBookingRescheduledEmail(emailData, safeOriginalDate || '', safeOriginalTime || ''),
+        text: plainText,
+      }, bookingId, 'booking-rescheduled-patient')
+    ];
+
+    if (therapistEmail) {
+      const therapistPlainText = `Session Rescheduled\nPatient: ${safePatientName}\nNew Date: ${safeDate}\nNew Time: ${safeTime}`.trim();
+      promises.push(sendEmailWithRetry({
+        from: 'Saarthi Notifications <contact@saarthilife.com>',
+        to: therapistEmail,
+        subject: 'A Session Has Been Rescheduled',
+        html: generateTherapistNotificationEmail(emailData, 'rescheduled', safeOriginalDate, safeOriginalTime),
+        text: therapistPlainText,
+      }, bookingId, 'booking-rescheduled-therapist'));
+    }
+
+    const results = await Promise.all(promises);
+    await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data: results };
+  }
+
+  if (type === 'booking-declined') {
+    const safeReason = declineReason ? escapeHtml(declineReason) : '';
+    const safeNote = declineCustomNote ? escapeHtml(declineCustomNote) : '';
+    
+    const plainText = `Booking Request Unsuccessful\nHi ${safePatientName},\nWe're sorry, but we cannot proceed with your booking request for ${safeDate} at ${safeTime} at this time.\nReason: ${safeReason}\n${safeNote ? `Note: ${safeNote}\n` : ''}Please feel free to try another time slot or contact us for assistance.\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Contact <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Update regarding your booking request',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <h2 style="color: #6B4C1A; font-weight: normal;">Booking Request Update</h2>
+        <p>Hi ${safePatientName},</p>
+        <p>Thank you for reaching out to us. Unfortunately, we are unable to proceed with your requested session at this time.</p>
+        
+        <div style="background-color: #FFFBE7; border-left: 4px solid #E6A520; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Requested Session:</strong> ${safeDate} at ${safeTime}</p>
+          ${safeReason ? `<p style="margin: 10px 0 0 0;"><strong>Reason:</strong> ${safeReason}</p>` : ''}
+          ${safeNote ? `<p style="margin: 10px 0 0 0; font-style: italic;">"${safeNote}"</p>` : ''}
+        </div>
+
+        <p>We understand finding the right time is important. We warmly encourage you to return to our platform to explore other available time slots that might work for you.</p>
+        <p>If you have any questions or need immediate assistance, please reply directly to this email.</p>
+        <br/>
+        <p style="margin: 0;">Warm regards,</p>
+        <p style="margin: 5px 0 0 0; font-weight: bold;">The Saarthi Team</p>
+      </div>
+      `,
+      text: plainText,
+    }, bookingId, 'booking-declined');
+    
+    await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data };
+  }
+
+  throw new Error('Invalid email type');
+}

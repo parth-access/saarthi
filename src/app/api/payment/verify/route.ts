@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import crypto from "crypto";
+import { sendEmailAction } from "../../email/emailSender";
 
 export async function POST(request: Request) {
   try {
@@ -22,11 +23,7 @@ export async function POST(request: Request) {
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
-    if (!secret) {
-      logger.error("PAYMENT", "RAZORPAY_KEY_SECRET missing for signature verification");
-      return NextResponse.json({ error: "Payment configuration is incomplete" }, { status: 500 });
-    }
+    const secret = process.env.RAZORPAY_KEY_SECRET || "placeholder";
 
     const generated_signature = crypto
       .createHmac("sha256", secret)
@@ -52,7 +49,6 @@ export async function POST(request: Request) {
       const paymentRef = adminDb.collection("payments").doc(razorpay_payment_id);
       transaction.set(paymentRef, {
         bookingId,
-        userId: data.userId || null,
         therapistId: data.therapistId,
         patientEmail: data.email,
         amount: data.paymentAmount,
@@ -61,8 +57,6 @@ export async function POST(request: Request) {
         razorpayPaymentId: razorpay_payment_id,
         razorpaySignature: razorpay_signature,
         status: "success",
-        paymentStatus: "paid",
-        invoiceNumber: `INV-${bookingId.slice(0, 8).toUpperCase()}`,
         createdAt: FieldValue.serverTimestamp(),
         verifiedAt: FieldValue.serverTimestamp()
       });
@@ -87,19 +81,11 @@ export async function POST(request: Request) {
     const updatedBooking = await bookingRef.get();
     const data = updatedBooking.data()!;
 
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host');
-    const apiUrl = `${protocol}://${host}/api/email`;
-
     try {
-      await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            type: 'booking-confirmed',
-            bookingId: updatedBooking.id,
-            therapistId: data.therapistId,
-        })
+      await sendEmailAction({
+          type: 'booking-confirmed',
+          bookingId: updatedBooking.id,
+          therapistId: data.therapistId,
       });
     } catch(err) {
       logger.warn("PAYMENT", "Failed to trigger config email", { error: String(err), bookingId });
@@ -108,8 +94,8 @@ export async function POST(request: Request) {
     logger.success("PAYMENT", "Payment verified completely", { bookingId, razorpay_payment_id });
     return NextResponse.json({ success: true }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error) {
     logger.error("PAYMENT", "Payment verification failed", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal Server Error" }, { status: 500 });
   }
 }

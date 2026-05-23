@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import Razorpay from "razorpay";
+import { sendEmailAction } from "../../email/emailSender";
 
 export async function POST(request: Request) {
   try {
@@ -73,19 +74,11 @@ export async function POST(request: Request) {
     const updatedBooking = await bookingRef.get();
     const data = updatedBooking.data()!;
 
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host');
-    const apiUrl = `${protocol}://${host}/api/email`;
-
     try {
-      await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            type: 'booking-payment-link',
-            bookingId: updatedBooking.id,
-            therapistId: data.therapistId,
-        })
+      await sendEmailAction({
+          type: 'booking-payment-link',
+          bookingId: updatedBooking.id,
+          therapistId: data.therapistId,
       });
     } catch(err) {
       logger.warn("PAYMENT", "Failed to trigger payment email", { error: String(err), bookingId });

@@ -3,6 +3,7 @@ import { requireAuthenticated } from '@/lib/auth/requireRole';
 import { bookingSchema } from '../validators/bookingValidators';
 import { BookingService } from '../services/BookingService';
 import { logger } from '@/app/api/_lib/logger';
+import { sendEmailAction } from '@/app/api/email/emailSender';
 
 export class BookingController {
   
@@ -25,11 +26,11 @@ export class BookingController {
 
       const { bookingId } = await BookingService.createBooking(parsed.data, session.uid, session.email);
 
-      // Fire-and-forget notification
+      // Direct, awaited email notification
       try {
-        const payload = { 
-          type: 'booking-received', 
-          bookingId, 
+        await sendEmailAction({
+          type: 'booking-received',
+          bookingId,
           therapistId: parsed.data.therapistId,
           bookingDetails: {
              name: parsed.data.name,
@@ -38,18 +39,10 @@ export class BookingController {
              date: parsed.data.date,
              time: parsed.data.time,
           }
-        };
-        const protocol = req.headers.get('x-forwarded-proto') || 'http';
-        const host = req.headers.get('host');
-        const origin = `${protocol}://${host}`;
-        
-        // Non-blocking fetch to internal email route
-        fetch(`${origin}/api/email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(err => logger.error("EMAIL", "Failed to send async email", err));
-      } catch {}
+        });
+      } catch (err) {
+        logger.error("EMAIL", "Failed to send awaited booking received email", err);
+      }
 
       return NextResponse.json({ success: true, bookingId });
     } catch (error) {

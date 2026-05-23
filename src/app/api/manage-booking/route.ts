@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 import { BookingService } from "@/server/services/BookingService";
+import { sendEmailAction } from "../email/emailSender";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 
@@ -118,18 +119,10 @@ export async function POST(request: Request) {
     });
 
     try {
-      const protocol = request.headers.get("x-forwarded-proto") || "http";
-      const host = request.headers.get("host");
-      const apiUrl = `${protocol}://${host}/api/email`;
-
-      await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "booking-rescheduled",
-          bookingId: bookingId,
-          therapistId: data.therapistId,
-        }),
+      await sendEmailAction({
+        type: "booking-rescheduled",
+        bookingId: bookingId,
+        therapistId: data.therapistId,
       });
     } catch (err) {
       logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId });

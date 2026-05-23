@@ -3,6 +3,7 @@ import { adminDb } from '../../../../lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { requireTherapist } from '../../../../lib/auth/requireRole';
+import { sendEmailAction } from '@/app/api/email/emailSender';
 
 const schema = z.object({
   bookingId: z.string(),
@@ -65,34 +66,21 @@ export async function POST(req: Request) {
 
     if (status === 'confirmed') {
        try {
-          const protocol = req.headers.get('x-forwarded-proto') || 'http';
-          const host = req.headers.get('host');
-          const origin = `${protocol}://${host}`;
-          
-          try {
-            await fetch(`${origin}/api/email`, {
-              method: 'POST',
-              headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': req.headers.get('Authorization') || '' 
-              },
-              body: JSON.stringify({ 
-                type: 'booking-confirmed', 
-                bookingId, 
-                therapistId,
-                bookingDetails: {
-                   name: bookingData.name,
-                   email: bookingData.email,
-                   phone: bookingData.phone,
-                   date: bookingData.date,
-                   time: bookingData.time,
-                }
-              })
-            });
-          } catch(err) {
-            console.error('Failed to send confirmation email:', err);
-          }
-       } catch {}
+          await sendEmailAction({
+            type: 'booking-confirmed',
+            bookingId,
+            therapistId,
+            bookingDetails: {
+               name: bookingData.name,
+               email: bookingData.email,
+               phone: bookingData.phone,
+               date: bookingData.date,
+               time: bookingData.time,
+            }
+          });
+       } catch(err) {
+          console.error('Failed to send confirmation email:', err);
+       }
     }
 
     return NextResponse.json({ success: true });
