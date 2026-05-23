@@ -1,3 +1,5 @@
+
+
 import { Resend, CreateEmailOptions } from 'resend';
 import escapeHtml from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
@@ -82,6 +84,11 @@ export interface EmailPayload {
 
 export async function sendEmailAction(payload: EmailPayload) {
   const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote } = payload;
+  logger.info("EMAIL", "sendEmailAction triggered", {
+  type,
+  bookingId,
+  therapistId
+});
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let bookingData: any;
