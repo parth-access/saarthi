@@ -12,6 +12,7 @@ export const bookingSchema = z.object({
   message: z.string().optional(),
   gender: z.string().optional(),
   age: z.union([z.string(), z.number()]).optional(),
+  email: z.string().optional(),
 });
 
 export const rescheduleBookingSchema = z.object({
