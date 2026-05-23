@@ -1,12 +1,12 @@
 "use client";
 
-import TherapistPage from "@/screens/Admin";
+import { AdminPage } from "@/components/admin/AdminPage";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function TherapistRoute() {
   return (
     <ProtectedRoute allowedRoles={['therapist']}>
-      <TherapistPage />
+      <AdminPage />
     </ProtectedRoute>
   );
 }

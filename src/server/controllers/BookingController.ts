@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuthenticated } from '@/lib/auth/requireRole';
-import { bookingSchema } from '../validators/BookingValidators';
+import { bookingSchema } from '../validators/bookingValidators';
 import { BookingService } from '../services/BookingService';
 import { logger } from '@/app/api/_lib/logger';
 

@@ -1,7 +1,7 @@
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { bookingSchema } from '../validators/BookingValidators';
+import { bookingSchema } from '../validators/bookingValidators';
 
 export class BookingService {
   /**
