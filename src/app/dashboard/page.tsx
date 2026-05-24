@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, CheckCircle, Clock, Search, LogOut, 
-  Activity, FileText, ChevronRight, UserCog, Video, CreditCard
+  Activity, FileText, ChevronRight, UserCog, Video, CreditCard, Sparkles, HelpCircle
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +14,7 @@ import { db } from "@/lib/firebase/client";
 import { Booking, Therapist } from "@/types";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
+import { SupportModal } from "@/components/dashboard/SupportModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { User } from "lucide-react";
@@ -32,11 +33,15 @@ function Dashboard() {
   const [therapists, setTherapists] = useState<Record<string, Therapist>>({});
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [pendingRescheduleIds, setPendingRescheduleIds] = useState<Set<string>>(new Set());
 
   // Modals state
   const [selectedSession, setSelectedSession] = useState<Booking | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [supportInitialMessage, setSupportInitialMessage] = useState("");
+  const [supportInitialSubject, setSupportInitialSubject] = useState("General Support");
 
   useEffect(() => {
     if (!currentUser) return;
@@ -61,7 +66,7 @@ function Dashboard() {
         const nowStr = new Date().toISOString().split('T')[0];
         
         const upcoming = allBookings.filter(b => 
-          (b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment') && 
+          (b.status === 'confirmed' || b.status === 'pending' || b.status === 'awaiting_payment' || b.status === 'pending_approval') && 
           b.date >= nowStr
         );
         
@@ -83,6 +88,13 @@ function Dashboard() {
           }
         }
         setTherapists(tMap);
+
+        // Fetch user's pending reschedule requests to flag sessions accordingly
+        const resRef = collection(db, 'reschedule_requests');
+        const rq = query(resRef, where('userId', '==', currentUser.uid), where('status', '==', 'pending'));
+        const rSnap = await getDocs(rq);
+        const rescheduleIds = new Set(rSnap.docs.map(doc => doc.data().bookingId));
+        setPendingRescheduleIds(rescheduleIds);
         
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
@@ -137,6 +149,14 @@ function Dashboard() {
       })
     });
     if (!res.ok) throw new Error("Failed to send request");
+    
+    // Add to pending reschedule list immediately in local state
+    setPendingRescheduleIds(prev => {
+      const updated = new Set(prev);
+      updated.add(selectedSession.id);
+      return updated;
+    });
+
     toast.success("Reschedule request submitted successfully.");
   };
 

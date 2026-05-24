@@ -94,9 +94,53 @@ function DashboardReceipts() {
 
         <div className="bg-white border border-primary/10 rounded-[2rem] p-4 md:p-8 shadow-sm font-sans">
           {payments.length === 0 ? (
-            <div className="text-center py-12 text-primary/60">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>You have no payment receipts.</p>
+            <div className="text-center py-12 md:py-16 text-primary">
+              <div className="w-16 h-16 bg-[#FFFBE7] rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/5">
+                <FileText className="w-8 h-8 text-[#E6A520]" />
+              </div>
+              <h2 className="text-xl font-serif text-primary mb-2">No invoices found yet</h2>
+              <p className="text-primary/60 text-sm max-w-sm mx-auto mb-10 leading-relaxed">
+                Your payment receipts will appear here after session confirmations and successful transactions.
+              </p>
+              
+              <div className="border-t border-primary/5 pt-8">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#E6A520] mb-6 text-left">
+                  Sample Receipts Preview
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: "INV-PRE-101", name: "Empathetic Therapy Session", amount: "₹1,500.00" },
+                    { id: "INV-PRE-102", name: "Initial Clinical Assessment", amount: "₹2,000.00" }
+                  ].map((mock, idx) => (
+                    <div key={idx} className="bg-[#FFFBE7]/20 border border-dashed border-primary/10 rounded-2xl p-5 text-left relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 px-3 py-1 bg-primary/5 text-primary/40 text-[9px] uppercase tracking-wider font-semibold rounded-bl-xl border-l border-b border-primary/5">
+                        Format Preview
+                      </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-full bg-[#E6A520]/5 flex items-center justify-center">
+                          <FileText className="w-4 h-4 text-[#E6A520]/50" />
+                        </div>
+                        <div>
+                          <span className="font-mono text-[10px] text-primary/40 block leading-none mb-1">{mock.id}</span>
+                          <h4 className="text-sm font-medium text-primary/70">{mock.name}</h4>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-end border-t border-primary/5 pt-4">
+                        <div>
+                          <p className="text-[10px] text-primary/30 uppercase tracking-widest font-medium">Est. Amount</p>
+                          <span className="text-base font-semibold text-primary/60">{mock.amount}</span>
+                        </div>
+                        <button
+                          onClick={() => toast.success("This is an elegant preview receipt. Live PDFs will become active upon payment verification.")}
+                          className="px-3 py-1.5 bg-primary/5 rounded-xl text-xs font-medium text-primary/55 hover:bg-primary/10 transition-all flex items-center gap-1.5 cursor-pointer border border-primary/5"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Preview PDF
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
              <div className="overflow-x-auto">

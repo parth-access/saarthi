@@ -2,13 +2,22 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Wind, Heart, PlayCircle, Lock } from "lucide-react";
+import { ArrowLeft, BookOpen, Wind, Heart, PlayCircle, Lock, Sparkles, Anchor, Smile } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 function Resources() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+
+  const moodAffirmations: Record<string, string> = {
+    calm: "Beautiful. You are resting in a peaceful space. Let this softness carry you through the day.",
+    anxious: "It is okay to feel anxious. Take a slow, quiet breath right now. You are safe, you are held, of this moment you are in control.",
+    happy: "Your joy is sweet and grounding. Savor this light, and let it warm your heart and those around you.",
+    tired: "Your body is asking for softness. Give yourself permission to pause, rest, and do nothing. You have earned this release.",
+    grounded: "Magnificent. Feeling connected is a beautiful state. You are a steady, calming anchor for yourself today."
+  };
 
   const categories = [
     { id: "all", label: "All Resources" },

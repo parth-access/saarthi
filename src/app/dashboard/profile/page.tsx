@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -34,13 +34,41 @@ function Profile() {
     const fetchProfile = async () => {
       try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        let userHasData = false;
+        let dbName = "";
+        let dbPhone = "";
+        let dbBio = "";
+
         if (userDoc.exists()) {
           const data = userDoc.data();
-          setName(data.name || "");
-          setPhone(data.phone || "");
-          setBio(data.bio || "");
+          dbName = data.name || "";
+          dbPhone = data.phone || "";
+          dbBio = data.bio || "";
           if (data.notifications) {
             setNotifications(data.notifications);
+          }
+          if (dbName || dbPhone) {
+            userHasData = true;
+          }
+        }
+
+        setName(dbName);
+        setPhone(dbPhone);
+        setBio(dbBio);
+
+        // Fallback: if name or phone is empty, check latest bookings
+        if (!userHasData && currentUser.email) {
+          const bookingsRef = collection(db, "bookings");
+          const q = query(
+            bookingsRef,
+            where("email", "==", currentUser.email),
+            orderBy("createdAt", "desc")
+          );
+          const bookingsSnap = await getDocs(q);
+          if (!bookingsSnap.empty) {
+            const latestBooking = bookingsSnap.docs[0].data();
+            if (!dbName && latestBooking.name) setName(latestBooking.name);
+            if (!dbPhone && latestBooking.phone) setPhone(latestBooking.phone);
           }
         }
       } catch (err) {
@@ -58,12 +86,14 @@ function Profile() {
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, "users", currentUser.uid), {
+      await setDoc(doc(db, "users", currentUser.uid), {
         name,
         phone,
         bio,
         notifications,
-      });
+        email: currentUser.email,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
       toast.success("Profile gently updated.");
     } catch (err) {
       console.error("Failed to update profile", err);

@@ -11,6 +11,7 @@ import { Booking, Therapist } from "@/types";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { toast } from "sonner";
 
 function DashboardBookings() {
   const { currentUser } = useAuth();
@@ -93,9 +94,9 @@ function DashboardBookings() {
   });
 
   const getStatusClasses = (status: string) => {
-    if (status === 'confirmed') return 'bg-emerald-50 text-emerald-600 border-emerald-100 font-sans';
-    if (status === 'pending') return 'bg-amber-50 text-amber-600 border-amber-100 font-sans';
-    if (status.includes('pending')) return 'bg-blue-50 text-blue-600 border-blue-100 font-sans';
+    if (status === 'confirmed') return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-sans';
+    if (status === 'pending' || status === 'pending_approval') return 'bg-amber-50 text-amber-700 border-amber-200 font-sans';
+    if (status === 'awaiting_payment') return 'bg-amber-100 text-amber-800 border-amber-300 font-sans font-bold animate-pulse';
     if (status === 'rejected') return 'bg-red-50 text-red-600 border-red-100 font-sans';
     if (status === 'cancelled') return 'bg-gray-50 text-gray-500 border-gray-100 font-sans';
     return 'bg-primary/5 text-primary border-primary/10 font-sans';
@@ -146,6 +147,8 @@ function DashboardBookings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredBookings.map(session => {
                 const t = therapists[session.therapistId];
+                const isUnpaid = session.status === 'awaiting_payment' || session.paymentStatus === 'unpaid';
+                
                 return (
                   <div 
                     key={session.id} 
@@ -153,12 +156,14 @@ function DashboardBookings() {
                         setSelectedSession(session);
                         setIsDetailsOpen(true);
                     }}
-                    className="border border-primary/10 bg-white rounded-3xl p-6 sm:p-8 hover:border-primary/20 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col h-full text-left"
+                    className={`border rounded-3xl p-6 sm:p-8 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col h-full text-left relative overflow-hidden ${
+                      isUnpaid ? 'border-amber-200 bg-amber-50/[0.02]' : 'border-primary/10 hover:border-primary/20 bg-white'
+                    }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                       <div className="flex gap-4 items-center sm:items-start">
                         {t?.image ? (
-                          <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10 animate-fade-in">
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10">
                             <Image src={t.image} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
@@ -168,9 +173,9 @@ function DashboardBookings() {
                         )}
                         <div>
                           <p className="text-[10px] sm:text-xs uppercase tracking-widest text-[#E6A520] font-bold mb-1 font-sans">
-                            {session.sessionType} Session
+                            {session.sessionType || '1:1'} Session
                           </p>
-                          <h3 className="font-medium text-base sm:text-lg text-primary">{t?.name || "Assigned Therapist"}</h3>
+                          <h3 className="font-semibold text-base sm:text-lg text-primary">{t?.name || "Assigned Therapist"}</h3>
                         </div>
                       </div>
                       <div className="self-start relative top-0 sm:top-1.5 shrink-0">
@@ -182,11 +187,11 @@ function DashboardBookings() {
                     
                     <div className="grid grid-cols-2 gap-3 py-4 border-y border-primary/5 text-sm text-primary/70 mb-4 bg-[#FFFBE7]/30 -mx-6 sm:-mx-8 px-6 sm:px-8 flex-1 font-sans">
                        <div className="flex items-center gap-2">
-                         <Calendar className="w-4 h-4 text-primary/40" />
+                         <Calendar className="w-4 h-4 text-[#E6A520]/80" />
                          <span className="font-medium text-primary">{session.date}</span>
                        </div>
                        <div className="flex items-center gap-2">
-                         <Clock className="w-4 h-4 text-primary/40" />
+                         <Clock className="w-4 h-4 text-[#E6A520]/80" />
                          <span className="font-medium text-primary">{session.time}</span>
                        </div>
                        <div className="flex items-center gap-2">
@@ -195,14 +200,41 @@ function DashboardBookings() {
                        </div>
                        <div className="flex items-center gap-2">
                          <CreditCard className="w-4 h-4 text-primary/40" />
-                         <span className={`capitalize font-medium ${session.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-[#E6A520]'}`}>
+                         <span className={`capitalize font-bold text-xs ${session.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-800'}`}>
                            {session.paymentStatus || 'unpaid'}
                          </span>
                        </div>
                     </div>
 
-                    <div className="flex justify-end items-center text-xs sm:text-sm font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors font-sans">
-                      View details <ChevronRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isUnpaid ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSession(session);
+                              setIsDetailsOpen(true);
+                            }}
+                            className="px-3.5 py-1.5 bg-[#E6A520] hover:bg-[#c48b1a] text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
+                          >
+                            Pay Now
+                          </button>
+                        ) : session.status === 'confirmed' ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toast.info("Connecting to secure virtual room. Support of Saarthi is preparing the direct session line.");
+                            }}
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in"
+                          >
+                            Join Session
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <div className="flex justify-end items-center text-xs font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors font-sans">
+                        Details <ChevronRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
+                      </div>
                     </div>
                   </div>
                 );
