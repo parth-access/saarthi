@@ -61,6 +61,7 @@ export interface Booking {
   declinedBy?: string;
   invalidToken?: boolean;
   utcDateTime?: string; // Standard UTC storage architecture
+  amount?: number;
 }
 
 export interface BreakPreference {

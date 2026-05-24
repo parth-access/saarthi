@@ -219,17 +219,33 @@ function DashboardBookings() {
                           >
                             Pay Now
                           </button>
-                        ) : session.status === 'confirmed' ? (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toast.info("Connecting to secure virtual room. Support of Saarthi is preparing the direct session line.");
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in"
-                          >
-                            Join Session
-                          </button>
-                        ) : null}
+                        ) : (
+                          <div className="flex gap-2">
+                            {session.status === 'confirmed' ? (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast.info("Connecting to secure virtual room. Support of Saarthi is preparing the direct session line.");
+                                }}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in"
+                              >
+                                Join Session
+                              </button>
+                            ) : null}
+                            {(session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedSession(session);
+                                  setIsRescheduleOpen(true);
+                                }}
+                                className="px-3 py-1.5 bg-white hover:bg-primary/5 hover:border-[#E6A520]/20 border border-primary/10 text-primary font-semibold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer transition-all"
+                              >
+                                Reschedule
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex justify-end items-center text-xs font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors font-sans">
