@@ -73,7 +73,8 @@ export async function POST(request: Request) {
       // Send Notification to Admin
       await resend.emails.send({
         from: 'Saarthi Contact <contact@saarthilife.com>',
-        to: 'healwithsaarthi@gmail.com',
+        to: 'contact@saarthilife.com',
+        replyTo: 'healwithsaarthi@gmail.com',
         subject: 'New Saarthi Contact Inquiry',
         html: `
           <h2>New Contact Inquiry</h2>
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
       await resend.emails.send({
         from: 'Saarthi <contact@saarthilife.com>',
         to: safeEmail,
+        replyTo: 'healwithsaarthi@gmail.com',
         subject: 'We received your message | Saarthi',
         html: `
           <p>Hi ${safeName},</p>
@@ -98,7 +100,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, id: docRef.id }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error("API /contact error:", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

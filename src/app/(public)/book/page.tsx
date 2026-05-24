@@ -1,12 +1,33 @@
-"use client";
+import React from 'react';
+import { Metadata } from 'next';
+import BookClient from './BookClient';
 
-import React from "react";
-import BookingSystem from "@/components/booking/BookingSystem";
+export const metadata: Metadata = {
+  title: 'Book an Online Therapy Session | Saarthi',
+  description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+  openGraph: {
+    title: 'Book an Online Therapy Session | Saarthi',
+    description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+    url: 'https://saarthilife.com/book',
+    images: [
+      {
+        url: '/api/og?title=Book Your Therapy Session&description=Select a slot and reserve your confidential session with an empathetic professional.',
+        width: 1200,
+        height: 630,
+        alt: 'Saarthi Consultation Booking Scheduler',
+      },
+    ],
+  },
+  twitter: {
+    title: 'Book an Online Therapy Session | Saarthi',
+    description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+    images: ['/api/og?title=Book Your Therapy Session&description=Select a slot and reserve your confidential session with an empathetic professional.'],
+  },
+  alternates: {
+    canonical: '/book',
+  },
+};
 
-export default function BookPage() {
-  return (
-    <div className="pt-24 pb-12 sm:pt-32 sm:pb-24 max-w-4xl mx-auto px-4">
-      <BookingSystem />
-    </div>
-  );
+export default function Page() {
+  return <BookClient />;
 }

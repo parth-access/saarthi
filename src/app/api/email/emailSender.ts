@@ -1,5 +1,3 @@
-
-
 import { Resend, CreateEmailOptions } from 'resend';
 import escapeHtml from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
@@ -21,7 +19,10 @@ async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string
         to: options.to,
         bookingId,
       });
-      const data = await resend.emails.send(options);
+      const data = await resend.emails.send({
+        replyTo: 'healwithsaarthi@gmail.com',
+        ...options,
+      });
       
       if (data.error) {
         throw new Error(data.error.message || 'Unknown Resend error');
@@ -84,11 +85,6 @@ export interface EmailPayload {
 
 export async function sendEmailAction(payload: EmailPayload) {
   const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote } = payload;
-  logger.info("EMAIL", "sendEmailAction triggered", {
-  type,
-  bookingId,
-  therapistId
-});
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let bookingData: any;

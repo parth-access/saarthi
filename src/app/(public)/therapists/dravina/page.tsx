@@ -1,84 +1,83 @@
-"use client";
+import React from 'react';
+import { Metadata } from 'next';
+import DravinaClient from './DravinaClient';
 
-import * as React from "react"
-import ProfileHero from "@/components/therapist/ProfileHero"
-import AboutSection from "@/components/therapist/AboutSection"
-import Specializations from "@/components/therapist/Specializations"
-import Qualifications from "@/components/therapist/Qualifications"
-import Approach from "@/components/therapist/Approach"
-import TherapistProcess from "@/components/therapist/TherapistProcess"
-import SessionDetails from "@/components/therapist/SessionDetails"
-import FinalCTA from "@/components/therapist/FinalCTA"
-
-export default function DravinaProfilePage() {
-  const dravinaData = {
-    name: "Dravina Gupta",
-    title: "Therapist | Psychologist",
-    location: "Delhi, India",
-    languages: ["Hindi", "English"],
-    experience: "1+ years",
-    shortIntro: "Psychologist with a focus on identifying psychological patterns and supporting clients with practical, structured approaches.",
-    aboutContent: [
-      "Hi, I am Dravina Gupta, a psychologist with a background in Clinical Psychology. I have completed both my graduation and post-graduation in this field and work with individuals dealing with a range of emotional and psychological concerns.",
-      "I specialize in areas such as anger management, stress, anxiety, depression, and workplace-related challenges. My work involves identifying psychological patterns, understanding individual concerns through observation and conversation, and supporting clients with practical approaches.",
-      "I am known for being a patient listener with strong analytical skills and an empathetic approach. I focus on understanding each individual’s situation deeply and helping them navigate their personal challenges in a structured and supportive manner.",
-      "I am committed to using my knowledge and experience to support individuals in improving their mental well-being."
-    ],
-    specializations: [
-      "Anger Management",
-      "Anxiety",
-      "Depression",
-      "Stress & Burnout",
-      "Workplace Issues",
-      "Family Concerns",
-      "Teen & Child Support",
-      "Employee Mental Health (EAP)"
-    ],
-    qualifications: [
+export const metadata: Metadata = {
+  title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
+  description: 'Book online sessions with Dravina Gupta, a certified clinical psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, stress counselling, and mindfulness.',
+  openGraph: {
+    title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
+    description: 'Book online sessions with Dravina Gupta, a certified psychologist specializing in CBT, anxiety therapy, anger management, and mindfulness on Saarthi.',
+    url: 'https://saarthilife.com/therapists/dravina',
+    images: [
       {
-        degree: "Master’s in Clinical Psychology",
-        institution: "",
-        year: ""
+        url: '/api/og?title=Dravina Gupta — Clinical Psychologist&description=Empathetic and structured therapy support for anxiety, anger, stress, and child/family concerns.',
+        width: 1200,
+        height: 630,
+        alt: 'Dravina Gupta - Certified Psychologist Profile',
+      },
+    ],
+  },
+  twitter: {
+    title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
+    description: 'Book online sessions with Dravina Gupta, a certified clinical psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, and mindfulness.',
+    images: ['/api/og?title=Dravina Gupta — Clinical Psychologist&description=Empathetic and structured therapy support for anxiety, anger, stress, and child/family concerns.'],
+  },
+  alternates: {
+    canonical: '/therapists/dravina',
+  },
+};
+
+export default function Page() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Person',
+        '@id': 'https://saarthilife.com/therapists/dravina/#person',
+        'name': 'Dravina Gupta',
+        'jobTitle': 'Psychologist & Clinical Counsellor',
+        'knowsLanguage': ['Hindi', 'English'],
+        'description': 'Psychologist holding a Master’s in Clinical Psychology, specializing in anger management, anxiety, depression, and Cognitive Behavioral Therapy.',
+        'image': 'https://saarthilife.com/about_page.png',
+        'worksFor': {
+          '@type': 'Organization',
+          'name': 'Saarthi',
+          'url': 'https://saarthilife.com'
+        },
+        'knowsAbout': [
+          'Cognitive Behavioral Therapy (CBT)',
+          'Acceptance & Commitment Therapy (ACT)',
+          'Solution Focused Brief Therapy (SFBT)',
+          'Mindfulness',
+          'Anger Management',
+          'Anxiety treatment'
+        ]
       },
       {
-        degree: "Bachelor’s in Psychology",
-        institution: "",
-        year: ""
+        '@type': 'ProfessionalService',
+        'name': 'Dravina Gupta Psychotherapeutic Services',
+        'image': 'https://saarthilife.com/about_page.png',
+        'description': 'Online psychological consulting and CBT sessions for stress relief, adolescent concerns, anger, and anxiety.',
+        'email': 'contact@saarthilife.com',
+        'address': {
+          '@type': 'PostalAddress',
+          'addressLocality': 'Delhi',
+          'addressRegion': 'Delhi',
+          'addressCountry': 'IN'
+        },
+        'priceRange': '$$'
       }
     ]
-  }
+  };
 
   return (
-    <main className="bg-background">
-      <ProfileHero 
-        name={dravinaData.name}
-        title={dravinaData.title}
-        location={dravinaData.location}
-        languages={dravinaData.languages}
-        experience={dravinaData.experience}
-        shortIntro={dravinaData.shortIntro}
-        image="/about_page.png"
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      
-      <AboutSection content={dravinaData.aboutContent} />
-      
-      <Specializations items={dravinaData.specializations} />
-      
-      <Qualifications items={dravinaData.qualifications} />
-      
-      <Approach items={[
-        "Acceptance & Commitment Therapy (ACT)",
-        "Cognitive Behavioral Therapy (CBT)",
-        "Solution Focused Brief Therapy (SFBT)",
-        "Emotion-Focused Therapy",
-        "Mindfulness"
-      ]} />
-      
-      <TherapistProcess />
-      
-      <SessionDetails mode="Online Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
-      
-      <FinalCTA />
-    </main>
-  )
+      <DravinaClient />
+    </>
+  );
 }
