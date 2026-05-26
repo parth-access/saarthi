@@ -3,9 +3,22 @@ import { format, parseISO } from "date-fns"
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "../../ui/Button"
 
+import { Therapist } from "../../../types"
+
 interface Props {
-  data: any;
-  therapists: any[];
+  data: {
+    therapistId: string;
+    sessionType: string;
+    date: string;
+    time: string;
+    name: string;
+    email: string;
+    phone: string;
+    gender: string;
+    age: string | number;
+    message?: string;
+  };
+  therapists: Therapist[];
   onConfirm: () => void;
   onBack: () => void;
   submitting: boolean;
@@ -22,7 +35,7 @@ export const ReviewStep = ({ data, therapists, onConfirm, onBack, submitting, er
       const period = hours >= 12 ? 'PM' : 'AM'
       const h12 = hours % 12 || 12
       return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`
-    } catch (e) {
+    } catch {
       return time24
     }
   }

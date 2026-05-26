@@ -1,7 +1,8 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
 import { MapPin, Languages, Calendar } from "lucide-react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
+import Link from "next/link"
 
 interface ProfileHeroProps {
   name: string
@@ -56,11 +57,11 @@ const ProfileHero = ({
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" variant="primary" onClick={onBookClick}>
-                Book Session
+              <Button asChild size="lg" variant="primary" onClick={onBookClick}>
+                <Link href="/book">Book Session</Link>
               </Button>
-              <Button size="lg" variant="outline" onClick={onBookClick}>
-                View Schedule
+              <Button asChild size="lg" variant="outline" onClick={onBookClick}>
+                <Link href="/book">View Schedule</Link>
               </Button>
             </div>
           </motion.div>

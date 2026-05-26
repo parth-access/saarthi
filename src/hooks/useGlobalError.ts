@@ -1,16 +1,16 @@
 import { toast } from 'sonner';
 
 export function useGlobalError() {
-  const handleError = (error: any, customMessage?: string) => {
+  const handleError = (error: unknown, customMessage?: string) => {
     console.error('Global Error Handler:', error);
     
     let message = customMessage || 'An unexpected error occurred.';
     
     if (typeof error === 'string') {
       message = error;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
+    } else if (error && typeof error === 'object' && 'response' in error && (error as { response?: { data?: { error?: string } } }).response?.data?.error) {
+      message = (error as { response?: { data?: { error?: string } } }).response!.data!.error!;
+    } else if (error instanceof Error) {
       message = error.message;
     }
 

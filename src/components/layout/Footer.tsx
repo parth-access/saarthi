@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Mail, MapPin, Phone, Instagram } from "lucide-react"
 
 export function Footer() {
@@ -7,7 +7,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-3 text-primary mb-4">
+            <Link href="/" className="flex items-center gap-3 text-primary mb-4">
               <img src="/saarthi-logo-Photoroom.png" alt="Saarthi Logo" className="h-10 w-auto object-contain" referrerPolicy="no-referrer" />
               <span className="font-heading text-2xl font-bold tracking-tight text-text">Saarthi</span>
             </Link>
@@ -31,13 +31,12 @@ export function Footer() {
             <div>
               <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link to="/therapists" className="hover:text-primary transition-colors">Therapists</Link></li>
-                <li><Link to="/about" className="hover:text-primary transition-colors">About</Link></li>
-                <li><Link to="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
-                <li><Link to="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                <li><Link href="/therapists" className="hover:text-primary transition-colors">Therapists</Link></li>
+                <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
+                <li><Link href="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
+                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
                 <li>
-                  <Link 
-                    to="/admin"
+                  <Link href="/admin"
                     className="hover:text-primary transition-colors block"
                   >
                     Admin Dashboard
@@ -53,14 +52,14 @@ export function Footer() {
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <Mail className="h-5 w-5 text-primary shrink-0" />
-                  <a href="mailto:healwithsaarthi@gmail.com" className="hover:text-primary transition-colors">
-                    healwithsaarthi@gmail.com
+                  <a href="mailto:contact@saarthilife.com" className="hover:text-primary transition-colors">
+                    contact@saarthilife.com
                   </a>
                 </li>
-                {/* <li className="flex items-start gap-2">
+                <li className="flex items-start gap-2">
                   <Phone className="h-5 w-5 text-primary shrink-0" />
                   <span>+91 98765 43210</span>
-                </li> */}
+                </li>
                 <li className="flex items-start gap-2">
                   <MapPin className="h-5 w-5 text-primary shrink-0" />
                   <span>New Delhi, India</span>

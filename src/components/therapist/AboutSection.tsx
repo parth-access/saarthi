@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 
 interface AboutSectionProps {
   content: string[]
@@ -35,7 +35,7 @@ const AboutSection = ({ content }: AboutSectionProps) => {
           >
             <h3 className="mb-6 text-primary font-serif">My Philosophy</h3>
             <p className="text-lg text-muted-foreground italic leading-relaxed">
-              "I believe that therapy is a collaborative journey. My goal is to provide you with the tools and clarity needed to navigate life's challenges, ensuring you feel supported every step of the way."
+              {"\"I believe that therapy is a collaborative journey. My goal is to provide you with the tools and clarity needed to navigate life's challenges, ensuring you feel supported every step of the way.\""}
             </p>
             <div className="mt-8 flex items-center gap-4">
               <div className="h-px flex-1 bg-primary/10" />

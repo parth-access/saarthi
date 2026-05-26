@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, updateDoc, doc, deleteDoc, startAfter } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db } from '../../lib/firebase/client';
 import { format } from 'date-fns';
 import { Button } from '../ui/Button';
-import { CheckCircle2, Circle, Search, ShieldAlert, Trash2, MailOpen, User, Archive } from 'lucide-react';
-import { Input } from '../ui/Input';
-import { cn } from '../../lib/utils';
+import { CheckCircle2, Search, ShieldAlert, Trash2, MailOpen, User } from 'lucide-react';
+
+import { toDateSafe, cn } from '../../lib/utils';
 
 interface Contact {
   id: string;
@@ -14,14 +14,14 @@ interface Contact {
   message: string;
   status: 'unread' | 'in-progress' | 'resolved' | 'spam';
   priority: 'normal' | 'high';
-  createdAt: any;
+  createdAt: unknown;
   source: string;
 }
 
 export function ContactsPanel() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [lastDoc, setLastDoc] = useState<unknown>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unread' | 'resolved' | 'spam'>('all');
 
@@ -60,6 +60,7 @@ export function ContactsPanel() {
 
   useEffect(() => {
     fetchContacts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateStatus = async (id: string, status: Contact['status']) => {
@@ -94,23 +95,23 @@ export function ContactsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold font-heading">Inquiries</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h2 className="text-3xl font-serif tracking-tight">Inquiries</h2>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/30" />
+            <input 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search..." 
-              className="pl-9 h-10 w-full"
+              placeholder="Search inquiries..." 
+              className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white border border-primary/10 focus:ring-4 focus:ring-primary/5 transition-all text-sm outline-none"
             />
           </div>
           <select 
-            className="h-10 px-3 py-2 rounded-xl bg-white border border-primary/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-12 px-4 pr-10 rounded-2xl bg-white border border-primary/10 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-primary/5 outline-none cursor-pointer"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'unread' | 'resolved' | 'spam')}
           >
             <option value="all">All</option>
             <option value="unread">Unread</option>
@@ -120,11 +121,11 @@ export function ContactsPanel() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-primary/5 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-[2.5rem] border border-primary/5 overflow-hidden shadow-sm">
         {loading && contacts.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground">Loading inquiries...</div>
+          <div className="p-16 text-center text-primary/40 font-medium text-sm bg-[#FAFAFA]">Loading inquiries...</div>
         ) : filteredContacts.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground">No inquiries found.</div>
+          <div className="p-16 text-center text-primary/40 font-medium text-sm bg-[#FAFAFA]">🌿 All caught up. No inquiries found.</div>
         ) : (
           <div className="divide-y divide-primary/5">
             {filteredContacts.map(contact => (
@@ -144,7 +145,7 @@ export function ContactsPanel() {
                           <User className="w-3.5 h-3.5" /> {contact.email}
                         </a>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {contact.createdAt ? format(contact.createdAt.toDate(), "MMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
+                          {contact.createdAt ? format(toDateSafe(contact.createdAt) || new Date(), "MMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
                         </div>
                       </div>
                     </div>
@@ -156,23 +157,23 @@ export function ContactsPanel() {
 
                   <div className="flex flex-wrap xl:flex-col gap-2 shrink-0">
                     {contact.status === 'unread' ? (
-                      <Button onClick={() => updateStatus(contact.id, 'resolved')} variant="outline" size="sm" className="justify-start gap-2 h-9 border-green-200 text-green-700 hover:bg-green-50 w-32">
+                      <Button onClick={() => updateStatus(contact.id, 'resolved')} variant="outline" size="sm" className="justify-start gap-2 h-10 rounded-xl border-green-200 text-green-700 hover:bg-green-50 w-32 shadow-sm hover:shadow-md transition-all">
                         <CheckCircle2 className="w-4 h-4" /> Resolve
                       </Button>
                     ) : (
-                      <Button onClick={() => updateStatus(contact.id, 'unread')} variant="outline" size="sm" className="justify-start gap-2 h-9 w-32">
+                      <Button onClick={() => updateStatus(contact.id, 'unread')} variant="outline" size="sm" className="justify-start gap-2 h-10 rounded-xl w-32 shadow-sm hover:shadow-md transition-all">
                         <MailOpen className="w-4 h-4" /> Mark Unread
                       </Button>
                     )}
                     
                     {contact.status !== 'spam' && (
-                      <Button onClick={() => updateStatus(contact.id, 'spam')} variant="outline" size="sm" className="justify-start gap-2 h-9 border-orange-200 text-orange-700 hover:bg-orange-50 w-32">
+                      <Button onClick={() => updateStatus(contact.id, 'spam')} variant="outline" size="sm" className="justify-start gap-2 h-10 rounded-xl border-[#E6A520]/20 text-amber-700 hover:bg-[#E6A520]/5 w-32 shadow-sm hover:shadow-md transition-all">
                         <ShieldAlert className="w-4 h-4" /> Mark Spam
                       </Button>
                     )}
                     
-                    <Button onClick={() => deleteContact(contact.id)} variant="outline" size="sm" className="justify-start gap-2 h-9 border-red-200 text-red-700 hover:bg-red-50 w-32">
-                      <Trash2 className="w-4 h-4" /> Delete
+                    <Button onClick={() => deleteContact(contact.id)} variant="outline" size="sm" className="justify-start gap-2 h-10 rounded-xl border-red-200 text-red-700 hover:bg-red-50 w-32 shadow-sm hover:shadow-md transition-all">
+                        <Trash2 className="w-4 h-4" /> Delete
                     </Button>
                   </div>
 
@@ -182,7 +183,7 @@ export function ContactsPanel() {
           </div>
         )}
         
-        {lastDoc && filteredContacts.length >= 20 && (
+        {!!lastDoc && filteredContacts.length >= 20 && (
           <div className="p-4 border-t border-primary/5 flex justify-center">
             <Button variant="outline" onClick={() => fetchContacts(true)} disabled={loading}>
               {loading ? 'Loading...' : 'Load More'}

@@ -1,7 +1,7 @@
 import * as React from "react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import { Button } from "../ui/Button"
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 interface FeaturedTherapistProps {
   onBookClick?: () => void;
@@ -50,12 +50,14 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
 
             <div className="flex flex-wrap gap-4">
               <Button asChild variant="outline" size="lg">
-                <Link to="/therapists/dravina">
+                <Link href="/therapists/dravina">
                   Know Your Saarthi
                 </Link>
               </Button>
-              <Button size="lg" onClick={onBookClick}>
-                Book Session
+              <Button asChild size="lg" onClick={onBookClick}>
+                <Link href="/book">
+                  Book Session
+                </Link>
               </Button>
             </div>
           </motion.div>

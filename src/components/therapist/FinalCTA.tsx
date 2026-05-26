@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
+import Link from "next/link"
 
 interface FinalCTAProps {
   onBookClick?: () => void;
@@ -22,8 +23,8 @@ const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
             <p className="mb-10 text-lg text-primary-foreground/80 md:text-xl">
               Ready to address your concerns? Book a session to discuss your requirements and begin a structured approach to your mental well-being.
             </p>
-            <Button size="lg" variant="accent" className="text-primary font-bold" onClick={onBookClick}>
-              Book a Session
+            <Button asChild size="lg" variant="accent" className="text-primary font-bold" onClick={onBookClick}>
+              <Link href="/book">Book a Session</Link>
             </Button>
           </motion.div>
         </div>

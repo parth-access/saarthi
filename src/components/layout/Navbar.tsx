@@ -1,7 +1,10 @@
+"use client";
+
 import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
-import { Link } from "react-router-dom"
+import Link from "next/link"
+import { useAuth } from "../../contexts/AuthContext"
 
 interface NavbarProps {
   onBookClick?: () => void;
@@ -9,6 +12,7 @@ interface NavbarProps {
 
 const Navbar = ({ onBookClick }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false)
+  const { currentUser } = useAuth()
 
   const navLinks = [
     { name: "Therapists", href: "/therapists" },
@@ -16,6 +20,25 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
     { name: "Our Vision", href: "/vision" },
     { name: "Contact", href: "/contact" },
   ]
+  
+  if (currentUser) {
+    navLinks.push({ name: "Resources", href: "/dashboard/resources" })
+  }
+
+  let portalLink = "/login";
+  let portalText = "Sign In";
+  if (currentUser) {
+    if (currentUser.role === 'admin') {
+      portalLink = "/admin";
+      portalText = "Admin Portal";
+    } else if (currentUser.role === 'therapist') {
+      portalLink = "/therapist";
+      portalText = "Therapist Portal";
+    } else {
+      portalLink = "/dashboard";
+      portalText = "My Dashboard";
+    }
+  }
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-primary/5 bg-background/80 backdrop-blur-md">
@@ -26,8 +49,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           
           {/* Left: Logo */}
           <div className="flex items-center">
-            <Link
-              to="/"
+            <Link href="/"
               className="group flex items-center gap-2 text-primary font-serif transition-transform hover:scale-[1.02]"
             >
               {/* ✅ Use icon-style logo (IMPORTANT) */}
@@ -49,9 +71,8 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           <div className="hidden md:flex flex-1 justify-center">
             <div className="flex items-center space-x-10">
               {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
+                <Link key={link.name}
+                  href={link.href}
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
                 >
                   {link.name}
@@ -64,9 +85,12 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
           <div className="flex items-center gap-4">
             
             {/* Desktop CTA */}
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-4">
+              <Link href={portalLink} className="text-sm font-medium text-primary hover:underline transition-all">
+                {portalText}
+              </Link>
               <Button asChild size="sm" variant="primary">
-                <Link to="/book">Book Session</Link>
+                <Link href="/book">Book Session</Link>
               </Button>
             </div>
 

@@ -1,9 +1,56 @@
-import { auth, isFirebaseEnabled, db } from '../lib/firebase';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { User } from '../types';
+import { auth, isFirebaseEnabled, db } from '../lib/firebase/client';
+import { signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export const authService = {
+  loginWithGoogle: async () => {
+    if (!isFirebaseEnabled) throw new Error("Firebase is not enabled.");
+    const provider = new GoogleAuthProvider();
+    const userCred = await signInWithPopup(auth, provider);
+    const user = userCred.user;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        name: user.displayName || 'User',
+        email: user.email,
+        role: 'client',
+        provider: 'google',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        totalSessions: 0,
+        activeBookings: 0,
+        preferredTherapists: [],
+        lastSessionDate: null
+      });
+    }
+    return user;
+  },
+
+  register: async (email: string, password: string, name: string) => {
+    if (!isFirebaseEnabled) throw new Error("Firebase is not enabled.");
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
+    
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid,
+      name,
+      email,
+      role: 'client',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      totalSessions: 0,
+      activeBookings: 0,
+      preferredTherapists: [],
+      lastSessionDate: null
+    });
+    
+    return user;
+  },
+
   login: async (email: string, password: string) => {
     if (!isFirebaseEnabled) throw new Error("Firebase is not enabled.");
     const userCred = await signInWithEmailAndPassword(auth, email, password);
@@ -16,14 +63,17 @@ export const authService = {
     }
   },
   
-  getUserRole: async (uid: string): Promise<'admin' | 'therapist' | null> => {
+  getUserRole: async (uid: string): Promise<'admin' | 'therapist' | 'client' | null> => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        if (data.role === 'admin' || data.role === 'therapist') {
+        if (data.role === 'admin' || data.role === 'therapist' || data.role === 'client') {
           return data.role;
         }
+      } else {
+        // If they authenticated but don't have a user doc, we could create them as a client
+        // But better to enforce create during register.
       }
       return null;
     } catch (e) {
@@ -32,10 +82,11 @@ export const authService = {
     }
   },
 
+
   getCurrentUser: async () => {
     return new Promise((resolve) => {
-      if (!isFirebaseEnabled) return resolve(null);
-      const unsubscribe = auth.onAuthStateChanged((user: any) => {
+      if (!isFirebaseEnabled || !auth) return resolve(null);
+      const unsubscribe = auth.onAuthStateChanged((user: FirebaseUser | null) => {
         unsubscribe();
         resolve(user);
       });

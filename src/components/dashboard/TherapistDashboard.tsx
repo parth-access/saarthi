@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { format, parseISO, isToday, isPast, parse } from "date-fns"
 import { 
   LogOut, 
@@ -25,7 +25,7 @@ import {
   ChevronDown
 } from "lucide-react"
 import { Booking, BookingStatus, Therapist } from "../../types"
-import { cn } from "../../lib/utils"
+import { cn, toDateSafe } from "../../lib/utils"
 
 interface TherapistDashboardProps {
   therapist: Therapist | null;
@@ -35,6 +35,7 @@ interface TherapistDashboardProps {
   onRefresh: () => void;
   onLogout: () => void;
   onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>;
+  onDeclineRequest: (booking: Booking) => void;
   processingId: string | null;
   scheduleBuilderNode?: React.ReactNode;
   adminTherapistsNode?: React.ReactNode;
@@ -57,6 +58,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   onRefresh,
   onLogout,
   onUpdateStatus,
+  onDeclineRequest,
   processingId,
   scheduleBuilderNode,
   adminTherapistsNode,
@@ -101,6 +103,40 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
 
   const displayName = isAdmin ? "Administrator" : (therapist?.name?.split(' ')[0] || 'Therapist');
 
+  const isInitialLoading = loading && bookings.length === 0 && !therapist && !isAdmin;
+
+  if (isInitialLoading) {
+    return (
+      <div className="pt-16 min-h-screen bg-[#FCFAF7] animate-pulse">
+        <header className="bg-white border-b border-primary/5 h-20 flex items-center px-4 sm:px-8 max-w-7xl mx-auto">
+          <div className="h-10 bg-primary/5 rounded-2xl w-2/3 max-w-sm"></div>
+        </header>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex gap-6 mb-8 border-b border-primary/5 pb-4">
+             <div className="h-6 w-24 bg-primary/5 rounded-xl"></div>
+             <div className="h-6 w-24 bg-primary/5 rounded-xl"></div>
+             <div className="h-6 w-32 bg-primary/5 rounded-xl"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-8 space-y-8">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+                 <div className="h-28 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               </div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-40 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+            <div className="lg:col-span-4 space-y-8">
+               <div className="h-64 bg-white border border-primary/5 rounded-3xl w-full"></div>
+               <div className="h-48 bg-white border border-primary/5 rounded-3xl w-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-16 min-h-screen bg-[#FCFAF7] selection:bg-primary/10 font-sans text-primary">
@@ -222,7 +258,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 <div className="relative group min-w-[200px]">
                   <select 
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value as BookingStatus | 'all')}
                     className="w-full h-12 rounded-xl bg-[#FCFAF7] border-none px-4 pr-10 text-sm font-semibold text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all cursor-pointer outline-none"
                   >
                     <option value="all">All Request Status</option>
@@ -307,10 +343,10 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 </div>
                 <div className="space-y-4">
                   {pendingBookings.length === 0 ? (
-                    <EmptyState message="No pending session requests." />
+                    <EmptyState message="🌿 No pending requests right now." />
                   ) : (
                     pendingBookings.map(b => (
-                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                     ))
                   )}
                 </div>
@@ -323,10 +359,10 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 </div>
                 <div className="space-y-4">
                   {upcomingBookings.length === 0 ? (
-                    <EmptyState message="No upcoming confirmed sessions." />
+                    <EmptyState message="🌿 Your upcoming schedule is clear." />
                   ) : (
                     upcomingBookings.map(b => (
-                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                      <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                     ))
                   )}
                 </div>
@@ -338,23 +374,23 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               
               {/* NEEDS ATTENTION WIDGET */}
               {pendingBookings.length > 0 && (
-                <div className="bg-red-50/50 rounded-[2rem] border border-red-100 p-6 md:p-8 shadow-sm relative overflow-hidden group">
+                <div className="bg-[#FFFBE7] rounded-[2rem] border border-[#E6A520]/20 p-6 md:p-8 shadow-sm relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                     <AlertCircle className="w-24 h-24 text-red-500" />
+                     <AlertCircle className="w-24 h-24 text-[#E6A520]" />
                   </div>
                   <div className="flex items-center gap-3 mb-6 relative z-10">
-                     <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                     <div className="w-8 h-8 rounded-full bg-[#E6A520]/20 flex items-center justify-center text-amber-600">
                        <AlertCircle className="w-4 h-4" />
                      </div>
-                     <h3 className="font-serif text-lg text-red-900">Needs Attention</h3>
+                     <h3 className="font-serif text-lg text-amber-900">Needs Attention</h3>
                   </div>
                   <div className="space-y-3 relative z-10">
-                    <div className="bg-white rounded-2xl p-4 border border-red-100 shadow-sm flex items-center justify-between">
+                    <div className="bg-white rounded-2xl p-4 border border-[#E6A520]/20 shadow-sm flex items-center justify-between">
                        <div>
-                         <div className="text-red-900 font-bold mb-0.5">{pendingBookings.length} Session Request{pendingBookings.length > 1 ? 's' : ''}</div>
-                         <div className="text-xs text-red-600">Awaiting your response</div>
+                         <div className="text-amber-900 font-bold mb-0.5">{pendingBookings.length} Session Request{pendingBookings.length > 1 ? 's' : ''}</div>
+                         <div className="text-xs text-amber-700">Awaiting your response</div>
                        </div>
-                       <button onClick={() => window.scrollTo({top: 200, behavior: 'smooth'})} className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-600 hover:bg-red-100 transition-colors">
+                       <button onClick={() => window.scrollTo({top: 200, behavior: 'smooth'})} className="w-8 h-8 rounded-full bg-[#E6A520]/10 flex items-center justify-center text-amber-600 hover:bg-[#E6A520]/20 transition-colors">
                           <ChevronRight className="w-4 h-4" />
                        </button>
                     </div>
@@ -374,7 +410,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                 <div className="space-y-4 relative">
                   <div className="absolute left-3.5 top-2 bottom-4 w-px bg-primary/5" />
                   {todayBookings.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic relative z-10 pl-10">Schedule is clear for today.</p>
+                    <p className="text-sm text-muted-foreground italic relative z-10 pl-10">🌿 Your schedule is clear. Take a breather before your next session.</p>
                   ) : (
                     todayBookings.map((b) => (
                       <div key={b.id} className="relative z-10 pl-10">
@@ -400,7 +436,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                  <h3 className="font-serif text-lg mb-6">Recent Activity</h3>
                  <div className="space-y-3">
                    {recentBookings.length === 0 ? (
-                     <p className="text-sm text-muted-foreground italic">No recent activity.</p>
+                     <p className="text-sm text-muted-foreground italic">🌿 Your recent activity will appear here.</p>
                    ) : (
                      recentBookings.map(b => (
                        <div key={b.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-[#FCFAF7] transition-colors border border-transparent hover:border-primary/5 cursor-default">
@@ -431,12 +467,12 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
         ) : activeTab === 'sessions' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {filteredBookings.length === 0 ? (
-              <EmptyState message="No sessions match your filters." />
+              <EmptyState message="🌿 No sessions found for this search." />
             ) : (
               <div className="space-y-4">
                 <div className="text-xs uppercase font-bold tracking-widest text-primary/30 mb-6">Showing {filteredBookings.length} sessions</div>
                 {filteredBookings.map(b => (
-                  <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} />
+                  <NewSessionCard key={b.id} booking={b} isProcessing={processingId === b.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />
                 ))}
               </div>
             )}
@@ -459,8 +495,8 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   )
 }
 
-const StatCard = ({ title, value, icon: Icon, colorClass }: any) => (
-  <div className={cn("p-5 rounded-3xl border transition-all hover:-translate-y-0.5 hover:shadow-md", colorClass)}>
+const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string; value: React.ReactNode; icon: React.ElementType; colorClass?: string }) => (
+  <div className={cn("p-5 rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg", colorClass)}>
     <div className="flex items-center gap-3 mb-4 opacity-70">
       <Icon className="w-4 h-4" />
       <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
@@ -478,7 +514,7 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 )
 
-const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
+const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: { booking: Booking; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void; isProcessing: boolean }) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
 
   const StatusIcon = (booking.status === 'pending' || booking.status === 'pending_approval') ? Clock : 
@@ -525,6 +561,14 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
             <span className="absolute top-4 right-4 text-primary/10 font-serif text-4xl leading-none">"</span>
             {booking.message || "No specific reasons provided for the session."}
           </div>
+
+          {booking.status === 'rejected' && booking.declineReason && (
+            <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-sm mt-4">
+              <div className="text-red-800 font-bold mb-1">Declined: {booking.declineReason}</div>
+              {booking.declineCustomNote && <div className="text-red-600 block">{booking.declineCustomNote}</div>}
+              {booking.declinedAt && <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">{format(toDateSafe(booking.declinedAt) || new Date(), "MMM d, yyyy h:mm a")}</div>}
+            </div>
+          )}
         </div>
 
         {/* Right Side: Date/Time & Action */}
@@ -547,7 +591,7 @@ const NewSessionCard = ({ booking, onUpdateStatus, isProcessing }: any) => {
                 </button>
                 <button
                   disabled={isProcessing}
-                  onClick={() => onUpdateStatus(booking.id, 'rejected')}
+                  onClick={() => onDeclineRequest(booking)}
                   className="w-full h-10 rounded-xl bg-white border border-primary/10 text-primary/50 text-xs font-bold uppercase tracking-wider hover:text-red-500 hover:border-red-200 transition-all disabled:opacity-50"
                 >
                   Decline

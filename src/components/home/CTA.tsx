@@ -1,8 +1,8 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 
-import { Link } from "react-router-dom"
+import Link from "next/link"
 
 interface CTAProps {
   onBookClick?: () => void;
@@ -29,8 +29,9 @@ const CTA = ({ onBookClick }: CTAProps) => {
               size="lg" 
               variant="accent" 
               className="text-primary font-bold"
+              onClick={onBookClick}
             >
-              <Link to="/book">Book a Session</Link>
+              <Link href="/book">Book a Session</Link>
             </Button>
           </motion.div>
         </div>

@@ -1,9 +1,10 @@
 import * as React from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { CheckCircle2, Link } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { CheckCircle2 } from "lucide-react"
+import NextLink from "next/link"
 import { Button } from "../ui/Button"
 import { cn } from "../../lib/utils"
-import { SessionType, Therapist } from "../../types"
+import { SessionType } from "../../types"
 
 // Step Components
 import { TherapistStep } from "./steps/TherapistStep"
@@ -82,18 +83,18 @@ const BookingSystem = () => {
 
     if (result.success) {
       setBookingData(prev => ({ ...prev, time }))
-      setActiveLockId((result as any).data?.lockId || (result as any).lockId || null)
+      setActiveLockId((result as { data?: { lockId?: string }, lockId?: string, error?: string }).data?.lockId || (result as { data?: { lockId?: string }, lockId?: string, error?: string }).lockId || null)
       setTimeout(() => {
         handleNext()
         setLockingTime(null)
       }, 300)
     } else {
       setLockingTime(null)
-      setSubmitError((result as any).error || "Slot is no longer available")
+      setSubmitError((result as { data?: { lockId?: string }, lockId?: string, error?: string }).error || "Slot is no longer available")
     }
   }
 
-  const handleDetailsSubmit = (details: any) => {
+  const handleDetailsSubmit = (details: { name: string; email: string; phone: string; gender: string; age: string; message?: string }) => {
     setBookingData(prev => ({ ...prev, ...details }))
     handleNext()
   }
@@ -101,7 +102,7 @@ const BookingSystem = () => {
   const handleConfirm = async () => {
     const result = await createBooking({
       ...bookingData,
-      lockId: activeLockId,
+      lockId: activeLockId || undefined,
       age: parseInt(bookingData.age)
     })
     if (result.success) {
@@ -155,7 +156,7 @@ const BookingSystem = () => {
               <p className="text-muted-foreground">Your request has been sent. We will confirm via email within 24 hours.</p>
             </div>
             <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500">
-              <a href="/">Return to Home</a>
+              <NextLink href="/">Return to Home</NextLink>
             </Button>
           </motion.div>
         )

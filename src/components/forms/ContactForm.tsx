@@ -2,7 +2,7 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
-import { motion, AnimatePresence } from "motion/react"
+import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
 
 export function ContactForm() {
@@ -42,10 +42,10 @@ export function ContactForm() {
 
       setStatus('success')
       setFormData({ name: "", email: "", message: "", honeypot: "" })
-    } catch (error: any) {
-      if (import.meta.env.DEV) console.error("Contact Form Error:", error);
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') console.error("Contact Form Error:", error);
       setStatus('error');
-      setErrorMessage(error.message || "Something went wrong while sending your message. Please try again in a moment.");
+      setErrorMessage((error instanceof Error ? error.message : String(error)) || "Something went wrong while sending your message. Please try again in a moment.");
     }
   }
 
@@ -67,7 +67,7 @@ export function ContactForm() {
             <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
             <h3 className="text-2xl font-heading font-bold text-text mb-2">Message Sent</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Thank you for reaching out. We've received your message and will get back to you as soon as possible.
+              {"Thank you for reaching out. We've received your message and will get back to you as soon as possible."}
             </p>
             <Button 
               variant="outline" 
