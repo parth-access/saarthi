@@ -29,8 +29,8 @@ export async function POST(request: Request) {
       }
       
       const data = bookingDoc.data()!;
-      if (data.status !== "pending_approval" && data.status !== "pending") {
-         throw new Error("Booking is not in pending approval state");
+      if (data.status !== "pending_approval" && data.status !== "pending" && data.status !== "awaiting_payment") {
+         throw new Error("Booking is not in a valid state to create a payment order");
       }
 
       let price = 1500;

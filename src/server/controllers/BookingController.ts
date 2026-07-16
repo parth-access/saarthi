@@ -38,21 +38,14 @@ export class BookingController {
       try {
         console.log(`[DEBUG] calling sendEmailAction for bookingId=${bookingId}, recipient=${email}`);
         const emailResult = await sendEmailAction({
-          type: 'booking-received',
+          type: 'booking-payment-link',
           bookingId,
           therapistId: parsed.data.therapistId,
-          bookingDetails: {
-             name: parsed.data.name,
-             email: email,
-             phone: parsed.data.phone,
-             date: parsed.data.date,
-             time: parsed.data.time,
-          }
         });
         console.log(`[DEBUG] sendEmailAction result: ${JSON.stringify(emailResult)}`);
       } catch (err) {
-        console.error(`[DEBUG] Failed to send awaited booking received email`, err);
-        logger.error("EMAIL", "Failed to send awaited booking received email", err);
+        console.error(`[DEBUG] Failed to send awaited booking payment link email`, err);
+        logger.error("EMAIL", "Failed to send awaited booking payment link email", err);
       }
 
       return NextResponse.json({ success: true, bookingId });

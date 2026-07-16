@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, CheckCircle, Clock, Search, LogOut, 
-  Activity, FileText, ChevronRight, UserCog, Video, CreditCard, Sparkles, HelpCircle
+  Activity, FileText, ChevronRight, UserCog, Video, CreditCard, Sparkles
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";

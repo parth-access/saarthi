@@ -219,7 +219,7 @@ export function generateBookingRescheduledEmail(data: BookingEmailData, original
 export function generatePaymentLinkEmail(data: BookingEmailData): string {
   const content = `
     <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
-    <p style="margin: 0 0 16px 0;">Your session request with <strong>${data.therapistName}</strong> has been approved! To confirm your appointment, please complete the payment using the secure link below.</p>
+    <p style="margin: 0 0 16px 0;">Your session request with <strong>${data.therapistName}</strong> has been received! To confirm your appointment, please complete the payment using the secure link below.</p>
     
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
       <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Session Details</h3>

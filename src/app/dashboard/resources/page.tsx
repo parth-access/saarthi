@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, BookOpen, Wind, Heart, PlayCircle, Lock, Sparkles, Anchor, Smile } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { toast } from "sonner";
 
 function Resources() {
   const router = useRouter();
@@ -139,36 +140,125 @@ function Resources() {
             )}
 
             {(activeTab === "all" || activeTab === "journaling") && (
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
-                    <BookOpen className="w-6 h-6 text-[#E6A520]" />
-                    Guided Journaling
-                  </h2>
-                </div>
-                <div className="bg-white rounded-3xl border border-primary/10 p-8 sm:p-10 shadow-sm relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6A520]/5 rounded-bl-[100px] -z-0" />
-                   <div className="relative z-10 max-w-xl">
-                      <p className="text-xs font-bold tracking-widest text-[#E6A520] uppercase mb-3 font-sans">Daily Prompt</p>
-                      <h3 className="text-2xl sm:text-3xl font-serif text-primary mb-4 leading-tight">
-                        &ldquo;What is one thing you can let go of today that isn&apos;t serving you?&rdquo;
-                      </h3>
-                      <p className="text-primary/60 mb-8 font-sans">
-                        Take a few minutes to reflect on this. You don&apos;t have to write perfectly, just honestly. 
-                        Your reflections are entirely private and securely encrypted.
-                      </p>
-                      <button className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm w-fit cursor-pointer font-sans">
-                        <Lock className="w-4 h-4" />
-                        Start Writing Privately
-                      </button>
-                   </div>
-                </div>
-              </section>
+              <div className="space-y-12">
+                <section>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
+                      <BookOpen className="w-6 h-6 text-[#E6A520]" />
+                      Guided Journaling
+                    </h2>
+                  </div>
+                  <div className="bg-white rounded-3xl border border-primary/10 p-8 sm:p-10 shadow-sm relative overflow-hidden">
+                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6A520]/5 rounded-bl-[100px] -z-0" />
+                     <div className="relative z-10 max-w-xl">
+                        <p className="text-xs font-bold tracking-widest text-[#E6A520] uppercase mb-3 font-sans">Daily Prompt</p>
+                        <h3 className="text-2xl sm:text-3xl font-serif text-primary mb-4 leading-tight">
+                          &ldquo;What is one thing you can let go of today that isn&apos;t serving you?&rdquo;
+                        </h3>
+                        <p className="text-primary/60 mb-8 font-sans">
+                          Take a few minutes to reflect on this. You don&apos;t have to write perfectly, just honestly. 
+                          Your reflections are entirely private and securely encrypted.
+                        </p>
+                        <button className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm w-fit cursor-pointer font-sans">
+                          <Lock className="w-4 h-4" />
+                          Start Writing Privately
+                        </button>
+                     </div>
+                  </div>
+                </section>
+
+                <section>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
+                      <Anchor className="w-6 h-6 text-[#E6A520]" />
+                      Sensory Grounding (5-4-3-2-1)
+                    </h2>
+                  </div>
+                  <div className="bg-[#FFFBE7]/40 rounded-3xl border border-primary/10 p-6 sm:p-8 shadow-sm">
+                    <p className="text-sm text-primary/70 mb-6 font-sans">
+                       When overwhelmed, use the 5-4-3-2-1 technique to anchor yourself in the present moment by noticing details around you.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center font-sans">
+                      {[
+                        { step: "5", title: "See", desc: "Five things in your line of sight" },
+                        { step: "4", title: "Touch", desc: "Four textures you can feel" },
+                        { step: "3", title: "Hear", desc: "Three distant sounds" },
+                        { step: "2", title: "Smell", desc: "Two scents in the air" },
+                        { step: "1", title: "Taste", desc: "One flavor on your tongue" }
+                      ].map((g, i) => (
+                        <div key={i} className="bg-white rounded-2xl p-4 border border-primary/5 hover:border-[#E6A520]/20 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                          <span className="block text-2xl font-bold text-[#E6A520] mb-0.5">{g.step}</span>
+                          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{g.title}</h4>
+                          <p className="text-[10px] text-primary/50 leading-tight">{g.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                <section className="p-8 bg-black/[0.01] border-2 border-dashed border-primary/10 rounded-3xl text-center font-sans">
+                  <Sparkles className="w-8 h-8 text-[#E6A520]/50 mx-auto mb-3" />
+                  <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-1">More Calming Pathways</h3>
+                  <p className="text-xs text-primary/50 max-w-sm mx-auto">
+                    We are crafting Sleep Journeys, Indian Raga Soundscapes, and Biofeedback Loops with clinical experts. Arriving soon.
+                  </p>
+                </section>
+              </div>
             )}
             
           </div>
 
           <div className="lg:col-span-4 space-y-8 font-sans">
+            {/* Interactive Daily Mood check-in */}
+            <div className="bg-white rounded-3xl border border-primary/10 p-6 sm:p-8 shadow-sm">
+              <h3 className="font-serif text-lg text-primary mb-2 flex items-center gap-2">
+                <Smile className="w-5 h-5 text-[#E6A520]" />
+                Daily Emotional Check-in
+              </h3>
+              <p className="text-xs text-primary/50 mb-6">How does your heart feel in this quiet moment?</p>
+              
+              <div className="grid grid-cols-5 gap-2 mb-6">
+                {[
+                  { id: "anxious", emoji: "🥺", label: "Anxious" },
+                  { id: "tired", emoji: "🥱", label: "Weary" },
+                  { id: "calm", emoji: "😌", label: "Calm" },
+                  { id: "grounded", emoji: "🧘", label: "Steady" },
+                  { id: "happy", emoji: "☀️", label: "Bright" }
+                ].map((mood, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedMood(mood.id)}
+                    className={`p-2.5 rounded-2xl border text-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+                      selectedMood === mood.id 
+                        ? 'border-[#E6A520] bg-[#FFFBE7] scale-105 shadow-sm'
+                        : 'border-primary/5 bg-primary/[0.01] hover:border-primary/10 hover:bg-primary/[0.02]'
+                    }`}
+                    title={mood.label}
+                  >
+                    <span>{mood.emoji}</span>
+                    <span className="text-[9px] mt-1 text-primary/40 block font-normal leading-none">{mood.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <AnimatePresence mode="wait">
+                {selectedMood ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="p-4 bg-[#FFFBE7]/60 border border-primary/5 rounded-2xl text-xs text-primary/80 leading-relaxed font-sans animate-fade-in"
+                  >
+                    {moodAffirmations[selectedMood]}
+                  </motion.div>
+                ) : (
+                  <div className="text-center py-3 text-xs text-primary/30 border border-dashed border-primary/10 rounded-2xl">
+                    Select a feeling to receive a gentle nudge
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <div className="bg-white rounded-3xl border border-primary/10 p-8 shadow-sm">
               <h3 className="font-serif text-xl text-primary mb-6">Curated Reads</h3>
               <div className="space-y-6">
@@ -180,7 +270,10 @@ function Resources() {
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-6 py-3 border border-primary/10 rounded-2xl text-sm font-medium text-primary hover:bg-[#FFFBE7] transition-colors cursor-pointer">
+              <button 
+                onClick={() => toast.info("More clinical articles are being added to our library.")}
+                className="w-full mt-6 py-3 border border-primary/10 rounded-2xl text-sm font-medium text-primary hover:bg-[#FFFBE7] transition-colors cursor-pointer"
+              >
                 View All Articles
               </button>
             </div>

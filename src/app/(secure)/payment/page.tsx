@@ -27,7 +27,7 @@ export default function PaymentPage() {
 
     bookingService.getBookingByTokenAPIRoute(token)
       .then(data => {
-        setBooking(data.booking);
+        setBooking(data);
       })
       .catch((err) => {
         setError((err instanceof Error ? err.message : String(err)) || 'Failed to load booking details.');

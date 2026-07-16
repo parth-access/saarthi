@@ -2,6 +2,8 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { bookingSchema } from '../validators/bookingValidators';
+import crypto from 'crypto';
+import Razorpay from "razorpay";
 
 export class BookingService {
   /**
@@ -31,6 +33,26 @@ export class BookingService {
     const newBookingRef = adminDb.collection('bookings').doc();
     const bookingToken = crypto.randomUUID() + crypto.randomUUID();
 
+    let price = 1500;
+    if (data.sessionMode === 'in_person') price = 2000;
+    const amount = price;
+    const currency = "INR";
+
+    const rzp = new Razorpay({
+      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+      key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder"
+    });
+
+    const order = await rzp.orders.create({
+      amount: amount * 100,
+      currency,
+      receipt: `receipt_${newBookingRef.id}`,
+      notes: {
+         bookingId: newBookingRef.id,
+         therapistId: data.therapistId
+      }
+    });
+
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
       if (doc.exists) {
@@ -57,8 +79,11 @@ export class BookingService {
         email, 
         userId,
         utcDateTime,
-        status: 'pending_approval',
-        paymentStatus: 'unpaid',
+        status: 'awaiting_payment',
+        paymentStatus: 'pending',
+        paymentAmount: amount,
+        paymentCurrency: currency,
+        razorpayOrderId: order.id,
         bookingToken,
         sessionMode: data.sessionMode || 'Online',
         createdAt: FieldValue.serverTimestamp(),
@@ -69,7 +94,7 @@ export class BookingService {
       t.set(auditRef, {
         action: 'created',
         timestamp: FieldValue.serverTimestamp(),
-        details: 'Booking requested by patient',
+        details: 'Booking requested by patient and awaiting payment',
         userId
       });
     });

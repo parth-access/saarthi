@@ -75,6 +75,10 @@ export async function GET(request: Request) {
       status: data.status,
       name: data.name,
       sessionMode: data.sessionMode,
+      paymentAmount: data.paymentAmount,
+      paymentCurrency: data.paymentCurrency,
+      razorpayOrderId: data.razorpayOrderId,
+      paymentStatus: data.paymentStatus
     }, { status: 200 });
   } catch (err) {
     logger.error('MANAGE_BOOKING', 'Internal server error during fetch token', err, { ip: clientIp });

@@ -15,8 +15,8 @@ export function Footer() {
               A mental wellness platform helping you find clarity, balance, and emotional well-being with the right support.
             </p>
             <div className="flex items-center gap-4">
-              <a 
-                href="https://instagram.com" 
+              <a
+                href="https://instagram.com/saarthi.safespace" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"

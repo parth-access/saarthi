@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, HelpCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Send, HelpCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SupportModalProps {
