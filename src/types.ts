@@ -12,7 +12,13 @@ export type BookingStatus =
   | 'confirmed'
   | 'rejected'
   | 'cancelled'
-  | 'completed';
+  | 'completed'
+  | 'draft'
+  | 'locked'
+  | 'slot_locked'
+  | 'payment_initiated'
+  | 'payment_started'
+  | 'expired';
 
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
 
@@ -28,9 +34,10 @@ export interface Booking {
   therapistId: string;
   name: string;
   email: string;
+  userId?: string;
   phone: string;
   gender: string;
-  age: number;
+  age?: number;
   date: string;
   time: string;
   sessionType: string;
@@ -42,26 +49,25 @@ export interface Booking {
   razorpayPaymentId?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
-  paymentVerifiedAt?: FirebaseTimestamp | Date | string | null;
-  paymentLinkSentAt?: FirebaseTimestamp | Date | string | null;
-  createdAt: FirebaseTimestamp | Date | string | null;
-  updatedAt?: FirebaseTimestamp | Date | string | null;
+  paymentVerifiedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  paymentLinkSentAt?: FirebaseTimestamp | Date | string | null | unknown;
+  createdAt: FirebaseTimestamp | Date | string | null | unknown;
+  updatedAt?: FirebaseTimestamp | Date | string | null | unknown;
   bookingToken?: string;
   sessionMode?: string;
-  rescheduledAt?: FirebaseTimestamp | Date | string | null;
+  rescheduledAt?: FirebaseTimestamp | Date | string | null | unknown;
   originalDate?: string;
   originalTime?: string;
   emailStatus?: 'pending' | 'sent' | 'failed' | 'retrying';
   emailAttempts?: number;
-  lastEmailAttemptAt?: FirebaseTimestamp | Date | string | null;
+  lastEmailAttemptAt?: FirebaseTimestamp | Date | string | null | unknown;
   lastEmailError?: string;
   declineReason?: string;
   declineCustomNote?: string;
-  declinedAt?: FirebaseTimestamp | Date | string | null;
+  declinedAt?: FirebaseTimestamp | Date | string | null | unknown;
   declinedBy?: string;
   invalidToken?: boolean;
   utcDateTime?: string; // Standard UTC storage architecture
-  amount?: number;
 }
 
 export interface BreakPreference {

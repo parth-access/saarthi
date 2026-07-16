@@ -81,3 +81,9 @@ export class InfrastructureError extends AppError {
     super(message, 'INFRASTRUCTURE_ERROR', 500, false, metadata);
   }
 }
+
+export class InvalidStateTransitionError extends AppError {
+  constructor(message: string, metadata?: Record<string, unknown>) {
+    super(message, 'INVALID_STATE_TRANSITION', 400, true, metadata);
+  }
+}

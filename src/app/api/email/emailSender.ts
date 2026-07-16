@@ -1,9 +1,10 @@
 import { Resend, CreateEmailOptions } from 'resend';
-import escapeHtml from 'escape-html';
+import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generatePaymentLinkEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
+import { firestoreBookingRepository } from '@/domains/booking';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -54,11 +55,15 @@ async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string
 async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'failed', errorMsg?: string) {
   if (!bookingId) return;
   try {
-    await adminDb.collection('bookings').doc(bookingId).update({
-      emailStatus: status,
-      lastEmailAttemptAt: FieldValue.serverTimestamp(),
-      ...(errorMsg ? { lastEmailError: errorMsg } : {})
-    });
+    const booking = await firestoreBookingRepository.findById(bookingId);
+    if (booking) {
+      booking.emailStatus = status;
+      booking.lastEmailAttemptAt = FieldValue.serverTimestamp();
+      if (errorMsg) {
+        booking.lastEmailError = errorMsg;
+      }
+      await firestoreBookingRepository.save(booking);
+    }
   } catch (err) {
     logger.warn('EMAIL', 'Could not update booking email status in DB', { error: String(err), bookingId });
   }
@@ -89,9 +94,9 @@ export async function sendEmailAction(payload: EmailPayload) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let bookingData: any;
   try {
-    const bookingSnap = await adminDb.collection('bookings').doc(bookingId).get();
-    if (bookingSnap.exists) {
-      bookingData = bookingSnap.data();
+    const booking = await firestoreBookingRepository.findById(bookingId);
+    if (booking) {
+      bookingData = booking;
     } else {
       logger.warn("EMAIL", "Booking not found in database, proceeding with fallback metadata", { bookingId });
       bookingData = bookingDetails;
@@ -138,15 +143,15 @@ export async function sendEmailAction(payload: EmailPayload) {
     return { success: true, simulated: true };
   }
 
-  const safePatientName = escapeHtml(patientName);
-  const safePatientPhone = patientPhone ? escapeHtml(patientPhone) : 'Not provided';
-  const safeTherapistName = escapeHtml(therapistName);
-  const safeTherapistSpecialization = therapistData?.specialization ? escapeHtml(therapistData.specialization) : undefined;
-  const safeDate = escapeHtml(bookingDate);
-  const safeTime = escapeHtml(bookingTime);
-  const safeOriginalDate = bookingData.originalDate || bookingDetails?.originalDate ? escapeHtml(bookingData.originalDate || bookingDetails?.originalDate || '') : undefined;
-  const safeOriginalTime = bookingData.originalTime || bookingDetails?.originalTime ? escapeHtml(bookingData.originalTime || bookingDetails?.originalTime || '') : undefined;
-  const safeSessionMode = bookingData.sessionMode || bookingDetails?.sessionMode ? escapeHtml(bookingData.sessionMode || bookingDetails?.sessionMode || '') : undefined;
+  const safePatientName = escapeString(patientName);
+  const safePatientPhone = patientPhone ? escapeString(patientPhone) : 'Not provided';
+  const safeTherapistName = escapeString(therapistName);
+  const safeTherapistSpecialization = therapistData?.specialization ? escapeString(therapistData.specialization) : undefined;
+  const safeDate = escapeString(bookingDate);
+  const safeTime = escapeString(bookingTime);
+  const safeOriginalDate = bookingData.originalDate || bookingDetails?.originalDate ? escapeString(bookingData.originalDate || bookingDetails?.originalDate || '') : undefined;
+  const safeOriginalTime = bookingData.originalTime || bookingDetails?.originalTime ? escapeString(bookingData.originalTime || bookingDetails?.originalTime || '') : undefined;
+  const safeSessionMode = bookingData.sessionMode || bookingDetails?.sessionMode ? escapeString(bookingData.sessionMode || bookingDetails?.sessionMode || '') : undefined;
   const safeBookingToken = bookingData.bookingToken || bookingDetails?.bookingToken;
 
   const emailData: BookingEmailData = {
@@ -249,8 +254,8 @@ export async function sendEmailAction(payload: EmailPayload) {
   }
 
   if (type === 'booking-declined') {
-    const safeReason = declineReason ? escapeHtml(declineReason) : '';
-    const safeNote = declineCustomNote ? escapeHtml(declineCustomNote) : '';
+    const safeReason = declineReason ? escapeString(declineReason) : '';
+    const safeNote = declineCustomNote ? escapeString(declineCustomNote) : '';
     
     const plainText = `Booking Request Unsuccessful\nHi ${safePatientName},\nWe're sorry, but we cannot proceed with your booking request for ${safeDate} at ${safeTime} at this time.\nReason: ${safeReason}\n${safeNote ? `Note: ${safeNote}\n` : ''}Please feel free to try another time slot or contact us for assistance.\n- The Saarthi Team`.trim();
 

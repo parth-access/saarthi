@@ -6,6 +6,7 @@ import { logger } from "../../_lib/logger";
 import Razorpay from "razorpay";
 import { sendEmailAction } from "../../email/emailSender";
 import { config } from "@/shared/config";
+import { firestoreBookingRepository } from "@/domains/booking";
 
 export async function POST(request: Request) {
   try {
@@ -20,16 +21,13 @@ export async function POST(request: Request) {
     }
 
     const { bookingId } = parsed.data;
-
-    const bookingRef = adminDb.collection("bookings").doc(bookingId);
     
     await adminDb.runTransaction(async (transaction) => {
-      const bookingDoc = await transaction.get(bookingRef);
-      if (!bookingDoc.exists) {
+      const data = await firestoreBookingRepository.findById(bookingId, transaction);
+      if (!data) {
         throw new Error("Booking not found");
       }
       
-      const data = bookingDoc.data()!;
       if (data.status !== "pending_approval" && data.status !== "pending" && data.status !== "awaiting_payment") {
          throw new Error("Booking is not in a valid state to create a payment order");
       }
@@ -54,32 +52,31 @@ export async function POST(request: Request) {
         }
       });
 
-      const auditRef = bookingRef.collection("audit_logs").doc();
+      const auditRef = adminDb.collection("bookings").doc(bookingId).collection("audit_logs").doc();
       transaction.set(auditRef, {
         action: "awaiting_payment",
         timestamp: FieldValue.serverTimestamp(),
         details: `Payment order generated`
       });
 
-      transaction.update(bookingRef, {
-        status: "awaiting_payment",
-        paymentStatus: "pending",
-        paymentAmount: amount,
-        paymentCurrency: currency,
-        razorpayOrderId: order.id,
-        updatedAt: FieldValue.serverTimestamp()
-      });
+      data.awaitPayment();
+      data.paymentStatus = "pending";
+      data.paymentAmount = amount;
+      data.paymentCurrency = currency;
+      data.razorpayOrderId = order.id;
+      data.updatedAt = FieldValue.serverTimestamp();
+      await firestoreBookingRepository.save(data, transaction);
       
     });
 
-    const updatedBooking = await bookingRef.get();
-    const data = updatedBooking.data()!;
+    const updatedBooking = await firestoreBookingRepository.findById(bookingId);
+    if (!updatedBooking) throw new Error("Booking not found post-transaction");
 
     try {
       await sendEmailAction({
           type: 'booking-payment-link',
           bookingId: updatedBooking.id,
-          therapistId: data.therapistId,
+          therapistId: updatedBooking.therapistId,
       });
     } catch(err) {
       logger.warn("PAYMENT", "Failed to trigger payment email", { error: String(err), bookingId });

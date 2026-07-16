@@ -480,7 +480,7 @@ function Dashboard() {
                                 }}
                                 className="px-5 py-2.5 bg-[#E6A520] hover:bg-[#c48b1a] text-white font-semibold text-xs rounded-xl shadow-sm cursor-pointer"
                               >
-                                Pay Now (₹{session.amount || "1,500"})
+                                Pay Now (₹{session.paymentAmount || "1,500"})
                               </button>
                             ) : (
                               <div className="flex gap-2">

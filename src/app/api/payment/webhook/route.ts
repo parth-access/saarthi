@@ -4,6 +4,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import crypto from "crypto";
 import { config } from "@/shared/config";
+import { firestoreBookingRepository } from "@/domains/booking";
 
 export async function POST(request: Request) {
   try {
@@ -37,24 +38,19 @@ export async function POST(request: Request) {
       const razorpayOrderId = paymentData.order_id;
       const razorpayPaymentId = paymentData.id;
 
-      const querySnap = await adminDb.collection("bookings")
-        .where("razorpayOrderId", "==", razorpayOrderId)
-        .limit(1)
-        .get();
+      const booking = await firestoreBookingRepository.findByOrderId(razorpayOrderId);
 
-      if (querySnap.empty) {
+      if (!booking) {
         logger.error("PAYMENT", "No booking found for order", null, { razorpayOrderId });
         return NextResponse.json({ success: true, note: "Ignored" }, { status: 200 });
       }
 
-      const bookingRef = querySnap.docs[0].ref;
-      const bookingId = bookingRef.id;
+      const bookingId = booking.id;
 
       await adminDb.runTransaction(async (transaction) => {
-        const bookingDoc = await transaction.get(bookingRef);
-        if (!bookingDoc.exists) return;
+        const data = await firestoreBookingRepository.findById(bookingId, transaction);
+        if (!data) return;
         
-        const data = bookingDoc.data()!;
         if (data.status === "confirmed" && data.paymentStatus === "paid") {
            return; 
         }
@@ -72,15 +68,11 @@ export async function POST(request: Request) {
             source: "webhook"
         });
 
-        transaction.update(bookingRef, {
-            status: "confirmed",
-            paymentStatus: "paid",
-            razorpayPaymentId,
-            paymentVerifiedAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp()
-        });
+        data.confirmPayment(FieldValue.serverTimestamp(), razorpayPaymentId);
+        data.updatedAt = FieldValue.serverTimestamp();
+        await firestoreBookingRepository.save(data, transaction);
 
-        const auditRef = bookingRef.collection("audit_logs").doc();
+        const auditRef = adminDb.collection("bookings").doc(bookingId).collection("audit_logs").doc();
         transaction.set(auditRef, {
             action: "payment_verified_webhook",
             timestamp: FieldValue.serverTimestamp(),

@@ -5,6 +5,7 @@ import { bookingSchema } from '../validators/bookingValidators';
 import crypto from 'crypto';
 import Razorpay from "razorpay";
 import { config } from "@/shared/config";
+import { firestoreBookingRepository, Booking } from '@/domains/booking';
 
 export class BookingService {
   /**
@@ -31,7 +32,7 @@ export class BookingService {
 
     const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
-    const newBookingRef = adminDb.collection('bookings').doc();
+    const newBookingId = firestoreBookingRepository.generateId();
     const bookingToken = crypto.randomUUID() + crypto.randomUUID();
 
     let price = 1500;
@@ -47,9 +48,9 @@ export class BookingService {
     const order = await rzp.orders.create({
       amount: amount * 100,
       currency,
-      receipt: `receipt_${newBookingRef.id}`,
+      receipt: `receipt_${newBookingId}`,
       notes: {
-         bookingId: newBookingRef.id,
+         bookingId: newBookingId,
          therapistId: data.therapistId
       }
     });
@@ -71,16 +72,20 @@ export class BookingService {
         therapistId: data.therapistId,
         date: data.date,
         time: data.time,
-        bookingId: newBookingRef.id,
+        bookingId: newBookingId,
         createdAt: FieldValue.serverTimestamp()
       });
 
-      t.set(newBookingRef, {
+      const age = data.age !== undefined ? (typeof data.age === 'string' ? parseInt(data.age, 10) : data.age) : undefined;
+
+      const booking = new Booking({
         ...data,
+        age,
+        id: newBookingId,
         email, 
         userId,
         utcDateTime,
-        status: 'awaiting_payment',
+        status: 'draft',
         paymentStatus: 'pending',
         paymentAmount: amount,
         paymentCurrency: currency,
@@ -91,7 +96,11 @@ export class BookingService {
         updatedAt: FieldValue.serverTimestamp()
       });
 
-      const auditRef = adminDb.collection('bookings').doc(newBookingRef.id).collection('audit_logs').doc();
+      booking.awaitPayment();
+
+      await firestoreBookingRepository.create(booking, t);
+
+      const auditRef = adminDb.collection('bookings').doc(newBookingId).collection('audit_logs').doc();
       t.set(auditRef, {
         action: 'created',
         timestamp: FieldValue.serverTimestamp(),
@@ -100,7 +109,7 @@ export class BookingService {
       });
     });
 
-    return { bookingId: newBookingRef.id };
+    return { bookingId: newBookingId };
   }
 
   /**
@@ -119,12 +128,9 @@ export class BookingService {
       utcDateTime = isNaN(dt.getTime()) ? '' : dt.toISOString();
     } catch {}
 
-    const ref = adminDb.collection('bookings').doc(bookingId);
-
     const { bookingData } = await adminDb.runTransaction(async (t) => {
-      const doc = await t.get(ref);
-      if (!doc.exists) throw new Error("Booking not found");
-      const data = doc.data()!;
+      const data = await firestoreBookingRepository.findById(bookingId, t);
+      if (!data) throw new Error("Booking not found");
 
       if (session.role === 'therapist') {
         const therapistDoc = await t.get(adminDb.collection('therapists').doc(data.therapistId));
@@ -175,20 +181,10 @@ export class BookingService {
         createdAt: FieldValue.serverTimestamp()
       });
 
-      const updateData: Record<string, string | FieldValue> = {
-        originalDate: data.date,
-        originalTime: data.time,
-        date: newDate,
-        time: newTime,
-        updatedAt: FieldValue.serverTimestamp(),
-        rescheduledAt: FieldValue.serverTimestamp(),
-      };
-      if (utcDateTime) {
-        updateData.utcDateTime = utcDateTime;
-      }
-      t.update(ref, updateData);
+      data.reschedule(newDate, newTime, FieldValue.serverTimestamp(), utcDateTime || undefined);
+      await firestoreBookingRepository.save(data, t);
 
-      const auditRef = ref.collection('audit_logs').doc();
+      const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
       t.set(auditRef, {
         action: 'rescheduled',
         timestamp: FieldValue.serverTimestamp(),
@@ -203,16 +199,12 @@ export class BookingService {
 
     return bookingData;
   }
-    static async getBookings() {
-    const snapshot = await adminDb.collection('bookings').orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  static async getBookings() {
+    return firestoreBookingRepository.findAll();
   }
 
   static async getBookingsByTherapist(therapistId: string) {
-    const snapshot = await adminDb.collection('bookings')
-      .where('therapistId', '==', therapistId)
-      .orderBy('createdAt', 'desc')
-      .get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return firestoreBookingRepository.findByTherapistId(therapistId);
   }
 }

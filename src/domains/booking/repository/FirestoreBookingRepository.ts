@@ -1,17 +1,24 @@
 import { adminDb } from '@/lib/firebase/admin';
-import { Booking } from '@/types';
+import { Booking } from '../entities/Booking';
+import { BookingRepository } from './BookingRepository';
 import { logger } from '@/shared/logger';
-import { Transaction, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { Transaction, FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
-export interface BookingRepository {
-  generateId(): string;
-  create(booking: Booking, transaction?: Transaction): Promise<void>;
-  lockSlot(therapistId: string, date: string, time: string, lockId: string, expiresAt: Date, transaction?: Transaction): Promise<boolean>;
-  releaseSlot(therapistId: string, date: string, time: string, lockId: string, transaction?: Transaction): Promise<void>;
-  findById(bookingId: string, transaction?: Transaction): Promise<Booking | null>;
-  findByToken(token: string, _transaction?: Transaction): Promise<Booking | null>;
-  findExpiredLocks(timeoutThreshold: Date, _transaction?: Transaction): Promise<Booking[]>;
-  save(booking: Booking, transaction?: Transaction): Promise<void>;
+export class BookingMapper {
+  static toEntity(doc: DocumentSnapshot | QueryDocumentSnapshot): Booking {
+    const data = doc.data();
+    if (!data) {
+      throw new Error(`Document ${doc.id} has no data`);
+    }
+    return new Booking({
+      id: doc.id,
+      ...data,
+    });
+  }
+
+  static toPersistence(booking: Partial<Booking>): Record<string, unknown> {
+    return { ...booking } as Record<string, unknown>;
+  }
 }
 
 export class FirestoreBookingRepository implements BookingRepository {
@@ -24,8 +31,9 @@ export class FirestoreBookingRepository implements BookingRepository {
   async create(booking: Booking, transaction?: Transaction): Promise<void> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const docRef = adminDb.collection('bookings').doc(booking.id);
+    const persistenceData = BookingMapper.toPersistence(booking);
     const data = {
-      ...booking,
+      ...persistenceData,
       createdAt: booking.createdAt || FieldValue.serverTimestamp(),
       updatedAt: booking.updatedAt || FieldValue.serverTimestamp(),
     };
@@ -36,7 +44,14 @@ export class FirestoreBookingRepository implements BookingRepository {
     }
   }
 
-  async lockSlot(therapistId: string, date: string, time: string, lockId: string, expiresAt: Date, transaction?: Transaction): Promise<boolean> {
+  async lockSlot(
+    therapistId: string,
+    date: string,
+    time: string,
+    lockId: string,
+    expiresAt: Date,
+    transaction?: Transaction
+  ): Promise<boolean> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const slotId = `${therapistId}_${date}_${time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
@@ -87,7 +102,13 @@ export class FirestoreBookingRepository implements BookingRepository {
     }
   }
 
-  async releaseSlot(therapistId: string, date: string, time: string, lockId: string, transaction?: Transaction): Promise<void> {
+  async releaseSlot(
+    therapistId: string,
+    date: string,
+    time: string,
+    lockId: string,
+    transaction?: Transaction
+  ): Promise<void> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const slotId = `${therapistId}_${date}_${time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
@@ -116,7 +137,7 @@ export class FirestoreBookingRepository implements BookingRepository {
     const docRef = adminDb.collection('bookings').doc(bookingId);
     const doc = transaction ? await transaction.get(docRef) : await docRef.get();
     if (!doc.exists) return null;
-    return { id: doc.id, ...doc.data() } as Booking;
+    return BookingMapper.toEntity(doc);
   }
 
   async findByToken(token: string): Promise<Booking | null> {
@@ -124,8 +145,7 @@ export class FirestoreBookingRepository implements BookingRepository {
     const query = adminDb.collection('bookings').where('bookingToken', '==', token).limit(1);
     const snapshot = await query.get();
     if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as Booking;
+    return BookingMapper.toEntity(snapshot.docs[0]);
   }
 
   async findExpiredLocks(timeoutThreshold: Date): Promise<Booking[]> {
@@ -135,9 +155,9 @@ export class FirestoreBookingRepository implements BookingRepository {
     
     const bookings: Booking[] = [];
     for (const doc of snapshot.docs) {
-      const data = doc.data() as Booking;
+      const data = doc.data();
       let createdAtDate: Date | null = null;
-      if (data.createdAt) {
+      if (data?.createdAt) {
         const ca = data.createdAt;
         if (ca && typeof ca === 'object' && 'toDate' in ca && typeof (ca as { toDate: () => unknown }).toDate === 'function') {
           createdAtDate = (ca as { toDate: () => Date }).toDate();
@@ -146,7 +166,7 @@ export class FirestoreBookingRepository implements BookingRepository {
         }
       }
       if (createdAtDate && createdAtDate < timeoutThreshold) {
-        bookings.push({ id: doc.id, ...data });
+        bookings.push(BookingMapper.toEntity(doc));
       }
     }
     return bookings;
@@ -155,8 +175,9 @@ export class FirestoreBookingRepository implements BookingRepository {
   async save(booking: Booking, transaction?: Transaction): Promise<void> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const docRef = adminDb.collection('bookings').doc(booking.id);
+    const persistenceData = BookingMapper.toPersistence(booking);
     const data = {
-      ...booking,
+      ...persistenceData,
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (transaction) {
@@ -165,8 +186,41 @@ export class FirestoreBookingRepository implements BookingRepository {
       await docRef.set(data, { merge: true });
     }
   }
+
+  async findAll(): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const snapshot = await adminDb.collection('bookings').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
+  }
+
+  async findByTherapistId(therapistId: string): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const snapshot = await adminDb.collection('bookings')
+      .where('therapistId', '==', therapistId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
+  }
+
+  async findActiveBookingsByTherapistAndDate(therapistId: string, date: string): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const snapshot = await adminDb.collection('bookings')
+      .where('therapistId', '==', therapistId)
+      .where('date', '==', date)
+      .where('status', 'in', ['pending', 'pending_approval', 'awaiting_payment', 'confirmed'])
+      .get();
+    return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
+  }
+
+  async findByOrderId(orderId: string): Promise<Booking | null> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const snapshot = await adminDb.collection('bookings')
+      .where('razorpayOrderId', '==', orderId)
+      .limit(1)
+      .get();
+    if (snapshot.empty) return null;
+    return BookingMapper.toEntity(snapshot.docs[0]);
+  }
 }
 
 export const firestoreBookingRepository = new FirestoreBookingRepository();
-
-

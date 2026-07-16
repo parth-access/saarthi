@@ -4,6 +4,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { requireTherapist } from '../../../../lib/auth/requireRole';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { firestoreBookingRepository } from '@/domains/booking';
+import { BookingStatus } from '@/types';
 
 const schema = z.object({
   bookingId: z.string(),
@@ -22,8 +24,7 @@ export async function POST(req: Request) {
     if (!parsed.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     
     const { bookingId, reason, customNote } = parsed.data;
-    const ref = adminDb.collection('bookings').doc(bookingId);
-    const status = 'rejected';
+    const status: BookingStatus = 'rejected';
 
     let therapistAuthId = '';
     if (session.role === 'therapist') {
@@ -31,9 +32,8 @@ export async function POST(req: Request) {
     }
 
     const { bookingData, therapistId } = await adminDb.runTransaction(async (t) => {
-      const doc = await t.get(ref);
-      if (!doc.exists) throw new Error("Booking not found");
-      const data = doc.data()!;
+      const data = await firestoreBookingRepository.findById(bookingId, t);
+      if (!data) throw new Error("Booking not found");
       
       if (therapistAuthId) {
          const therapistDoc = await t.get(adminDb.collection('therapists').doc(data.therapistId));
@@ -42,14 +42,9 @@ export async function POST(req: Request) {
          }
       }
 
-      t.update(ref, {
-        status,
-        declineReason: reason,
-        declineCustomNote: customNote || '',
-        declinedAt: FieldValue.serverTimestamp(),
-        declinedBy: session.uid,
-        updatedAt: FieldValue.serverTimestamp()
-      });
+      data.decline(reason, session.uid, customNote || '', FieldValue.serverTimestamp());
+      data.updatedAt = FieldValue.serverTimestamp();
+      await firestoreBookingRepository.save(data, t);
 
       const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
       const slotRef = adminDb.collection('locked_slots').doc(slotId);

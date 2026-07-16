@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../../../lib/firebase/admin';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { verifySession } from '../../../../lib/auth/verifySession';
 import crypto from 'crypto';
+import { SlotReservationService } from '@/domains/booking';
 
 const schema = z.object({
   therapistId: z.string(),
@@ -40,54 +40,24 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'Therapist not found' }, { status: 404 });
     }
     
-    slotId = `${therapistId}_${date}_${time}`.replace(/\//g, '-');
-    const slotRef = adminDb.collection('locked_slots').doc(slotId);
+    slotId = SlotReservationService.getSlotId(therapistId, date, time);
 
-    const result = await adminDb.runTransaction(async (t) => {
-      const doc = await t.get(slotRef);
-      if (doc.exists) {
-        const data = doc.data() || {};
-        let isExpired = false;
-        
-        if (data.expiresAt) {
-          const expiresDate = typeof data.expiresAt.toDate === 'function' ? data.expiresAt.toDate() : new Date(data.expiresAt);
-          if (expiresDate < new Date()) {
-            isExpired = true;
-          }
-        }
+    const result = await SlotReservationService.acquireLock(therapistId, date, time, userId);
 
-        if (isExpired) {
-          t.delete(slotRef); 
-        } else if (data.bookingId) {
-          throw new Error("Slot unavailable");
-        } else if (data.userId === userId) {
-           // lock refresh
-        } else {
-          throw new Error("Slot unavailable");
-        }
-      }
-      
-      const lockId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 5 * 60000); // 5 minutes
-      
-      t.set(slotRef, {
-        lockId,
-        therapistId,
-        date,
-        time,
-        userId,
-        createdAt: FieldValue.serverTimestamp(),
-        expiresAt: Timestamp.fromDate(expiresAt)
-      });
-      return { lockId };
-    });
+    if (!result.success) {
+      console.warn(`[DEBUG] lock-slot failed: slotId=${slotId}, userId=${userId}, error=${result.error}`);
+      const isReserved = result.error?.includes('reserved');
+      return NextResponse.json(
+        { success: false, error: result.error || 'Slot is currently unavailable.' },
+        { status: isReserved ? 409 : 400 }
+      );
+    }
 
     console.log(`[DEBUG] lock-slot success: slotId=${slotId}, lockId=${result.lockId}, userId=${userId}`);
     return NextResponse.json({ success: true, lockId: result.lockId });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error(`[DEBUG] lock-slot failure: slotId=${slotId}, userId=${userId}, error=${errMsg}`);
-    const msg = errMsg.includes("unavailable") ? "This slot is currently unavailable." : "An unexpected error occurred.";
-    return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

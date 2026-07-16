@@ -6,6 +6,7 @@ import { logger } from "../../_lib/logger";
 import crypto from "crypto";
 import { sendEmailAction } from "../../email/emailSender";
 import { config } from "@/shared/config";
+import { firestoreBookingRepository } from "@/domains/booking";
 
 export async function POST(request: Request) {
   try {
@@ -35,14 +36,11 @@ export async function POST(request: Request) {
        logger.error("PAYMENT", "Signature mismatch", null, { bookingId });
        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
-
-    const bookingRef = adminDb.collection("bookings").doc(bookingId);
     
     await adminDb.runTransaction(async (transaction) => {
-      const bookingDoc = await transaction.get(bookingRef);
-      if (!bookingDoc.exists) throw new Error("Booking not found");
+      const data = await firestoreBookingRepository.findById(bookingId, transaction);
+      if (!data) throw new Error("Booking not found");
       
-      const data = bookingDoc.data()!;
       if (data.status === "confirmed" && data.paymentStatus === "paid") {
          return; 
       }
@@ -62,15 +60,11 @@ export async function POST(request: Request) {
         verifiedAt: FieldValue.serverTimestamp()
       });
 
-      transaction.update(bookingRef, {
-        status: "confirmed",
-        paymentStatus: "paid",
-        razorpayPaymentId: razorpay_payment_id,
-        paymentVerifiedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp()
-      });
+      data.confirmPayment(FieldValue.serverTimestamp(), razorpay_payment_id);
+      data.updatedAt = FieldValue.serverTimestamp();
+      await firestoreBookingRepository.save(data, transaction);
 
-      const auditRef = bookingRef.collection("audit_logs").doc();
+      const auditRef = adminDb.collection("bookings").doc(bookingId).collection("audit_logs").doc();
       transaction.set(auditRef, {
         action: "payment_verified",
         timestamp: FieldValue.serverTimestamp(),
@@ -79,14 +73,14 @@ export async function POST(request: Request) {
 
     });
 
-    const updatedBooking = await bookingRef.get();
-    const data = updatedBooking.data()!;
+    const updatedBooking = await firestoreBookingRepository.findById(bookingId);
+    if (!updatedBooking) throw new Error("Booking not found post-transaction");
 
     try {
       await sendEmailAction({
           type: 'booking-confirmed',
           bookingId: updatedBooking.id,
-          therapistId: data.therapistId,
+          therapistId: updatedBooking.therapistId,
       });
     } catch(err) {
       logger.warn("PAYMENT", "Failed to trigger config email", { error: String(err), bookingId });

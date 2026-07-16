@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { TherapistAvailabilityRule, TherapistOverride } from '@/types';
+import { firestoreBookingRepository } from '@/domains/booking';
 
 function timeToMinutes(timeStr: string): number {
   const [h, m] = timeStr.split(':').map(Number);
@@ -86,12 +87,7 @@ export async function GET(request: Request) {
       .get();
 
     // Fetch bookings for the therapist and date
-    const bookingsPromise = adminDb
-      .collection('bookings')
-      .where('therapistId', '==', therapistId)
-      .where('date', '==', date)
-      .where('status', 'in', ['pending', 'pending_approval', 'awaiting_payment', 'confirmed'])
-      .get();
+    const bookingsPromise = firestoreBookingRepository.findActiveBookingsByTherapistAndDate(therapistId, date);
 
     // Fetch locked slots for the therapist and date
     const lockedSlotsPromise = adminDb
@@ -100,7 +96,7 @@ export async function GET(request: Request) {
       .where('date', '==', date)
       .get();
 
-    const [rulesSnapshot, overridesSnapshot, bookingsSnapshot, lockedSlotsSnapshot] = await Promise.all([
+    const [rulesSnapshot, overridesSnapshot, bookingsList, lockedSlotsSnapshot] = await Promise.all([
       rulesPromise,
       overridesPromise,
       bookingsPromise,
@@ -117,7 +113,7 @@ export async function GET(request: Request) {
       ...doc.data()
     })) as TherapistOverride[];
 
-    const bookedTimes = bookingsSnapshot.docs.map((doc) => doc.data().time) as string[];
+    const bookedTimes = bookingsList.map((booking) => booking.time);
 
     const lockedTimes: string[] = [];
     const locksToDelete: string[] = [];

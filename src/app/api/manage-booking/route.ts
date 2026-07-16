@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 import { BookingService } from "@/server/services/BookingService";
 import { sendEmailAction } from "../email/emailSender";
+import { firestoreBookingRepository } from "@/domains/booking";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 
@@ -32,22 +33,15 @@ export async function GET(request: Request) {
   if (!token) return NextResponse.json({ error: "Missing token" }, { status: 400 });
 
   try {
-    const snapshot = await adminDb
-      .collection("bookings")
-      .where("bookingToken", "==", token)
-      .limit(1)
-      .get();
+    const booking = await firestoreBookingRepository.findByToken(token);
       
-    if (snapshot.empty) {
+    if (!booking) {
       logger.warn('MANAGE_BOOKING', 'Invalid token attempt', { token, ip: clientIp });
       return NextResponse.json({ error: "Booking not found or link expired." }, { status: 404 });
     }
 
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-
-    if (data.invalidToken) {
-       logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { token, bookingId: doc.id });
+    if (booking.invalidToken) {
+       logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { token, bookingId: booking.id });
        return NextResponse.json({ error: "This booking link is no longer valid." }, { status: 400 });
     }
 
@@ -55,30 +49,30 @@ export async function GET(request: Request) {
     try {
       const therapistDoc = await adminDb
         .collection("therapists")
-        .doc(data.therapistId)
+        .doc(booking.therapistId)
         .get();
       if (therapistDoc.exists) {
         therapistName = therapistDoc.data()?.name || therapistName;
       }
     } catch {
-      logger.warn('MANAGE_BOOKING', "Failed to fetch therapist info", { therapistId: data.therapistId });
+      logger.warn('MANAGE_BOOKING', "Failed to fetch therapist info", { therapistId: booking.therapistId });
     }
 
-    logger.info('MANAGE_BOOKING', 'Successfully fetched booking details for token', { bookingId: doc.id });
+    logger.info('MANAGE_BOOKING', 'Successfully fetched booking details for token', { bookingId: booking.id });
 
     return NextResponse.json({
-      id: doc.id,
-      therapistId: data.therapistId,
+      id: booking.id,
+      therapistId: booking.therapistId,
       therapistName,
-      date: data.date,
-      time: data.time,
-      status: data.status,
-      name: data.name,
-      sessionMode: data.sessionMode,
-      paymentAmount: data.paymentAmount,
-      paymentCurrency: data.paymentCurrency,
-      razorpayOrderId: data.razorpayOrderId,
-      paymentStatus: data.paymentStatus
+      date: booking.date,
+      time: booking.time,
+      status: booking.status,
+      name: booking.name,
+      sessionMode: booking.sessionMode,
+      paymentAmount: booking.paymentAmount,
+      paymentCurrency: booking.paymentCurrency,
+      razorpayOrderId: booking.razorpayOrderId,
+      paymentStatus: booking.paymentStatus
     }, { status: 200 });
   } catch (err) {
     logger.error('MANAGE_BOOKING', 'Internal server error during fetch token', err, { ip: clientIp });
@@ -107,16 +101,11 @@ export async function POST(request: Request) {
 
     const { token, newDate, newTime } = parsed.data;
 
-    const snapshot = await adminDb
-      .collection("bookings")
-      .where("bookingToken", "==", token)
-      .limit(1)
-      .get();
-    if (snapshot.empty)
+    const booking = await firestoreBookingRepository.findByToken(token);
+    if (!booking)
       return NextResponse.json({ error: "Booking not found or link expired." }, { status: 404 });
 
-    const bookingId = snapshot.docs[0].id;
-    const data = snapshot.docs[0].data();
+    const bookingId = booking.id;
 
     await BookingService.rescheduleBooking(bookingId, newDate, newTime, {
       isTokenFlow: true
@@ -126,7 +115,7 @@ export async function POST(request: Request) {
       await sendEmailAction({
         type: "booking-rescheduled",
         bookingId: bookingId,
-        therapistId: data.therapistId,
+        therapistId: booking.therapistId,
       });
     } catch (err) {
       logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId });
