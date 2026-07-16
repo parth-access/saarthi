@@ -78,8 +78,8 @@ export default function RootLayout({
       <body className={`${inter.variable} ${playfair.variable} antialiased min-h-screen bg-background selection:bg-accent/30`}>
         <Providers>
           {children}
+          <Toaster />
         </Providers>
-        <Toaster />
       </body>
     </html>
   );

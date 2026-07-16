@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { bookingSchema } from '../validators/bookingValidators';
 import crypto from 'crypto';
 import Razorpay from "razorpay";
+import { config } from "@/shared/config";
 
 export class BookingService {
   /**
@@ -39,8 +40,8 @@ export class BookingService {
     const currency = "INR";
 
     const rzp = new Razorpay({
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-      key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder"
+      key_id: config.razorpay.keyId || "rzp_test_placeholder",
+      key_secret: config.razorpay.keySecret || "placeholder"
     });
 
     const order = await rzp.orders.create({
@@ -201,5 +202,17 @@ export class BookingService {
     });
 
     return bookingData;
+  }
+    static async getBookings() {
+    const snapshot = await adminDb.collection('bookings').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  static async getBookingsByTherapist(therapistId: string) {
+    const snapshot = await adminDb.collection('bookings')
+      .where('therapistId', '==', therapistId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 }

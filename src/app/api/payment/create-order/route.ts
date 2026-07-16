@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import Razorpay from "razorpay";
 import { sendEmailAction } from "../../email/emailSender";
+import { config } from "@/shared/config";
 
 export async function POST(request: Request) {
   try {
@@ -39,8 +40,8 @@ export async function POST(request: Request) {
       const currency = "INR";
 
       const rzp = new Razorpay({
-        key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
-        key_secret: process.env.RAZORPAY_KEY_SECRET || "placeholder"
+        key_id: config.razorpay.keyId || "rzp_test_placeholder",
+        key_secret: config.razorpay.keySecret || "placeholder"
       });
 
       const order = await rzp.orders.create({

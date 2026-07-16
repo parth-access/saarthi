@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import crypto from "crypto";
+import { config } from "@/shared/config";
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing signature" }, { status: 400 });
     }
 
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const secret = config.razorpay.webhookSecret;
     if (!secret) {
         logger.error("PAYMENT", "Missing webhook secret in env");
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -93,8 +94,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true }, { status: 200 });
 
-  } catch (error: any) {
+  } catch (error) {
     logger.error("PAYMENT", "Webhook processing failed", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal Server Error" }, { status: 500 });
   }
 }

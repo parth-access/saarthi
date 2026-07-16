@@ -5,6 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { logger } from "../../_lib/logger";
 import crypto from "crypto";
 import { sendEmailAction } from "../../email/emailSender";
+import { config } from "@/shared/config";
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || "placeholder";
+    const secret = config.razorpay.keySecret || "placeholder";
 
     const generated_signature = crypto
       .createHmac("sha256", secret)
