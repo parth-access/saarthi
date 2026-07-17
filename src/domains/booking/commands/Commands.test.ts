@@ -8,7 +8,10 @@ import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from './ConfirmBo
 import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBookingCommand';
 import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository, Booking } from '@/domains/booking';
+import { firestorePaymentRepository, Payment, razorpayGateway } from '@/domains/payment';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { EventBus } from '@/shared/events/EventBus';
+import { registerListeners } from '@/shared/events/listeners';
 
 // Class-based mock for Razorpay to guarantee "new Razorpay" works perfectly
 vi.mock('razorpay', () => {
@@ -29,6 +32,7 @@ vi.mock('@/lib/firebase/admin', () => {
       exists: true,
       data: () => ({ authId: 'therapist_abc' })
     }),
+    set: vi.fn().mockResolvedValue(true),
     collection: vi.fn(() => ({
       doc: vi.fn(() => ({
         set: vi.fn(),
@@ -66,6 +70,8 @@ vi.mock('@/app/api/email/emailSender', () => ({
 describe('Command Handlers Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    EventBus.clear();
+    registerListeners(EventBus);
   });
 
   describe('CreateBookingCommand', () => {
@@ -140,6 +146,7 @@ describe('Command Handlers Suite', () => {
       });
 
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
 
       const mockTx = {
         get: vi.fn(),
@@ -198,6 +205,16 @@ describe('Command Handlers Suite', () => {
       });
 
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending'
+      });
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
 
       const mockTx = {
         get: vi.fn(),

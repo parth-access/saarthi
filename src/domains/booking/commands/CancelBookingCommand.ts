@@ -2,7 +2,6 @@ import { Command, CommandHandler } from './types';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository, BookingDomainService } from '@/domains/booking';
-import { sendEmailAction } from '@/app/api/email/emailSender';
 
 export class CancelBookingCommand implements Command {
   readonly name = 'CancelBookingCommand';
@@ -21,7 +20,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
   async execute(command: CancelBookingCommand): Promise<{ success: boolean }> {
     const { bookingId, reason, cancelledBy, sessionRole, customNote } = command;
 
-    const { bookingData, therapistId } = await adminDb.runTransaction(async (t) => {
+    await adminDb.runTransaction(async (t) => {
       const data = await firestoreBookingRepository.findById(bookingId, t);
       if (!data) throw new Error('Booking not found');
 
@@ -54,42 +53,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
       const slotRef = adminDb.collection('locked_slots').doc(slotId);
       t.delete(slotRef);
-
-      const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
-      t.set(auditRef, {
-        action: 'status_updated',
-        status: isDecline ? 'rejected' : 'cancelled',
-        reason,
-        timestamp: FieldValue.serverTimestamp(),
-        details: isDecline ? `Booking declined: ${reason}` : `Booking cancelled: ${reason}`,
-        userId: cancelledBy
-      });
-
-      return { bookingData: data, therapistId: data.therapistId };
     });
-
-    try {
-      const isDecline = bookingData.status === 'rejected';
-      if (isDecline) {
-        await sendEmailAction({
-          type: 'booking-declined',
-          bookingId,
-          therapistId,
-          declineReason: reason,
-          declineCustomNote: customNote,
-          bookingDetails: {
-            name: bookingData.name,
-            email: bookingData.email,
-            date: bookingData.date,
-            time: bookingData.time,
-          }
-        });
-      } else {
-        // Send generic cancellation/update email if needed or requested
-      }
-    } catch (err) {
-      console.error('Failed to send decline/cancellation email:', err);
-    }
 
     return { success: true };
   }

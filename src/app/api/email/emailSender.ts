@@ -5,21 +5,111 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generatePaymentLinkEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
 import { firestoreBookingRepository } from '@/domains/booking';
+import { EventBus } from '@/shared/events/EventBus';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string, emailType: string): Promise<unknown> {
+async function sendEmailWithRetry(
+  options: CreateEmailOptions, 
+  bookingId: string, 
+  emailType: string,
+  existingEmailId?: string
+): Promise<unknown> {
   const maxRetries = 3;
   let attempt = 0;
   let lastError: unknown;
 
+  // Track email in database
+  const emailRef = existingEmailId 
+    ? adminDb.collection('emails').doc(existingEmailId)
+    : adminDb.collection('emails').doc();
+  const emailId = emailRef.id;
+
+  const toStr = Array.isArray(options.to) ? options.to.join(', ') : String(options.to || '');
+
+  if (!existingEmailId) {
+    await emailRef.set({
+      id: emailId,
+      bookingId,
+      type: emailType,
+      recipient: toStr,
+      subject: options.subject || '',
+      html: options.html || '',
+      text: options.text || '',
+      status: 'queued',
+      attempts: [],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    });
+  } else {
+    await emailRef.update({
+      status: 'queued',
+      updatedAt: FieldValue.serverTimestamp()
+    });
+  }
+
+  try {
+    await EventBus.publish({
+      name: 'EmailEnqueued',
+      timestamp: new Date(),
+      payload: { emailId, bookingId, type: emailType, recipient: toStr }
+    });
+  } catch (pubErr) {
+    logger.warn('EMAIL', 'Failed to publish EmailEnqueued event', { error: String(pubErr) });
+  }
+
+  await emailRef.update({
+    status: 'sending',
+    updatedAt: FieldValue.serverTimestamp()
+  });
+
+  const loggedAttempts: Array<{
+    attemptNumber: number;
+    attemptedAt: string;
+    status: 'success' | 'failed';
+    error?: string;
+    response?: unknown;
+  }> = [];
+
   while (attempt < maxRetries) {
     attempt++;
+    const attemptedAt = new Date().toISOString();
     try {
       logger.info('EMAIL', `Attempt ${attempt}/${maxRetries} to send ${emailType}`, {
         to: options.to,
         bookingId,
       });
+
+      if (!process.env.RESEND_API_KEY) {
+        logger.warn('EMAIL', 'RESEND_API_KEY is not set. Simulating email send.', { bookingId });
+        const simulatedResponse = { id: `sim_${Math.random().toString(36).substr(2, 9)}` };
+        
+        loggedAttempts.push({
+          attemptNumber: attempt,
+          attemptedAt,
+          status: 'success',
+          response: simulatedResponse
+        });
+
+        await emailRef.update({
+          status: 'sent',
+          attempts: loggedAttempts,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+
+        try {
+          await EventBus.publish({
+            name: 'EmailSent',
+            timestamp: new Date(),
+            payload: { emailId, bookingId, type: emailType, recipient: toStr, response: simulatedResponse }
+          });
+        } catch (pubErr) {
+          logger.warn('EMAIL', 'Failed to publish EmailSent event (simulated)', { error: String(pubErr) });
+        }
+
+        return { success: true, simulated: true, data: simulatedResponse };
+      }
+
       const data = await resend.emails.send({
         replyTo: 'healwithsaarthi@gmail.com',
         ...options,
@@ -34,14 +124,53 @@ async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string
         bookingId,
         resendId: data.data?.id
       });
+
+      loggedAttempts.push({
+        attemptNumber: attempt,
+        attemptedAt,
+        status: 'success',
+        response: data.data
+      });
+
+      await emailRef.update({
+        status: 'sent',
+        attempts: loggedAttempts,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
+      try {
+        await EventBus.publish({
+          name: 'EmailSent',
+          timestamp: new Date(),
+          payload: { emailId, bookingId, type: emailType, recipient: toStr, response: data.data || { id: 'sent' } }
+        });
+      } catch (pubErr) {
+        logger.warn('EMAIL', 'Failed to publish EmailSent event', { error: String(pubErr) });
+      }
+
       return data;
     } catch (error) {
       lastError = error;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
       logger.warn('EMAIL', `Failed to send ${emailType} (Attempt ${attempt}/${maxRetries})`, {
-        error: (error instanceof Error ? error.message : String(error)),
+        error: errorMsg,
         to: options.to,
         bookingId
       });
+
+      loggedAttempts.push({
+        attemptNumber: attempt,
+        attemptedAt,
+        status: 'failed',
+        error: errorMsg
+      });
+
+      await emailRef.update({
+        attempts: loggedAttempts,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+
       if (attempt < maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
       }
@@ -49,7 +178,42 @@ async function sendEmailWithRetry(options: CreateEmailOptions, bookingId: string
   }
   
   logger.error('EMAIL', `Exhausted retries for ${emailType}`, { to: options.to, bookingId, error: lastError });
+  
+  await emailRef.update({
+    status: 'failed',
+    updatedAt: FieldValue.serverTimestamp()
+  });
+
+  try {
+    await EventBus.publish({
+      name: 'EmailFailed',
+      timestamp: new Date(),
+      payload: { emailId, bookingId, type: emailType, recipient: toStr, error: lastError instanceof Error ? lastError.message : String(lastError) }
+    });
+  } catch (pubErr) {
+    logger.warn('EMAIL', 'Failed to publish EmailFailed event', { error: String(pubErr) });
+  }
+
   throw lastError;
+}
+
+export async function resendSavedEmailAction(emailId: string) {
+  const emailRef = adminDb.collection('emails').doc(emailId);
+  const emailSnap = await emailRef.get();
+  if (!emailSnap.exists) {
+    throw new Error('Email log not found');
+  }
+  const emailData = emailSnap.data()!;
+
+  const options: CreateEmailOptions = {
+    from: 'Saarthi Contact <contact@saarthilife.com>',
+    to: emailData.recipient,
+    subject: emailData.subject,
+    html: emailData.html,
+    text: emailData.text,
+  };
+
+  return sendEmailWithRetry(options, emailData.bookingId, emailData.type, emailId);
 }
 
 async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'failed', errorMsg?: string) {

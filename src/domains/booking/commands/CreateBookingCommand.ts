@@ -4,8 +4,7 @@ import { bookingSchema } from '@/server/validators/bookingValidators';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
-import Razorpay from 'razorpay';
-import { config } from '@/shared/config';
+import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/domains/payment';
 import { firestoreBookingRepository, Booking, BookingDomainService } from '@/domains/booking';
 
 export class CreateBookingCommand implements Command {
@@ -46,20 +45,16 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     const amount = price;
     const currency = 'INR';
 
-    const rzp = new Razorpay({
-      key_id: config.razorpay.keyId || 'rzp_test_placeholder',
-      key_secret: config.razorpay.keySecret || 'placeholder'
-    });
-
-    const order = await rzp.orders.create({
-      amount: amount * 100,
+    // Delegate Razorpay order generation to the Payment domain
+    const createPaymentOrderCommand = new CreatePaymentOrderCommand(
+      newBookingId,
+      data.therapistId,
+      amount,
       currency,
-      receipt: `receipt_${newBookingId}`,
-      notes: {
-        bookingId: newBookingId,
-        therapistId: data.therapistId
-      }
-    });
+      email
+    );
+    const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
+    const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
 
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
@@ -95,7 +90,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         paymentStatus: 'pending',
         paymentAmount: amount,
         paymentCurrency: currency,
-        razorpayOrderId: order.id,
+        razorpayOrderId: order.orderId,
         bookingToken,
         sessionMode: data.sessionMode || 'Online',
         createdAt: FieldValue.serverTimestamp(),
@@ -103,14 +98,6 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       });
 
       await this.bookingDomainService.awaitPayment(booking, t);
-
-      const auditRef = adminDb.collection('bookings').doc(newBookingId).collection('audit_logs').doc();
-      t.set(auditRef, {
-        action: 'created',
-        timestamp: FieldValue.serverTimestamp(),
-        details: 'Booking requested by patient and awaiting payment',
-        userId
-      });
     });
 
     return { bookingId: newBookingId };

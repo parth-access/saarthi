@@ -1,8 +1,6 @@
 import * as React from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { format, parseISO, isToday, isPast, parse } from "date-fns"
+import { format, parseISO, isToday } from "date-fns"
 import { 
-  LogOut, 
   RefreshCw, 
   Check, 
   X, 
@@ -19,13 +17,12 @@ import {
   LayoutGrid,
   ChevronRight,
   User,
-  Users,
   Search,
-  Filter,
   ChevronDown
 } from "lucide-react"
 import { Booking, BookingStatus, Therapist } from "../../types"
 import { cn, toDateSafe } from "../../lib/utils"
+import { OperationsPanel } from "../admin/OperationsPanel"
 
 interface TherapistDashboardProps {
   therapist: Therapist | null;
@@ -40,6 +37,7 @@ interface TherapistDashboardProps {
   scheduleBuilderNode?: React.ReactNode;
   adminTherapistsNode?: React.ReactNode;
   contactsNode?: React.ReactNode;
+  emailLogsNode?: React.ReactNode;
   isAdmin?: boolean;
 }
 
@@ -63,9 +61,10 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
   scheduleBuilderNode,
   adminTherapistsNode,
   contactsNode,
+  emailLogsNode,
   isAdmin
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'sessions' | 'schedule' | 'therapists' | 'contacts'>('overview');
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'sessions' | 'schedule' | 'therapists' | 'contacts' | 'emails' | 'operations'>('overview');
   
   // Filter state
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -96,8 +95,6 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [bookings, searchTerm, statusFilter, dateFilter]);
-
-  const isFiltering = searchTerm !== "" || statusFilter !== 'all' || dateFilter !== "";
 
   const GreetingIcon = greeting.icon;
 
@@ -235,6 +232,28 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               )}
             >
               Contacts & Inquiries
+            </button>
+          )}
+          {emailLogsNode && (
+            <button
+              onClick={() => setActiveTab('emails')}
+              className={cn(
+                "pb-4 text-sm font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
+                activeTab === 'emails' ? "border-primary text-primary" : "border-transparent text-primary/30 hover:text-primary/60"
+              )}
+            >
+              Email Operations
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('operations')}
+              className={cn(
+                "pb-4 text-sm font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap",
+                activeTab === 'operations' ? "border-primary text-primary" : "border-transparent text-primary/30 hover:text-primary/60"
+              )}
+            >
+              Platform Control Room
             </button>
           )}
         </div>
@@ -401,7 +420,7 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
               {/* TODAY'S SCHEDULE WIDGET */}
               <div className="bg-white rounded-[2rem] border border-primary/5 p-6 md:p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-serif text-lg">Today's Schedule</h3>
+                  <h3 className="font-serif text-lg">{"Today's Schedule"}</h3>
                   <div className="text-xs uppercase tracking-widest font-bold text-primary/30">
                     {format(new Date(), "MMM d")}
                   </div>
@@ -485,6 +504,14 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
             {contactsNode}
           </div>
+        ) : activeTab === 'emails' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+            {emailLogsNode}
+          </div>
+        ) : activeTab === 'operations' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
+            <OperationsPanel />
+          </div>
         ) : (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white rounded-[3rem] p-4 sm:p-8 md:p-12 border border-primary/5 shadow-[0_10px_40px_rgba(0,0,0,0.02)]">
             {adminTherapistsNode}
@@ -516,10 +543,6 @@ const EmptyState = ({ message }: { message: string }) => (
 
 const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: { booking: Booking; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void; isProcessing: boolean }) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
-
-  const StatusIcon = (booking.status === 'pending' || booking.status === 'pending_approval') ? Clock : 
-                     booking.status === 'confirmed' ? CheckCircle2 :
-                     booking.status === 'completed' ? Check : X;
 
   return (
     <div className="bg-white rounded-3xl p-5 md:p-6 border border-primary/5 hover:border-primary/10 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all group overflow-hidden relative">
@@ -558,7 +581,7 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
           </div>
 
           <div className="bg-[#FCFAF7] p-4 rounded-2xl border border-primary/5 text-sm text-primary/70 leading-relaxed italic pr-8 relative">
-            <span className="absolute top-4 right-4 text-primary/10 font-serif text-4xl leading-none">"</span>
+            <span className="absolute top-4 right-4 text-primary/10 font-serif text-4xl leading-none">&quot;</span>
             {booking.message || "No specific reasons provided for the session."}
           </div>
 
@@ -566,7 +589,11 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
             <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-sm mt-4">
               <div className="text-red-800 font-bold mb-1">Declined: {booking.declineReason}</div>
               {booking.declineCustomNote && <div className="text-red-600 block">{booking.declineCustomNote}</div>}
-              {booking.declinedAt && <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">{format(toDateSafe(booking.declinedAt) || new Date(), "MMM d, yyyy h:mm a")}</div>}
+              {booking.declinedAt ? (
+                <div className="text-[10px] uppercase font-bold text-red-400 tracking-widest mt-2">
+                  {format(toDateSafe(booking.declinedAt) || new Date(), "MMM d, yyyy h:mm a")}
+                </div>
+              ) : null}
             </div>
           )}
         </div>
