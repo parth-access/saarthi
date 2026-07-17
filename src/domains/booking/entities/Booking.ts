@@ -98,6 +98,11 @@ export class Booking {
     return this;
   }
 
+  expire(): this {
+    BookingStateMachine.transition(this, 'expired');
+    return this;
+  }
+
   reschedule(newDate: string, newTime: string, rescheduledAt?: unknown, newUtcDateTime?: string): this {
     if (this.status === 'cancelled' || this.status === 'rejected' || this.status === 'completed') {
       throw new Error(`Cannot reschedule a ${this.status} booking`);

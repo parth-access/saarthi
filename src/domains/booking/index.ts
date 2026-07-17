@@ -3,3 +3,7 @@ export * from './repository/BookingRepository';
 export * from './repository/FirestoreBookingRepository';
 export * from './state/BookingStateMachine';
 export * from './services/SlotReservationService';
+export * from './services/BookingDomainService';
+export * from './errors/InvalidBookingTransitionError';
+export * from './events/BookingEvents';
+export * from './commands';

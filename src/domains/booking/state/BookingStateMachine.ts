@@ -1,39 +1,7 @@
-import { BookingStatus, Booking } from '@/types';
-import { InvalidStateTransitionError } from '@/shared/errors';
-
-export interface DomainEvent {
-  name: string;
-  timestamp: Date;
-  data: Record<string, unknown>;
-}
-
-export type DomainEventListener = (event: DomainEvent) => void | Promise<void>;
-
-export class DomainEvents {
-  private static listeners: Record<string, DomainEventListener[]> = {};
-
-  static subscribe(eventName: string, listener: DomainEventListener): void {
-    if (!this.listeners[eventName]) {
-      this.listeners[eventName] = [];
-    }
-    this.listeners[eventName].push(listener);
-  }
-
-  static async dispatch(event: DomainEvent): Promise<void> {
-    const eventListeners = this.listeners[event.name] || [];
-    for (const listener of eventListeners) {
-      try {
-        await listener(event);
-      } catch (err) {
-        console.error(`Error in domain event listener for ${event.name}:`, err);
-      }
-    }
-  }
-
-  static clear(): void {
-    this.listeners = {};
-  }
-}
+import { BookingStatus } from '@/types';
+import { Booking } from '../entities/Booking';
+import { InvalidBookingTransitionError } from '../errors/InvalidBookingTransitionError';
+import { DomainEvents } from '../events/BookingEvents';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ['slot_locked', 'awaiting_payment', 'cancelled', 'rejected'],
@@ -68,7 +36,7 @@ export class BookingStateMachine {
 
   static transition(booking: Booking, targetState: BookingStatus, metadata?: Record<string, unknown>): void {
     if (!this.canTransition(booking.status, targetState)) {
-      throw new InvalidStateTransitionError(
+      throw new InvalidBookingTransitionError(
         `Cannot transition booking ${booking.id} from status '${booking.status}' to '${targetState}'`
       );
     }

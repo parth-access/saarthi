@@ -3,7 +3,7 @@ import { adminDb } from '../../../../lib/firebase/admin';
 import { z } from 'zod';
 import { verifySession } from '../../../../lib/auth/verifySession';
 import crypto from 'crypto';
-import { SlotReservationService } from '@/domains/booking';
+import { LockSlotCommand, LockSlotCommandHandler, SlotReservationService } from '@/domains/booking';
 
 const schema = z.object({
   therapistId: z.string(),
@@ -42,7 +42,9 @@ export async function POST(req: Request) {
     
     slotId = SlotReservationService.getSlotId(therapistId, date, time);
 
-    const result = await SlotReservationService.acquireLock(therapistId, date, time, userId);
+    const command = new LockSlotCommand(therapistId, date, time, userId);
+    const handler = new LockSlotCommandHandler();
+    const result = await handler.execute(command);
 
     if (!result.success) {
       console.warn(`[DEBUG] lock-slot failed: slotId=${slotId}, userId=${userId}, error=${result.error}`);

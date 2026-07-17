@@ -1,6 +1,5 @@
 import { verifySession } from '@/lib/auth/verifySession';
 import { bookingSchema } from '../validators/bookingValidators';
-import { BookingService } from '../services/BookingService';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { IdGenerator } from '@/shared/ids';
 import { logger } from '@/shared/logger';
@@ -8,6 +7,7 @@ import { auditService } from '@/domains/audit/AuditService';
 import { successResponse, errorResponse } from '@/shared/responses';
 import { ValidationError, AppError } from '@/shared/errors';
 import crypto from 'crypto';
+import { CreateBookingCommand, CreateBookingCommandHandler } from '@/domains/booking';
 
 export class BookingController {
   static async createBooking(req: Request) {
@@ -33,7 +33,9 @@ export class BookingController {
       
       reqLogger.info('Booking creation requested', { therapistId: parsed.data.therapistId, date: parsed.data.date, time: parsed.data.time, userId: uid });
       
-      const { bookingId } = await BookingService.createBooking(parsed.data, uid, email);
+      const command = new CreateBookingCommand(parsed.data, uid, email);
+      const handler = new CreateBookingCommandHandler();
+      const { bookingId } = await handler.execute(command);
       
       reqLogger.info('Booking created successfully', { bookingId, userId: uid });
       

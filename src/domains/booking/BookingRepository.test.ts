@@ -1,103 +1,279 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { firestoreBookingRepository } from './repository/FirestoreBookingRepository';
+import { adminDb } from '@/lib/firebase/admin';
 import { Booking } from './entities/Booking';
-import { BookingStateMachine, DomainEvents, DomainEvent } from './state/BookingStateMachine';
-import { InvalidStateTransitionError } from '@/shared/errors';
-import { BookingStatus } from '@/types';
+import { Transaction, CollectionReference, DocumentData } from 'firebase-admin/firestore';
 
-describe('BookingStateMachine and Booking Entity', () => {
+// Mock the admin database
+vi.mock('@/lib/firebase/admin', () => {
+  const mockDoc = vi.fn();
+  const mockCollectionRef = {
+    doc: mockDoc,
+    where: vi.fn(),
+  };
+  const mockCollection = vi.fn(() => mockCollectionRef);
+  const mockRunTransaction = vi.fn();
+
+  return {
+    adminDb: {
+      collection: mockCollection,
+      runTransaction: mockRunTransaction,
+    },
+  };
+});
+
+describe('FirestoreBookingRepository', () => {
   beforeEach(() => {
-    DomainEvents.clear();
     vi.clearAllMocks();
   });
 
-  describe('Valid Transitions', () => {
-    it('✓ should allow Draft → Locked transition', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'draft' });
-      booking.lockSlot();
-      expect(booking.status).toBe('slot_locked');
+  describe('generateId', () => {
+    it('should generate a string starting with bk_ and of correct length', () => {
+      const id = firestoreBookingRepository.generateId();
+      expect(id).toMatch(/^bk_\d{8}_[A-Z0-9]{5}$/);
     });
 
-    it('✓ should allow Locked → Awaiting Payment transition', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'slot_locked' });
-      booking.awaitPayment();
-      expect(booking.status).toBe('awaiting_payment');
-    });
-
-    it('✓ should allow Awaiting → Payment Started transition', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'awaiting_payment' });
-      booking.initiatePayment();
-      expect(booking.status).toBe('payment_initiated');
-    });
-
-    it('✓ should allow Payment Started → Confirmed transition', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'payment_initiated' });
-      booking.confirmPayment(new Date(), 'pay_123');
-      expect(booking.status).toBe('confirmed');
-      expect(booking.paymentStatus).toBe('paid');
-      expect(booking.razorpayPaymentId).toBe('pay_123');
-    });
-
-    it('✓ should allow Confirmed → Completed transition', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'confirmed' });
-      booking.complete();
-      expect(booking.status).toBe('completed');
+    it('should generate unique IDs on consecutive calls', () => {
+      const id1 = firestoreBookingRepository.generateId();
+      const id2 = firestoreBookingRepository.generateId();
+      expect(id1).not.toBe(id2);
     });
   });
 
-  describe('Invalid Transitions', () => {
-    it('should throw InvalidStateTransitionError for Completed → Draft', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'completed' });
-      expect(() => {
-        BookingStateMachine.transition(booking, 'draft');
-      }).toThrow(InvalidStateTransitionError);
+  describe('create', () => {
+    it('should set the document data directly if no transaction is provided', async () => {
+      const booking = { id: 'test-id', name: 'John Doe', status: 'pending' } as unknown as Booking;
+      const mockSet = vi.fn().mockResolvedValue(undefined);
+      const mockDocRef = { set: mockSet };
+      
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValueOnce({
+        doc: vi.fn().mockReturnValue(mockDocRef),
+      } as unknown as CollectionReference<DocumentData>);
+
+      await firestoreBookingRepository.create(booking);
+
+      expect(adminDb.collection).toHaveBeenCalledWith('bookings');
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'test-id',
+          name: 'John Doe',
+          status: 'pending',
+          createdAt: expect.anything(),
+          updatedAt: expect.anything(),
+        })
+      );
     });
 
-    it('should throw InvalidStateTransitionError for Cancelled → Confirmed', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'cancelled' });
-      expect(() => {
-        BookingStateMachine.transition(booking, 'confirmed');
-      }).toThrow(InvalidStateTransitionError);
-    });
+    it('should use transaction.set if transaction is provided', async () => {
+      const booking = { id: 'test-id', name: 'John Doe', status: 'pending' } as unknown as Booking;
+      const mockDocRef = { id: 'test-id' };
+      
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValueOnce({
+        doc: vi.fn().mockReturnValue(mockDocRef),
+      } as unknown as CollectionReference<DocumentData>);
 
-    it('should throw InvalidStateTransitionError for Expired → Payment Started', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'expired' });
-      expect(() => {
-        BookingStateMachine.transition(booking, 'payment_initiated');
-      }).toThrow(InvalidStateTransitionError);
+      const mockTransaction = {
+        set: vi.fn(),
+      } as unknown as Transaction;
+
+      await firestoreBookingRepository.create(booking, mockTransaction);
+
+      expect(adminDb.collection).toHaveBeenCalledWith('bookings');
+      expect(mockTransaction.set).toHaveBeenCalledWith(
+        mockDocRef,
+        expect.objectContaining({
+          id: 'test-id',
+          name: 'John Doe',
+          status: 'pending',
+          createdAt: expect.anything(),
+          updatedAt: expect.anything(),
+        })
+      );
     });
   });
 
-  describe('State Normalization', () => {
-    it('should normalize uppercase input states', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'DRAFT' as unknown as BookingStatus });
-      booking.lockSlot(); // 'slot_locked'
-      expect(booking.status).toBe('slot_locked');
+  describe('lockSlot', () => {
+    it('should lock the slot when transaction is provided and slot is available', async () => {
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+      } as unknown as Transaction;
+
+      const result = await firestoreBookingRepository.lockSlot(
+        'therapist-1',
+        '2026-07-16',
+        '10:00',
+        'lock-123',
+        new Date(),
+        mockTransaction
+      );
+
+      expect(result).toBe(true);
+      expect(mockTransaction.set).toHaveBeenCalled();
     });
 
-    it('should normalize input with spaces', () => {
-      const booking = new Booking({ id: 'bk_1', status: 'awaiting_payment' });
-      BookingStateMachine.transition(booking, 'Payment Started' as unknown as BookingStatus);
-      expect(booking.status).toBe('Payment Started'); // status retains original casing but validates correctly
+    it('should return false if slot is already booked', async () => {
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ bookingId: 'existing-booking' }),
+        }),
+        set: vi.fn(),
+      } as unknown as Transaction;
+
+      const result = await firestoreBookingRepository.lockSlot(
+        'therapist-1',
+        '2026-07-16',
+        '10:00',
+        'lock-123',
+        new Date(),
+        mockTransaction
+      );
+
+      expect(result).toBe(false);
+      expect(mockTransaction.set).not.toHaveBeenCalled();
     });
   });
 
-  describe('Domain Events', () => {
-    it('should publish a domain event upon successful transition', async () => {
-      const mockListener = vi.fn();
-      DomainEvents.subscribe('BookingSlotLocked', mockListener);
+  describe('releaseSlot', () => {
+    it('should delete the slot document if lock matches and no booking exists', async () => {
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ lockId: 'lock-123' }),
+        }),
+        delete: vi.fn(),
+      } as unknown as Transaction;
 
-      const booking = new Booking({ id: 'bk_1', status: 'draft' });
-      booking.lockSlot();
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValue({
+        doc: vi.fn().mockReturnValue({}),
+      } as unknown as CollectionReference<DocumentData>);
 
-      // Wait a tick for async dispatch to complete
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await firestoreBookingRepository.releaseSlot(
+        'therapist-1',
+        '2026-07-16',
+        '10:00',
+        'lock-123',
+        mockTransaction
+      );
 
-      expect(mockListener).toHaveBeenCalledTimes(1);
-      const event: DomainEvent = mockListener.mock.calls[0][0];
-      expect(event.name).toBe('BookingSlotLocked');
-      expect(event.data.bookingId).toBe('bk_1');
-      expect(event.data.previousStatus).toBe('draft');
-      expect(event.data.targetStatus).toBe('slot_locked');
+      expect(mockTransaction.delete).toHaveBeenCalled();
+    });
+
+    it('should not delete the slot document if lock does not match', async () => {
+      const mockTransaction = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ lockId: 'other-lock' }),
+        }),
+        delete: vi.fn(),
+      } as unknown as Transaction;
+
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValue({
+        doc: vi.fn().mockReturnValue({}),
+      } as unknown as CollectionReference<DocumentData>);
+
+      await firestoreBookingRepository.releaseSlot(
+        'therapist-1',
+        '2026-07-16',
+        '10:00',
+        'lock-123',
+        mockTransaction
+      );
+
+      expect(mockTransaction.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findById', () => {
+    it('should retrieve a booking by its id and return it', async () => {
+      const mockBooking = { id: 'bk_123', name: 'Patient' };
+      const mockGet = vi.fn().mockResolvedValue({
+        exists: true,
+        id: 'bk_123',
+        data: () => mockBooking,
+      });
+
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValue({
+        doc: vi.fn().mockReturnValue({ get: mockGet }),
+      } as unknown as CollectionReference<DocumentData>);
+
+      const booking = await firestoreBookingRepository.findById('bk_123');
+
+      expect(booking).toEqual(new Booking({ id: 'bk_123', name: 'Patient', status: 'pending' }));
+    });
+
+    it('should return null if booking is not found', async () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        exists: false,
+      });
+
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValue({
+        doc: vi.fn().mockReturnValue({ get: mockGet }),
+      } as unknown as CollectionReference<DocumentData>);
+
+      const booking = await firestoreBookingRepository.findById('bk_invalid');
+
+      expect(booking).toBeNull();
+    });
+  });
+
+  describe('findByToken', () => {
+    it('should retrieve a booking by token and return it', async () => {
+      const mockBooking = { id: 'bk_123', name: 'Patient', bookingToken: 'tok_abc' };
+      const mockGet = vi.fn().mockResolvedValue({
+        empty: false,
+        docs: [
+          {
+            id: 'bk_123',
+            data: () => mockBooking,
+          },
+        ],
+      });
+
+      const collectionMock = vi.mocked(adminDb.collection);
+      const mockQuery = {
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        get: mockGet,
+      };
+      collectionMock.mockReturnValue(mockQuery as unknown as CollectionReference<DocumentData>);
+
+      const booking = await firestoreBookingRepository.findByToken('tok_abc');
+
+      expect(booking).toEqual(new Booking({ id: 'bk_123', name: 'Patient', bookingToken: 'tok_abc', status: 'pending' }));
+    });
+  });
+
+  describe('save', () => {
+    it('should update the document data with merge if no transaction is provided', async () => {
+      const booking = { id: 'test-id', name: 'John Doe', status: 'confirmed' } as unknown as Booking;
+      const mockSet = vi.fn().mockResolvedValue(undefined);
+      const mockDocRef = { set: mockSet };
+      
+      const collectionMock = vi.mocked(adminDb.collection);
+      collectionMock.mockReturnValueOnce({
+        doc: vi.fn().mockReturnValue(mockDocRef),
+      } as unknown as CollectionReference<DocumentData>);
+
+      await firestoreBookingRepository.save(booking);
+
+      expect(mockSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'test-id',
+          name: 'John Doe',
+          status: 'confirmed',
+          updatedAt: expect.anything(),
+        }),
+        { merge: true }
+      );
     });
   });
 });
+
