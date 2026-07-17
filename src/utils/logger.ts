@@ -2,8 +2,8 @@ export interface FrontendLogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
   category: 'BOOKING' | 'UI' | 'AUTH' | 'SYSTEM';
   message: string;
-  data?: any;
-  error?: any;
+  data?: unknown;
+  error?: unknown;
 }
 
 function writeFrontendLog(entry: FrontendLogEntry) {
@@ -37,16 +37,16 @@ function writeFrontendLog(entry: FrontendLogEntry) {
 }
 
 export const logger = {
-  info: (category: FrontendLogEntry['category'], message: string, data?: any) => {
+  info: (category: FrontendLogEntry['category'], message: string, data?: unknown) => {
     writeFrontendLog({ level: 'info', category, message, data });
   },
-  warn: (category: FrontendLogEntry['category'], message: string, data?: any) => {
+  warn: (category: FrontendLogEntry['category'], message: string, data?: unknown) => {
     writeFrontendLog({ level: 'warn', category, message, data });
   },
-  error: (category: FrontendLogEntry['category'], message: string, error?: any, data?: any) => {
+  error: (category: FrontendLogEntry['category'], message: string, error?: unknown, data?: unknown) => {
     writeFrontendLog({ level: 'error', category, message, error, data });
   },
-  success: (category: FrontendLogEntry['category'], message: string, data?: any) => {
+  success: (category: FrontendLogEntry['category'], message: string, data?: unknown) => {
     writeFrontendLog({ level: 'success', category, message, data });
   }
 };

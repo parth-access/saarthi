@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { z } from 'zod';
-import escapeHtml from 'escape-html';
+import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import * as admin from 'firebase-admin';
 
@@ -52,9 +52,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const safeName = escapeHtml(name.trim());
-    const safeEmail = escapeHtml(email.trim());
-    const safeMessage = escapeHtml(message.trim());
+    const safeName = escapeString(name.trim());
+    const safeEmail = escapeString(email.trim());
+    const safeMessage = escapeString(message.trim());
 
     // Save to Firestore
     const docRef = await adminDb.collection('contacts').add({

@@ -262,4 +262,3 @@ export default function SafeManageBookingPage() {
     </React.Suspense>
   );
 }
-1

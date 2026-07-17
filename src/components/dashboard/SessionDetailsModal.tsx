@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, CheckCircle, Circle, MapPin, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown } from 'lucide-react';
 import { Booking, Therapist } from '@/types';
 import Image from 'next/image';
 
@@ -93,7 +93,6 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                         <div className="relative border-l border-primary/10 ml-4 pl-6 space-y-6 mt-2">
                           {steps.map((step, idx) => {
                             const isCompleted = idx <= activeStep;
-                            const isCurrent = idx === activeStep;
                             return (
                               <div key={idx} className="relative">
                                 {/* Dot */}

@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
+      replyTo: 'healwithsaarthi@gmail.com',
       subject: `Reschedule Request: ${userName}`,
       html: `
         <div style="font-family: sans-serif; line-height: 1.5; color: #333;">

@@ -1,6 +1,6 @@
 import { Booking, Therapist, BookingStatus } from '../types';
 
-export function mapBooking(id: string, data: any): Booking {
+export function mapBooking(id: string, data: Partial<Booking> & Record<string, unknown>): Booking {
   return {
     id,
     therapistId: data?.therapistId || '',
@@ -37,7 +37,7 @@ export function mapBooking(id: string, data: any): Booking {
   };
 }
 
-export function mapTherapist(id: string, data: any): Therapist {
+export function mapTherapist(id: string, data: Partial<Therapist> & Record<string, unknown>): Therapist {
   return {
     id,
     name: data?.name || 'Unknown Therapist',

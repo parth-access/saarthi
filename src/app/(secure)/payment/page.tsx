@@ -109,6 +109,33 @@ export default function PaymentPage() {
   }
 
   const handlePayment = async () => {
+    if (booking.razorpayOrderId?.startsWith('order_sim_')) {
+      setVerifying(true);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const verifyRes = await fetch('/api/payment/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            razorpay_payment_id: `pay_sim_${Math.random().toString(36).substring(2, 10)}`,
+            razorpay_order_id: booking.razorpayOrderId,
+            razorpay_signature: 'sim_signature'
+          })
+        });
+
+        const data = await verifyRes.json();
+        if (!verifyRes.ok) throw new Error(data.error || 'Payment verification failed');
+        
+        setSuccess(true);
+      } catch (err) {
+        setError((err instanceof Error ? err.message : String(err)) || 'Simulated payment verification failed.');
+      } finally {
+        setVerifying(false);
+      }
+      return;
+    }
+
     if (typeof window === 'undefined' || !(window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (...args: unknown[]) => void) => void, open: () => void } }).Razorpay) {
       toast.error('Razorpay SDK failed to load. Are you online?');
       return;
@@ -178,7 +205,14 @@ export default function PaymentPage() {
       >
         <div className="text-center mb-8">
             <h1 className="text-3xl font-serif text-[#C48B1A] mb-2">Secure Checkout</h1>
-            <p className="text-gray-600">Complete your payment to confirm the session</p>
+            {booking.razorpayOrderId?.startsWith('order_sim_') ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Simulated Sandbox Checkout
+              </span>
+            ) : (
+              <p className="text-gray-600">Complete your payment to confirm the session</p>
+            )}
         </div>
 
         <div className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-xl border border-[#E6A520]/20">
@@ -219,14 +253,22 @@ export default function PaymentPage() {
           >
             {verifying ? (
                <>Verifying Payment <Loader2 className="w-5 h-5 animate-spin" /></>
+            ) : booking.razorpayOrderId?.startsWith('order_sim_') ? (
+               <>Simulate Success Payment <ArrowRight className="w-5 h-5" /></>
             ) : (
                <>Pay ₹{booking.paymentAmount || 1500} <ArrowRight className="w-5 h-5" /></>
             )}
           </button>
           
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400">
-            <ShieldCheck className="w-4 h-4" /> Secured by Razorpay
-          </div>
+          {booking.razorpayOrderId?.startsWith('order_sim_') ? (
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-amber-600 font-medium font-sans">
+              <ShieldCheck className="w-4 h-4" /> Running in Sandbox/Preview Mode
+            </div>
+          ) : (
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-sans">
+              <ShieldCheck className="w-4 h-4" /> Secured by Razorpay
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

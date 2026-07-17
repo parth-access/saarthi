@@ -43,8 +43,9 @@ export class RazorpayGateway implements PaymentGateway {
         amount: params.amount,
         currency: params.currency
       };
-    } catch (error: any) {
-      if (error && (error.statusCode === 401 || (error.error && error.error.description === 'Authentication failed'))) {
+    } catch (error) {
+      const err = error as { statusCode?: number; error?: { description?: string } };
+      if (err && (err.statusCode === 401 || (err.error && err.error.description === 'Authentication failed'))) {
         console.warn('[Razorpay] Razorpay authentication failed. Falling back to simulated mock payment order.');
         return {
           orderId: `order_sim_${crypto.randomUUID().replace(/-/g, '').substring(0, 14)}`,

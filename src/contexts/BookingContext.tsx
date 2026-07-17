@@ -5,7 +5,7 @@ import { useForm, UseFormReturn } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
-// Booking Architecture State
+// Booking Architecture Statea
 export const bookingSchema = z.object({
   therapistId: z.string().min(1, "Therapist is required"),
   sessionType: z.string().min(1, "Session type is required"),

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Booking } from '@/types';
 
@@ -39,7 +39,7 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
     try {
       await onSubmit(reason, preferredDate, preferredTime);
       onClose();
-    } catch (err) {
+    } catch {
       setError('Failed to send reschedule request. Please try again.');
     } finally {
       setIsSubmitting(false);

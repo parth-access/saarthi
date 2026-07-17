@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { adminAuth } from '@/lib/firebase/admin';
+import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { sendEmailAction, type EmailPayload } from './emailSender';
 import { logger } from '../_lib/logger';
 
@@ -55,6 +55,50 @@ export async function POST(request: Request) {
     
   } catch (error) {
     logger.error('EMAIL', 'Email API Error', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch {
+      return NextResponse.json({ error: 'Forbidden: Invalid token' }, { status: 403 });
+    }
+
+    // Verify role is admin
+    const userSnap = await adminDb.collection('users').doc(decodedToken.uid).get();
+    if (!userSnap.exists || userSnap.data()?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: Administrator permissions required' }, { status: 403 });
+    }
+
+    // Query emails
+    const emailsSnap = await adminDb.collection('emails')
+      .orderBy('createdAt', 'desc')
+      .limit(100)
+      .get();
+
+    const emails = emailsSnap.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt || null,
+      };
+    });
+
+    return NextResponse.json(emails, { status: 200 });
+
+  } catch (error) {
+    logger.error('EMAIL', 'Error fetching email logs', error);
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
   }
 }

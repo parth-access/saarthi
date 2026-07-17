@@ -2,6 +2,7 @@ import { BookingStatus } from '@/types';
 import { Booking } from '../entities/Booking';
 import { InvalidBookingTransitionError } from '../errors/InvalidBookingTransitionError';
 import { DomainEvents } from '../events/BookingEvents';
+import { EventBus } from '@/shared/events/EventBus';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ['slot_locked', 'awaiting_payment', 'cancelled', 'rejected'],
@@ -59,5 +60,21 @@ export class BookingStateMachine {
         metadata,
       },
     });
+
+    try {
+      EventBus.publish({
+        name: eventName,
+        timestamp: new Date(),
+        payload: {
+          bookingId: booking.id,
+          booking,
+          previousStatus,
+          targetStatus: targetState,
+          metadata,
+        }
+      });
+    } catch (err) {
+      console.error('[BookingStateMachine] Failed to publish event to central EventBus:', err);
+    }
   }
 }

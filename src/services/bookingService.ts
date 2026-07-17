@@ -1,15 +1,7 @@
-import {
-  collection,
-  getDocs,
-  query,
-  orderBy,
-  where,
-} from 'firebase/firestore';
-import { db, auth } from '../lib/firebase/client';
+import { auth } from '../lib/firebase/client';
 import { Booking, BookingStatus } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapBooking } from '../utils/mappers';
-import { toDateSafe } from '../lib/utils';
 import { logger } from '../utils/logger';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
@@ -63,18 +55,9 @@ export const bookingService = {
 
   getBookings: async (): Promise<Booking[]> => {
     try {
-      const q = query(
-        collection(db, 'bookings'),
-        orderBy('createdAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const items = snapshot.docs.map((d) => mapBooking(d.id, d.data()));
-      return items.sort((a, b) => {
-        const timeA = toDateSafe(a.createdAt)?.getTime() || 0;
-        const timeB = toDateSafe(b.createdAt)?.getTime() || 0;
-        return timeB - timeA;
-      });
-    } catch (err) {
+      const data = await fetchWithAuth('/api/bookings', { method: 'GET' });
+      return (data || []).map((b: Record<string, unknown>) => mapBooking(String(b.id), b));
+    } catch (err: unknown) {
       handleFirestoreError(err, OperationType.LIST, 'bookings');
       return [];
     }
@@ -82,18 +65,9 @@ export const bookingService = {
 
   getBookingsByTherapist: async (therapistId: string): Promise<Booking[]> => {
     try {
-      const q = query(
-        collection(db, 'bookings'),
-        where('therapistId', '==', therapistId)
-      );
-      const snapshot = await getDocs(q);
-      const items = snapshot.docs.map((d) => mapBooking(d.id, d.data()));
-      return items.sort((a, b) => {
-        const timeA = toDateSafe(a.createdAt)?.getTime() || 0;
-        const timeB = toDateSafe(b.createdAt)?.getTime() || 0;
-        return timeB - timeA;
-      });
-    } catch (err) {
+      const data = await fetchWithAuth('/api/bookings?therapistId=' + therapistId, { method: 'GET' });
+      return (data || []).map((b: Record<string, unknown>) => mapBooking(String(b.id), b));
+    } catch (err: unknown) {
       handleFirestoreError(err, OperationType.LIST, 'bookings');
       return [];
     }
