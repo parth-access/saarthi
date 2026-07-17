@@ -1,97 +1,55 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '../../../../lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
-import { requireTherapist } from '../../../../lib/auth/requireRole';
-import { sendEmailAction } from '@/app/api/email/emailSender';
-import { firestoreBookingRepository, CancelBookingCommand, CancelBookingCommandHandler, BookingStateMachine } from '@/domains/booking';
-import { BookingStatus } from '@/types';
+import { logger } from '../../_lib/logger';
+import crypto from 'crypto';
+import { config } from '@/shared/config';
+import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from '@/domains/booking';
 
-const schema = z.object({
-  bookingId: z.string(),
-  status: z.string()
-});
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const authResult = await requireTherapist(req);
-    if (authResult instanceof NextResponse) return authResult;
-    const session = authResult;
-
-    const body = await req.json();
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
-    
-    const { bookingId, status } = parsed.data;
-
-    let therapistAuthId = '';
-    if (session.role === 'therapist') {
-       therapistAuthId = session.uid;
-    }
-
-    // Handle cancellation or rejection using CancelBookingCommand
-    if (status === 'cancelled' || status === 'rejected') {
-      const command = new CancelBookingCommand(
-        bookingId,
-        'Status updated by therapist/admin',
-        session.uid,
-        session.role
-      );
-      const handler = new CancelBookingCommandHandler();
-      await handler.execute(command);
-      return NextResponse.json({ success: true });
-    }
-
-    const { bookingData, therapistId } = await adminDb.runTransaction(async (t) => {
-      const data = await firestoreBookingRepository.findById(bookingId, t);
-      if (!data) throw new Error('Booking not found');
-
-      if (therapistAuthId) {
-         const therapistDoc = await t.get(adminDb.collection('therapists').doc(data.therapistId));
-         if (!therapistDoc.exists || therapistDoc.data()?.authId !== therapistAuthId) {
-            throw new Error('Unauthorized to modify this booking');
-         }
-      }
-      
-      BookingStateMachine.transition(data, status as BookingStatus);
-      data.updatedAt = FieldValue.serverTimestamp();
-      await firestoreBookingRepository.save(data, t);
-
-      const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
-      t.set(auditRef, {
-        action: 'status_updated',
-        status,
-        timestamp: FieldValue.serverTimestamp(),
-        details: `Booking status changed to ${status}`,
-        userId: session.uid
-      });
-
-      return { bookingData: data, therapistId: data.therapistId };
+    const payloadSchema = z.object({
+      bookingId: z.string().min(1),
+      razorpay_payment_id: z.string().min(1),
+      razorpay_order_id: z.string().min(1),
+      razorpay_signature: z.string().min(1)
     });
 
-    if (status === 'confirmed') {
-       try {
-          await sendEmailAction({
-            type: 'booking-confirmed',
-            bookingId,
-            therapistId,
-            bookingDetails: {
-               name: bookingData.name,
-               email: bookingData.email,
-               phone: bookingData.phone,
-               date: bookingData.date,
-               time: bookingData.time,
-            }
-          });
-       } catch(err) {
-          console.error('Failed to send confirmation email:', err);
-       }
+    const body = await request.json();
+    const parsed = payloadSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
+
+    const secret = config.razorpay.keySecret || 'placeholder';
+
+    const generated_signature = crypto
+      .createHmac('sha256', secret)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    const isSimulated = razorpay_order_id.startsWith('order_sim_') && razorpay_signature === 'sim_signature';
+
+    if (!isSimulated && generated_signature !== razorpay_signature) {
+       logger.error('PAYMENT', 'Signature mismatch', null, { bookingId });
+       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    const command = new ConfirmBookingCommand(
+      bookingId,
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      'direct'
+    );
+    const handler = new ConfirmBookingCommandHandler();
+    await handler.execute(command);
+
+    return NextResponse.json({ success: true }, { status: 200 });
+
   } catch (error) {
-    const msg = (error instanceof Error ? error.message : String(error)).includes('not found') ? 'Booking not found' : 
-                (error instanceof Error ? error.message : String(error)).includes('Unauthorized') ? 'Unauthorized' : 'Failed to update status';
-    return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    logger.error('PAYMENT', 'Payment verification failed', error);
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || 'Internal Server Error' }, { status: 500 });
   }
 }

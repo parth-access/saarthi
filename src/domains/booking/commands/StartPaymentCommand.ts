@@ -1,7 +1,8 @@
 import { Command, CommandHandler } from './types';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { firestoreBookingRepository, BookingDomainService } from '@/domains/booking';
+import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
+import { BookingDomainService } from '../services/BookingDomainService';
 
 export class StartPaymentCommand implements Command {
   readonly name = 'StartPaymentCommand';

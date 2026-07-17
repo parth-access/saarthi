@@ -73,7 +73,8 @@ export class BookingController {
 
       return successResponse({ bookingId }, {}, requestId);
     } catch (error) {
-      reqLogger.error('Booking creation caught error', error);
+      const errObj = error instanceof Error ? { message: error.message, stack: error.stack } : error;
+      reqLogger.error('Booking creation caught error', errObj);
       
       // Map domain errors to AppErrors
       let mappedError = error;

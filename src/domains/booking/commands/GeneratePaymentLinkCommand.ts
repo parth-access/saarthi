@@ -1,9 +1,9 @@
 import { Command, CommandHandler } from './types';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import Razorpay from 'razorpay';
-import { config } from '@/shared/config';
-import { firestoreBookingRepository, BookingDomainService } from '@/domains/booking';
+import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
+import { BookingDomainService } from '../services/BookingDomainService';
+import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/domains/payment';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { logger } from '@/app/api/_lib/logger';
 
@@ -18,35 +18,36 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
   async execute(command: GeneratePaymentLinkCommand): Promise<{ success: boolean }> {
     const { bookingId } = command;
 
+    const data = await firestoreBookingRepository.findById(bookingId);
+    if (!data) {
+      throw new Error('Booking not found');
+    }
+
+    if (data.status !== 'pending_approval' && data.status !== 'pending' && data.status !== 'awaiting_payment') {
+      throw new Error('Booking is not in a valid state to create a payment order');
+    }
+
+    let price = 1500;
+    if (data.sessionMode === 'in_person') price = 2000;
+    const amount = price;
+    const currency = 'INR';
+
+    // Delegate order generation and Payment entity logging to the Payment Domain
+    const createPaymentOrderCommand = new CreatePaymentOrderCommand(
+      bookingId,
+      data.therapistId,
+      amount,
+      currency,
+      data.email
+    );
+    const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
+    const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
+
     await adminDb.runTransaction(async (transaction) => {
-      const data = await firestoreBookingRepository.findById(bookingId, transaction);
-      if (!data) {
+      const txData = await firestoreBookingRepository.findById(bookingId, transaction);
+      if (!txData) {
         throw new Error('Booking not found');
       }
-
-      if (data.status !== 'pending_approval' && data.status !== 'pending' && data.status !== 'awaiting_payment') {
-        throw new Error('Booking is not in a valid state to create a payment order');
-      }
-
-      let price = 1500;
-      if (data.sessionMode === 'in_person') price = 2000;
-      const amount = price;
-      const currency = 'INR';
-
-      const rzp = new Razorpay({
-        key_id: config.razorpay.keyId || 'rzp_test_placeholder',
-        key_secret: config.razorpay.keySecret || 'placeholder'
-      });
-
-      const order = await rzp.orders.create({
-        amount: amount * 100,
-        currency,
-        receipt: `receipt_${bookingId}`,
-        notes: {
-          bookingId,
-          therapistId: data.therapistId
-        }
-      });
 
       const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
       transaction.set(auditRef, {
@@ -55,13 +56,13 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         details: 'Payment order generated'
       });
 
-      await this.bookingDomainService.awaitPayment(data, transaction);
-      data.paymentStatus = 'pending';
-      data.paymentAmount = amount;
-      data.paymentCurrency = currency;
-      data.razorpayOrderId = order.id;
-      data.updatedAt = FieldValue.serverTimestamp();
-      await firestoreBookingRepository.save(data, transaction);
+      await this.bookingDomainService.awaitPayment(txData, transaction);
+      txData.paymentStatus = 'pending';
+      txData.paymentAmount = amount;
+      txData.paymentCurrency = currency;
+      txData.razorpayOrderId = order.orderId;
+      txData.updatedAt = FieldValue.serverTimestamp();
+      await firestoreBookingRepository.save(txData, transaction);
     });
 
     const updatedBooking = await firestoreBookingRepository.findById(bookingId);
@@ -81,3 +82,4 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
     return { success: true };
   }
 }
+

@@ -5,7 +5,9 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/domains/payment';
-import { firestoreBookingRepository, Booking, BookingDomainService } from '@/domains/booking';
+import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
+import { Booking } from '../entities/Booking';
+import { BookingDomainService } from '../services/BookingDomainService';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
