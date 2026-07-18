@@ -46,20 +46,29 @@ export const authService = {
 
         if (!userDoc.exists()) {
           console.log('Creating Firestore profile...');
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            name: user.displayName || 'User',
-            email: user.email,
-            role: 'client',
-            provider: 'google',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            totalSessions: 0,
-            activeBookings: 0,
-            preferredTherapists: [],
-            lastSessionDate: null,
-          });
-          console.log('✅ Firestore profile created');
+          console.log('Current Auth User State:', auth.currentUser);
+          console.log('Current Auth UID:', auth.currentUser?.uid);
+
+          try {
+            console.log('Writing Firestore document...');
+            await setDoc(userDocRef, {
+              uid: user.uid,
+              name: user.displayName || 'User',
+              email: user.email,
+              role: 'client',
+              provider: 'google',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              totalSessions: 0,
+              activeBookings: 0,
+              preferredTherapists: [],
+              lastSessionDate: null,
+            });
+            console.log('✅ Firestore profile created successfully!');
+          } catch (writeError) {
+            console.error('❌ Firestore profile creation failed:', writeError);
+            throw writeError;
+          }
         }
 
         console.log('========== GOOGLE LOGIN NATIVE COMPLETE ==========');
@@ -215,22 +224,29 @@ export const authService = {
 
       if (!userDoc.exists()) {
         console.log('Creating Firestore profile...');
+        console.log('Current Auth User State:', auth.currentUser);
+        console.log('Current Auth UID:', auth.currentUser?.uid);
 
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          name: user.displayName || 'User',
-          email: user.email,
-          role: 'client',
-          provider: 'google',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          totalSessions: 0,
-          activeBookings: 0,
-          preferredTherapists: [],
-          lastSessionDate: null,
-        });
-
-        console.log('✅ Firestore profile created');
+        try {
+          console.log('Writing Firestore document...');
+          await setDoc(userDocRef, {
+            uid: user.uid,
+            name: user.displayName || 'User',
+            email: user.email,
+            role: 'client',
+            provider: 'google',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            totalSessions: 0,
+            activeBookings: 0,
+            preferredTherapists: [],
+            lastSessionDate: null,
+          });
+          console.log('✅ Firestore profile created successfully!');
+        } catch (writeError) {
+          console.error('❌ Firestore profile creation failed:', writeError);
+          throw writeError;
+        }
       }
 
       console.log('========== GOOGLE LOGIN OVER IFRAME COMPLETE ==========');

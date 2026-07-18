@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function normalizeImageUrl(src: string | undefined): string {
+  if (!src) return "/about_page.png";
+  if (src.startsWith("http://") || src.startsWith("https://")) {
+    return src;
+  }
+  if (src.startsWith("/")) {
+    return src;
+  }
+  return `/${src}`;
+}
+
 export const toDateSafe = (
   value: unknown 
 ): Date | null => {

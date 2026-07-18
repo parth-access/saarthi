@@ -5,9 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Calendar, ChevronLeft, ChevronRight, Clock, Video, CreditCard } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { collection, query, where, getDocs, orderBy, getDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Booking, Therapist } from "@/types";
+import { normalizeImageUrl } from "@/lib/utils";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -32,12 +33,19 @@ function DashboardBookings() {
         const bookingsRef = collection(db, 'bookings');
         const q = query(
           bookingsRef, 
-          where('email', '==', currentUser.email),
-          orderBy('date', 'desc')
+          where('email', '==', currentUser.email)
         );
         
         const snap = await getDocs(q);
         const allBookings = snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+        
+        // Sort in memory by date descending to avoid composite index requirements
+        allBookings.sort((a, b) => {
+          const dateA = a.date || "";
+          const dateB = b.date || "";
+          return dateB.localeCompare(dateA);
+        });
+        
         setBookings(allBookings);
         
         const tIds = new Set<string>();
@@ -164,7 +172,7 @@ function DashboardBookings() {
                       <div className="flex gap-4 items-center sm:items-start">
                         {t?.image ? (
                           <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10">
-                            <Image src={t.image} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                            <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary font-serif shrink-0 border border-primary/10">

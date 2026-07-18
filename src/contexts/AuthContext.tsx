@@ -3,9 +3,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authService } from '../services/authService';
 import { User as CustomUser } from '../types';
-import { auth } from '../lib/firebase/client';
+import { auth, db } from '../lib/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   currentUser: CustomUser | null;
@@ -38,17 +39,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
-          const role = await authService.getUserRole(firebaseUser.uid);
+          let role = await authService.getUserRole(firebaseUser.uid);
           
           if (!isMounted.current) return;
           
           if (!role) {
-            // Unrecognized role -> hard logout
-            await auth.signOut();
-            await fetch('/api/auth/session', { method: 'DELETE' });
-            if (isMounted.current) {
-              setCurrentUser(null);
-              setLoading(false);
+            console.log('No user profile found in Firestore for UID:', firebaseUser.uid);
+            console.log('Creating default client profile on-the-fly to prevent premature signout...');
+            
+            try {
+              const userDocRef = doc(db, 'users', firebaseUser.uid);
+              await setDoc(userDocRef, {
+                uid: firebaseUser.uid,
+                name: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                role: 'client',
+                provider: firebaseUser.providerData[0]?.providerId || 'google',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                totalSessions: 0,
+                activeBookings: 0,
+                preferredTherapists: [],
+                lastSessionDate: null,
+              });
+              console.log('✅ Default client profile successfully created in Auth state listener!');
+              role = 'client';
+            } catch (createErr) {
+              console.error('❌ Failed to auto-create user profile in Firestore:', createErr);
+              // Unrecognized role & failed to create -> hard logout
+              await auth.signOut();
+              await fetch('/api/auth/session', { method: 'DELETE' });
+              if (isMounted.current) {
+                setCurrentUser(null);
+                setLoading(false);
+              }
+              return;
             }
           } else {
             // Sync session cookie

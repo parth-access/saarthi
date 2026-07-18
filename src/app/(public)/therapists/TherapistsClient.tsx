@@ -15,7 +15,7 @@ const hardcodedTherapists: Therapist[] = [
     specialization: "Psychologist",
     experience: "1+ Years",
     bio: "Specializing in anxiety, depression, and mindfulness-based stress reduction. I believe in a compassionate, non-judgmental approach to healing.",
-    image: "about_page.png",
+    image: "/about_page.png",
     active: true
   }
 ]

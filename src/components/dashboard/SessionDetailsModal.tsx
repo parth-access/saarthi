@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown } from 'lucide-react';
 import { Booking, Therapist } from '@/types';
+import { normalizeImageUrl } from '@/lib/utils';
 import Image from 'next/image';
 
 interface SessionDetailsModalProps {
@@ -140,7 +141,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               <div className="bg-white rounded-3xl p-5 border border-primary/5 shadow-sm flex items-center gap-4 group cursor-pointer hover:border-primary/10 hover:shadow-md transition-all">
                 {therapist?.image ? (
                   <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border border-primary/5">
-                    <Image src={therapist.image} alt={therapist.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <Image src={normalizeImageUrl(therapist.image)} alt={therapist.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                 ) : (
                   <div className="w-14 h-14 rounded-full bg-[#FFFBE7] flex items-center justify-center text-[#E6A520] font-serif text-xl shrink-0 border border-primary/5">

@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Booking, Therapist } from "@/types";
+import { normalizeImageUrl } from "@/lib/utils";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
 import { SupportModal } from "@/components/dashboard/SupportModal";
@@ -56,12 +57,18 @@ function Dashboard() {
         const bookingsRef = collection(db, 'bookings');
         const q = query(
           bookingsRef, 
-          where('email', '==', currentUser.email),
-          orderBy('date', 'desc')
+          where('email', '==', currentUser.email)
         );
         
         const snap = await getDocs(q);
         const allBookings = snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
+        
+        // Sort in memory by date descending to avoid composite index requirements
+        allBookings.sort((a, b) => {
+          const dateA = a.date || "";
+          const dateB = b.date || "";
+          return dateB.localeCompare(dateA);
+        });
         
         const nowStr = new Date().toISOString().split('T')[0];
         
@@ -402,7 +409,7 @@ function Dashboard() {
                           <div className="flex gap-4 items-center sm:items-start">
                             {t?.image ? (
                               <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border border-primary/10">
-                                <Image src={t.image} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                                <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                               </div>
                             ) : (
                               <div className="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center text-primary font-serif text-xl shrink-0 border border-primary/10">
@@ -555,7 +562,7 @@ function Dashboard() {
                         <div className="flex items-center gap-4">
                           {t?.image ? (
                             <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-primary/10">
-                              <Image src={t.image} alt={t.name} fill className="object-cover animate-fade-in" referrerPolicy="no-referrer" />
+                              <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover animate-fade-in" referrerPolicy="no-referrer" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-primary/5 flex items-center justify-center text-primary font-serif shrink-0 border border-primary/10">
@@ -644,7 +651,7 @@ function Dashboard() {
                       <div className="flex items-center gap-4 mb-4">
                         {t.image ? (
                           <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10">
-                            <Image src={t.image} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                            <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
                           <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary font-serif shrink-0 border border-primary/10">

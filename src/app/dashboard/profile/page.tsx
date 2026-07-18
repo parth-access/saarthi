@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -61,12 +61,26 @@ function Profile() {
           const bookingsRef = collection(db, "bookings");
           const q = query(
             bookingsRef,
-            where("email", "==", currentUser.email),
-            orderBy("createdAt", "desc")
+            where("email", "==", currentUser.email)
           );
           const bookingsSnap = await getDocs(q);
           if (!bookingsSnap.empty) {
-            const latestBooking = bookingsSnap.docs[0].data();
+            const docsArray = bookingsSnap.docs.map(doc => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                name: data.name,
+                phone: data.phone,
+                createdAt: data.createdAt
+              } as { id: string; name?: string; phone?: string; createdAt?: { seconds: number } | null };
+            });
+            // Sort by createdAt descending in memory
+            docsArray.sort((a, b) => {
+              const timeA = a.createdAt?.seconds || 0;
+              const timeB = b.createdAt?.seconds || 0;
+              return timeB - timeA;
+            });
+            const latestBooking = docsArray[0];
             if (!dbName && latestBooking.name) setName(latestBooking.name);
             if (!dbPhone && latestBooking.phone) setPhone(latestBooking.phone);
           }
