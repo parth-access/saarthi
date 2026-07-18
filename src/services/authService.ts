@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   User as FirebaseUser,
+  signInWithCredential,
 } from 'firebase/auth';
 import {
   doc,
@@ -20,33 +21,70 @@ export const authService = {
       throw new Error('Firebase is not enabled.');
     }
 
-    const provider = new GoogleAuthProvider();
-
-    provider.setCustomParameters({
-      prompt: 'select_account',
-    });
-
     try {
-      console.log('========== GOOGLE LOGIN START ==========');
+      console.log('========== GOOGLE LOGIN OVER IFRAME START ==========');
 
-      const userCred = await signInWithPopup(auth, provider);
+      const authPromise = new Promise<{ idToken: string; accessToken?: string }>((resolve, reject) => {
+        const handleAuthMessage = (event: MessageEvent) => {
+          const origin = event.origin;
+          if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+            return;
+          }
 
-      console.log('✅ signInWithPopup SUCCESS');
-      console.log(userCred);
+          if (event.data?.type === 'GOOGLE_SIGNIN_SUCCESS') {
+            window.removeEventListener('message', handleAuthMessage);
+            resolve({
+              idToken: event.data.idToken,
+              accessToken: event.data.accessToken,
+            });
+          } else if (event.data?.type === 'GOOGLE_SIGNIN_ERROR') {
+            window.removeEventListener('message', handleAuthMessage);
+            reject(new Error(event.data.error || 'Google sign-in failed in popup.'));
+          }
+        };
 
+        window.addEventListener('message', handleAuthMessage);
+
+        const width = 500;
+        const height = 650;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          '/auth-popup',
+          'saarthi_google_signin',
+          `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes`
+        );
+
+        if (!popup) {
+          window.removeEventListener('message', handleAuthMessage);
+          reject(new Error('Popup blocked. Please allow popups for this website to sign in with Google.'));
+          return;
+        }
+
+        const checkClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener('message', handleAuthMessage);
+            // Wait slightly in case the postMessage gets handled just before closure
+            setTimeout(() => {
+              reject(new Error('Sign-in window was closed before completion.'));
+            }, 500);
+          }
+        }, 1000);
+      });
+
+      const { idToken, accessToken } = await authPromise;
+
+      console.log('✅ Received tokens from popup, signing in within iframe...');
+      const credential = GoogleAuthProvider.credential(idToken, accessToken);
+      const userCred = await signInWithCredential(auth, credential);
       const user = userCred.user;
 
       console.log('UID:', user.uid);
       console.log('Email:', user.email);
-      console.log('Display Name:', user.displayName);
-
-      console.log('Getting ID Token...');
-      const token = await user.getIdToken();
-      console.log('✅ ID Token received');
-      console.log(token.substring(0, 40) + '...');
 
       const userDocRef = doc(db, 'users', user.uid);
-
       console.log('Checking Firestore user...');
       const userDoc = await getDoc(userDocRef);
 
@@ -72,17 +110,11 @@ export const authService = {
         console.log('✅ Firestore profile created');
       }
 
-      console.log('========== GOOGLE LOGIN COMPLETE ==========');
-
+      console.log('========== GOOGLE LOGIN OVER IFRAME COMPLETE ==========');
       return user;
     } catch (error: any) {
-      console.error('========== GOOGLE LOGIN FAILED ==========');
-      console.error('Code:', error?.code);
-      console.error('Message:', error?.message);
-      console.error('CustomData:', error?.customData);
-      console.error('Credential:', error?.credential);
+      console.error('========== GOOGLE LOGIN OVER IFRAME FAILED ==========');
       console.error('Full Error:', error);
-
       throw error;
     }
   },
