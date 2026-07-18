@@ -30,3 +30,14 @@ export async function requireAdmin(request: Request): Promise<DecodedSessionInfo
   }
   return session;
 }
+
+export async function requireClient(request: Request): Promise<DecodedSessionInfo | NextResponse> {
+  const session = await verifySession(request);
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (session.role !== 'client' && session.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden: Client role required' }, { status: 403 });
+  }
+  return session;
+}

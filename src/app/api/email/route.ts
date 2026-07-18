@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { adminDb } from '@/lib/firebase/admin';
 import { sendEmailAction, type EmailPayload } from './emailSender';
 import { logger } from '../_lib/logger';
+import { requireAdmin } from '@/lib/auth/requireRole';
+import { verifySession } from '@/lib/auth/verifySession';
 
 const EmailPayloadSchema = z.object({
   type: z.enum(['booking-received', 'booking-confirmed', 'booking-payment-link', 'booking-rescheduled', 'therapist-notification', 'booking-declined']),
@@ -34,19 +36,12 @@ export async function POST(request: Request) {
     const { type } = parsed.data;
 
     if (type === 'booking-confirmed' || type === 'booking-declined') {
-      const authHeader = request.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      const session = await verifySession(request);
+      if (!session) {
         return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
       }
-
-      const idToken = authHeader.split('Bearer ')[1];
-      try {
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        if (!decodedToken) {
-          throw new Error('Invalid token');
-        }
-      } catch {
-        return NextResponse.json({ error: 'Forbidden: Invalid token' }, { status: 403 });
+      if (session.role !== 'therapist' && session.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden: Therapist or administrator permissions required' }, { status: 403 });
       }
     }
 
@@ -61,24 +56,8 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
-    }
-
-    const idToken = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-    } catch {
-      return NextResponse.json({ error: 'Forbidden: Invalid token' }, { status: 403 });
-    }
-
-    // Verify role is admin
-    const userSnap = await adminDb.collection('users').doc(decodedToken.uid).get();
-    if (!userSnap.exists || userSnap.data()?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Administrator permissions required' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof NextResponse) return authResult;
 
     // Query emails
     const emailsSnap = await adminDb.collection('emails')

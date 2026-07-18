@@ -1,21 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { requireAdmin } from '@/lib/auth/requireRole';
 import { resendSavedEmailAction } from '@/app/api/email/emailSender';
 import { firestoreBookingRepository } from '@/domains/booking';
 import { EventBus } from '@/shared/events/EventBus';
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    if (decodedToken.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
 
     const { action, emailId, bookingId, eventName } = await req.json();
 
@@ -42,7 +36,7 @@ export async function POST(req: NextRequest) {
         payload: {
           bookingId,
           booking,
-          metadata: { replayedAt: new Date().toISOString(), replayedBy: decodedToken.uid }
+          metadata: { replayedAt: new Date().toISOString(), replayedBy: session.uid }
         }
       });
 

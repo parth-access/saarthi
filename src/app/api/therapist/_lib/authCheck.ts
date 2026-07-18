@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/firebase/admin";
 import { logger } from "../../_lib/logger";
+import { verifySession } from "@/lib/auth/verifySession";
 
 export interface AuthCheckResult {
   authorized: boolean;
@@ -15,47 +16,22 @@ export async function checkTherapistAccess(
   targetTherapistId?: string,
   actionName: string = "MUTATION"
 ): Promise<AuthCheckResult> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    logger.warn("THERAPIST_AUTH", "Missing or invalid authorization header during mutation", { action: actionName });
-    return {
-      authorized: false,
-      errorResponse: NextResponse.json(
-        { error: "Unauthorized: Missing or invalid token" },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const idToken = authHeader.split("Bearer ")[1];
   try {
-    const decodedToken = await adminAuth.verifyIdToken(idToken);
-    if (!decodedToken) {
-      logger.warn("THERAPIST_AUTH", "Invalid ID token", { action: actionName });
+    const session = await verifySession(request);
+    if (!session) {
+      logger.warn("THERAPIST_AUTH", "Missing or invalid authorization session during mutation", { action: actionName });
       return {
         authorized: false,
         errorResponse: NextResponse.json(
-          { error: "Forbidden: Invalid token" },
-          { status: 403 }
+          { error: "Unauthorized: Missing or invalid token" },
+          { status: 401 }
         ),
       };
     }
 
-    const uid = decodedToken.uid;
-    // Get user profile role from Firestore
-    const userSnap = await adminDb.collection("users").doc(uid).get();
-    if (!userSnap.exists) {
-      logger.warn("THERAPIST_AUTH", "User profile not found in database", { uid, action: actionName });
-      return {
-        authorized: false,
-        errorResponse: NextResponse.json(
-          { error: "Forbidden: User profile not found" },
-          { status: 403 }
-        ),
-      };
-    }
+    const uid = session.uid;
+    const role = session.role;
 
-    const role = userSnap.data()?.role;
     if (role === "admin") {
       logger.info("THERAPIST_AUTH", "Admin access granted", { uid, action: actionName });
       return { authorized: true, uid, role };

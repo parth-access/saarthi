@@ -1,28 +1,13 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { requireAdmin } from '@/lib/auth/requireRole';
 import { resendSavedEmailAction } from '../emailSender';
 import { logger } from '../../_lib/logger';
 
 export async function POST(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
-    }
-
-    const idToken = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-    } catch {
-      return NextResponse.json({ error: 'Forbidden: Invalid token' }, { status: 403 });
-    }
-
-    // Verify user role is admin
-    const userSnap = await adminDb.collection('users').doc(decodedToken.uid).get();
-    if (!userSnap.exists || userSnap.data()?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Administrator permissions required' }, { status: 403 });
-    }
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
 
     const body = await request.json();
     const { emailId } = body;
@@ -32,7 +17,7 @@ export async function POST(request: Request) {
 
     await resendSavedEmailAction(emailId);
 
-    logger.info('EMAIL', `Manual resend initiated by admin for email ${emailId}`, { adminUid: decodedToken.uid });
+    logger.info('EMAIL', `Manual resend initiated by admin for email ${emailId}`, { adminUid: session.uid });
     return NextResponse.json({ success: true, emailId });
 
   } catch (error) {

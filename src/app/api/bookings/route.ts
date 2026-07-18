@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BookingService } from '@/server/services/BookingService';
-import { adminAuth } from '@/lib/firebase/admin';
+import { verifySession } from '@/lib/auth/verifySession';
 
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const session = await verifySession(req);
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
     
     // Check if therapist or admin
-    if (decodedToken.role === 'admin') {
+    if (session.role === 'admin') {
       const bookings = await BookingService.getBookings();
       return NextResponse.json(bookings);
-    } else if (decodedToken.role === 'therapist') {
-      const bookings = await BookingService.getBookingsByTherapist(decodedToken.uid);
+    } else if (session.role === 'therapist') {
+      const bookings = await BookingService.getBookingsByTherapist(session.uid);
       return NextResponse.json(bookings);
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
