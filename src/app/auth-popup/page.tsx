@@ -19,6 +19,83 @@ export default function AuthPopupPage() {
       return;
     }
 
+    const sendSuccessToParent = (idToken: string, accessToken?: string) => {
+      const payload = {
+        type: 'GOOGLE_SIGNIN_SUCCESS',
+        idToken,
+        accessToken,
+        timestamp: Date.now(),
+      };
+
+      let sent = false;
+
+      // A. Try postMessage
+      if (window.opener) {
+        try {
+          window.opener.postMessage(payload, '*');
+          sent = true;
+          console.log('Sent success via postMessage');
+        } catch (e) {
+          console.error('Failed to postMessage to opener:', e);
+        }
+      }
+
+      // B. Try BroadcastChannel
+      try {
+        const bc = new BroadcastChannel('saarthi_auth');
+        bc.postMessage(payload);
+        bc.close();
+        sent = true;
+        console.log('Sent success via BroadcastChannel');
+      } catch (e) {
+        console.error('BroadcastChannel failed:', e);
+      }
+
+      // C. Try localStorage
+      try {
+        localStorage.setItem('saarthi_auth_success', JSON.stringify(payload));
+        sent = true;
+        console.log('Sent success via localStorage');
+      } catch (e) {
+        console.error('localStorage failed:', e);
+      }
+
+      return sent;
+    };
+
+    const sendErrorToParent = (errorMsg: string) => {
+      const payload = {
+        type: 'GOOGLE_SIGNIN_ERROR',
+        error: errorMsg,
+        timestamp: Date.now(),
+      };
+
+      // A. Try postMessage
+      if (window.opener) {
+        try {
+          window.opener.postMessage(payload, '*');
+        } catch {
+          // Ignore
+        }
+      }
+
+      // B. Try BroadcastChannel
+      try {
+        const bc = new BroadcastChannel('saarthi_auth');
+        bc.postMessage(payload);
+        bc.close();
+      } catch {
+        // Ignore
+      }
+
+      // C. Try localStorage
+      try {
+        localStorage.setItem('saarthi_auth_error', JSON.stringify(payload));
+      } catch {
+        // Ignore
+      }
+    };
+
     const performSignIn = async () => {
       try {
         setStatus('Checking auth response...');
@@ -27,26 +104,27 @@ export default function AuthPopupPage() {
         if (result) {
           setStatus('Authentication successful! Closing window...');
           const credential = GoogleAuthProvider.credentialFromResult(result);
-          if (credential) {
-            if (window.opener) {
-              window.opener.postMessage(
-                {
-                  type: 'GOOGLE_SIGNIN_SUCCESS',
-                  idToken: credential.idToken,
-                  accessToken: credential.accessToken,
-                },
-                window.location.origin
-              );
+          
+          if (credential && credential.idToken) {
+            sendSuccessToParent(credential.idToken, credential.accessToken || undefined);
+            setTimeout(() => {
+              window.close();
+            }, 800);
+          } else {
+            // Even if credentialFromResult is null or lacks idToken,
+            // we can try to get the ID token from the user object directly!
+            // This is extremely robust: result.user.getIdToken() is guaranteed to return a fresh Firebase ID Token.
+            if (result.user) {
+              console.log('Retrieving ID token directly from result.user...');
+              const idToken = await result.user.getIdToken(true);
+              sendSuccessToParent(idToken, undefined);
               setTimeout(() => {
                 window.close();
               }, 800);
             } else {
-              setError('No parent window found to send credentials.');
+              setError('Could not retrieve credentials or user from redirect result.');
               setStatus('');
             }
-          } else {
-            setError('Could not retrieve credentials from redirect result.');
-            setStatus('');
           }
         } else {
           // If no redirect result yet, start the redirect flow
@@ -57,7 +135,7 @@ export default function AuthPopupPage() {
           });
           await signInWithRedirect(auth, provider);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error during Google Redirect Auth:', err);
         const authErr = err as AuthError;
         let errMsg = authErr.message || String(err);
@@ -68,15 +146,7 @@ export default function AuthPopupPage() {
         
         setError(errMsg);
         setStatus('');
-        if (window.opener) {
-          window.opener.postMessage(
-            {
-              type: 'GOOGLE_SIGNIN_ERROR',
-              error: errMsg,
-            },
-            window.location.origin
-          );
-        }
+        sendErrorToParent(errMsg);
       }
     };
 
