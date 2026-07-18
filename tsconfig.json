@@ -41,5 +41,5 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ]
+, "src/domains/email"  ]
 }
