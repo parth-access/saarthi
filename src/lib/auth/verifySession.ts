@@ -28,7 +28,10 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
   try {
     // First, try verifying it as our custom Edge-Verifiable JWT
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET environment variable is not set');
+      }
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(session, secret);
       
       return {
