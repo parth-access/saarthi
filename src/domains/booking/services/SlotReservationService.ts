@@ -19,6 +19,30 @@ export class SlotReservationService {
   }
 
   /**
+   * Validates a lock inside an existing transaction.
+   * Throws an error if the lock is invalid, already booked, or expired.
+   */
+  static validateLockForTransaction(
+    slotData: FirebaseFirestore.DocumentData | undefined,
+    lockId?: string
+  ): void {
+    if (!slotData) return;
+
+    if (slotData.expiresAt && slotData.expiresAt.toDate() < new Date()) {
+      // It's expired, we can proceed (caller should overwrite)
+      return;
+    }
+
+    if (slotData.bookingId) {
+      throw new Error('This slot is already booked.');
+    }
+
+    if (slotData.lockId && slotData.lockId !== lockId) {
+      throw new Error('This slot is currently locked by another user.');
+    }
+  }
+
+  /**
    * Acquires a transaction-safe lock for a specific slot.
    * Fails if the slot is already locked by another user (unless expired) or is booked.
    */

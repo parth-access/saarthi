@@ -21,10 +21,14 @@ export async function middleware(request: NextRequest) {
 
   if (session) {
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET environment variable is not set');
+      }
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(session, secret);
       decodedRole = payload.role as string | undefined;
-    } catch {
+    } catch (err) {
+      console.error('Session verification error:', err);
       // Invalid session: clear cookie and redirect safely
       if (isAuthPath) {
         const response = NextResponse.next();

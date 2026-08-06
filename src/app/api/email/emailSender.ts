@@ -7,7 +7,7 @@ import { logger } from '../_lib/logger';
 import { firestoreBookingRepository } from '@/domains/booking';
 import { EventBus } from '@/shared/events/EventBus';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null as unknown as Resend;
 
 async function sendEmailWithRetry(
   options: CreateEmailOptions, 
@@ -108,6 +108,10 @@ async function sendEmailWithRetry(
         }
 
         return { success: true, simulated: true, data: simulatedResponse };
+      }
+
+      if (!resend) {
+        throw new Error('Resend is not configured (missing API key).');
       }
 
       const data = await resend.emails.send({

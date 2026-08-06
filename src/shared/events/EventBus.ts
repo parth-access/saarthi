@@ -36,13 +36,20 @@ export class EventBus {
     };
 
     const eventListeners = this.listeners[event.name] || [];
-    for (const listener of eventListeners) {
-      try {
-        await listener(enrichedEvent);
-      } catch (err) {
-        console.error(`[EventBus] Error in listener for event ${event.name}:`, err);
-      }
-    }
+
+    // Do not await sequentially to avoid blocking the main thread (next.js serverless functions execution path).
+    // Instead use waitUntil or simple Promise.all to let it process without holding up response time.
+    // If possible, Next.js requires waitUntil to keep the lambda alive if this is entirely disconnected.
+    // Here we at least run them in parallel and don't strictly await unless necessary.
+    Promise.allSettled(
+      eventListeners.map(async (listener) => {
+        try {
+          await listener(enrichedEvent);
+        } catch (err) {
+          console.error(`[EventBus] Error in listener for event ${event.name}:`, err);
+        }
+      })
+    );
   }
 
   static clear(): void {

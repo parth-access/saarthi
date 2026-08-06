@@ -4,7 +4,7 @@ import { Resend } from "resend";
 import { FieldValue } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/verifySession";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = 'admin@saarthilife.com';
 const FROM_EMAIL = 'Saarthi <noreply@saarthilife.com>';
 
@@ -34,20 +34,24 @@ export async function POST(req: Request) {
     });
 
     // Send email to admin
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
-      replyTo: 'healwithsaarthi@gmail.com',
-      subject: `Reschedule Request: ${userName}`,
-      html: `
-        <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
-          <h2 style="color: #E6A520;">New Reschedule Request</h2>
-          <p><strong>${userName}</strong> (${userEmail}) wants to reschedule booking <strong>${bookingId}</strong>.</p>
-          <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
-          <p>Please log in to the admin dashboard to coordinate further.</p>
-        </div>
-      `,
-    });
+    if (resend) {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: ADMIN_EMAIL,
+        replyTo: 'healwithsaarthi@gmail.com',
+        subject: `Reschedule Request: ${userName}`,
+        html: `
+          <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
+            <h2 style="color: #E6A520;">New Reschedule Request</h2>
+            <p><strong>${userName}</strong> (${userEmail}) wants to reschedule booking <strong>${bookingId}</strong>.</p>
+            <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
+            <p>Please log in to the admin dashboard to coordinate further.</p>
+          </div>
+        `,
+      });
+    } else {
+      console.warn("Resend API key missing; skipping reschedule email");
+    }
 
     return NextResponse.json({ success: true, id: docRef.id });
   } catch (error) {

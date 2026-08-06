@@ -22,18 +22,25 @@ export async function POST(request: Request) {
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    const secret = config.razorpay.keySecret || 'placeholder';
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development';
+    const isSimulated = isTestEnv && razorpay_order_id.startsWith('order_sim_') && razorpay_signature === 'sim_signature';
 
-    const generated_signature = crypto
-      .createHmac('sha256', secret)
-      .update(razorpay_order_id + '|' + razorpay_payment_id)
-      .digest('hex');
+    if (!isSimulated) {
+      const secret = config.razorpay.keySecret;
+      if (!secret) {
+        logger.error('PAYMENT', 'Razorpay secret is missing', null, { bookingId });
+        return NextResponse.json({ error: 'Razorpay configuration missing' }, { status: 500 });
+      }
 
-    const isSimulated = razorpay_order_id.startsWith('order_sim_') && razorpay_signature === 'sim_signature';
+      const generated_signature = crypto
+        .createHmac('sha256', secret)
+        .update(razorpay_order_id + '|' + razorpay_payment_id)
+        .digest('hex');
 
-    if (!isSimulated && generated_signature !== razorpay_signature) {
-       logger.error('PAYMENT', 'Signature mismatch', null, { bookingId });
-       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      if (generated_signature !== razorpay_signature) {
+         logger.error('PAYMENT', 'Signature mismatch', null, { bookingId });
+         return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      }
     }
 
     const command = new ConfirmBookingCommand(

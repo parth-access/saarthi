@@ -8,6 +8,7 @@ import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/d
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { Booking } from '../entities/Booking';
 import { BookingDomainService } from '../services/BookingDomainService';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
@@ -37,7 +38,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       utcDateTime = isNaN(dt.getTime()) ? '' : dt.toISOString();
     } catch {}
 
-    const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+    const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
     const newBookingId = firestoreBookingRepository.generateId();
     const bookingToken = crypto.randomUUID() + crypto.randomUUID();
@@ -61,14 +62,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
       if (doc.exists) {
-        const slotData = doc.data();
-        if (slotData?.expiresAt && slotData.expiresAt.toDate() < new Date()) {
-          t.delete(slotRef);
-        } else if (slotData?.bookingId) {
-          throw new Error('This slot is already booked.');
-        } else if (slotData?.lockId && slotData.lockId !== lockId) {
-          throw new Error('This slot is currently locked by another user.');
-        }
+        SlotReservationService.validateLockForTransaction(doc.data(), lockId);
       }
 
       t.set(slotRef, {
