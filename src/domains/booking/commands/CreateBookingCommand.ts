@@ -18,10 +18,10 @@ export class CreateBookingCommand implements Command {
   ) {}
 }
 
-export class CreateBookingCommandHandler implements CommandHandler<CreateBookingCommand, { bookingId: string }> {
+export class CreateBookingCommandHandler implements CommandHandler<CreateBookingCommand, { bookingId: string; orderId: string; amount: number; currency: string }> {
   private readonly bookingDomainService = new BookingDomainService(firestoreBookingRepository);
 
-  async execute(command: CreateBookingCommand): Promise<{ bookingId: string }> {
+  async execute(command: CreateBookingCommand): Promise<{ bookingId: string; orderId: string; amount: number; currency: string }> {
     const { bookingData, userId, email } = command;
     const { lockId, ...data } = bookingData;
 
@@ -39,6 +39,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
 
     const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
+
     const newBookingId = firestoreBookingRepository.generateId();
     const bookingToken = crypto.randomUUID() + crypto.randomUUID();
 
@@ -47,22 +48,21 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     const amount = price;
     const currency = 'INR';
 
-    // Delegate Razorpay order generation to the Payment domain
-    const createPaymentOrderCommand = new CreatePaymentOrderCommand(
-      newBookingId,
-      data.therapistId,
-      amount,
-      currency,
-      email
-    );
-    const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
-    const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
-
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
       if (doc.exists) {
         const slotData = doc.data();
-        if (slotData?.expiresAt && slotData.expiresAt.toDate() < new Date()) {
+        let isExpired = false;
+        if (slotData?.expiresAt) {
+          const expiresDate = typeof slotData.expiresAt.toDate === 'function' 
+            ? slotData.expiresAt.toDate() 
+            : new Date(slotData.expiresAt);
+          if (expiresDate < new Date()) {
+            isExpired = true;
+          }
+        }
+        
+        if (isExpired) {
           t.delete(slotRef);
         } else if (slotData?.bookingId) {
           throw new Error('This slot is already booked.');
@@ -92,7 +92,6 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         paymentStatus: 'pending',
         paymentAmount: amount,
         paymentCurrency: currency,
-        razorpayOrderId: order.orderId,
         bookingToken,
         sessionMode: data.sessionMode || 'Online',
         createdAt: FieldValue.serverTimestamp(),
@@ -102,6 +101,49 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       await this.bookingDomainService.awaitPayment(booking, t);
     });
 
-    return { bookingId: newBookingId };
+    let orderId = '';
+    try {
+      const createPaymentOrderCommand = new CreatePaymentOrderCommand(
+        newBookingId,
+        data.therapistId,
+        amount,
+        currency,
+        email
+      );
+      const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
+      const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
+      orderId = order.orderId;
+      
+      await adminDb.collection('bookings').doc(newBookingId).update({
+        razorpayOrderId: orderId
+      });
+    } catch (err) {
+      // Compensating transaction
+      await adminDb.runTransaction(async (t) => {
+        const bookingRef = adminDb.collection('bookings').doc(newBookingId);
+        t.delete(bookingRef);
+        
+        const doc = await t.get(slotRef);
+        if (doc.exists && doc.data()?.bookingId === newBookingId) {
+           t.delete(slotRef);
+        }
+        
+        const auditRef = adminDb.collection('audit_logs').doc();
+        t.set(auditRef, {
+          eventType: 'BOOKING_CREATION_FAILED',
+          bookingId: newBookingId,
+          details: 'Razorpay order creation failed. Compensating transaction executed.',
+          timestamp: FieldValue.serverTimestamp()
+        });
+      });
+      throw new Error('Failed to initialize payment gateway.');
+    }
+
+    return { 
+      bookingId: newBookingId,
+      orderId,
+      amount,
+      currency
+    };
   }
 }

@@ -46,9 +46,20 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'client');
 
       allow update: if
-        isSignedIn()
-        && request.auth.uid == userId
-        && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == resource.data.role);
+        isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name',
+            'phone',
+            'bio',
+            'notifications',
+            'email',
+            'updatedAt'
+          ])
+          && (!('email' in request.resource.data) || request.resource.data.email == request.auth.token.email)
+        );
 
       allow delete: if isAdmin();
     }

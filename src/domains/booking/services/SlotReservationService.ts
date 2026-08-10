@@ -41,6 +41,8 @@ export class SlotReservationService {
       return await adminDb.runTransaction(async (t) => {
         const doc = await t.get(slotRef);
         const now = new Date();
+        const expiresAt = new Date(now.getTime() + durationMinutes * 60000);
+        const lockId = customLockId || crypto.randomUUID();
 
         if (doc.exists) {
           const data = doc.data() || {};
@@ -62,19 +64,23 @@ export class SlotReservationService {
             };
           }
 
-          // If there is an active lock belonging to someone else, fail with 409-like response
-          if (!isExpired && data.userId !== userId && data.lockId !== customLockId) {
-            return {
-              success: false,
-              error: 'Slot is currently reserved by another user',
-            };
+          if (!isExpired) {
+            if (data.userId === userId && data.lockId === customLockId) {
+              t.update(slotRef, {
+                expiresAt: Timestamp.fromDate(expiresAt),
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+              return { success: true, lockId: data.lockId, expiresAt };
+            } else {
+              return {
+                success: false,
+                error: 'Slot is currently reserved by another user',
+              };
+            }
+          } else {
+            t.delete(slotRef);
           }
-
-          // If the lock exists and is expired, or belongs to the same user, we can overwrite/renew it.
         }
-
-        const lockId = customLockId || crypto.randomUUID();
-        const expiresAt = new Date(now.getTime() + durationMinutes * 60000);
 
         t.set(slotRef, {
           lockId,
@@ -83,10 +89,10 @@ export class SlotReservationService {
           time,
           userId,
           createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
           expiresAt: Timestamp.fromDate(expiresAt),
         });
 
-        // Write to a central audit log collection for security and telemetry
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
           eventType: 'LOCK_ACQUIRED',
