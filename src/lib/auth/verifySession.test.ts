@@ -3,13 +3,20 @@ import { SignJWT } from 'jose';
 import { verifySession } from './verifySession';
 import { middleware } from '../../middleware';
 import { NextRequest } from 'next/server';
+import { requireAdmin, requireTherapist, requireClient } from './requireRole';
+
+const mockGetUserDoc = vi.fn();
 
 vi.mock('../firebase/admin', () => ({
   adminAuth: {
     verifyIdToken: vi.fn().mockRejectedValue(new Error('Invalid token')),
   },
   adminDb: {
-    collection: vi.fn(),
+    collection: vi.fn().mockReturnValue({
+      doc: vi.fn().mockReturnValue({
+        get: (...args: any[]) => mockGetUserDoc(...args),
+      }),
+    }),
   },
 }));
 
@@ -18,6 +25,11 @@ describe('JWT Secret Security & Fail-Closed Behavior', () => {
 
   beforeEach(() => {
     vi.resetModules();
+    mockGetUserDoc.mockReset();
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin' }),
+    });
   });
 
   afterEach(() => {
@@ -106,5 +118,61 @@ describe('JWT Secret Security & Fail-Closed Behavior', () => {
     });
     const res = await middleware(nextReq);
     expect(res.headers.get('location')).toContain('/login');
+  });
+
+  it('D. Immediate Privilege Revocation: role downgrade from therapist -> client immediately blocks API access', async () => {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+    // Token claims role 'therapist'
+    const token = await new SignJWT({ uid: 'therapist_user', email: 'therapist@example.com', role: 'therapist' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
+
+    // But Firestore now says role is 'client' (role downgraded/revoked)
+    mockGetUserDoc.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({ role: 'client' }),
+    });
+
+    const dummyReq = new Request('https://saarthilife.com/api/therapist/profile', {
+      headers: { cookie: `__session=${token}` },
+    });
+
+    const authResult = await requireTherapist(dummyReq);
+    expect(authResult).toBeInstanceOf(Response);
+    if (authResult instanceof Response) {
+      expect(authResult.status).toBe(403);
+    }
+  });
+
+  it('E. Immediate Privilege Revocation: role downgrade from admin -> client immediately blocks admin API access', async () => {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+    // Token claims role 'admin'
+    const token = await new SignJWT({ uid: 'ex_admin_user', email: 'admin@example.com', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
+
+    // But Firestore now says role is 'client'
+    mockGetUserDoc.mockResolvedValueOnce({
+      exists: true,
+      data: () => ({ role: 'client' }),
+    });
+
+    const dummyReq = new Request('https://saarthilife.com/api/operations/dashboard', {
+      headers: { cookie: `__session=${token}` },
+    });
+
+    const authResult = await requireAdmin(dummyReq);
+    expect(authResult).toBeInstanceOf(Response);
+    if (authResult instanceof Response) {
+      expect(authResult.status).toBe(403);
+    }
   });
 });

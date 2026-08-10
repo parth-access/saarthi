@@ -35,10 +35,21 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
       const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(session, secret);
       
+      const uid = payload.uid as string;
+      const email = payload.email as string | undefined;
+
+      // Fetch live user role from database to ensure immediate role revocation
+      const userDoc = await adminDb.collection('users').doc(uid).get();
+      let role = 'client';
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        role = userData?.role || 'client';
+      }
+
       return {
-        uid: payload.uid as string,
-        email: payload.email as string | undefined,
-        role: payload.role as string | undefined,
+        uid,
+        email,
+        role,
       };
     } catch {
        // If it fails, it might be a raw Firebase ID token passed in the Authorization header.
