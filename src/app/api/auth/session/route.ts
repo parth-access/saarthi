@@ -22,7 +22,12 @@ export async function POST(request: Request) {
     }
 
     // Create a Custom Edge-Verifiable JWT
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET environment variable is missing.');
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+    const secret = new TextEncoder().encode(jwtSecret);
     const alg = 'HS256';
     
     const expiresInSeconds = 60 * 60 * 24 * 5; // 5 days

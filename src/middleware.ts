@@ -21,7 +21,11 @@ export async function middleware(request: NextRequest) {
 
   if (session) {
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new Error('JWT_SECRET missing');
+      }
+      const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(session, secret);
       decodedRole = payload.role as string | undefined;
     } catch {

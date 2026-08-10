@@ -28,7 +28,11 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
   try {
     // First, try verifying it as our custom Edge-Verifiable JWT
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-dev-secret-do-not-use-in-prod');
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        throw new Error('JWT_SECRET missing');
+      }
+      const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(session, secret);
       
       return {
