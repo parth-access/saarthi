@@ -9,7 +9,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   pending: ['slot_locked', 'awaiting_payment', 'cancelled', 'rejected', 'pending_approval'],
   slot_locked: ['awaiting_payment', 'cancelled', 'rejected', 'expired'],
   awaiting_payment: ['payment_initiated', 'confirmed', 'cancelled', 'rejected', 'expired'],
-  pending_approval: ['confirmed', 'cancelled', 'rejected'],
+  pending_approval: ['awaiting_payment', 'confirmed', 'cancelled', 'rejected'],
   payment_initiated: ['confirmed', 'awaiting_payment', 'cancelled', 'rejected'],
   confirmed: ['completed', 'cancelled', 'rejected'],
   completed: [],

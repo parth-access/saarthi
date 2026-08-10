@@ -40,6 +40,7 @@ export class Booking {
   declinedBy?: string;
   invalidToken?: boolean;
   utcDateTime?: string;
+  orderCreationInProgress?: boolean;
 
   constructor(data: Partial<Booking>) {
     Object.assign(this, data);
