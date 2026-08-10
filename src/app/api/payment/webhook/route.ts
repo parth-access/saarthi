@@ -12,8 +12,8 @@ export async function POST(request: Request) {
     }
 
     const secret = config.razorpay.webhookSecret;
-    if (!secret) {
-        logger.error('PAYMENT', 'Missing webhook secret in env');
+    if (!secret || secret === 'placeholder' || secret === 'rzp_test_placeholder') {
+        logger.error('PAYMENT', 'Missing or invalid webhook secret in env');
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 

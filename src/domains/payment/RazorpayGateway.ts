@@ -5,27 +5,20 @@ import { config } from '@/shared/config';
 
 export class RazorpayGateway implements PaymentGateway {
   private getClient(): Razorpay {
+    const key_id = config.razorpay.keyId;
+    const key_secret = config.razorpay.keySecret;
+    
+    if (!key_id || !key_secret || key_id === 'rzp_test_placeholder' || key_secret === 'placeholder') {
+      throw new Error('Razorpay keys are not configured properly. Payment cannot proceed.');
+    }
+    
     return new Razorpay({
-      key_id: config.razorpay.keyId || 'rzp_test_placeholder',
-      key_secret: config.razorpay.keySecret || 'placeholder'
+      key_id,
+      key_secret
     });
   }
 
   async createOrder(params: CreateOrderParams): Promise<OrderDetails> {
-    const isPlaceholder = !config.razorpay.keyId || 
-                          config.razorpay.keyId === 'rzp_test_placeholder' || 
-                          !config.razorpay.keySecret || 
-                          config.razorpay.keySecret === 'placeholder';
-
-    if (isPlaceholder) {
-      console.warn('[Razorpay] Using simulated mock payment order because keyId or keySecret is not fully configured.');
-      return {
-        orderId: `order_sim_${crypto.randomUUID().replace(/-/g, '').substring(0, 14)}`,
-        amount: params.amount,
-        currency: params.currency
-      };
-    }
-
     try {
       const rzp = this.getClient();
       const order = await rzp.orders.create({
@@ -44,25 +37,17 @@ export class RazorpayGateway implements PaymentGateway {
         currency: params.currency
       };
     } catch (error) {
-      const err = error as { statusCode?: number; error?: { description?: string } };
-      if (err && (err.statusCode === 401 || (err.error && err.error.description === 'Authentication failed'))) {
-        console.warn('[Razorpay] Razorpay authentication failed. Falling back to simulated mock payment order.');
-        return {
-          orderId: `order_sim_${crypto.randomUUID().replace(/-/g, '').substring(0, 14)}`,
-          amount: params.amount,
-          currency: params.currency
-        };
-      }
+      console.error('[Razorpay] Failed to create order', error);
       throw error;
     }
   }
 
   verifySignature(orderId: string, paymentId: string, signature: string): boolean {
-    if (orderId.startsWith('order_sim_') && signature === 'sim_signature') {
-      return true;
+    const secret = config.razorpay.keySecret;
+    if (!secret || secret === 'placeholder') {
+      throw new Error('Razorpay keySecret is missing or invalid.');
     }
-
-    const secret = config.razorpay.keySecret || 'placeholder';
+    
     const generated_signature = crypto
       .createHmac('sha256', secret)
       .update(orderId + '|' + paymentId)
