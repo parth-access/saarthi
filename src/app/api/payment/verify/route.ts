@@ -22,22 +22,22 @@ export async function POST(request: Request) {
 
     const { bookingId, razorpay_payment_id, razorpay_order_id, razorpay_signature } = parsed.data;
 
-    const secret = config.razorpay.keySecret || 'placeholder';
+    const secret = config.razorpay.keySecret;
+    if (!secret || secret === 'placeholder') {
+      return NextResponse.json({ error: 'Razorpay keys are not configured properly.' }, { status: 500 });
+    }
 
     const generated_signature = crypto
       .createHmac('sha256', secret)
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    const isSimulated = razorpay_order_id.startsWith('order_sim_') && razorpay_signature === 'sim_signature';
-
-    if (!isSimulated && generated_signature !== razorpay_signature) {
+    if (generated_signature !== razorpay_signature) {
        logger.error('PAYMENT', 'Signature mismatch', null, { bookingId });
        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
     const command = new ConfirmBookingCommand(
-      bookingId,
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
@@ -47,7 +47,6 @@ export async function POST(request: Request) {
     await handler.execute(command);
 
     return NextResponse.json({ success: true }, { status: 200 });
-
   } catch (error) {
     logger.error('PAYMENT', 'Payment verification failed', error);
     return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || 'Internal Server Error' }, { status: 500 });

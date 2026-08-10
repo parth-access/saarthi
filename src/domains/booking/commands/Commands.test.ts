@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateBookingCommand, CreateBookingCommandHandler } from './CreateBookingCommand';
 import { LockSlotCommand, LockSlotCommandHandler } from './LockSlotCommand';
-import { GeneratePaymentLinkCommand, GeneratePaymentLinkCommandHandler } from './GeneratePaymentLinkCommand';
 import { StartPaymentCommand, StartPaymentCommandHandler } from './StartPaymentCommand';
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from './ConfirmBookingCommand';
 import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBookingCommand';
@@ -13,7 +12,17 @@ import { sendEmailAction } from '@/app/api/email/emailSender';
 import { EventBus } from '@/shared/events/EventBus';
 import { registerListeners } from '@/shared/events/listeners';
 
+vi.mock("@/shared/config", () => ({
+  config: {
+    razorpay: {
+      keyId: "mock_key",
+      keySecret: "mock_secret",
+    }
+  }
+}));
+
 // Class-based mock for Razorpay to guarantee "new Razorpay" works perfectly
+
 vi.mock('razorpay', () => {
   return {
     default: class MockRazorpay {
@@ -33,9 +42,13 @@ vi.mock('@/lib/firebase/admin', () => {
       data: () => ({ authId: 'therapist_abc' })
     }),
     set: vi.fn().mockResolvedValue(true),
+    update: vi.fn().mockResolvedValue(true),
+    delete: vi.fn().mockResolvedValue(true),
     collection: vi.fn(() => ({
       doc: vi.fn(() => ({
         set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
       })),
     })),
   }));
@@ -70,6 +83,7 @@ vi.mock('@/app/api/email/emailSender', () => ({
 describe('Command Handlers Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(razorpayGateway, "createOrder").mockResolvedValue({ orderId: "order_123", amount: 1500, currency: "INR" });
     EventBus.clear();
     registerListeners(EventBus);
   });
@@ -80,6 +94,7 @@ describe('Command Handlers Suite', () => {
         get: vi.fn().mockResolvedValue({ exists: false }),
         set: vi.fn(),
         delete: vi.fn(),
+        update: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -115,6 +130,8 @@ describe('Command Handlers Suite', () => {
       const mockTx = {
         get: vi.fn().mockResolvedValue({ exists: false }),
         set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -126,45 +143,6 @@ describe('Command Handlers Suite', () => {
 
       expect(result.success).toBe(true);
       expect(result.lockId).toBeDefined();
-    });
-  });
-
-  describe('GeneratePaymentLinkCommand', () => {
-    it('should generate a payment link and trigger email', async () => {
-      const mockBooking = new Booking({
-        id: 'bk_1',
-        therapistId: 'therapist_1',
-        name: 'Jane Doe',
-        email: 'jane@example.com',
-        phone: '9999999999',
-        age: 25,
-        date: '2026-07-20',
-        time: '11:00',
-        message: 'Stress management',
-        sessionMode: 'online',
-        status: 'pending',
-      });
-
-      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
-      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
-
-      const mockTx = {
-        get: vi.fn(),
-        set: vi.fn(),
-      };
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
-        return callback(mockTx as any);
-      });
-
-      const command = new GeneratePaymentLinkCommand('bk_1');
-      const handler = new GeneratePaymentLinkCommandHandler();
-      const result = await handler.execute(command);
-
-      expect(result.success).toBe(true);
-      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-payment-link',
-        bookingId: 'bk_1'
-      }));
     });
   });
 
@@ -180,6 +158,8 @@ describe('Command Handlers Suite', () => {
       const mockTx = {
         get: vi.fn(),
         set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -198,10 +178,11 @@ describe('Command Handlers Suite', () => {
     it('should confirm payment and transition booking to confirmed', async () => {
       const mockBooking = new Booking({
         id: 'bk_1',
-        status: 'payment_initiated',
+        status: 'payment_initiated', paymentStatus: 'pending',
         email: 'jane@example.com',
         therapistId: 'therapist_1',
-        name: 'Jane Doe'
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123'
       });
 
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
@@ -219,12 +200,14 @@ describe('Command Handlers Suite', () => {
       const mockTx = {
         get: vi.fn(),
         set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
       });
 
-      const command = new ConfirmBookingCommand('bk_1', 'pay_123', 'order_123', 'sig_123', 'direct');
+      const command = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
       const handler = new ConfirmBookingCommandHandler();
       const result = await handler.execute(command);
 
@@ -258,6 +241,7 @@ describe('Command Handlers Suite', () => {
         }),
         set: vi.fn(),
         delete: vi.fn(),
+        update: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);

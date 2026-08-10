@@ -5,11 +5,11 @@ import { firestoreBookingRepository } from '../repository/FirestoreBookingReposi
 import { BookingDomainService } from '../services/BookingDomainService';
 import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler } from '@/domains/payment';
 import { logger } from '@/app/api/_lib/logger';
+import { sendEmailAction } from '@/app/api/email/emailSender';
 
 export class ConfirmBookingCommand implements Command {
   readonly name = 'ConfirmBookingCommand';
   constructor(
-    public readonly bookingId: string,
     public readonly razorpayPaymentId: string,
     public readonly razorpayOrderId: string,
     public readonly razorpaySignature?: string,
@@ -21,9 +21,13 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
   private readonly bookingDomainService = new BookingDomainService(firestoreBookingRepository);
 
   async execute(command: ConfirmBookingCommand): Promise<{ success: boolean }> {
-    const { bookingId, razorpayPaymentId, razorpayOrderId, razorpaySignature, source } = command;
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, source } = command;
 
-    // 1. Confirm and verify payment in the Payment Domain
+    let shouldSendEmail = false;
+    let therapistId = '';
+    let bookingId = '';
+
+    // 1. Confirm and verify payment in the Payment Domain first to get trusted bookingId
     const confirmPaymentCommand = new ConfirmPaymentCommand(
       razorpayOrderId,
       razorpayPaymentId,
@@ -31,9 +35,9 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       source
     );
     const confirmPaymentHandler = new ConfirmPaymentCommandHandler();
-    await confirmPaymentHandler.execute(confirmPaymentCommand);
+    const result = await confirmPaymentHandler.execute(confirmPaymentCommand); 
+    bookingId = result.bookingId;
 
-    // 2. Update booking state in transaction
     await adminDb.runTransaction(async (transaction) => {
       const data = await firestoreBookingRepository.findById(bookingId, transaction);
       if (!data) throw new Error('Booking not found');
@@ -42,14 +46,43 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         return;
       }
 
+      if (data.paymentStatus !== 'pending') {
+        throw new Error('Booking is not in PAYMENT_PENDING state');
+      }
+
+      if (data.razorpayOrderId !== razorpayOrderId) {
+        throw new Error('razorpayOrderId mismatch');
+      }
+
+      therapistId = data.therapistId;
+      shouldSendEmail = true;
+
       const verifiedAt = FieldValue.serverTimestamp();
       await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction);
       data.updatedAt = FieldValue.serverTimestamp();
+      
+      // Release lock
+      const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+      const slotRef = adminDb.collection('locked_slots').doc(slotId);
+      transaction.delete(slotRef);
+
       await firestoreBookingRepository.save(data, transaction);
     });
+
+    if (shouldSendEmail && therapistId) {
+      try {
+        await sendEmailAction({
+          type: 'booking-confirmed',
+          bookingId: bookingId,
+          therapistId: therapistId,
+        });
+        logger.info('EMAIL', 'Booking confirmation email queued', { bookingId });
+      } catch (err) {
+        logger.error('EMAIL', 'Failed to enqueue confirmation email', err);
+      }
+    }
 
     logger.success('PAYMENT', `Payment verified completely via ${source}`, { bookingId, razorpayPaymentId });
     return { success: true };
   }
 }
-

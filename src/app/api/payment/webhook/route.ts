@@ -46,7 +46,6 @@ export async function POST(request: Request) {
       const bookingId = booking.id;
 
       const command = new ConfirmBookingCommand(
-        bookingId,
         razorpayPaymentId,
         razorpayOrderId,
         undefined,
