@@ -70,6 +70,7 @@ service cloud.firestore {
         || (
           isSignedIn()
           && resource.data.authId == request.auth.uid
+          && request.resource.data.authId == resource.data.authId
         );
 
       allow delete: if isAdmin();
@@ -197,11 +198,20 @@ service cloud.firestore {
 
     match /reschedule_requests/{reqId} {
 
-      allow create: if
-        isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+      allow create: if false;
 
-      allow read, update, delete: if
+      allow read: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && isTherapistDocOwner(resource.data.therapistId)
+        )
+        || (
+          isSignedIn()
+          && resource.data.userId == request.auth.uid
+        );
+
+      allow update, delete: if
         isAdmin()
         || (
           isSignedIn()
@@ -217,13 +227,54 @@ service cloud.firestore {
 
     match /therapist_reconnect_requests/{reqId} {
 
-      allow create: if
-        isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+      allow create: if false;
 
       allow read, update, delete: if isAdmin();
     }
 
+		    /*
+    =========================================
+    THERAPIST AVAILABILITY
+    =========================================
+    */
+
+    match /therapistAvailability/{therapistId} {
+
+      allow read: if
+        isSignedIn();
+
+      /*
+      =========================================
+      RECURRING RULES
+      =========================================
+      */
+
+      match /recurringRules/{ruleId} {
+
+        allow read: if
+          isSignedIn();
+
+        allow create, update, delete: if
+          isAdmin()
+          || isTherapistDocOwner(therapistId);
+      }
+
+      /*
+      =========================================
+      OVERRIDES
+      =========================================
+      */
+
+      match /overrides/{overrideId} {
+
+        allow read: if
+          isSignedIn();
+
+        allow create, update, delete: if
+          isAdmin()
+          || isTherapistDocOwner(therapistId);
+      }
+    }
     /*
     =========================================
     DEFAULT DENY
