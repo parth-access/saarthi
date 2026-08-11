@@ -374,7 +374,7 @@ describe('Command Handlers Suite', () => {
       expect(razorpayGateway.createOrder).not.toHaveBeenCalled();
     });
 
-    it('9. GeneratePaymentLinkCommand: blocks concurrent order creation when orderCreationInProgress is true', async () => {
+    it('A. Stale lock + existing Firestore Payment -> reuse Firestore Payment', async () => {
       const mockBooking = new Booking({
         id: 'bk_1',
         therapistId: 'therapist_1',
@@ -382,12 +382,300 @@ describe('Command Handlers Suite', () => {
         time: '11:00',
         status: 'awaiting_payment',
         orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000, // Stale
         email: 'patient@example.com'
       });
+      const mockPayment = new Payment({
+        id: 'order_fs_payment',
+        bookingId: 'bk_1',
+        therapistId: 'therapist_1',
+        amount: 1500,
+        currency: 'INR',
+        razorpayOrderId: 'order_fs_payment',
+        status: 'pending'
+      });
+
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(mockPayment);
+      const findReceiptSpy = vi.spyOn(razorpayGateway, 'findOrderByReceipt');
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder');
 
       const mockTx = {
-        get: vi.fn(),
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      const result = await handler.execute(command);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe('order_fs_payment');
+      expect(findReceiptSpy).not.toHaveBeenCalled();
+      expect(createOrderSpy).not.toHaveBeenCalled();
+    });
+
+    it('B. Stale lock + no Firestore Payment + existing Razorpay order by receipt -> recover Razorpay order without createOrder()', async () => {
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000, // Stale
+        paymentAmount: 1500,
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined as any);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockResolvedValue({
+        id: 'order_rzp_rec',
+        amount: 150000, // in paise
+        currency: 'INR',
+        receipt: 'receipt_bk_1',
+        notes: { bookingId: 'bk_1' }
+      });
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder');
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      const result = await handler.execute(command);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe('order_rzp_rec');
+      expect(createOrderSpy).not.toHaveBeenCalled();
+      expect(firestorePaymentRepository.save).toHaveBeenCalled();
+    });
+
+    it('C. Stale lock + no Firestore Payment + no Razorpay order -> create exactly one new order', async () => {
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000, // Stale
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockResolvedValue(null);
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder').mockResolvedValueOnce({
+        orderId: 'order_new_created',
+        amount: 1500,
+        currency: 'INR'
+      });
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      const result = await handler.execute(command);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe('order_new_created');
+      expect(createOrderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('D. Existing Razorpay order with mismatched receipt -> reject/recover safely, create new order', async () => {
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000,
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockResolvedValue({
+        id: 'order_mismatched_receipt',
+        amount: 150000,
+        currency: 'INR',
+        receipt: 'receipt_WRONG_BOOKING',
+        notes: { bookingId: 'bk_1' }
+      });
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder').mockResolvedValueOnce({
+        orderId: 'order_safe_fallback',
+        amount: 1500,
+        currency: 'INR'
+      });
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      const result = await handler.execute(command);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe('order_safe_fallback');
+      expect(result.orderId).not.toBe('order_mismatched_receipt');
+      expect(createOrderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('E. Existing Razorpay order with mismatched amount/currency -> reject safely and create new order', async () => {
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000,
+        paymentAmount: 1500,
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockResolvedValue({
+        id: 'order_mismatched_amount',
+        amount: 999900, // 9999 INR instead of 1500 INR
+        currency: 'INR',
+        receipt: 'receipt_bk_1',
+        notes: { bookingId: 'bk_1' }
+      });
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder').mockResolvedValueOnce({
+        orderId: 'order_correct_amount',
+        amount: 1500,
+        currency: 'INR'
+      });
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      const result = await handler.execute(command);
+      expect(result.success).toBe(true);
+      expect(result.orderId).toBe('order_correct_amount');
+      expect(createOrderSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('F. Two concurrent stale-lock recovery attempts -> only one recovery owner proceeds', async () => {
+      const mockBookingStale = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000, // Stale initially
+        email: 'patient@example.com'
+      });
+
+      const mockBookingActive = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now(), // Active lock after winner updates it
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById')
+        .mockResolvedValueOnce(mockBookingStale) // Handler 1 Phase 1
+        .mockResolvedValueOnce(mockBookingStale) // Handler 1 Phase 3
+        .mockResolvedValueOnce(mockBookingActive); // Handler 2 Phase 1 (active lock)
+
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'createOrder').mockResolvedValue({
+        orderId: 'order_owner_1',
+        amount: 1500,
+        currency: 'INR'
+      });
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler1 = new GeneratePaymentLinkCommandHandler();
+      const handler2 = new GeneratePaymentLinkCommandHandler();
+
+      // Owner 1 executes first and updates lock
+      const res1 = await handler1.execute(command);
+      expect(res1.orderId).toBe('order_owner_1');
+
+      // Concurrent Owner 2 attempts execution now seeing active lock from Owner 1
+      await expect(handler2.execute(command)).rejects.toThrow('Payment order creation is already in progress');
+    });
+
+    it('G. Active lock -> no Razorpay call', async () => {
+      const mockBookingActive = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 10000, // Active lock (10s old)
+        email: 'patient@example.com'
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBookingActive);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      const findReceiptSpy = vi.spyOn(razorpayGateway, 'findOrderByReceipt');
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder');
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
@@ -400,7 +688,55 @@ describe('Command Handlers Suite', () => {
       const handler = new GeneratePaymentLinkCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow('Payment order creation is already in progress');
-      expect(razorpayGateway.createOrder).not.toHaveBeenCalled();
+      expect(findReceiptSpy).not.toHaveBeenCalled();
+      expect(createOrderSpy).not.toHaveBeenCalled();
+    });
+
+    it('H. findOrderByReceipt network/API failure -> releases lock and throws retryable error without calling createOrder()', async () => {
+      const mockBookingStale = new Booking({
+        id: 'bk_1',
+        therapistId: 'therapist_1',
+        date: '2026-07-20',
+        time: '11:00',
+        status: 'awaiting_payment',
+        orderCreationInProgress: true,
+        orderCreationStartedAt: Date.now() - 120000,
+        email: 'patient@example.com'
+      });
+
+      const mockDocUpdate = vi.fn().mockResolvedValue(true);
+      const mockDocRef = {
+        update: mockDocUpdate,
+        collection: vi.fn(() => ({ doc: vi.fn(() => ({ set: vi.fn() })) }))
+      };
+      vi.spyOn(adminDb, 'collection').mockReturnValue({
+        doc: vi.fn().mockReturnValue(mockDocRef)
+      } as any);
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBookingStale);
+      vi.spyOn(firestorePaymentRepository, 'findByBookingId').mockResolvedValue(null);
+      vi.spyOn(razorpayGateway, 'findOrderByReceipt').mockRejectedValue(new Error('Razorpay Network Timeout'));
+      const createOrderSpy = vi.spyOn(razorpayGateway, 'createOrder');
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new GeneratePaymentLinkCommand('bk_1');
+      const handler = new GeneratePaymentLinkCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow('Failed to initialize payment gateway.');
+      expect(createOrderSpy).not.toHaveBeenCalled();
+      expect(mockDocUpdate).toHaveBeenCalledWith({
+        orderCreationInProgress: false,
+        orderCreationStartedAt: expect.anything()
+      });
     });
   });
 

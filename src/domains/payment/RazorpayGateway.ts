@@ -1,6 +1,6 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import { PaymentGateway, CreateOrderParams, OrderDetails } from './PaymentGateway';
+import { PaymentGateway, CreateOrderParams, OrderDetails, RazorpayOrderInfo } from './PaymentGateway';
 import { config } from '@/shared/config';
 
 export class RazorpayGateway implements PaymentGateway {
@@ -16,6 +16,30 @@ export class RazorpayGateway implements PaymentGateway {
       key_id,
       key_secret
     });
+  }
+
+  async findOrderByReceipt(receipt: string): Promise<RazorpayOrderInfo | null> {
+    try {
+      const rzp = this.getClient();
+      const response = await (rzp.orders as any).all({ receipt });
+      if (response && Array.isArray(response.items) && response.items.length > 0) {
+        const match = response.items.find((item: any) => item.receipt === receipt);
+        if (match) {
+          return {
+            id: match.id,
+            amount: match.amount, // in paise
+            currency: match.currency,
+            receipt: match.receipt,
+            status: match.status,
+            notes: match.notes
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('[Razorpay] Failed to fetch order by receipt', error);
+      throw error;
+    }
   }
 
   async createOrder(params: CreateOrderParams): Promise<OrderDetails> {

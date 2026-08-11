@@ -4,7 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { BookingStateMachine } from '../state/BookingStateMachine';
-import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/domains/payment';
+import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler, firestorePaymentRepository, razorpayGateway, Payment } from '@/domains/payment';
 import { SlotReservationService } from '../services/SlotReservationService';
 import { logger } from '@/app/api/_lib/logger';
 
@@ -52,9 +52,50 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         return;
       }
 
-      // Prevent concurrent order creation race
+      // Check if an orphaned payment record was already created in payments collection
+      const existingPayment = await firestorePaymentRepository.findByBookingId(bookingId, transaction);
+      if (existingPayment?.razorpayOrderId) {
+        existingOrderId = existingPayment.razorpayOrderId;
+        let price = 1500;
+        if (txData.sessionMode === 'in_person') price = 2000;
+        amount = txData.paymentAmount || price;
+
+        // Repair booking entity state
+        txData.razorpayOrderId = existingOrderId;
+        txData.paymentStatus = 'pending';
+        txData.paymentAmount = amount;
+        txData.paymentCurrency = currency;
+        txData.orderCreationInProgress = false;
+        delete txData.orderCreationStartedAt;
+        await firestoreBookingRepository.save(txData, transaction);
+        return;
+      }
+
+      // Prevent concurrent order creation race, but recover if lock is stale (> 60s)
       if (txData.orderCreationInProgress) {
-        throw new Error('Payment order creation is already in progress. Please try again.');
+        const LOCK_TIMEOUT_MS = 60000;
+        const now = Date.now();
+        let startTime = 0;
+        const startedAt = txData.orderCreationStartedAt;
+
+        if (typeof startedAt === 'number') {
+          startTime = startedAt;
+        } else if (startedAt && typeof (startedAt as any).toDate === 'function') {
+          startTime = (startedAt as any).toDate().getTime();
+        } else if (startedAt && typeof (startedAt as any).toMillis === 'function') {
+          startTime = (startedAt as any).toMillis();
+        } else if (startedAt && (startedAt as any)._seconds) {
+          startTime = (startedAt as any)._seconds * 1000;
+        } else if (startedAt instanceof Date) {
+          startTime = startedAt.getTime();
+        }
+
+        const isStale = !startTime || (now - startTime > LOCK_TIMEOUT_MS);
+        if (!isStale) {
+          throw new Error('Payment order creation is already in progress. Please try again.');
+        }
+
+        logger.warn('PAYMENT', 'Recovering stale order creation lock', { bookingId, startTime, now });
       }
 
       if (txData.therapistId && txData.date && txData.time) {
@@ -77,6 +118,7 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       email = txData.email;
 
       txData.orderCreationInProgress = true;
+      txData.orderCreationStartedAt = Date.now();
 
       const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
       transaction.set(auditRef, {
@@ -102,24 +144,63 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       };
     }
 
-    // PHASE 2: Create Razorpay order (outside transaction, only after Phase 1 succeeds)
+    // PHASE 2: Create or recover Razorpay order (outside transaction, only after Phase 1 succeeds)
     let orderId = '';
     try {
-      const createPaymentOrderCommand = new CreatePaymentOrderCommand(
-        bookingId,
-        therapistId,
-        amount,
-        currency,
-        email
-      );
-      const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
-      const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
-      orderId = order.orderId;
+      const receipt = `receipt_${bookingId}`;
+      const existingRzpOrder = await razorpayGateway.findOrderByReceipt?.(receipt);
+
+      if (existingRzpOrder) {
+        const receiptMatches = existingRzpOrder.receipt === receipt;
+        const amountMatches = existingRzpOrder.amount === amount * 100; // in paise
+        const currencyMatches = (existingRzpOrder.currency || '').toUpperCase() === currency.toUpperCase();
+        const notesBookingIdMatches = !existingRzpOrder.notes?.bookingId || existingRzpOrder.notes.bookingId === bookingId;
+
+        if (receiptMatches && amountMatches && currencyMatches && notesBookingIdMatches) {
+          logger.info('PAYMENT', 'Recovered existing Razorpay order from gateway by receipt', { bookingId, orderId: existingRzpOrder.id });
+          orderId = existingRzpOrder.id;
+
+          const recoveredPayment = new Payment({
+            id: orderId,
+            bookingId,
+            therapistId,
+            patientEmail: email,
+            amount,
+            currency,
+            razorpayOrderId: orderId,
+            status: 'pending',
+            createdAt: new Date(),
+          });
+          await firestorePaymentRepository.save(recoveredPayment);
+        } else {
+          logger.warn('PAYMENT', 'Razorpay order found by receipt failed security verification', {
+            bookingId,
+            existingRzpOrder,
+            expected: { receipt, amount: amount * 100, currency, bookingId }
+          });
+        }
+      }
+
+      if (!orderId) {
+        const createPaymentOrderCommand = new CreatePaymentOrderCommand(
+          bookingId,
+          therapistId,
+          amount,
+          currency,
+          email
+        );
+        const createPaymentOrderHandler = new CreatePaymentOrderCommandHandler();
+        const order = await createPaymentOrderHandler.execute(createPaymentOrderCommand);
+        orderId = order.orderId;
+      }
     } catch (error) {
       try {
-        await adminDb.collection('bookings').doc(bookingId).update({ orderCreationInProgress: false });
+        await adminDb.collection('bookings').doc(bookingId).update({
+          orderCreationInProgress: false,
+          orderCreationStartedAt: FieldValue.delete()
+        });
       } catch {}
-      logger.error('PAYMENT', 'Failed to create Razorpay order', error);
+      logger.error('PAYMENT', 'Failed to create or recover Razorpay order', error);
       throw new Error('Failed to initialize payment gateway.');
     }
 
@@ -134,6 +215,7 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         txData.paymentCurrency = currency;
         txData.razorpayOrderId = orderId;
         txData.orderCreationInProgress = false;
+        delete txData.orderCreationStartedAt;
         txData.updatedAt = FieldValue.serverTimestamp();
 
         await firestoreBookingRepository.save(txData, transaction);
@@ -141,7 +223,10 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
     } catch (error) {
       logger.error('PAYMENT', 'Failed to persist Razorpay order ID in Firestore', error);
       try {
-        await adminDb.collection('bookings').doc(bookingId).update({ orderCreationInProgress: false });
+        await adminDb.collection('bookings').doc(bookingId).update({
+          orderCreationInProgress: false,
+          orderCreationStartedAt: FieldValue.delete()
+        });
       } catch {}
       throw new Error('Failed to save payment order information.');
     }
