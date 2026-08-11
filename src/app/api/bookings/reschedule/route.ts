@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireTherapist } from '@/lib/auth/requireRole';
-import { BookingService } from '@/server/services/BookingService';
+import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from '@/domains/booking';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 
 const schema = z.object({
@@ -22,10 +22,12 @@ export async function POST(req: Request) {
     
     const { bookingId, newDate, newTime } = parsed.data;
 
-    const bookingData = await BookingService.rescheduleBooking(bookingId, newDate, newTime, {
+    const command = new RescheduleBookingCommand(bookingId, newDate, newTime, {
       uid: session.uid,
       role: session.role
     });
+    const handler = new RescheduleBookingCommandHandler();
+    const bookingData = await handler.execute(command);
 
     const therapistId = bookingData.therapistId;
 

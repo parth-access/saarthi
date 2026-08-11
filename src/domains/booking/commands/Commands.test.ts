@@ -6,6 +6,7 @@ import { LockSlotCommand, LockSlotCommandHandler } from './LockSlotCommand';
 import { StartPaymentCommand, StartPaymentCommandHandler } from './StartPaymentCommand';
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from './ConfirmBookingCommand';
 import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBookingCommand';
+import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from './RescheduleBookingCommand';
 import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository, Booking } from '@/domains/booking';
 import { firestorePaymentRepository, Payment, razorpayGateway } from '@/domains/payment';
@@ -872,6 +873,301 @@ describe('Command Handlers Suite', () => {
         type: 'booking-declined',
         bookingId: 'bk_1'
       }));
+    });
+  });
+
+  describe('RescheduleBookingCommand', () => {
+    let mockBooking: Booking;
+
+    beforeEach(() => {
+      mockBooking = new Booking({
+        id: 'bk_reschedule_1',
+        status: 'confirmed',
+        therapistId: 'therapist_1',
+        name: 'John Smith',
+        email: 'john@example.com',
+        phone: '1234567890',
+        date: '2026-08-10',
+        time: '10:00',
+        sessionMode: 'online',
+        bookingToken: 'token_abc_123',
+      });
+    });
+
+    it('A. Therapist can reschedule own booking & J. Old slot released & K. New slot reserved & L. Booking date/time updated & M. Audit log written', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn()
+          .mockResolvedValueOnce({
+            exists: true,
+            data: () => ({ authId: 'therapist_uid_1' })
+          })
+          .mockResolvedValueOnce({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+        uid: 'therapist_uid_1',
+        role: 'therapist'
+      });
+      const handler = new RescheduleBookingCommandHandler();
+      const updatedBooking = await handler.execute(command);
+
+      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(updatedBooking.time).toBe('14:00');
+      expect(mockTx.delete).toHaveBeenCalled(); // Old slot released
+      expect(mockTx.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          therapistId: 'therapist_1',
+          date: '2026-08-12',
+          time: '14:00',
+          bookingId: 'bk_reschedule_1'
+        })
+      );
+      expect(mockTx.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: 'rescheduled',
+          userId: 'therapist_uid_1'
+        })
+      );
+    });
+
+    it("B. Therapist cannot reschedule another therapist's booking", async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ authId: 'other_therapist_uid' })
+        }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+        uid: 'therapist_uid_1',
+        role: 'therapist'
+      });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("Unauthorized to modify this booking");
+    });
+
+    it('C. Admin can reschedule any booking', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+        uid: 'admin_uid_999',
+        role: 'admin'
+      });
+      const handler = new RescheduleBookingCommandHandler();
+      const updatedBooking = await handler.execute(command);
+
+      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(updatedBooking.time).toBe('14:00');
+    });
+
+    it('D. Token flow can reschedule with valid token', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-15', '16:00', {
+        isTokenFlow: true
+      });
+      const handler = new RescheduleBookingCommandHandler();
+      const updatedBooking = await handler.execute(command);
+
+      expect(updatedBooking.date).toBe('2026-08-15');
+      expect(updatedBooking.time).toBe('16:00');
+      expect(mockTx.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: 'rescheduled',
+          userId: 'system-token-flow'
+        })
+      );
+    });
+
+    it('E. Non-existent booking cannot reschedule', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(null);
+
+      const mockTx = { get: vi.fn() };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('invalid_id', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("Booking not found");
+    });
+
+    it('F. Cancelled booking cannot reschedule', async () => {
+      mockBooking = new Booking({
+        id: 'bk_cancelled',
+        status: 'cancelled',
+        therapistId: 'therapist_1',
+        name: 'John',
+        email: 'john@example.com',
+        date: '2026-08-10',
+        time: '10:00'
+      });
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = { get: vi.fn() };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_cancelled', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
+    });
+
+    it('G. Rejected booking cannot reschedule', async () => {
+      mockBooking = new Booking({
+        id: 'bk_rejected',
+        status: 'rejected',
+        therapistId: 'therapist_1',
+        name: 'John',
+        email: 'john@example.com',
+        date: '2026-08-10',
+        time: '10:00'
+      });
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = { get: vi.fn() };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_rejected', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
+    });
+
+    it('H. Active target slot blocks rescheduling', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ bookingId: 'existing_other_booking' })
+        })
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
+    });
+
+    it('I. Expired target lock is cleaned and reused', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const expiredDate = new Date(Date.now() - 60000);
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({
+            expiresAt: { toDate: () => expiredDate }
+          })
+        }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+      const updatedBooking = await handler.execute(command);
+
+      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(mockTx.delete).toHaveBeenCalled(); // Expired lock deleted
+    });
+
+    it('N. Transaction failure leaves old slot + booking state intact', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async () => {
+        throw new Error("This new slot is already booked.");
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
+      expect(mockBooking.date).toBe('2026-08-10');
+      expect(mockBooking.time).toBe('10:00');
+    });
+
+    it('O. Concurrent reschedule attempts cannot result in double-booking', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ expiresAt: new Date(Date.now() + 300000) }) // Active lock in place
+        })
+      };
+
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
     });
   });
 });

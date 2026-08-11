@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
-import { BookingService } from "@/server/services/BookingService";
 import { sendEmailAction } from "../email/emailSender";
-import { firestoreBookingRepository } from "@/domains/booking";
+import { firestoreBookingRepository, RescheduleBookingCommand, RescheduleBookingCommandHandler } from "@/domains/booking";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 
@@ -107,9 +106,11 @@ export async function POST(request: Request) {
 
     const bookingId = booking.id;
 
-    await BookingService.rescheduleBooking(bookingId, newDate, newTime, {
+    const command = new RescheduleBookingCommand(bookingId, newDate, newTime, {
       isTokenFlow: true
     });
+    const handler = new RescheduleBookingCommandHandler();
+    await handler.execute(command);
 
     try {
       await sendEmailAction({

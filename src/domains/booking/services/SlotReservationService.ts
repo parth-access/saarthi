@@ -1,5 +1,5 @@
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, Transaction } from 'firebase-admin/firestore';
 import { logger } from '@/shared/logger';
 import crypto from 'crypto';
 
@@ -16,6 +16,62 @@ export class SlotReservationService {
    */
   static getSlotId(therapistId: string, date: string, time: string): string {
     return `${therapistId}_${date}_${time}`.replace(/\//g, '-');
+  }
+
+  /**
+   * Atomically swaps a slot lock from an old slot to a new slot within an existing Firestore transaction.
+   * Checks availability of the new slot, clearing expired locks if necessary.
+   */
+  static async swapSlotsInTransaction(
+    t: Transaction,
+    therapistId: string,
+    oldDate: string,
+    oldTime: string,
+    newDate: string,
+    newTime: string,
+    bookingId: string
+  ): Promise<void> {
+    if (!adminDb) {
+      throw new Error('Firestore adminDb is not initialized.');
+    }
+
+    const oldSlotId = this.getSlotId(therapistId, oldDate, oldTime);
+    const oldSlotRef = adminDb.collection('locked_slots').doc(oldSlotId);
+
+    const newSlotId = this.getSlotId(therapistId, newDate, newTime);
+    const newSlotRef = adminDb.collection('locked_slots').doc(newSlotId);
+
+    const newSlotDoc = await t.get(newSlotRef);
+    if (newSlotDoc.exists) {
+      const slotData = newSlotDoc.data()!;
+      if (slotData?.expiresAt) {
+        const expiresAtDate = typeof slotData.expiresAt.toDate === 'function'
+          ? slotData.expiresAt.toDate()
+          : typeof slotData.expiresAt.toMillis === 'function'
+          ? new Date(slotData.expiresAt.toMillis())
+          : new Date(slotData.expiresAt);
+        if (expiresAtDate < new Date()) {
+          t.delete(newSlotRef);
+        } else if ('bookingId' in slotData) {
+          throw new Error("This new slot is already booked.");
+        } else {
+          throw new Error("This new slot is unavailable.");
+        }
+      } else if ('bookingId' in slotData) {
+        throw new Error("This new slot is already booked.");
+      } else {
+        throw new Error("This new slot is unavailable.");
+      }
+    }
+
+    t.delete(oldSlotRef);
+    t.set(newSlotRef, {
+      therapistId,
+      date: newDate,
+      time: newTime,
+      bookingId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
   }
 
   /**
@@ -78,7 +134,7 @@ export class SlotReservationService {
               };
             }
           } else {
-            t.delete(slotRef);
+            
           }
         }
 

@@ -5,3 +5,4 @@ export * from './GeneratePaymentLinkCommand';
 export * from './StartPaymentCommand';
 export * from './ConfirmBookingCommand';
 export * from './CancelBookingCommand';
+export * from './RescheduleBookingCommand';
