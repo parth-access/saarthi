@@ -41,6 +41,7 @@ export class Booking {
   invalidToken?: boolean;
   utcDateTime?: string;
   orderCreationInProgress?: boolean;
+  orderCreationStartedAt?: FirebaseTimestamp | Date | number | string | null | unknown;
 
   constructor(data: Partial<Booking>) {
     Object.assign(this, data);

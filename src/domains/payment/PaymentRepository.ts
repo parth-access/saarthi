@@ -46,7 +46,15 @@ export class PaymentRepository {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const query = adminDb.collection('payments').where('razorpayOrderId', '==', orderId).limit(1);
     const snapshot = transaction ? await transaction.get(query) : await query.get();
-    if (snapshot.empty) return null;
+    if (!snapshot || snapshot.empty || !snapshot.docs || snapshot.docs.length === 0) return null;
+    return PaymentMapper.toEntity(snapshot.docs[0]);
+  }
+
+  async findByBookingId(bookingId: string, transaction?: Transaction): Promise<Payment | null> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const query = adminDb.collection('payments').where('bookingId', '==', bookingId).limit(1);
+    const snapshot = transaction ? await transaction.get(query) : await query.get();
+    if (!snapshot || snapshot.empty || !snapshot.docs || snapshot.docs.length === 0) return null;
     return PaymentMapper.toEntity(snapshot.docs[0]);
   }
 

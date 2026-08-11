@@ -11,7 +11,17 @@ export interface OrderDetails {
   currency: string;
 }
 
+export interface RazorpayOrderInfo {
+  id: string;
+  amount: number; // in paise
+  currency: string;
+  receipt?: string;
+  status?: string;
+  notes?: Record<string, any>;
+}
+
 export interface PaymentGateway {
   createOrder(params: CreateOrderParams): Promise<OrderDetails>;
   verifySignature(orderId: string, paymentId: string, signature: string): boolean;
+  findOrderByReceipt?(receipt: string): Promise<RazorpayOrderInfo | null>;
 }
