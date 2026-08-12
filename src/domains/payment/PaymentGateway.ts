@@ -17,7 +17,7 @@ export interface RazorpayOrderInfo {
   currency: string;
   receipt?: string;
   status?: string;
-  notes?: Record<string, any>;
+  notes?: Record<string, unknown>;
 }
 
 export interface PaymentGateway {

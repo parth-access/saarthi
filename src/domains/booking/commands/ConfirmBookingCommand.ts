@@ -55,7 +55,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       }
 
       therapistId = data.therapistId;
-      shouldSendEmail = true;
+      shouldSendEmail = data.status !== 'confirmed';
 
       const verifiedAt = FieldValue.serverTimestamp();
       await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction);

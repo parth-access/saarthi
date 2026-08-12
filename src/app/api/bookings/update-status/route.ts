@@ -3,8 +3,14 @@ import { adminDb } from '../../../../lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { requireTherapist } from '../../../../lib/auth/requireRole';
-import { sendEmailAction } from '@/app/api/email/emailSender';
-import { firestoreBookingRepository, CancelBookingCommand, CancelBookingCommandHandler, BookingStateMachine } from '@/domains/booking';
+import {
+  firestoreBookingRepository,
+  CancelBookingCommand,
+  CancelBookingCommandHandler,
+  AdminConfirmBookingCommand,
+  AdminConfirmBookingCommandHandler,
+  BookingStateMachine
+} from '@/domains/booking';
 import { BookingStatus } from '@/types';
 
 const schema = z.object({
@@ -42,7 +48,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    const { bookingData, therapistId } = await adminDb.runTransaction(async (t) => {
+    // Handle confirmation using AdminConfirmBookingCommand
+    if (status === 'confirmed') {
+      const command = new AdminConfirmBookingCommand(bookingId, {
+        uid: session.uid,
+        role: session.role,
+      });
+      const handler = new AdminConfirmBookingCommandHandler();
+      await handler.execute(command);
+      return NextResponse.json({ success: true });
+    }
+
+    await adminDb.runTransaction(async (t) => {
+
       const data = await firestoreBookingRepository.findById(bookingId, t);
       if (!data) throw new Error('Booking not found');
 
@@ -65,28 +83,7 @@ export async function POST(req: Request) {
         details: `Booking status changed to ${status}`,
         userId: session.uid
       });
-
-      return { bookingData: data, therapistId: data.therapistId };
     });
-
-    if (status === 'confirmed') {
-       try {
-          await sendEmailAction({
-            type: 'booking-confirmed',
-            bookingId,
-            therapistId,
-            bookingDetails: {
-               name: bookingData.name,
-               email: bookingData.email,
-               phone: bookingData.phone,
-               date: bookingData.date,
-               time: bookingData.time,
-            }
-          });
-       } catch(err) {
-          console.error('Failed to send confirmation email:', err);
-       }
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

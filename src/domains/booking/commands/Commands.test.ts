@@ -7,6 +7,7 @@ import { StartPaymentCommand, StartPaymentCommandHandler } from './StartPaymentC
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from './ConfirmBookingCommand';
 import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBookingCommand';
 import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from './RescheduleBookingCommand';
+import { AdminConfirmBookingCommand, AdminConfirmBookingCommandHandler } from './AdminConfirmBookingCommand';
 import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository, Booking } from '@/domains/booking';
 import { firestorePaymentRepository, Payment, razorpayGateway } from '@/domains/payment';
@@ -1168,6 +1169,232 @@ describe('Command Handlers Suite', () => {
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
+    });
+  });
+
+  describe('AdminConfirmBookingCommand', () => {
+    let mockBooking: Booking;
+
+    beforeEach(() => {
+      mockBooking = new Booking({
+        id: 'bk_admin_confirm_1',
+        status: 'awaiting_payment',
+        paymentStatus: 'pending',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        phone: '1234567890',
+        date: '2026-08-15',
+        time: '10:00',
+        razorpayOrderId: 'order_123',
+      });
+      vi.clearAllMocks();
+    });
+
+    it('A. Admin manually confirms pending booking', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+      const result = await handler.execute(command);
+
+      expect(result.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'booking-confirmed',
+        bookingId: 'bk_admin_confirm_1'
+      }));
+    });
+
+    it('B. Therapist manually confirms own booking', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ authId: 'therapist_uid_1' })
+        }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'therapist', uid: 'therapist_uid_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+      const result = await handler.execute(command);
+
+      expect(result.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+    });
+
+    it('C. Therapist cannot confirm another therapist booking', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ authId: 'different_therapist' })
+        }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'therapist', uid: 'therapist_uid_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow('Unauthorized to modify this booking');
+    });
+
+    it('D & E. Admin can confirm any booking without therapist ownership check', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_any' });
+      const handler = new AdminConfirmBookingCommandHandler();
+      const result = await handler.execute(command);
+
+      expect(result.success).toBe(true);
+      expect(mockTx.get).not.toHaveBeenCalled();
+    });
+
+    it('F & G. Manual confirmation releases locked_slots & writes audit log', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+      await handler.execute(command);
+
+      expect(mockTx.delete).toHaveBeenCalled();
+      expect(mockTx.set).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: 'status_updated',
+          status: 'confirmed',
+          userId: 'admin_1'
+        })
+      );
+    });
+
+    it('H & I. Repeated manual confirmation is idempotent and cleans stale locks', async () => {
+      mockBooking.status = 'confirmed';
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+      const result = await handler.execute(command);
+
+      expect(result.success).toBe(true);
+      expect(result.alreadyConfirmed).toBe(true);
+      expect(mockTx.delete).toHaveBeenCalled();
+      expect(sendEmailAction).not.toHaveBeenCalled();
+    });
+
+    it('M & N. Manual confirmation of cancelled or rejected booking is rejected', async () => {
+      mockBooking.status = 'cancelled';
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+
+      const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
+      const handler = new AdminConfirmBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow('Cannot confirm a cancelled or rejected booking');
+    });
+
+    it('J & K & L. Razorpay payment verification after manual confirmation updates payment state without duplicate email or error', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx1 = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx1 as any));
+
+      const adminCmd = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
+      const adminHandler = new AdminConfirmBookingCommandHandler();
+      await adminHandler.execute(adminCmd);
+
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('pending');
+      expect(sendEmailAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'booking-confirmed',
+          bookingId: 'bk_admin_confirm_1',
+        })
+      );
+
+      vi.clearAllMocks();
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(
+        new Payment({ id: 'pay_1', bookingId: 'bk_admin_confirm_1', razorpayOrderId: 'order_123', status: 'pending' })
+      );
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx2 = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx2 as any));
+
+      const confirmPaymentCmd = new ConfirmBookingCommand('pay_razorpay_123', 'order_123', 'sig_123', 'verify_api');
+      const confirmPaymentHandler = new ConfirmBookingCommandHandler();
+      const payResult = await confirmPaymentHandler.execute(confirmPaymentCmd);
+
+      expect(payResult.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockBooking.razorpayPaymentId).toBe('pay_razorpay_123');
+      expect(sendEmailAction).not.toHaveBeenCalled();
     });
   });
 });

@@ -78,14 +78,15 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         let startTime = 0;
         const startedAt = txData.orderCreationStartedAt;
 
+        type FirestoreTimestampLike = { toDate?: () => Date; toMillis?: () => number; _seconds?: number };
         if (typeof startedAt === 'number') {
           startTime = startedAt;
-        } else if (startedAt && typeof (startedAt as any).toDate === 'function') {
-          startTime = (startedAt as any).toDate().getTime();
-        } else if (startedAt && typeof (startedAt as any).toMillis === 'function') {
-          startTime = (startedAt as any).toMillis();
-        } else if (startedAt && (startedAt as any)._seconds) {
-          startTime = (startedAt as any)._seconds * 1000;
+        } else if (startedAt && typeof (startedAt as FirestoreTimestampLike).toDate === 'function') {
+          startTime = (startedAt as FirestoreTimestampLike).toDate!().getTime();
+        } else if (startedAt && typeof (startedAt as FirestoreTimestampLike).toMillis === 'function') {
+          startTime = (startedAt as FirestoreTimestampLike).toMillis!();
+        } else if (startedAt && typeof (startedAt as FirestoreTimestampLike)._seconds === 'number') {
+          startTime = (startedAt as FirestoreTimestampLike)._seconds! * 1000;
         } else if (startedAt instanceof Date) {
           startTime = startedAt.getTime();
         }

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
 "use client";
 
 import * as React from 'react';
@@ -23,6 +24,57 @@ import { auth } from '@/lib/firebase/client';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+interface MetricItem {
+  bookingLatencyCount?: number;
+  totalBookingLatencyMs?: number;
+  bookingsCreated?: number;
+  bookingsConfirmed?: number;
+  emailsSent?: number;
+  emailsFailed?: number;
+}
+
+interface TimelineItem {
+  id: string;
+  event: string;
+  message: string;
+  severity?: 'error' | 'warning' | 'info';
+  createdAt?: string | number | Date;
+  actor?: {
+    type?: string;
+  };
+  correlationId?: string;
+  bookingId?: string;
+}
+
+interface BookingSearchResult {
+  id: string;
+  name: string;
+  phone: string;
+  status: string;
+  therapistName: string;
+}
+
+interface EmailSearchResult {
+  id: string;
+  subject: string;
+  recipient: string;
+  status: string;
+}
+
+interface WorkerStatus {
+  queuedCount: number;
+  failedCount: number;
+  lastPoll: string;
+  status: string;
+}
+
+interface Diagnostics {
+  firebase: string;
+  resend: string;
+  razorpay: string;
+  env: string;
+}
+
 export const OperationsPanel = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = React.useState(true);
@@ -31,14 +83,14 @@ export const OperationsPanel = () => {
   const [errorMsg, setErrorMsg] = React.useState('');
 
   // Dashboard state
-  const [metrics, setMetrics] = React.useState<any[]>([]);
-  const [timelines, setTimelines] = React.useState<any[]>([]);
-  const [workerStatus, setWorkerStatus] = React.useState<any>({ queuedCount: 0, failedCount: 0, lastPoll: '', status: 'active' });
-  const [diagnostics, setDiagnostics] = React.useState<any>({ firebase: 'healthy', resend: 'healthy', razorpay: 'healthy', env: 'production' });
+  const [metrics, setMetrics] = React.useState<MetricItem[]>([]);
+  const [timelines, setTimelines] = React.useState<TimelineItem[]>([]);
+  const [workerStatus, setWorkerStatus] = React.useState<WorkerStatus>({ queuedCount: 0, failedCount: 0, lastPoll: '', status: 'active' });
+  const [diagnostics, setDiagnostics] = React.useState<Diagnostics>({ firebase: 'healthy', resend: 'healthy', razorpay: 'healthy', env: 'production' });
 
   // Search state
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [searchResults, setSearchResults] = React.useState<any>({ bookings: [], emails: [], timelines: [] });
+  const [searchResults, setSearchResults] = React.useState<{ bookings: BookingSearchResult[]; emails: EmailSearchResult[]; timelines: TimelineItem[] }>({ bookings: [], emails: [], timelines: [] });
   const [isSearching, setIsSearching] = React.useState(false);
 
   // Selected correlation/booking trace state
@@ -66,8 +118,8 @@ export const OperationsPanel = () => {
       setTimelines(data.timelines || []);
       setWorkerStatus(data.workerStatus || {});
       setDiagnostics(data.diagnostics || {});
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Error loading platform operations');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Error loading platform operations');
     } finally {
       setLoading(false);
     }
@@ -95,8 +147,8 @@ export const OperationsPanel = () => {
       const data = await res.json();
       setSearchResults(data);
       setActiveSubTab('search');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Search execution error');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Search execution error');
     } finally {
       setIsSearching(false);
     }
@@ -122,8 +174,8 @@ export const OperationsPanel = () => {
       if (!res.ok) throw new Error(data.error || 'Event replay failed');
       setSuccessMsg(`Successfully replayed "${eventName}" event. System timeline is updating...`);
       setTimeout(fetchDashboardData, 1500);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Event replay action error');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Event replay action error');
     } finally {
       setSubmitting(false);
     }
@@ -149,8 +201,8 @@ export const OperationsPanel = () => {
       if (!res.ok) throw new Error(data.error || 'Email resend failed');
       setSuccessMsg('Email resent successfully. Queue status is updated.');
       setTimeout(fetchDashboardData, 1500);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Email resend action error');
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Email resend action error');
     } finally {
       setSubmitting(false);
     }
@@ -158,7 +210,7 @@ export const OperationsPanel = () => {
 
   // Compute stats from metric docs
   const todayMetrics = metrics[0] || {};
-  const averageBookingLatency = todayMetrics.bookingLatencyCount 
+  const averageBookingLatency = (todayMetrics.bookingLatencyCount && todayMetrics.totalBookingLatencyMs) 
     ? Math.round(todayMetrics.totalBookingLatencyMs / todayMetrics.bookingLatencyCount / 1000) 
     : 0;
 
@@ -363,8 +415,10 @@ export const OperationsPanel = () => {
                             {t.correlationId && (
                               <button 
                                 onClick={() => {
-                                  setSelectedCorrelationId(t.correlationId);
-                                  setActiveSubTab('search');
+                                  if (t.correlationId) {
+                                    setSelectedCorrelationId(t.correlationId);
+                                    setActiveSubTab('search');
+                                  }
                                 }}
                                 className="px-2 py-0.5 rounded bg-amber-50 hover:bg-amber-100 text-[9px] font-mono text-amber-800 font-bold transition-all"
                                 title="Inspect correlation chain"
@@ -375,8 +429,10 @@ export const OperationsPanel = () => {
                             {t.bookingId && (
                               <button 
                                 onClick={() => {
-                                  setSearchQuery(t.bookingId);
-                                  handleSearch();
+                                  if (t.bookingId) {
+                                    setSearchQuery(t.bookingId);
+                                    handleSearch();
+                                  }
                                 }}
                                 className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-[9px] font-mono text-blue-800 font-bold transition-all"
                               >
@@ -442,7 +498,7 @@ export const OperationsPanel = () => {
                     {(!searchResults.bookings || searchResults.bookings.length === 0) ? (
                       <p className="text-xs text-primary/40 italic">No matching booking sessions found.</p>
                     ) : (
-                      searchResults.bookings.map((b: any) => (
+                      searchResults.bookings.map((b) => (
                         <div key={b.id} className="p-4 bg-[#FCFAF7] rounded-2xl border border-primary/5 space-y-2">
                           <div className="flex justify-between items-start">
                             <div>
@@ -484,7 +540,7 @@ export const OperationsPanel = () => {
                     {(!searchResults.emails || searchResults.emails.length === 0) ? (
                       <p className="text-xs text-primary/40 italic">No associated email transactions found.</p>
                     ) : (
-                      searchResults.emails.map((e: any) => (
+                      searchResults.emails.map((e) => (
                         <div key={e.id} className="p-4 bg-[#FCFAF7] rounded-2xl border border-primary/5 space-y-2">
                           <div className="flex justify-between items-start">
                             <div>

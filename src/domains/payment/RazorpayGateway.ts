@@ -21,9 +21,10 @@ export class RazorpayGateway implements PaymentGateway {
   async findOrderByReceipt(receipt: string): Promise<RazorpayOrderInfo | null> {
     try {
       const rzp = this.getClient();
-      const response = await (rzp.orders as any).all({ receipt });
+      type OrdersWithAll = { all: (params: { receipt: string }) => Promise<{ items?: Array<{ id: string; amount: number; currency: string; receipt?: string; status?: string; notes?: Record<string, unknown> }> }> };
+      const response = await (rzp.orders as unknown as OrdersWithAll).all({ receipt });
       if (response && Array.isArray(response.items) && response.items.length > 0) {
-        const match = response.items.find((item: any) => item.receipt === receipt);
+        const match = response.items.find((item) => item.receipt === receipt);
         if (match) {
           return {
             id: match.id,

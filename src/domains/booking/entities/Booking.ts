@@ -67,7 +67,9 @@ export class Booking {
   }
 
   confirmPayment(verifiedAt: Date | string | unknown, razorpayPaymentId?: string): this {
-    BookingStateMachine.transition(this, 'confirmed');
+    if (this.status !== 'confirmed') {
+      BookingStateMachine.transition(this, 'confirmed');
+    }
     this.paymentStatus = 'paid';
     if (razorpayPaymentId) {
       this.razorpayPaymentId = razorpayPaymentId;

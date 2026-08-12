@@ -6,3 +6,4 @@ export * from './StartPaymentCommand';
 export * from './ConfirmBookingCommand';
 export * from './CancelBookingCommand';
 export * from './RescheduleBookingCommand';
+export * from './AdminConfirmBookingCommand';

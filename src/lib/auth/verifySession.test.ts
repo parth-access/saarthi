@@ -3,7 +3,7 @@ import { SignJWT } from 'jose';
 import { verifySession } from './verifySession';
 import { middleware } from '../../middleware';
 import { NextRequest } from 'next/server';
-import { requireAdmin, requireTherapist, requireClient } from './requireRole';
+import { requireAdmin, requireTherapist } from './requireRole';
 
 const mockGetUserDoc = vi.fn();
 
@@ -14,7 +14,7 @@ vi.mock('../firebase/admin', () => ({
   adminDb: {
     collection: vi.fn().mockReturnValue({
       doc: vi.fn().mockReturnValue({
-        get: (...args: any[]) => mockGetUserDoc(...args),
+        get: (...args: unknown[]) => mockGetUserDoc(...args),
       }),
     }),
   },
