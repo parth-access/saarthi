@@ -5,7 +5,9 @@ import { middleware } from '../../middleware';
 import { NextRequest } from 'next/server';
 import { requireAdmin, requireTherapist } from './requireRole';
 
-const mockGetUserDoc = vi.fn();
+const { mockGetUserDoc } = vi.hoisted(() => ({
+  mockGetUserDoc: vi.fn(),
+}));
 
 vi.mock('../firebase/admin', () => ({
   adminAuth: {

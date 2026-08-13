@@ -42,16 +42,16 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       const data = await firestoreBookingRepository.findById(bookingId, transaction);
       if (!data) throw new Error('Booking not found');
 
+      if (data.razorpayOrderId !== razorpayOrderId) {
+        throw new Error('razorpayOrderId mismatch');
+      }
+
       if (data.status === 'confirmed' && data.paymentStatus === 'paid') {
         return;
       }
 
       if (data.paymentStatus !== 'pending') {
         throw new Error('Booking is not in PAYMENT_PENDING state');
-      }
-
-      if (data.razorpayOrderId !== razorpayOrderId) {
-        throw new Error('razorpayOrderId mismatch');
       }
 
       therapistId = data.therapistId;

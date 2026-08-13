@@ -2,12 +2,21 @@ import { Resend, CreateEmailOptions } from 'resend';
 import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generatePaymentLinkEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
+import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
 import { firestoreBookingRepository } from '@/domains/booking';
 import { EventBus } from '@/shared/events/EventBus';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resendClient) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is required to initialize Resend client');
+    }
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 async function sendEmailWithRetry(
   options: CreateEmailOptions, 
@@ -110,6 +119,7 @@ async function sendEmailWithRetry(
         return { success: true, simulated: true, data: simulatedResponse };
       }
 
+      const resend = getResendClient();
       const data = await resend.emails.send({
         replyTo: 'healwithsaarthi@gmail.com',
         ...options,
@@ -234,7 +244,7 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed' | 'booking-payment-link' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
+  type: 'booking-received' | 'booking-confirmed'  | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
@@ -358,21 +368,6 @@ export async function sendEmailAction(payload: EmailPayload) {
     return { success: true, data: results };
   } 
   
-  if (type === 'booking-payment-link') {
-    const plainText = `Payment Required\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been approved. Please complete payment to confirm your booking.\nDate: ${safeDate}\nTime: ${safeTime}\n- The Saarthi Team`.trim();
-
-    const data = await sendEmailWithRetry({
-      from: 'Saarthi Contact <contact@saarthilife.com>',
-      to: patientEmail,
-      subject: 'Action Required: Complete your session payment | Saarthi',
-      html: generatePaymentLinkEmail(emailData),
-      text: plainText,
-    }, bookingId, 'booking-payment-link');
-    
-    await updateBookingEmailStatus(bookingId, 'sent');
-    return { success: true, data };
-  }
-
   if (type === 'booking-confirmed') {
     const plainText = `Session Confirmed\nHi ${safePatientName},\nYour session with ${safeTherapistName} has been confirmed!\nDate: ${safeDate}\nTime: ${safeTime}\nHave a great session!\n- The Saarthi Team`.trim();
 

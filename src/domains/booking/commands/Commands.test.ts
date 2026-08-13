@@ -792,14 +792,16 @@ describe('Command Handlers Suite', () => {
   });
 
   describe('ConfirmBookingCommand', () => {
-    it('should confirm payment and transition booking to confirmed', async () => {
+    it('A. Normal confirmation (pending -> success) succeeds and sends single email', async () => {
+      // Protects against: Normal payment confirmation failing to transition payment or booking to confirmed state.
       const mockBooking = new Booking({
         id: 'bk_1',
-        status: 'payment_initiated', paymentStatus: 'pending',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
         email: 'jane@example.com',
         therapistId: 'therapist_1',
         name: 'Jane Doe',
-        razorpayOrderId: 'order_123'
+        razorpayOrderId: 'order_123',
       });
 
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
@@ -808,7 +810,60 @@ describe('Command Handlers Suite', () => {
         bookingId: 'bk_1',
         amount: 1500,
         currency: 'INR',
-        status: 'pending'
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+      const handler = new ConfirmBookingCommandHandler();
+      const result = await handler.execute(command);
+
+      expect(result.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+      expect(mockPayment.razorpayPaymentId).toBe('pay_123');
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'booking-confirmed',
+        bookingId: 'bk_1',
+      }));
+    });
+
+    it('B. Repeated confirmation is idempotent (success -> success does not throw and preserves state)', async () => {
+      // Protects against: PaymentStateMachine throwing invalid transition error when confirmation is re-attempted.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'success',
+        razorpayOrderId: 'order_123',
+        razorpayPaymentId: 'pay_123',
       });
       vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
       vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
@@ -830,10 +885,379 @@ describe('Command Handlers Suite', () => {
 
       expect(result.success).toBe(true);
       expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+      expect(sendEmailAction).not.toHaveBeenCalled();
+    });
+
+    it('C. verify -> webhook race sequence converges safely to confirmed and paid', async () => {
+      // Protects against: Razorpay webhook arriving shortly after direct client verification failing with a 500 error.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+
+      // 1. Direct verify arrives first
+      const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+      const verifyRes = await handler.execute(verifyCmd);
+      expect(verifyRes.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
         type: 'booking-confirmed',
-        bookingId: 'bk_1'
+        bookingId: 'bk_1',
       }));
+
+      const emailCallCountAfterFirst = vi.mocked(sendEmailAction).mock.calls.length;
+
+      // 2. Webhook arrives second
+      const webhookCmd = new ConfirmBookingCommand('pay_123', 'order_123', undefined, 'webhook');
+      const webhookRes = await handler.execute(webhookCmd);
+      expect(webhookRes.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+      // No duplicate email dispatched on second confirmation
+      expect(vi.mocked(sendEmailAction).mock.calls.length).toBe(emailCallCountAfterFirst);
+    });
+
+    it('D. webhook -> verify race sequence converges safely to confirmed and paid', async () => {
+      // Protects against: Direct client verification arriving after background webhook failing with an error in the UI.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+
+      // 1. Webhook arrives first
+      const webhookCmd = new ConfirmBookingCommand('pay_123', 'order_123', undefined, 'webhook');
+      const webhookRes = await handler.execute(webhookCmd);
+      expect(webhookRes.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'booking-confirmed',
+        bookingId: 'bk_1',
+      }));
+
+      const emailCallCountAfterFirst = vi.mocked(sendEmailAction).mock.calls.length;
+
+      // 2. Direct client verify arrives second with signature
+      const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+      const verifyRes = await handler.execute(verifyCmd);
+      expect(verifyRes.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+      expect(mockPayment.razorpaySignature).toBe('sig_123'); // Captures signature
+      // No duplicate email dispatched on second confirmation
+      expect(vi.mocked(sendEmailAction).mock.calls.length).toBe(emailCallCountAfterFirst);
+    });
+
+    it('E. verify -> verify repeated call succeeds idempotently', async () => {
+      // Protects against: User double-clicking or client retrying /api/payment/verify.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+      const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+
+      const res1 = await handler.execute(verifyCmd);
+      expect(res1.success).toBe(true);
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'booking-confirmed',
+        bookingId: 'bk_1',
+      }));
+
+      const emailCallCountAfterFirst = vi.mocked(sendEmailAction).mock.calls.length;
+
+      const res2 = await handler.execute(verifyCmd);
+      expect(res2.success).toBe(true);
+      expect(vi.mocked(sendEmailAction).mock.calls.length).toBe(emailCallCountAfterFirst);
+    });
+
+    it('F. webhook -> webhook repeated delivery succeeds idempotently', async () => {
+      // Protects against: Razorpay webhook retries causing errors or duplicate processing.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+      const webhookCmd = new ConfirmBookingCommand('pay_123', 'order_123', undefined, 'webhook');
+
+      const res1 = await handler.execute(webhookCmd);
+      expect(res1.success).toBe(true);
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'booking-confirmed',
+        bookingId: 'bk_1',
+      }));
+
+      const emailCallCountAfterFirst = vi.mocked(sendEmailAction).mock.calls.length;
+
+      const res2 = await handler.execute(webhookCmd);
+      expect(res2.success).toBe(true);
+      expect(vi.mocked(sendEmailAction).mock.calls.length).toBe(emailCallCountAfterFirst);
+    });
+
+    it('G. Concurrent duplicate confirmation handles race without invalid transition errors', async () => {
+      // Protects against: Simultaneous execution of verify and webhook resulting in unhandled rejections.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+      const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+      const webhookCmd = new ConfirmBookingCommand('pay_123', 'order_123', undefined, 'webhook');
+
+      const [res1, res2] = await Promise.all([
+        handler.execute(verifyCmd),
+        handler.execute(webhookCmd),
+      ]);
+
+      expect(res1.success).toBe(true);
+      expect(res2.success).toBe(true);
+      expect(mockBooking.status).toBe('confirmed');
+      expect(mockBooking.paymentStatus).toBe('paid');
+      expect(mockPayment.status).toBe('success');
+    });
+
+    it('H. Duplicate confirmation does not send duplicate confirmation email', async () => {
+      // Protects against: Spamming patients with multiple confirmation emails.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'success',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+      const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
+
+      await handler.execute(verifyCmd);
+      expect(sendEmailAction).not.toHaveBeenCalled();
+    });
+
+    it('I. Different payment/order cannot piggyback on an already-successful payment', async () => {
+      // Protects against: Corrupting booking or payment state if mismatched order IDs are submitted.
+      const mockBooking = new Booking({
+        id: 'bk_1',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        razorpayOrderId: 'order_original_123',
+      });
+      const mockPayment = new Payment({
+        id: 'order_different_456',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'success',
+        razorpayOrderId: 'order_different_456',
+      });
+
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const handler = new ConfirmBookingCommandHandler();
+      const mismatchedCmd = new ConfirmBookingCommand('pay_123', 'order_different_456', 'sig_123', 'direct');
+
+      await expect(handler.execute(mismatchedCmd)).rejects.toThrow('razorpayOrderId mismatch');
+    });
+
+    it('J. Existing invalid transitions still fail (e.g. invalid signature fails)', async () => {
+      // Protects against: Accepting forged or corrupted payment signatures.
+      const mockPayment = new Payment({
+        id: 'order_123',
+        bookingId: 'bk_1',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_123',
+      });
+
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(false); // Invalid HMAC
+
+      const handler = new ConfirmBookingCommandHandler();
+      const invalidSigCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'invalid_sig', 'direct');
+
+      await expect(handler.execute(invalidSigCmd)).rejects.toThrow('Invalid signature verification failed');
     });
   });
 
@@ -1377,6 +1801,7 @@ describe('Command Handlers Suite', () => {
         new Payment({ id: 'pay_1', bookingId: 'bk_admin_confirm_1', razorpayOrderId: 'order_123', status: 'pending' })
       );
       vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
 
       const mockTx2 = {
         get: vi.fn(),

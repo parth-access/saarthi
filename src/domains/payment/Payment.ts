@@ -29,15 +29,19 @@ export class Payment {
   }
 
   confirm(verifiedAt: Date | string | unknown, paymentId: string, signature?: string, source?: string): this {
-    PaymentStateMachine.transition(this, 'success');
-    this.razorpayPaymentId = paymentId;
+    if (this.status !== 'success') {
+      PaymentStateMachine.transition(this, 'success');
+    }
+    if (paymentId) {
+      this.razorpayPaymentId = paymentId;
+    }
     if (signature) {
       this.razorpaySignature = signature;
     }
     if (source) {
       this.source = source;
     }
-    this.verifiedAt = verifiedAt || new Date();
+    this.verifiedAt = this.verifiedAt || verifiedAt || new Date();
     return this;
   }
 
