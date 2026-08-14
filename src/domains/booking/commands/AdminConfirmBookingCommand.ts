@@ -7,6 +7,7 @@ import { BookingDomainService } from '../services/BookingDomainService';
 import { BookingStateMachine } from '../state/BookingStateMachine';
 import { Booking } from '../entities/Booking';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export interface AdminConfirmBookingSessionContext {
   uid?: string;
@@ -78,11 +79,30 @@ export class AdminConfirmBookingCommandHandler
         return;
       }
 
-      BookingStateMachine.transition(booking, 'confirmed');
+      const previousStatus = booking.status;
+      BookingStateMachine.transition(booking, 'confirmed', { skipEventBus: true });
       booking.updatedAt = FieldValue.serverTimestamp();
       await this.bookingRepository.save(booking, t);
 
       t.delete(slotRef);
+
+      const eventId = generateDeterministicEventId('booking', command.bookingId, 'confirmed');
+      OutboxService.recordEventInTransaction(t, {
+        id: eventId,
+        name: 'BookingConfirmed',
+        aggregateType: 'booking',
+        aggregateId: command.bookingId,
+        payload: {
+          bookingId: command.bookingId,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'confirmed',
+          metadata: {
+            adminUid: command.session.uid,
+            adminRole: command.session.role,
+          }
+        }
+      });
 
       const auditRef = adminDb
         .collection('bookings')
@@ -99,6 +119,13 @@ export class AdminConfirmBookingCommandHandler
 
       shouldSendEmail = true;
     });
+
+    if (shouldSendEmail) {
+      const eventId = generateDeterministicEventId('booking', command.bookingId, 'confirmed');
+      OutboxProcessor.processEvent(eventId).catch((err) => {
+        console.error('[AdminConfirmBookingCommandHandler] Async outbox processing error:', err);
+      });
+    }
 
     if (shouldSendEmail && bookingData) {
       try {
@@ -122,3 +149,4 @@ export class AdminConfirmBookingCommandHandler
     return { success: true, alreadyConfirmed };
   }
 }
+

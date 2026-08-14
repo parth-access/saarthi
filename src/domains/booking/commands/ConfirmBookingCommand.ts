@@ -6,6 +6,7 @@ import { BookingDomainService } from '../services/BookingDomainService';
 import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler } from '@/domains/payment';
 import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export class ConfirmBookingCommand implements Command {
   readonly name = 'ConfirmBookingCommand';
@@ -58,7 +59,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       shouldSendEmail = data.status !== 'confirmed';
 
       const verifiedAt = FieldValue.serverTimestamp();
-      await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction);
+      await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
       data.updatedAt = FieldValue.serverTimestamp();
       
       // Release lock
@@ -67,6 +68,12 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       transaction.delete(slotRef);
 
       await firestoreBookingRepository.save(data, transaction);
+    });
+
+    // Post-commit outbox processing
+    const outboxEventId = generateDeterministicEventId('booking', bookingId, 'confirmed');
+    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+      logger.error('BOOKING', 'Async outbox processing error after confirmation', { bookingId, error: err });
     });
 
     if (shouldSendEmail && therapistId) {
@@ -86,3 +93,4 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
     return { success: true };
   }
 }
+

@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
+import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export class StartPaymentCommand implements Command {
   readonly name = 'StartPaymentCommand';
@@ -31,6 +32,12 @@ export class StartPaymentCommandHandler implements CommandHandler<StartPaymentCo
       });
     });
 
+    const outboxEventId = generateDeterministicEventId('booking', bookingId, 'payment_initiated');
+    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+      console.error('[StartPaymentCommandHandler] Async outbox processing error:', err);
+    });
+
     return { success: true };
   }
 }
+

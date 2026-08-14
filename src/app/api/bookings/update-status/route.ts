@@ -12,6 +12,7 @@ import {
   BookingStateMachine
 } from '@/domains/booking';
 import { BookingStatus } from '@/types';
+import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 const schema = z.object({
   bookingId: z.string(),
@@ -59,8 +60,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true });
     }
 
-    await adminDb.runTransaction(async (t) => {
+    const normTo = BookingStateMachine.normalizeStatus(status as BookingStatus);
+    const camelTo = normTo.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+    const eventName = `Booking${camelTo.charAt(0).toUpperCase() + camelTo.slice(1)}`;
+    const outboxEventId = generateDeterministicEventId('booking', bookingId, normTo);
 
+    await adminDb.runTransaction(async (t) => {
       const data = await firestoreBookingRepository.findById(bookingId, t);
       if (!data) throw new Error('Booking not found');
 
@@ -71,9 +76,27 @@ export async function POST(req: Request) {
          }
       }
       
-      BookingStateMachine.transition(data, status as BookingStatus);
+      const previousStatus = data.status;
+      BookingStateMachine.transition(data, status as BookingStatus, { skipEventBus: true });
       data.updatedAt = FieldValue.serverTimestamp();
       await firestoreBookingRepository.save(data, t);
+
+      OutboxService.recordEventInTransaction(t, {
+        id: outboxEventId,
+        name: eventName,
+        aggregateType: 'booking',
+        aggregateId: bookingId,
+        payload: {
+          bookingId,
+          booking: { ...data },
+          previousStatus,
+          targetStatus: status,
+          metadata: {
+            updatedBy: session.uid,
+            role: session.role,
+          }
+        }
+      });
 
       const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
       t.set(auditRef, {
@@ -83,6 +106,10 @@ export async function POST(req: Request) {
         details: `Booking status changed to ${status}`,
         userId: session.uid
       });
+    });
+
+    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+      console.error('[UpdateStatus] Async outbox processing error:', err);
     });
 
     return NextResponse.json({ success: true });

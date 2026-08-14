@@ -18,8 +18,13 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   expired: [],
 };
 
+export interface TransitionOptions {
+  metadata?: Record<string, unknown>;
+  skipEventBus?: boolean;
+}
+
 export class BookingStateMachine {
-  private static normalizeStatus(status: string): string {
+  static normalizeStatus(status: string): string {
     if (!status) return 'draft';
     const norm = status.toLowerCase().trim().replace(/\s+/g, '_');
     if (norm === 'locked') return 'slot_locked';
@@ -35,7 +40,11 @@ export class BookingStateMachine {
     return allowed.includes(normTo);
   }
 
-  static transition(booking: Booking, targetState: BookingStatus, metadata?: Record<string, unknown>): void {
+  static transition(
+    booking: Booking,
+    targetState: BookingStatus,
+    metadataOrOptions?: Record<string, unknown> | TransitionOptions
+  ): void {
     if (!this.canTransition(booking.status, targetState)) {
       throw new InvalidBookingTransitionError(
         `Cannot transition booking ${booking.id} from status '${booking.status}' to '${targetState}'`
@@ -49,32 +58,47 @@ export class BookingStateMachine {
     const camelTo = normTo.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
     const eventName = `Booking${camelTo.charAt(0).toUpperCase() + camelTo.slice(1)}`;
 
-    DomainEvents.dispatch({
-      name: eventName,
-      timestamp: new Date(),
-      data: {
-        bookingId: booking.id,
-        booking,
-        previousStatus,
-        targetStatus: targetState,
-        metadata,
-      },
-    });
+    let metadata: Record<string, unknown> | undefined;
+    let skipEventBus = false;
 
-    try {
-      EventBus.publish({
+    if (metadataOrOptions) {
+      if ('skipEventBus' in metadataOrOptions || 'metadata' in metadataOrOptions) {
+        const opts = metadataOrOptions as TransitionOptions;
+        skipEventBus = Boolean(opts.skipEventBus);
+        metadata = opts.metadata;
+      } else {
+        metadata = metadataOrOptions as Record<string, unknown>;
+      }
+    }
+
+    if (!skipEventBus) {
+      DomainEvents.dispatch({
         name: eventName,
         timestamp: new Date(),
-        payload: {
+        data: {
           bookingId: booking.id,
           booking,
           previousStatus,
           targetStatus: targetState,
           metadata,
-        }
+        },
       });
-    } catch (err) {
-      console.error('[BookingStateMachine] Failed to publish event to central EventBus:', err);
+
+      try {
+        EventBus.publish({
+          name: eventName,
+          timestamp: new Date(),
+          payload: {
+            bookingId: booking.id,
+            booking,
+            previousStatus,
+            targetStatus: targetState,
+            metadata,
+          }
+        });
+      } catch (err) {
+        console.error('[BookingStateMachine] Failed to publish event to central EventBus:', err);
+      }
     }
   }
 }

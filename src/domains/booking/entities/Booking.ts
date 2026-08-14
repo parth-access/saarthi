@@ -1,5 +1,5 @@
 import { FirebaseTimestamp, BookingStatus, PaymentStatus } from '@/types';
-import { BookingStateMachine } from '../state/BookingStateMachine';
+import { BookingStateMachine, TransitionOptions } from '../state/BookingStateMachine';
 
 export class Booking {
   id!: string;
@@ -51,24 +51,24 @@ export class Booking {
   }
 
   // Transitions & state mutations
-  lockSlot(): this {
-    BookingStateMachine.transition(this, 'slot_locked');
+  lockSlot(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'slot_locked', options);
     return this;
   }
 
-  awaitPayment(): this {
-    BookingStateMachine.transition(this, 'awaiting_payment');
+  awaitPayment(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'awaiting_payment', options);
     return this;
   }
 
-  initiatePayment(): this {
-    BookingStateMachine.transition(this, 'payment_initiated');
+  initiatePayment(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'payment_initiated', options);
     return this;
   }
 
-  confirmPayment(verifiedAt: Date | string | unknown, razorpayPaymentId?: string): this {
+  confirmPayment(verifiedAt: Date | string | unknown, razorpayPaymentId?: string, options?: TransitionOptions): this {
     if (this.status !== 'confirmed') {
-      BookingStateMachine.transition(this, 'confirmed');
+      BookingStateMachine.transition(this, 'confirmed', options);
     }
     this.paymentStatus = 'paid';
     if (razorpayPaymentId) {
@@ -78,21 +78,21 @@ export class Booking {
     return this;
   }
 
-  complete(): this {
-    BookingStateMachine.transition(this, 'completed');
+  complete(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'completed', options);
     return this;
   }
 
-  cancel(reason?: string): this {
-    BookingStateMachine.transition(this, 'cancelled');
+  cancel(reason?: string, options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'cancelled', options);
     if (reason) {
       this.declineReason = reason;
     }
     return this;
   }
 
-  decline(reason: string, declinedBy?: string, customNote?: string, timestamp?: unknown): this {
-    BookingStateMachine.transition(this, 'rejected');
+  decline(reason: string, declinedBy?: string, customNote?: string, timestamp?: unknown, options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'rejected', options);
     this.declineReason = reason;
     this.declineCustomNote = customNote || '';
     if (declinedBy) {
@@ -102,8 +102,8 @@ export class Booking {
     return this;
   }
 
-  expire(): this {
-    BookingStateMachine.transition(this, 'expired');
+  expire(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'expired', options);
     return this;
   }
 

@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
-import { firestoreBookingRepository } from '@/domains/booking';
+import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { EventBus } from '@/shared/events/EventBus';
 
 let resendClient: Resend | null = null;
@@ -28,15 +28,22 @@ async function sendEmailWithRetry(
   let attempt = 0;
   let lastError: unknown;
 
-  // Track email in database
-  const emailRef = existingEmailId 
-    ? adminDb.collection('emails').doc(existingEmailId)
-    : adminDb.collection('emails').doc();
-  const emailId = emailRef.id;
+  // Use deterministic email ID for idempotency across retries if not provided
+  const emailId = existingEmailId || `email_${bookingId}_${emailType.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+  const emailRef = adminDb.collection('emails').doc(emailId);
+  const existingSnap = await emailRef.get();
+
+  if (existingSnap.exists) {
+    const existingData = existingSnap.data();
+    if (existingData?.status === 'sent') {
+      logger.info('EMAIL', `Email ${emailId} already marked as sent. Skipping duplicate dispatch.`, { bookingId, emailType });
+      return { success: true, alreadySent: true, data: existingData.attempts?.[existingData.attempts.length - 1]?.response };
+    }
+  }
 
   const toStr = Array.isArray(options.to) ? options.to.join(', ') : String(options.to || '');
 
-  if (!existingEmailId) {
+  if (!existingSnap.exists) {
     await emailRef.set({
       id: emailId,
       bookingId,

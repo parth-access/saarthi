@@ -8,6 +8,7 @@ import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/d
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { Booking } from '../entities/Booking';
 import { BookingDomainService } from '../services/BookingDomainService';
+import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
@@ -117,16 +118,26 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       await adminDb.collection('bookings').doc(newBookingId).update({
         razorpayOrderId: orderId
       });
-    } catch (err) {
-      // Compensating transaction
+
+      // Process outbox event post-commit
+      const outboxEventId = generateDeterministicEventId('booking', newBookingId, 'awaiting_payment');
+      OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+        console.error('[CreateBookingCommandHandler] Async outbox processing error:', err);
+      });
+    } catch {
+      // Compensating transaction (perform all reads before writes)
       await adminDb.runTransaction(async (t) => {
+        const doc = await t.get(slotRef);
+        
         const bookingRef = adminDb.collection('bookings').doc(newBookingId);
         t.delete(bookingRef);
         
-        const doc = await t.get(slotRef);
         if (doc.exists && doc.data()?.bookingId === newBookingId) {
-           t.delete(slotRef);
+          t.delete(slotRef);
         }
+
+        const outboxRef = adminDb.collection('outbox_events').doc(generateDeterministicEventId('booking', newBookingId, 'awaiting_payment'));
+        t.delete(outboxRef);
         
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
@@ -147,3 +158,4 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     };
   }
 }
+

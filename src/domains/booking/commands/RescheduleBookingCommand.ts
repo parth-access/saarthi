@@ -5,6 +5,7 @@ import { firestoreBookingRepository } from '../repository/FirestoreBookingReposi
 import { BookingRepository } from '../repository/BookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { SlotReservationService } from '../services/SlotReservationService';
+import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export interface RescheduleBookingSessionContext {
   uid?: string;
@@ -95,6 +96,17 @@ export class RescheduleBookingCommandHandler {
       return { bookingData: booking };
     });
 
+    const outboxEventId = generateDeterministicEventId(
+      'booking',
+      command.bookingId,
+      'rescheduled',
+      `${command.newDate}_${command.newTime}`
+    );
+    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+      console.error('[RescheduleBookingCommandHandler] Async outbox processing error:', err);
+    });
+
     return bookingData;
   }
 }
+
