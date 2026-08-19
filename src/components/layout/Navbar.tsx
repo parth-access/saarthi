@@ -1,10 +1,12 @@
 "use client";
 
+
 import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
 import Link from "next/link"
 import { useAuth } from "../../contexts/AuthContext"
+import { trackEvent } from "@/lib/analytics"
 
 interface NavbarProps {
   onBookClick?: () => void;
@@ -13,6 +15,14 @@ interface NavbarProps {
 const Navbar = ({ onBookClick }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false)
   const { currentUser } = useAuth()
+
+  const handleBookClick = () => {
+    trackEvent('book_demo_click', {
+      location: 'navbar',
+      cta_text: 'Book Session'
+    });
+    if (onBookClick) onBookClick();
+  };
 
   const navLinks = [
     { name: "Therapists", href: "/therapists" },
@@ -89,7 +99,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
               <Link href={portalLink} className="text-sm font-medium text-primary hover:underline transition-all">
                 {portalText}
               </Link>
-              <Button asChild size="sm" variant="primary">
+              <Button asChild size="sm" variant="primary" onClick={handleBookClick}>
                 <Link href="/book">Book Session</Link>
               </Button>
             </div>

@@ -35,9 +35,11 @@ export class OutboxService {
         status: 'pending',
         attempts: 0,
         maxAttempts: input.maxAttempts || 5,
+        nextAttemptAt: input.nextAttemptAt || null,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        error: null
+        error: null,
+        lastError: null
       },
       { merge: true }
     );
@@ -67,9 +69,11 @@ export class OutboxService {
         status: 'pending',
         attempts: 0,
         maxAttempts: input.maxAttempts || 5,
+        nextAttemptAt: input.nextAttemptAt || null,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
-        error: null
+        error: null,
+        lastError: null
       },
       { merge: true }
     );

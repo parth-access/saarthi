@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/Card"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import { Globe, Users } from "lucide-react"
 
 interface SessionDetailsProps {

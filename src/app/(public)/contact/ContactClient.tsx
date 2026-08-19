@@ -1,10 +1,12 @@
 "use client";
 
+
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Mail, MapPin, Calendar, ArrowRight } from "lucide-react"
 import { ContactForm } from "@/components/forms/ContactForm"
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 export default function ContactPage() {
   return (
@@ -127,6 +129,12 @@ export default function ContactPage() {
             </p>
             <Link 
               href="/therapists"
+              onClick={() => {
+                trackEvent('book_demo_click', {
+                  location: 'contact_page_bottom_cta',
+                  cta_text: 'Book a Session'
+                });
+              }}
               className="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full font-medium"
             >
               Book a Session

@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2 } from "lucide-react"
@@ -17,6 +19,8 @@ import { ReviewStep } from "./steps/ReviewStep"
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
 import { useBooking } from "../../hooks/useBooking"
+import { paymentService } from "../../services/paymentService"
+import { trackEvent } from "@/lib/analytics"
 
 interface BookingState {
   therapistId: string;
@@ -33,6 +37,8 @@ interface BookingState {
 
 const BookingSystem = () => {
   const [step, setStep] = React.useState(1)
+  const hasTrackedStartedRef = React.useRef(false)
+  const hasTrackedSubmittedRef = React.useRef(false)
   const [bookingData, setBookingData] = React.useState<BookingState>({
     therapistId: "",
     sessionType: "",
@@ -47,9 +53,16 @@ const BookingSystem = () => {
   })
   const [activeLockId, setActiveLockId] = React.useState<string | null>(null)
   const [lockingTime, setLockingTime] = React.useState<string | null>(null)
-
+  
   const { therapists } = useTherapists()
   const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
+
+  const trackBookingStarted = React.useCallback((context?: Record<string, unknown>) => {
+    if (!hasTrackedStartedRef.current) {
+      hasTrackedStartedRef.current = true;
+      trackEvent('book_demo_started', context);
+    }
+  }, []);
 
   const handleNext = () => setStep(s => s + 1)
   const handleBack = () => {
@@ -58,20 +71,24 @@ const BookingSystem = () => {
   }
 
   const handleTherapistSelect = (id: string) => {
+    trackBookingStarted({ step: 1 })
     setBookingData(prev => ({ ...prev, therapistId: id }))
     handleNext()
   }
 
   const handleSessionTypeSelect = (type: SessionType) => {
+    trackBookingStarted({ step: 2, session_type: type })
     setBookingData(prev => ({ ...prev, sessionType: type }))
     handleNext()
   }
 
   const handleDateSelect = (date: string) => {
+    trackBookingStarted({ step: 3 })
     setBookingData(prev => ({ ...prev, date, time: "" }))
   }
 
   const handleSlotSelect = async (time: string) => {
+    trackBookingStarted({ step: 4 })
     setLockingTime(time)
     setSubmitError(null)
     
@@ -95,6 +112,7 @@ const BookingSystem = () => {
   }
 
   const handleDetailsSubmit = (details: { name: string; email: string; phone: string; gender: string; age: string; message?: string }) => {
+    trackBookingStarted({ step: 5 })
     setBookingData(prev => ({ ...prev, ...details }))
     handleNext()
   }
@@ -105,8 +123,66 @@ const BookingSystem = () => {
       lockId: activeLockId || undefined,
       age: parseInt(bookingData.age)
     })
-    if (result.success) {
-      setStep(7)
+
+    if (result.success && result.data?.orderId) {
+      if (typeof window === 'undefined' || !(window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (...args: unknown[]) => void) => void, open: () => void } }).Razorpay) {
+        setSubmitError('Razorpay SDK failed to load. Are you online?');
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        amount: result.data.amount * 100,
+        currency: result.data.currency,
+        name: 'Saarthi',
+        description: `Session with Therapist ${bookingData.therapistId}`,
+        image: '/favicon.ico',
+        order_id: result.data.orderId,
+        handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }) {
+           try {
+             const verifyRes = await paymentService.verifyPayment({
+               bookingId: result.data.bookingId,
+               razorpay_payment_id: response.razorpay_payment_id,
+               razorpay_order_id: response.razorpay_order_id,
+               razorpay_signature: response.razorpay_signature
+             });
+             if (verifyRes.success) {
+               if (!hasTrackedSubmittedRef.current) {
+                 hasTrackedSubmittedRef.current = true;
+                 trackEvent('book_demo_submitted', {
+                   session_type: bookingData.sessionType,
+                   date_selected: bookingData.date,
+                 });
+               }
+               setStep(7);
+             } else {
+               throw new Error('Payment verification failed');
+             }
+           } catch (err) {
+             setSubmitError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support.');
+           }
+        },
+        prefill: {
+            name: bookingData.name,
+            email: bookingData.email,
+            contact: bookingData.phone || '',
+        },
+        theme: {
+            color: '#E6A520'
+        }
+      };
+
+      interface RazorpayFailResponse {
+        error: {
+          description: string;
+        };
+      }
+
+      const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(options);
+      rzp.on('payment.failed', function (response: RazorpayFailResponse) {
+          setSubmitError(`Payment Failed: ${response.error.description}`);
+      });
+      rzp.open();
     }
   }
 
@@ -150,13 +226,15 @@ const BookingSystem = () => {
                 <CheckCircle2 className="w-12 h-12" />
               </div>
             </div>
+            
             <div className="space-y-4 max-w-sm mx-auto">
-              <h2 className="text-4xl font-serif text-primary">A Path Forward</h2>
+              <h2 className="text-4xl font-serif text-primary">Booking Confirmed</h2>
               <p className="text-xl text-muted-foreground leading-relaxed italic">“Every journey begins with a single, intentional step.”</p>
-              <p className="text-muted-foreground">Your request has been sent. We will confirm via email within 24 hours.</p>
+              <p className="text-muted-foreground">Your payment was successful and your session is confirmed. We will send you an email shortly.</p>
             </div>
+
             <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500">
-              <NextLink href="/">Return to Home</NextLink>
+              <NextLink href="/dashboard">Go to Dashboard</NextLink>
             </Button>
           </motion.div>
         )
@@ -164,6 +242,27 @@ const BookingSystem = () => {
         return null
     }
   }
+
+  React.useEffect(() => {
+    if (step === 7 && !hasTrackedSubmittedRef.current) {
+      hasTrackedSubmittedRef.current = true;
+      trackEvent('book_demo_submitted', {
+        session_type: bookingData.sessionType,
+        date_selected: bookingData.date,
+      });
+    }
+  }, [step, bookingData.sessionType, bookingData.date]);
+
+  React.useEffect(() => {
+    // Load Razorpay Script
+    if (!document.getElementById('razorpay-script')) {
+      const script = document.createElement('script');
+      script.id = 'razorpay-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto py-12 px-6 overflow-hidden min-h-[700px]">

@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
 import { Shield, Heart, Briefcase, Users } from "lucide-react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 
 const services = [
   {

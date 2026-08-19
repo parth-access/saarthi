@@ -2,12 +2,21 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 interface FinalCTAProps {
   onBookClick?: () => void;
 }
 
 const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
+  const handleBookClick = () => {
+    trackEvent('book_demo_click', {
+      location: 'therapist_final_cta',
+      cta_text: 'Book a Session'
+    });
+    if (onBookClick) onBookClick();
+  };
+
   return (
     <section id="contact" className="py-24 bg-primary text-primary-foreground">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -23,7 +32,7 @@ const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
             <p className="mb-10 text-lg text-primary-foreground/80 md:text-xl">
               Ready to address your concerns? Book a session to discuss your requirements and begin a structured approach to your mental well-being.
             </p>
-            <Button asChild size="lg" variant="accent" className="text-primary font-bold" onClick={onBookClick}>
+            <Button asChild size="lg" variant="accent" className="text-primary font-bold" onClick={handleBookClick}>
               <Link href="/book">Book a Session</Link>
             </Button>
           </motion.div>

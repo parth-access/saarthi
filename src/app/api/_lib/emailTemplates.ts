@@ -216,52 +216,6 @@ export function generateBookingRescheduledEmail(data: BookingEmailData, original
   return generateEmailLayout(content, 'Your Saarthi session has been rescheduled.');
 }
 
-export function generatePaymentLinkEmail(data: BookingEmailData): string {
-  const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
-    <p style="margin: 0 0 16px 0;">Your session request with <strong>${data.therapistName}</strong> has been received! To confirm your appointment, please complete the payment using the secure link below.</p>
-    
-    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Session Details</h3>
-      
-      <table width="100%" border="0" cellspacing="0" cellpadding="0">
-        <tr>
-          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Therapist:</td>
-          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.therapistName}</td>
-        </tr>
-        ${data.therapistSpecialization ? `
-        <tr>
-          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Specialization:</td>
-          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.therapistSpecialization}</td>
-        </tr>
-        ` : ''}
-        ${data.sessionMode ? `
-        <tr>
-          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Session Mode:</td>
-          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.sessionMode}</td>
-        </tr>
-        ` : ''}
-        <tr>
-          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Date:</td>
-          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.date}</td>
-        </tr>
-        <tr>
-          <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Time:</td>
-          <td style="font-weight: 500; font-size: 15px;">${data.time}</td>
-        </tr>
-      </table>
-    </div>
-
-    <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/payment?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Complete Payment</a>
-    </div>
-
-    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
-    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
-  `;
-
-  return generateEmailLayout(content, 'Please complete payment to confirm your Saarthi session.');
-}
 
 export function generateTherapistNotificationEmail(data: BookingEmailData, type: 'new' | 'rescheduled', originalDate?: string, originalTime?: string): string {
   const content = `

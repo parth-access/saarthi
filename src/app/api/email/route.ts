@@ -7,7 +7,7 @@ import { requireAdmin } from '@/lib/auth/requireRole';
 import { verifySession } from '@/lib/auth/verifySession';
 
 const EmailPayloadSchema = z.object({
-  type: z.enum(['booking-received', 'booking-confirmed', 'booking-payment-link', 'booking-rescheduled', 'therapist-notification', 'booking-declined']),
+  type: z.enum(['booking-received', 'booking-confirmed', 'booking-rescheduled', 'therapist-notification', 'booking-declined']),
   bookingId: z.string().min(1),
   therapistId: z.string().min(1),
   declineReason: z.string().optional(),

@@ -5,7 +5,7 @@ import { bookingService } from '../services/bookingService';
 export function useBooking() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { handleError, handleSuccess } = useGlobalError();
+  const { handleError } = useGlobalError();
 
   async function lockSlot(params: { therapistId: string; date: string; time: string }) {
     setError(null);
@@ -33,8 +33,7 @@ export function useBooking() {
         ...bookingData
       });
       
-      handleSuccess('Booking request sent successfully!');
-      return { success: true, data: { id: response.bookingId } };
+      return { success: true, data: response };
     } catch (err) {
       const msg = (err instanceof Error ? err.message : String(err)) || 'Network error';
       setError(msg);
@@ -47,6 +46,3 @@ export function useBooking() {
 
   return { createBooking, lockSlot, submitting, error, setError };
 }
-
-
-

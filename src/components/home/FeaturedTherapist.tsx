@@ -2,12 +2,20 @@ import * as React from "react"
 import { motion } from "framer-motion"
 import { Button } from "../ui/Button"
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 interface FeaturedTherapistProps {
   onBookClick?: () => void;
 }
 
 const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
+  const handleBookClick = () => {
+    trackEvent('book_demo_click', {
+      location: 'featured_therapist_section',
+      cta_text: 'Book Session'
+    });
+    if (onBookClick) onBookClick();
+  };
   return (
     <section id="featured-therapist" className="py-24 bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -54,7 +62,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
                   Know Your Saarthi
                 </Link>
               </Button>
-              <Button asChild size="lg" onClick={onBookClick}>
+              <Button asChild size="lg" onClick={handleBookClick}>
                 <Link href="/book">
                   Book Session
                 </Link>

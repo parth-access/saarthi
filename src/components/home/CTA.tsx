@@ -1,14 +1,22 @@
 import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "framer-motion"
-
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 interface CTAProps {
   onBookClick?: () => void;
 }
 
 const CTA = ({ onBookClick }: CTAProps) => {
+  const handleBookClick = () => {
+    trackEvent('book_demo_click', {
+      location: 'cta_banner',
+      cta_text: 'Book a Session'
+    });
+    if (onBookClick) onBookClick();
+  };
+
   return (
     <section className="py-24 bg-primary text-primary-foreground">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -29,7 +37,7 @@ const CTA = ({ onBookClick }: CTAProps) => {
               size="lg" 
               variant="accent" 
               className="text-primary font-bold"
-              onClick={onBookClick}
+              onClick={handleBookClick}
             >
               <Link href="/book">Book a Session</Link>
             </Button>

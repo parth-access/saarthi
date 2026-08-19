@@ -3,6 +3,7 @@ import { Button } from "../ui/Button"
 import { MapPin, Languages, Calendar } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 interface ProfileHeroProps {
   name: string
@@ -25,6 +26,13 @@ const ProfileHero = ({
   image,
   onBookClick,
 }: ProfileHeroProps) => {
+  const handleBookClick = (ctaText: string) => {
+    trackEvent('book_demo_click', {
+      location: 'therapist_profile_hero',
+      cta_text: ctaText,
+    });
+    if (onBookClick) onBookClick();
+  };
   return (
     <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 bg-background overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -57,10 +65,10 @@ const ProfileHero = ({
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button asChild size="lg" variant="primary" onClick={onBookClick}>
+              <Button asChild size="lg" variant="primary" onClick={() => handleBookClick('Book Session')}>
                 <Link href="/book">Book Session</Link>
               </Button>
-              <Button asChild size="lg" variant="outline" onClick={onBookClick}>
+              <Button asChild size="lg" variant="outline" onClick={() => handleBookClick('View Schedule')}>
                 <Link href="/book">View Schedule</Link>
               </Button>
             </div>

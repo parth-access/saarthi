@@ -36,7 +36,7 @@ export const bookingService = {
       return { success: false, error: (err instanceof Error ? err.message : String(err)) };
     }
   },
-
+  
   createBooking: async (
     bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { lockId?: string }
   ) => {
@@ -46,7 +46,7 @@ export const bookingService = {
         body: JSON.stringify(bookingData)
       });
       logger.success('BOOKING', 'Created booking successfully', { bookingId: data.bookingId });
-      return { bookingId: data.bookingId };
+      return data;
     } catch (err) {
       logger.error('BOOKING', 'Create booking failed', err);
       throw err;
@@ -74,19 +74,6 @@ export const bookingService = {
   },
 
   updateStatus: async (id: string, status: BookingStatus) => {
-    if (status === 'awaiting_payment') {
-      try {
-        await fetchWithAuth('/api/payment/create-order', {
-          method: 'POST',
-          body: JSON.stringify({ bookingId: id })
-        });
-        return { success: true };
-      } catch (err) {
-         logger.error('BOOKING', 'Failed to create payment order', err);
-         throw err;
-      }
-    }
-
     try {
       await fetchWithAuth('/api/bookings/update-status', {
         method: 'POST',

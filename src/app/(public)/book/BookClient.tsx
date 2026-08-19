@@ -1,5 +1,6 @@
 "use client";
 
+
 import React from "react";
 import BookingSystem from "@/components/booking/BookingSystem";
 

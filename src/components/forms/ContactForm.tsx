@@ -4,16 +4,27 @@ import { Input } from "../ui/Input"
 import { Textarea } from "../ui/Textarea"
 import { motion, AnimatePresence } from "framer-motion"
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react"
+import { trackEvent } from "@/lib/analytics"
 
 export function ContactForm() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const hasTrackedStartedRef = React.useRef(false)
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
     message: "",
     honeypot: ""
   })
+
+  const trackFormStarted = React.useCallback(() => {
+    if (!hasTrackedStartedRef.current) {
+      hasTrackedStartedRef.current = true;
+      trackEvent('contact_form_started', {
+        form_name: 'general_contact'
+      });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,6 +51,10 @@ export function ContactForm() {
         throw new Error(data.error || "Failed to send message.");
       }
 
+      trackEvent('contact_form_submitted', {
+        form_name: 'general_contact'
+      });
+
       setStatus('success')
       setFormData({ name: "", email: "", message: "", honeypot: "" })
     } catch (error) {
@@ -50,6 +65,7 @@ export function ContactForm() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    trackFormStarted()
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }

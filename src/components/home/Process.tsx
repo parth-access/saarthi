@@ -1,5 +1,5 @@
 import * as React from "react"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 
 const steps = [
   {

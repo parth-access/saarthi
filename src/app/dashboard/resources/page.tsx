@@ -1,5 +1,6 @@
 "use client";
 
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, BookOpen, Wind, Heart, PlayCircle, Lock, Sparkles, Anchor, Smile } from "lucide-react";

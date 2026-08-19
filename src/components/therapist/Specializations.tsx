@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Card, CardHeader, CardTitle } from "../ui/Card"
-import { motion } from "motion/react"
+import { motion } from "framer-motion"
 import { Shield, Brain, Heart, Briefcase, Users, UserPlus, Sparkles, Smile } from "lucide-react"
 
 interface SpecializationsProps {

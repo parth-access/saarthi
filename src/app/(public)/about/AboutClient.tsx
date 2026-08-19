@@ -1,5 +1,6 @@
 "use client";
 
+
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Shield, Sparkles, Users, Lightbulb, Leaf } from "lucide-react"

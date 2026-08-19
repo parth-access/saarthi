@@ -697,4 +697,3 @@ export const OperationsPanel = () => {
     </div>
   );
 };
-

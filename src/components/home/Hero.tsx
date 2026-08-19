@@ -2,6 +2,7 @@ import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { trackEvent } from "@/lib/analytics"
 
 import { QuoteRotator } from "./QuoteRotator"
 
@@ -10,6 +11,13 @@ interface HeroProps {
 }
 
 const Hero = ({ onBookClick }: HeroProps) => {
+  const handleBookClick = () => {
+    trackEvent('book_demo_click', {
+      location: 'hero_section',
+      cta_text: 'Book a Session'
+    });
+    if (onBookClick) onBookClick();
+  };
   return (
     <section id="home" className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFFBE7] pt-24 lg:pt-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -33,7 +41,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
             </div>
 
             <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-start sm:space-x-6 sm:space-y-0">
-              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg" onClick={onBookClick}>
+              <Button asChild size="lg" variant="primary" className="px-10 py-7 text-lg" onClick={handleBookClick}>
                 <Link href="/book">Book a Session</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="px-10 py-7 text-lg">
