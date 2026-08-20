@@ -1,3 +1,6 @@
+import * as Sentry from '@sentry/nextjs';
+import { sanitizeData } from '../sentry/sanitize';
+
 type LogLevel = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL' | 'AUDIT';
 
 interface LogContext {
@@ -48,6 +51,42 @@ export class Logger {
       case 'FATAL':
         console.error(logStr);
         break;
+    }
+
+    if (level === 'ERROR' || level === 'FATAL') {
+      try {
+        const sanitizedContext = sanitizeData(this.context) as Record<string, unknown>;
+        const sanitizedMeta = sanitizeData(meta);
+
+        Sentry.withScope((scope) => {
+          scope.setLevel(level === 'FATAL' ? 'fatal' : 'error');
+          if (this.context.bookingId) scope.setTag('bookingId', String(this.context.bookingId));
+          if (this.context.requestId) scope.setTag('requestId', String(this.context.requestId));
+          if (this.context.paymentId) scope.setTag('paymentId', String(this.context.paymentId));
+          if (this.context.userId) scope.setUser({ id: String(this.context.userId) });
+          if (sanitizedContext && typeof sanitizedContext === 'object') {
+            scope.setContext('logger_context', sanitizedContext);
+          }
+          if (sanitizedMeta) {
+            scope.setExtra('meta', sanitizedMeta);
+          }
+
+          if (meta instanceof Error) {
+            Sentry.captureException(meta);
+          } else if (
+            meta &&
+            typeof meta === 'object' &&
+            'error' in meta &&
+            (meta as Record<string, unknown>).error instanceof Error
+          ) {
+            Sentry.captureException((meta as Record<string, unknown>).error);
+          } else {
+            Sentry.captureMessage(message, level === 'FATAL' ? 'fatal' : 'error');
+          }
+        });
+      } catch {
+        // Safe fallback - logging must never crash the application
+      }
     }
   }
 

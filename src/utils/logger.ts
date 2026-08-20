@@ -1,3 +1,6 @@
+import * as Sentry from '@sentry/nextjs';
+import { sanitizeData } from '@/shared/sentry/sanitize';
+
 export interface FrontendLogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
   category: 'BOOKING' | 'UI' | 'AUTH' | 'SYSTEM';
@@ -29,9 +32,29 @@ function writeFrontendLog(entry: FrontendLogEntry) {
       console.info(prefix, styles[entry.level], entry.message, entry.data || '');
     }
   } else {
-    // In production, we might want to send this to a logging service, but for now we'll just log stringified errors safely.
     if (entry.level === 'error') {
        console.error(`[${entry.category}] ${entry.message}`, entry.error || '');
+    }
+  }
+
+  if (entry.level === 'error') {
+    try {
+      const sanitizedData = sanitizeData(entry.data) as Record<string, unknown>;
+      Sentry.withScope((scope) => {
+        scope.setTag('category', entry.category);
+        if (sanitizedData) {
+          scope.setExtra('data', sanitizedData);
+        }
+        if (entry.error instanceof Error) {
+          Sentry.captureException(entry.error);
+        } else if (entry.error) {
+          Sentry.captureException(new Error(String(entry.error)));
+        } else {
+          Sentry.captureMessage(`[${entry.category}] ${entry.message}`, 'error');
+        }
+      });
+    } catch {
+      // Safe fallback - logging must never crash the application
     }
   }
 }
