@@ -56,8 +56,23 @@ export function registerAuditListeners(eventBus: any) {
 
   eventBus.subscribe('BookingCompleted', async (event: any) => {
     const { bookingId } = event.payload;
-    await auditService.logEvent('BOOKING_UPDATED', { status: 'completed' }, 'system', bookingId);
+    await auditService.logEvent('SESSION_COMPLETED', { status: 'completed' }, 'system', bookingId);
     await logBookingSubCollectionAudit(bookingId, 'completed', 'Booking marked as completed.');
+  });
+
+  eventBus.subscribe('BookingNoShow', async (event: any) => {
+    const { bookingId, booking } = event.payload;
+    await auditService.logEvent('SESSION_NO_SHOW', { status: 'no_show', reason: booking?.declineReason }, 'system', bookingId);
+    await logBookingSubCollectionAudit(bookingId, 'no_show', `Session marked as no-show: ${booking?.declineReason || 'Student did not attend'}`);
+  });
+
+  eventBus.subscribe('ReviewSubmitted', async (event: any) => {
+    const { reviewId, bookingId, rating, studentId, therapistId } = event.payload;
+    await auditService.logEvent('REVIEW_SUBMITTED', { reviewId, rating, therapistId }, studentId, bookingId);
+    await logBookingSubCollectionAudit(bookingId, 'review_submitted', `Review submitted with ${rating} star rating.`, {
+      reviewId,
+      rating
+    });
   });
 
   eventBus.subscribe('BookingCancelled', async (event: any) => {

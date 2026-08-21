@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { parseSessionTimeIST, GoogleCalendarService } from './googleCalendarService';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';

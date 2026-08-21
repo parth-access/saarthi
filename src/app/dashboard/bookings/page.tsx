@@ -50,7 +50,7 @@ function DashboardBookings() {
       } else {
         toast.error(data.error || "Meeting link is being prepared. Please try again shortly.", { id: "join-meet" });
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to fetch meeting link", { id: "join-meet" });
     } finally {
       setJoiningId(null);

@@ -101,6 +101,8 @@ export class SessionReminderService {
 
       // If confirmation occurred after the 5-hour mark (less than 5 hours before session)
       if (now >= calculation.reminderTimeMillis) {
+        // If we are within a reasonable grace window (e.g. within 30 mins of the 5-hour mark) and session is still upcoming,
+        // we can enqueue immediately; otherwise, skip sending a stale "5 hours before" notification.
         const isWithinGrace = now <= (calculation.reminderTimeMillis + (30 * 60 * 1000));
         
         if (!isWithinGrace) {

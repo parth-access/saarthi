@@ -15,7 +15,11 @@ export interface LogEntry {
     | 'ADMIN_CALENDAR'
     | 'JOIN_SESSION'
     | 'REMINDER'
-    | 'ADMIN_REMINDER';
+    | 'ADMIN_REMINDER'
+    | 'CRON'
+    | 'REVIEWS_API'
+    | 'REVIEW'
+    | 'LIFECYCLE';
   message: string;
   data?: unknown;
   error?: unknown;

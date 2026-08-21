@@ -285,8 +285,9 @@ export const TherapistDashboard: React.FC<TherapistDashboardProps> = ({
                     <option value="pending_approval">Pending Approval</option>
                     <option value="awaiting_payment">Awaiting Payment</option>
                     <option value="confirmed">Confirmed</option>
-                    <option value="rejected">Rejected</option>
                     <option value="completed">Completed</option>
+                    <option value="no_show">No-Show</option>
+                    <option value="rejected">Rejected</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40 pointer-events-none" />

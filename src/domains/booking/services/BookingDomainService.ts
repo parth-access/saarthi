@@ -149,6 +149,41 @@ export class BookingDomainService {
   }
 
   /**
+   * Marks a booking as no_show, saves it, and registers a durable outbox event.
+   */
+  async markNoShow(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {
+    const previousStatus = booking.status;
+    booking.markNoShow({ skipEventBus: true });
+    if (reason) {
+      booking.declineReason = reason;
+    }
+    await this.bookingRepository.save(booking, transaction);
+
+    const eventId = generateDeterministicEventId('booking', booking.id, 'no_show');
+    const outboxPayload = {
+      id: eventId,
+      name: 'BookingNoShow',
+      aggregateType: 'booking' as const,
+      aggregateId: booking.id,
+      payload: {
+        bookingId: booking.id,
+        booking: { ...booking },
+        previousStatus,
+        targetStatus: 'no_show',
+        reason
+      }
+    };
+
+    if (transaction) {
+      OutboxService.recordEventInTransaction(transaction, outboxPayload);
+    } else {
+      await OutboxService.recordEvent(outboxPayload);
+    }
+
+    return eventId;
+  }
+
+  /**
    * Cancels a booking with an optional reason, saves it, and registers a durable outbox event.
    */
   async cancelBooking(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {

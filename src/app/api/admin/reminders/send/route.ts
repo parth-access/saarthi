@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 import { SessionReminderService } from '@/services/sessionReminderService';
-import { auditService } from '@/domains/audit/AuditService';
 import { logger } from '@/app/api/_lib/logger';
 
 export async function POST(req: NextRequest) {

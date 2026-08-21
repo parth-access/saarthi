@@ -98,6 +98,32 @@ export function registerTimelineListeners(eventBus: any) {
     });
   });
 
+  eventBus.subscribe('BookingNoShow', async (event: any) => {
+    const { bookingId, booking } = event.payload;
+    await writeTimelineEntry({
+      correlationId: event.correlationId || '',
+      bookingId,
+      actor: { type: 'therapist', id: booking?.therapistId },
+      event: event.name,
+      severity: 'warning',
+      message: `Session recorded as no-show. Reason: ${booking?.declineReason || 'Student did not attend'}.`,
+      metadata: { reason: booking?.declineReason }
+    });
+  });
+
+  eventBus.subscribe('ReviewSubmitted', async (event: any) => {
+    const { reviewId, bookingId, rating, studentId, therapistId } = event.payload;
+    await writeTimelineEntry({
+      correlationId: event.correlationId || '',
+      bookingId,
+      actor: { type: 'patient', id: studentId },
+      event: 'ReviewSubmitted',
+      severity: 'info',
+      message: `Review submitted with ${rating} / 5 stars rating.`,
+      metadata: { reviewId, rating, therapistId }
+    });
+  });
+
   eventBus.subscribe('BookingCancelled', async (event: any) => {
     const { bookingId, booking } = event.payload;
     await writeTimelineEntry({

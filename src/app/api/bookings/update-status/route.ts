@@ -3,6 +3,7 @@ import { adminDb } from '../../../../lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { requireTherapist } from '../../../../lib/auth/requireRole';
+import { SessionLifecycleService } from '@/services/sessionLifecycleService';
 import {
   firestoreBookingRepository,
   CancelBookingCommand,
@@ -16,7 +17,8 @@ import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/
 
 const schema = z.object({
   bookingId: z.string(),
-  status: z.string()
+  status: z.string(),
+  reason: z.string().optional()
 });
 
 export async function POST(req: Request) {
@@ -29,11 +31,35 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     
-    const { bookingId, status } = parsed.data;
+    const { bookingId, status, reason } = parsed.data;
 
     let therapistAuthId = '';
     if (session.role === 'therapist') {
        therapistAuthId = session.uid;
+    }
+
+    // Handle completed using SessionLifecycleService
+    if (status === 'completed') {
+      const result = await SessionLifecycleService.completeSession(bookingId, {
+        uid: session.uid,
+        role: session.role || 'therapist'
+      });
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json(result);
+    }
+
+    // Handle no-show using SessionLifecycleService
+    if (status === 'no_show') {
+      const result = await SessionLifecycleService.markNoShow(bookingId, {
+        uid: session.uid,
+        role: session.role || 'therapist'
+      }, reason || 'Student did not attend');
+      if (!result.success) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+      return NextResponse.json(result);
     }
 
     // Handle cancellation or rejection using CancelBookingCommand

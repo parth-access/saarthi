@@ -16,7 +16,10 @@ export type AuditEventType =
   | 'REMINDER_SCHEDULED'
   | 'REMINDER_SENT'
   | 'REMINDER_FAILED'
-  | 'REMINDER_SKIPPED';
+  | 'REMINDER_SKIPPED'
+  | 'SESSION_COMPLETED'
+  | 'SESSION_NO_SHOW'
+  | 'REVIEW_SUBMITTED';
 
 export interface AuditEvent {
   id: string; // evt_xxx

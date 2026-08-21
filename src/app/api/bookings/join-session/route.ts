@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     let decodedToken;
     try {
       decodedToken = await adminAuth.verifyIdToken(token);
-    } catch (authErr) {
+    } catch {
       return NextResponse.json({ error: 'Unauthorized: invalid token' }, { status: 401 });
     }
 

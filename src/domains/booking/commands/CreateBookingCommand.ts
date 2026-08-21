@@ -78,7 +78,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         userId: userId || email,
         lockId: activeLockId,
         bookingId: newBookingId,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        expiresAt: holdExpiresAtDate,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
@@ -96,7 +96,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         paymentStatus: 'pending',
         paymentAmount: amount,
         paymentCurrency: currency,
-        holdExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        holdExpiresAt: holdExpiresAtDate,
         bookingToken,
         sessionMode: data.sessionMode || 'Online',
         createdAt: FieldValue.serverTimestamp(),

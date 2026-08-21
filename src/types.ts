@@ -35,6 +35,7 @@ export interface FirebaseTimestamp {
 export interface Booking {
   id: string;
   therapistId: string;
+  therapistName?: string;
   name: string;
   email: string;
   userId?: string;
@@ -83,6 +84,23 @@ export interface Booking {
   reminderError?: string;
   studentReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   therapistReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
+  reviewRating?: number;
+  reviewComment?: string;
+  reviewedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  reviewId?: string;
+}
+
+export interface Review {
+  id: string; // review_${bookingId}
+  bookingId: string;
+  studentId: string;
+  studentName?: string;
+  studentEmail?: string;
+  therapistId: string;
+  rating: number; // 1-5 integer
+  comment?: string;
+  createdAt: FirebaseTimestamp | Date | string | null | unknown;
+  updatedAt?: FirebaseTimestamp | Date | string | null | unknown;
 }
 
 export interface BreakPreference {

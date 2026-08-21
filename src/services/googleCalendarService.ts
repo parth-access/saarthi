@@ -200,7 +200,7 @@ Session Type: ${booking.sessionType || 'Individual'}`,
         Sentry.captureException(err, {
           tags: { operation: 'google_calendar_creation', bookingId }
         });
-      } catch (sentryErr) {
+      } catch {
         // Ignore Sentry error
       }
 
@@ -293,7 +293,7 @@ export function parseSessionTimeIST(dateStr: string, timeStr: string): { startIs
     const endStr = `${dateStr}T${pad(endHours)}:${pad(endMinutes)}:00+05:30`;
 
     return { startIso: startStr, endIso: endStr };
-  } catch (err) {
+  } catch {
     return {
       startIso: `${dateStr}T10:00:00+05:30`,
       endIso: `${dateStr}T10:50:00+05:30`
