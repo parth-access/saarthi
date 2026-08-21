@@ -195,6 +195,20 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
 
             {/* Actions Footer */}
             <div className="p-6 border-t border-primary/5 bg-white space-y-3 relative z-10 shadow-[0_-10px_40px_rgb(0,0,0,0.05)]">
+              {session.status === 'confirmed' && (
+                <button
+                  onClick={() => {
+                    if (session.meetingUrl) {
+                      window.open(session.meetingUrl, '_blank', 'noopener,noreferrer');
+                    } else {
+                      window.location.href = `/dashboard/bookings`;
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md"
+                >
+                  <Video className="w-4 h-4" /> Join Google Meet Session
+                </button>
+              )}
               {isFuture && (session.status === 'confirmed' || session.status === 'pending') && (
                 <button
                   onClick={() => {

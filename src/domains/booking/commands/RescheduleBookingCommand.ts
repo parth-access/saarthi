@@ -6,6 +6,7 @@ import { BookingRepository } from '../repository/BookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { SlotReservationService } from '../services/SlotReservationService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
+import { istToUtcIsoString } from '@/shared/utils/dateTime';
 
 export interface RescheduleBookingSessionContext {
   uid?: string;
@@ -37,12 +38,7 @@ export class RescheduleBookingCommandHandler {
       throw new Error('Firestore adminDb is not initialized.');
     }
 
-    let utcDateTime = '';
-    try {
-      const localString = `${command.newDate}T${command.newTime}`;
-      const dt = new Date(localString);
-      utcDateTime = isNaN(dt.getTime()) ? '' : dt.toISOString();
-    } catch {}
+    const utcDateTime = istToUtcIsoString(command.newDate, command.newTime);
 
     const { bookingData } = await adminDb.runTransaction(async (t) => {
       const booking = await this.bookingRepository.findById(command.bookingId, t);

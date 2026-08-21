@@ -9,6 +9,7 @@ import { firestoreBookingRepository } from '../repository/FirestoreBookingReposi
 import { Booking } from '../entities/Booking';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
+import { istToUtcIsoString } from '@/shared/utils/dateTime';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
@@ -31,12 +32,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       throw new Error('Therapist not found');
     }
 
-    let utcDateTime = '';
-    try {
-      const localString = `${data.date}T${data.time}`;
-      const dt = new Date(localString);
-      utcDateTime = isNaN(dt.getTime()) ? '' : dt.toISOString();
-    } catch {}
+    const utcDateTime = istToUtcIsoString(data.date, data.time);
 
     const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
@@ -48,6 +44,8 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     if (data.sessionMode === 'in_person') price = 2000;
     const amount = price;
     const currency = 'INR';
+
+    const holdExpiresAtDate = new Date(Date.now() + 10 * 60 * 1000);
 
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
@@ -67,17 +65,22 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
           t.delete(slotRef);
         } else if (slotData?.bookingId) {
           throw new Error('This slot is already booked.');
-        } else if (slotData?.lockId && slotData.lockId !== lockId) {
-          throw new Error('This slot is currently locked by another user.');
+        } else if (slotData?.lockId && lockId && slotData.lockId !== lockId) {
+          throw new Error('This slot is currently reserved by another user.');
         }
       }
 
+      const activeLockId = lockId || crypto.randomUUID();
       t.set(slotRef, {
         therapistId: data.therapistId,
         date: data.date,
         time: data.time,
+        userId: userId || email,
+        lockId: activeLockId,
         bookingId: newBookingId,
-        createdAt: FieldValue.serverTimestamp()
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
       });
 
       const age = data.age !== undefined ? (typeof data.age === 'string' ? parseInt(data.age, 10) : data.age) : undefined;
@@ -93,6 +96,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         paymentStatus: 'pending',
         paymentAmount: amount,
         paymentCurrency: currency,
+        holdExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
         bookingToken,
         sessionMode: data.sessionMode || 'Online',
         createdAt: FieldValue.serverTimestamp(),
@@ -100,6 +104,32 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       });
 
       await this.bookingDomainService.awaitPayment(booking, t);
+
+      const auditRef = adminDb.collection('audit_logs').doc();
+      t.set(auditRef, {
+        eventType: 'SLOT_HELD',
+        bookingId: newBookingId,
+        therapistId: data.therapistId,
+        date: data.date,
+        time: data.time,
+        userId: userId || email,
+        lockId: activeLockId,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        timestamp: FieldValue.serverTimestamp(),
+        details: `Slot reserved for 10 minutes for booking ${newBookingId}`
+      });
+
+      const auditPaymentRef = adminDb.collection('audit_logs').doc();
+      t.set(auditPaymentRef, {
+        eventType: 'PAYMENT_INITIATED',
+        bookingId: newBookingId,
+        therapistId: data.therapistId,
+        amount,
+        currency,
+        userId: userId || email,
+        timestamp: FieldValue.serverTimestamp(),
+        details: `Payment initiated for booking ${newBookingId}`
+      });
     });
 
     let orderId = '';

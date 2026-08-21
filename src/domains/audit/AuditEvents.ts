@@ -8,7 +8,11 @@ export type AuditEventType =
   | 'PAYMENT_LINK_SENT'
   | 'EMAIL_SENT'
   | 'EMAIL_FAILED'
-  | 'SYSTEM_ERROR';
+  | 'SYSTEM_ERROR'
+  | 'CALENDAR_CREATION_STARTED'
+  | 'CALENDAR_EVENT_CREATED'
+  | 'CALENDAR_CREATION_FAILED'
+  | 'CALENDAR_CREATION_RETRY';
 
 export interface AuditEvent {
   id: string; // evt_xxx

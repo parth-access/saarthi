@@ -25,6 +25,7 @@
     "firebase": "^11.10.0",
     "firebase-admin": "^13.9.0",
     "framer-motion": "^12.39.0",
+    "googleapis": "^176.0.0",
     "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",

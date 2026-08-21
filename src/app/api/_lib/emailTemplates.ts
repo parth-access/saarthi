@@ -217,6 +217,126 @@ export function generateBookingRescheduledEmail(data: BookingEmailData, original
 }
 
 
+export interface PaymentReceiptEmailData {
+  patientName: string;
+  therapistName: string;
+  amount: number;
+  currency: string;
+  orderId: string;
+  paymentId: string;
+  sessionDate: string;
+  sessionTime: string;
+  paidAt?: string;
+  bookingToken?: string;
+}
+
+export interface PaymentFailedEmailData {
+  patientName: string;
+  therapistName: string;
+  orderId?: string;
+  paymentId?: string;
+  amount?: number;
+  currency?: string;
+  sessionDate: string;
+  sessionTime: string;
+  failureReason?: string;
+}
+
+export function generatePaymentReceiptEmail(data: PaymentReceiptEmailData): string {
+  const formattedAmount = `₹${data.amount.toLocaleString('en-IN')}`;
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <p style="margin: 0 0 24px 0;">Thank you for your payment. Your session with <strong>${data.therapistName}</strong> has been paid in full and your receipt is below.</p>
+    
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Payment Receipt</h3>
+      
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="160" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Amount Paid:</td>
+          <td style="padding-bottom: 12px; font-weight: 700; font-size: 18px; color: ${COLORS.accent};">${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td width="160" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Payment ID:</td>
+          <td style="padding-bottom: 12px; font-family: monospace; font-size: 14px; color: ${COLORS.text};">${data.paymentId}</td>
+        </tr>
+        <tr>
+          <td width="160" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Order ID:</td>
+          <td style="padding-bottom: 12px; font-family: monospace; font-size: 14px; color: ${COLORS.text};">${data.orderId}</td>
+        </tr>
+        <tr>
+          <td width="160" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Therapist:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.therapistName}</td>
+        </tr>
+        <tr>
+          <td width="160" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Session Date & Time:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px;">${data.sessionDate} at ${data.sessionTime} (IST)</td>
+        </tr>
+        ${data.paidAt ? `
+        <tr>
+          <td width="160" style="color: ${COLORS.textMuted}; font-size: 15px;">Date of Payment:</td>
+          <td style="font-weight: 500; font-size: 15px;">${data.paidAt}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    ${data.bookingToken ? `
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Booking Details</a>
+    </div>
+    ` : ''}
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, 'Payment Receipt for your Saarthi session.');
+}
+
+export function generateBookingSlotReleasedEmail(data: BookingEmailData, reason?: string): string {
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <p style="margin: 0 0 24px 0;">We wanted to let you know that your tentative slot reservation with <strong>${data.therapistName}</strong> was not completed and the slot has been released.</p>
+    
+    <div style="background-color: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #92400E;">Slot Information</h3>
+      
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #92400E; font-size: 15px;">Therapist:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: #78350F;">${data.therapistName}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #92400E; font-size: 15px;">Requested Date:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: #78350F;">${data.date}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #92400E; font-size: 15px;">Requested Time:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: #78350F;">${data.time} (IST)</td>
+        </tr>
+        ${reason ? `
+        <tr>
+          <td width="140" style="color: #92400E; font-size: 15px;">Reason:</td>
+          <td style="font-weight: 500; font-size: 15px; color: #78350F;">${reason}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <p style="margin: 0 0 24px 0;">No session has been booked. You are welcome to browse our calendar at any time to pick a convenient slot.</p>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Find Available Slot</a>
+    </div>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, 'Update regarding your Saarthi slot reservation.');
+}
+
 export function generateTherapistNotificationEmail(data: BookingEmailData, type: 'new' | 'rescheduled', originalDate?: string, originalTime?: string): string {
   const content = `
     <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
@@ -268,8 +388,62 @@ export function generateTherapistNotificationEmail(data: BookingEmailData, type:
     <div style="text-align: center; margin-bottom: 32px;">
       <a href="${process.env.APP_URL || 'https://saarthilife.com'}/admin" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Dashboard</a>
     </div>
-
   `;
 
   return generateEmailLayout(content, type === 'new' ? 'New booking request received.' : 'A session has been rescheduled.');
+}
+
+export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?: string): string {
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <p style="margin: 0 0 24px 0;">We noticed that your recent payment attempt for a session with <strong>${data.therapistName}</strong> could not be completed successfully.</p>
+    
+    <div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #991B1B;">Payment Details</h3>
+      
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #991B1B; font-size: 15px;">Therapist:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: #7F1D1D;">${data.therapistName}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #991B1B; font-size: 15px;">Date & Time:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: #7F1D1D;">${data.sessionDate} at ${data.sessionTime} (IST)</td>
+        </tr>
+        ${data.orderId ? `
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: #991B1B; font-size: 15px;">Order ID:</td>
+          <td style="padding-bottom: 12px; font-family: monospace; font-size: 14px; color: #7F1D1D;">${data.orderId}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td width="140" style="color: #991B1B; font-size: 15px;">Status:</td>
+          <td style="font-weight: 600; font-size: 15px; color: #DC2626;">Payment Failed / Cancelled</td>
+        </tr>
+        ${reason || data.failureReason ? `
+        <tr>
+          <td width="140" style="padding-top: 12px; color: #991B1B; font-size: 15px;">Notice:</td>
+          <td style="padding-top: 12px; font-weight: 500; font-size: 15px; color: #7F1D1D;">${reason || data.failureReason}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 8px; padding: 16px; margin-bottom: 32px;">
+      <p style="margin: 0; font-size: 14px; color: ${COLORS.textMuted};">
+        <strong>Important Note:</strong> This session was not confirmed and Saarthi did not capture payment. If funds were temporarily deducted from your bank, UPI, or card, the charge was not settled and is typically reversed automatically by your issuing bank/payment gateway within standard banking timelines (usually 5–7 business days). If you need assistance, please contact our support team with your payment details.
+      </p>
+    </div>
+
+    <p style="margin: 0 0 24px 0;">You can re-attempt your booking whenever you are ready:</p>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Try Booking Again</a>
+    </div>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, 'Information regarding your Saarthi payment attempt.');
 }

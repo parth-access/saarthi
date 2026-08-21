@@ -18,7 +18,8 @@ import {
   ChevronRight,
   User,
   Search,
-  ChevronDown
+  ChevronDown,
+  Video
 } from "lucide-react"
 import { Booking, BookingStatus, Therapist } from "../../types"
 import { cn, toDateSafe } from "../../lib/utils"
@@ -628,6 +629,22 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
             
             {(booking.status === 'confirmed' || booking.status === 'awaiting_payment') && (
               <>
+                {booking.status === 'confirmed' && (
+                  <a
+                    href={booking.meetingUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (!booking.meetingUrl) {
+                        e.preventDefault();
+                        alert("Google Meet link is currently being generated. Please sync database or refresh in a moment.");
+                      }
+                    }}
+                    className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <Video className="w-3.5 h-3.5" /> Join Session
+                  </a>
+                )}
                 <button
                   disabled={isProcessing}
                   onClick={() => onUpdateStatus(booking.id, 'completed')}

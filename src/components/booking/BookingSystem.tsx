@@ -173,14 +173,35 @@ const BookingSystem = () => {
       };
 
       interface RazorpayFailResponse {
-        error: {
-          description: string;
+        error?: {
+          description?: string;
+          reason?: string;
         };
       }
 
-      const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(options);
+      const rzpOptions = {
+        ...options,
+        modal: {
+          ondismiss: function () {
+            paymentService.reportPaymentFailure({
+              bookingId: result.data.bookingId,
+              orderId: result.data.orderId,
+              reason: 'Payment dismissed by user'
+            });
+            setSubmitError('Payment was not completed. Your slot hold has been released.');
+          }
+        }
+      };
+
+      const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(rzpOptions);
       rzp.on('payment.failed', function (response: RazorpayFailResponse) {
-          setSubmitError(`Payment Failed: ${response.error.description}`);
+          const failReason = response?.error?.description || response?.error?.reason || 'Payment failed';
+          paymentService.reportPaymentFailure({
+            bookingId: result.data.bookingId,
+            orderId: result.data.orderId,
+            reason: failReason
+          });
+          setSubmitError(`Payment Failed: ${failReason}. If any money was debited, it will be refunded within 5-7 business days.`);
       });
       rzp.open();
     }

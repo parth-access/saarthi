@@ -21,6 +21,7 @@ export class Booking {
   razorpayPaymentId?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
+  holdExpiresAt?: FirebaseTimestamp | Date | string | null | unknown;
   paymentVerifiedAt?: FirebaseTimestamp | Date | string | null | unknown;
   paymentLinkSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   createdAt!: FirebaseTimestamp | Date | string | null | unknown;
@@ -42,6 +43,11 @@ export class Booking {
   utcDateTime?: string;
   orderCreationInProgress?: boolean;
   orderCreationStartedAt?: FirebaseTimestamp | Date | number | string | null | unknown;
+  googleCalendarEventId?: string;
+  meetingUrl?: string;
+  calendarStatus?: 'PENDING' | 'CREATED' | 'FAILED' | 'RETRY_REQUIRED';
+  calendarCreatedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  calendarError?: string;
 
   constructor(data: Partial<Booking>) {
     Object.assign(this, data);
@@ -104,6 +110,22 @@ export class Booking {
 
   expire(options?: TransitionOptions): this {
     BookingStateMachine.transition(this, 'expired', options);
+    return this;
+  }
+
+  failPayment(reason?: string, options?: TransitionOptions): this {
+    this.paymentStatus = 'failed';
+    if (this.status !== 'cancelled') {
+      BookingStateMachine.transition(this, 'cancelled', options);
+    }
+    if (reason) {
+      this.declineReason = reason;
+    }
+    return this;
+  }
+
+  markNoShow(options?: TransitionOptions): this {
+    BookingStateMachine.transition(this, 'no_show', options);
     return this;
   }
 

@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
-import { firestoreBookingRepository, ConfirmBookingCommand, ConfirmBookingCommandHandler } from '@/domains/booking';
+import { 
+  firestoreBookingRepository, 
+  ConfirmBookingCommand, 
+  ConfirmBookingCommandHandler,
+  FailPaymentCommand,
+  FailPaymentCommandHandler 
+} from '@/domains/booking';
 
 export async function POST(request: Request) {
   try {
@@ -55,6 +61,23 @@ export async function POST(request: Request) {
       await handler.execute(command);
 
       logger.success('PAYMENT', 'Payment verified via webhook', { bookingId, razorpayPaymentId });
+    } else if (event === 'payment.failed') {
+      const paymentData = payload.payload.payment?.entity;
+      const razorpayOrderId = paymentData?.order_id;
+      const errorDescription = paymentData?.error_description || paymentData?.error_reason || 'Payment failed';
+
+      if (razorpayOrderId) {
+        const failCommand = new FailPaymentCommand(
+          undefined,
+          razorpayOrderId,
+          errorDescription,
+          'webhook'
+        );
+        const failHandler = new FailPaymentCommandHandler();
+        await failHandler.execute(failCommand);
+
+        logger.warn('PAYMENT', 'Payment failure processed via webhook', { razorpayOrderId, errorDescription });
+      }
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

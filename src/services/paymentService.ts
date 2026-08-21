@@ -32,5 +32,16 @@ export const paymentService = {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  },
+  reportPaymentFailure: async (payload: { bookingId?: string; orderId?: string; reason?: string }) => {
+    try {
+      return await fetchWithAuth('/api/payment/fail', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      // Best-effort failure reporting
+      return { success: false };
+    }
   }
 };

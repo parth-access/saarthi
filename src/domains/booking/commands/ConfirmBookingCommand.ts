@@ -62,12 +62,36 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
       data.updatedAt = FieldValue.serverTimestamp();
       
-      // Release lock
+      // Release lock / slot mark
       const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
       const slotRef = adminDb.collection('locked_slots').doc(slotId);
       transaction.delete(slotRef);
 
       await firestoreBookingRepository.save(data, transaction);
+
+      const auditPayRef = adminDb.collection('audit_logs').doc();
+      transaction.set(auditPayRef, {
+        eventType: 'PAYMENT_SUCCEEDED',
+        bookingId,
+        therapistId: data.therapistId,
+        razorpayPaymentId,
+        razorpayOrderId,
+        source,
+        timestamp: FieldValue.serverTimestamp(),
+        details: `Payment confirmed via ${source} for booking ${bookingId}`
+      });
+
+      const auditBookRef = adminDb.collection('audit_logs').doc();
+      transaction.set(auditBookRef, {
+        eventType: 'BOOKING_CONFIRMED',
+        bookingId,
+        therapistId: data.therapistId,
+        date: data.date,
+        time: data.time,
+        source,
+        timestamp: FieldValue.serverTimestamp(),
+        details: `Booking ${bookingId} confirmed successfully`
+      });
     });
 
     // Post-commit outbox processing
@@ -77,6 +101,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
     });
 
     if (shouldSendEmail && therapistId) {
+      // 1. Send Booking Confirmation Email
       try {
         await sendEmailAction({
           type: 'booking-confirmed',
@@ -86,6 +111,22 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         logger.info('EMAIL', 'Booking confirmation email queued', { bookingId });
       } catch (err) {
         logger.error('EMAIL', 'Failed to enqueue confirmation email', err);
+      }
+
+      // 2. Send Payment Receipt Email
+      try {
+        await sendEmailAction({
+          type: 'payment-receipt',
+          bookingId: bookingId,
+          therapistId: therapistId,
+          paymentDetails: {
+            paymentId: razorpayPaymentId,
+            orderId: razorpayOrderId,
+          }
+        });
+        logger.info('EMAIL', 'Payment receipt email queued', { bookingId });
+      } catch (err) {
+        logger.error('EMAIL', 'Failed to enqueue payment receipt email', err);
       }
     }
 

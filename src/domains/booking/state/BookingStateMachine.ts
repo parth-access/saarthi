@@ -5,17 +5,20 @@ import { DomainEvents } from '../events/BookingEvents';
 import { EventBus } from '@/shared/events/EventBus';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  draft: ['slot_locked', 'awaiting_payment', 'cancelled', 'rejected'],
-  pending: ['slot_locked', 'awaiting_payment', 'cancelled', 'rejected', 'pending_approval'],
-  slot_locked: ['awaiting_payment', 'cancelled', 'rejected', 'expired'],
-  awaiting_payment: ['payment_initiated', 'confirmed', 'cancelled', 'rejected', 'expired'],
-  pending_approval: ['awaiting_payment', 'confirmed', 'cancelled', 'rejected'],
-  payment_initiated: ['confirmed', 'awaiting_payment', 'cancelled', 'rejected'],
-  confirmed: ['completed', 'cancelled', 'rejected'],
+  draft: ['slot_locked', 'awaiting_payment', 'pending_payment', 'cancelled', 'rejected'],
+  pending: ['slot_locked', 'awaiting_payment', 'pending_payment', 'cancelled', 'rejected', 'pending_approval'],
+  slot_locked: ['awaiting_payment', 'pending_payment', 'cancelled', 'rejected', 'expired'],
+  awaiting_payment: ['payment_initiated', 'pending_payment', 'confirmed', 'cancelled', 'rejected', 'expired'],
+  pending_payment: ['payment_initiated', 'awaiting_payment', 'confirmed', 'cancelled', 'rejected', 'expired'],
+  pending_approval: ['awaiting_payment', 'pending_payment', 'confirmed', 'cancelled', 'rejected'],
+  payment_initiated: ['confirmed', 'awaiting_payment', 'pending_payment', 'cancelled', 'rejected', 'expired'],
+  confirmed: ['completed', 'cancelled', 'rejected', 'rescheduled', 'no_show'],
+  rescheduled: ['confirmed', 'cancelled', 'rejected', 'completed', 'no_show'],
   completed: [],
   cancelled: [],
   rejected: [],
   expired: [],
+  no_show: [],
 };
 
 export interface TransitionOptions {

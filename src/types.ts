@@ -9,6 +9,7 @@ export type BookingStatus =
   | 'pending'
   | 'pending_approval'
   | 'awaiting_payment'
+  | 'pending_payment'
   | 'confirmed'
   | 'rejected'
   | 'cancelled'
@@ -18,9 +19,11 @@ export type BookingStatus =
   | 'slot_locked'
   | 'payment_initiated'
   | 'payment_started'
-  | 'expired';
+  | 'rescheduled'
+  | 'expired'
+  | 'no_show';
 
-export type PaymentStatus = 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded';
+export type PaymentStatus = 'unpaid' | 'pending' | 'initiated' | 'paid' | 'success' | 'failed' | 'refunded';
 
 export interface FirebaseTimestamp {
   seconds: number;
@@ -49,6 +52,7 @@ export interface Booking {
   razorpayPaymentId?: string;
   paymentAmount?: number;
   paymentCurrency?: string;
+  holdExpiresAt?: FirebaseTimestamp | Date | string | null | unknown;
   paymentVerifiedAt?: FirebaseTimestamp | Date | string | null | unknown;
   paymentLinkSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   createdAt: FirebaseTimestamp | Date | string | null | unknown;
@@ -68,6 +72,11 @@ export interface Booking {
   declinedBy?: string;
   invalidToken?: boolean;
   utcDateTime?: string; // Standard UTC storage architecture
+  googleCalendarEventId?: string;
+  meetingUrl?: string;
+  calendarStatus?: 'PENDING' | 'CREATED' | 'FAILED' | 'RETRY_REQUIRED';
+  calendarCreatedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  calendarError?: string;
 }
 
 export interface BreakPreference {

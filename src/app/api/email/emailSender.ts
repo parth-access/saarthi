@@ -2,7 +2,16 @@ import { Resend, CreateEmailOptions } from 'resend';
 import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { generateBookingReceivedEmail, generateBookingConfirmedEmail, generateBookingRescheduledEmail, generateTherapistNotificationEmail, type BookingEmailData } from '../_lib/emailTemplates';
+import { 
+  generateBookingReceivedEmail, 
+  generateBookingConfirmedEmail, 
+  generateBookingRescheduledEmail, 
+  generateTherapistNotificationEmail,
+  generatePaymentReceiptEmail,
+  generateBookingSlotReleasedEmail,
+  generatePaymentFailedEmail,
+  type BookingEmailData 
+} from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { EventBus } from '@/shared/events/EventBus';
@@ -251,11 +260,19 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed'  | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
+  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
   declineCustomNote?: string;
+  paymentDetails?: {
+    amount?: number;
+    currency?: string;
+    orderId?: string;
+    paymentId?: string;
+    paidAt?: string;
+    failureReason?: string;
+  };
   bookingDetails?: {
     name: string;
     email: string;
@@ -270,7 +287,7 @@ export interface EmailPayload {
 }
 
 export async function sendEmailAction(payload: EmailPayload) {
-  const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote } = payload;
+  const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote, paymentDetails } = payload;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let bookingData: any;
@@ -387,6 +404,82 @@ export async function sendEmailAction(payload: EmailPayload) {
     }, bookingId, 'booking-confirmed');
     
     await updateBookingEmailStatus(bookingId, 'sent');
+    return { success: true, data };
+  }
+
+  if (type === 'payment-receipt') {
+    const amount = paymentDetails?.amount || bookingData.paymentAmount || (bookingData.sessionMode === 'in_person' ? 2000 : 1500);
+    const currency = paymentDetails?.currency || bookingData.paymentCurrency || 'INR';
+    const orderId = paymentDetails?.orderId || bookingData.razorpayOrderId || 'N/A';
+    const paymentId = paymentDetails?.paymentId || bookingData.razorpayPaymentId || 'N/A';
+    const paidAt = paymentDetails?.paidAt || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+    const plainText = `Payment Receipt\nHi ${safePatientName},\nThank you for your payment of ₹${amount.toLocaleString('en-IN')} for your session with ${safeTherapistName}.\nPayment ID: ${paymentId}\nOrder ID: ${orderId}\nDate: ${safeDate} at ${safeTime} IST\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Accounts <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: `Payment Receipt: Your session with ${safeTherapistName}`,
+      html: generatePaymentReceiptEmail({
+        patientName: safePatientName,
+        therapistName: safeTherapistName,
+        amount,
+        currency,
+        orderId,
+        paymentId,
+        sessionDate: safeDate,
+        sessionTime: safeTime,
+        paidAt,
+        bookingToken: safeBookingToken,
+      }),
+      text: plainText,
+    }, bookingId, 'payment-receipt');
+
+    return { success: true, data };
+  }
+
+  if (type === 'booking-slot-released') {
+    const reason = declineReason || declineCustomNote || 'Payment was not completed within the time window.';
+    const plainText = `Slot Released\nHi ${safePatientName},\nYour tentative slot with ${safeTherapistName} on ${safeDate} at ${safeTime} was not confirmed and has been released.\nReason: ${reason}\nYou may book again anytime.\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Contact <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Update regarding your Saarthi slot reservation',
+      html: generateBookingSlotReleasedEmail(emailData, reason),
+      text: plainText,
+    }, bookingId, 'booking-slot-released');
+
+    return { success: true, data };
+  }
+
+  if (type === 'payment-failed') {
+    const amount = paymentDetails?.amount || bookingData.paymentAmount;
+    const currency = paymentDetails?.currency || bookingData.paymentCurrency || 'INR';
+    const orderId = paymentDetails?.orderId || bookingData.razorpayOrderId;
+    const paymentId = paymentDetails?.paymentId || bookingData.razorpayPaymentId;
+    const reason = paymentDetails?.failureReason || declineReason || 'Payment could not be verified or was cancelled.';
+
+    const plainText = `Payment Failed\nHi ${safePatientName},\nYour payment attempt for the session with ${safeTherapistName} on ${safeDate} at ${safeTime} was unsuccessful and the session was not confirmed.\nIf funds were temporarily deducted from your account, they were not settled to Saarthi and are typically reversed automatically by your bank within 5-7 business days. Please contact support if you need assistance.\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Contact <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Information regarding your Saarthi payment attempt',
+      html: generatePaymentFailedEmail({
+        patientName: safePatientName,
+        therapistName: safeTherapistName,
+        amount,
+        currency,
+        orderId,
+        paymentId,
+        sessionDate: safeDate,
+        sessionTime: safeTime,
+        failureReason: reason,
+      }, reason),
+      text: plainText,
+    }, bookingId, 'payment-failed');
+
     return { success: true, data };
   }
 

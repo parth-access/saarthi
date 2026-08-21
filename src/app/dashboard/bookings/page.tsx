@@ -7,7 +7,7 @@ import { Calendar, ChevronLeft, ChevronRight, Clock, Video, CreditCard } from "l
 import Link from "next/link";
 import Image from "next/image";
 import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { auth, db } from "@/lib/firebase/client";
 import { Booking, Therapist } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
@@ -25,6 +25,37 @@ function DashboardBookings() {
   const [selectedSession, setSelectedSession] = useState<Booking | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const handleJoinSession = async (session: Booking) => {
+    if (session.meetingUrl) {
+      window.open(session.meetingUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    try {
+      setJoiningId(session.id);
+      const idToken = await auth?.currentUser?.getIdToken();
+      if (!idToken) {
+        toast.error("Authentication required to access meeting link");
+        return;
+      }
+      toast.loading("Preparing Google Meet conference...", { id: "join-meet" });
+      const res = await fetch(`/api/bookings/join-session?bookingId=${session.id}`, {
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.meetingUrl) {
+        toast.success("Google Meet link acquired! Opening...", { id: "join-meet" });
+        window.open(data.meetingUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        toast.error(data.error || "Meeting link is being prepared. Please try again shortly.", { id: "join-meet" });
+      }
+    } catch (err) {
+      toast.error("Failed to fetch meeting link", { id: "join-meet" });
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -232,13 +263,15 @@ function DashboardBookings() {
                           <div className="flex gap-2">
                             {session.status === 'confirmed' ? (
                               <button 
+                                disabled={joiningId === session.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toast.info("Connecting to secure virtual room. Support of Saarthi is preparing the direct session line.");
+                                  handleJoinSession(session);
                                 }}
-                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in"
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in flex items-center gap-1.5"
                               >
-                                Join Session
+                                <Video className="w-3 h-3" />
+                                {joiningId === session.id ? 'Connecting...' : 'Join Session'}
                               </button>
                             ) : null}
                             {(session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (

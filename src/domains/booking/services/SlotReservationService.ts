@@ -83,7 +83,7 @@ export class SlotReservationService {
     date: string,
     time: string,
     userId: string,
-    durationMinutes: number = 5,
+    durationMinutes: number = 10,
     customLockId?: string
   ): Promise<LockResult> {
     if (!adminDb) {
@@ -151,7 +151,7 @@ export class SlotReservationService {
 
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
-          eventType: 'LOCK_ACQUIRED',
+          eventType: 'SLOT_HELD',
           therapistId,
           date,
           time,
@@ -159,7 +159,7 @@ export class SlotReservationService {
           lockId,
           expiresAt: Timestamp.fromDate(expiresAt),
           timestamp: FieldValue.serverTimestamp(),
-          details: `Lock acquired for therapist ${therapistId} on ${date} at ${time}`,
+          details: `Slot hold acquired for therapist ${therapistId} on ${date} at ${time}`,
         });
 
         return {
@@ -215,14 +215,14 @@ export class SlotReservationService {
 
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
-          eventType: 'LOCK_RELEASED',
+          eventType: 'SLOT_RELEASED',
           therapistId,
           date,
           time,
           userId: data.userId || userId,
           lockId,
           timestamp: FieldValue.serverTimestamp(),
-          details: `Lock released for therapist ${therapistId} on ${date} at ${time}`,
+          details: `Slot hold released for therapist ${therapistId} on ${date} at ${time}`,
         });
 
         return true;
@@ -241,7 +241,7 @@ export class SlotReservationService {
     date: string,
     time: string,
     lockId: string,
-    durationMinutes: number = 5
+    durationMinutes: number = 10
   ): Promise<boolean> {
     if (!adminDb) {
       throw new Error('Firestore adminDb is not initialized.');
@@ -270,7 +270,7 @@ export class SlotReservationService {
 
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
-          eventType: 'LOCK_EXTENDED',
+          eventType: 'SLOT_HELD_EXTENDED',
           therapistId,
           date,
           time,
@@ -278,7 +278,7 @@ export class SlotReservationService {
           lockId,
           expiresAt: Timestamp.fromDate(expiresAt),
           timestamp: FieldValue.serverTimestamp(),
-          details: `Lock extended by ${durationMinutes} minutes for therapist ${therapistId} on ${date} at ${time}`,
+          details: `Slot hold extended by ${durationMinutes} minutes for therapist ${therapistId} on ${date} at ${time}`,
         });
 
         return true;
@@ -397,14 +397,14 @@ export class SlotReservationService {
 
         const auditRef = adminDb.collection('audit_logs').doc();
         t.set(auditRef, {
-          eventType: 'LOCK_EXPIRED',
+          eventType: 'HOLD_EXPIRED',
           therapistId,
           date,
           time,
           userId: data.userId,
           lockId,
           timestamp: FieldValue.serverTimestamp(),
-          details: `Slot lock expired and cleaned up for therapist ${therapistId} on ${date} at ${time}`,
+          details: `Slot hold expired and cleaned up for therapist ${therapistId} on ${date} at ${time}`,
         });
 
         return true;

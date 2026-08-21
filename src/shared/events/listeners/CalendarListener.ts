@@ -1,28 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { logger } from '@/shared/logger';
+import { GoogleCalendarService } from '@/services/googleCalendarService';
 
 export function registerCalendarListeners(eventBus: any) {
   eventBus.subscribe('BookingConfirmed', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
     try {
-      logger.info(`[CalendarListener] Simulating Google Calendar event generation for booking ${bookingId}`, {
-        summary: `Therapy Session: ${booking.name}`,
-        start: `${booking.date}T${booking.time}`,
-        attendee: booking.email,
-        therapistId: booking.therapistId
-      });
+      logger.info(`[CalendarListener] Triggering Google Calendar & Meet integration for booking ${bookingId}`);
+      const result = await GoogleCalendarService.createOrSyncCalendarEvent(bookingId);
+      if (!result.success) {
+        logger.warn(`[CalendarListener] Calendar integration returned failure for booking ${bookingId}: ${result.error}`);
+      }
     } catch (err) {
-      logger.error(`[CalendarListener] Failed to schedule calendar event for booking ${bookingId}`, { error: err });
+      logger.error(`[CalendarListener] Exception during Google Calendar event creation for booking ${bookingId}`, { error: err });
     }
   });
 
   eventBus.subscribe('BookingCancelled', async (event: any) => {
     const { bookingId } = event.payload;
-    logger.info(`[CalendarListener] Simulating Google Calendar event cancellation for booking ${bookingId}`);
+    try {
+      logger.info(`[CalendarListener] Cancelling Google Calendar event for booking ${bookingId}`);
+      await GoogleCalendarService.cancelCalendarEvent(bookingId);
+    } catch (err) {
+      logger.error(`[CalendarListener] Exception during Google Calendar event cancellation for booking ${bookingId}`, { error: err });
+    }
   });
 
   eventBus.subscribe('BookingRejected', async (event: any) => {
     const { bookingId } = event.payload;
-    logger.info(`[CalendarListener] Simulating Google Calendar event cancellation/removal for booking ${bookingId}`);
+    try {
+      logger.info(`[CalendarListener] Cancelling Google Calendar event for rejected booking ${bookingId}`);
+      await GoogleCalendarService.cancelCalendarEvent(bookingId);
+    } catch (err) {
+      logger.error(`[CalendarListener] Exception during Google Calendar event removal for rejected booking ${bookingId}`, { error: err });
+    }
   });
 }

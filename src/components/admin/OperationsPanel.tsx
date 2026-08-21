@@ -17,7 +17,8 @@ import {
   Clock,
   Shield,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { auth } from '@/lib/firebase/client';
@@ -176,6 +177,33 @@ export const OperationsPanel = () => {
       setTimeout(fetchDashboardData, 1500);
     } catch (err: unknown) {
       setErrorMsg((err as Error).message || 'Event replay action error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRetryCalendar = async (bookingId: string) => {
+    try {
+      setSubmitting(true);
+      setSuccessMsg('');
+      setErrorMsg('');
+      const fbUser = auth?.currentUser;
+      if (!fbUser) throw new Error('Not authenticated with Firebase');
+      const token = await fbUser.getIdToken();
+      const res = await fetch('/api/admin/calendar/retry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bookingId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Calendar retry failed');
+      setSuccessMsg('Google Calendar event & Meet created successfully!');
+      setTimeout(fetchDashboardData, 1500);
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Calendar retry error');
     } finally {
       setSubmitting(false);
     }
@@ -511,13 +539,20 @@ export const OperationsPanel = () => {
                             <span>Phone: {b.phone}</span>
                             <span>Therapist: {b.therapistName}</span>
                           </div>
-                          <div className="pt-2 flex gap-2">
+                          <div className="pt-2 flex flex-wrap gap-2">
                             <button 
                               onClick={() => handleReplayEvent(b.id, 'BookingConfirmed')}
                               disabled={submitting}
                               className="px-2.5 py-1 rounded bg-green-50 hover:bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all"
                             >
                               <Play className="w-2.5 h-2.5" /> Replay Confirm
+                            </button>
+                            <button 
+                              onClick={() => handleRetryCalendar(b.id)}
+                              disabled={submitting}
+                              className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all"
+                            >
+                              <Calendar className="w-2.5 h-2.5" /> Sync Calendar & Meet
                             </button>
                             <button 
                               onClick={() => handleReplayEvent(b.id, 'BookingExpired')}

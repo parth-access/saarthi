@@ -7,3 +7,4 @@ export * from './ConfirmBookingCommand';
 export * from './CancelBookingCommand';
 export * from './RescheduleBookingCommand';
 export * from './AdminConfirmBookingCommand';
+export * from './FailPaymentCommand';
