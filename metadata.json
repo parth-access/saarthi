@@ -1,5 +1,8 @@
 {
-  "name": "Saarthi Psychology Consultancy",
-  "description": "A modern, calming, trustworthy website optimized for mental health services and consultation booking.",
-  "requestFramePermissions": []
+  "name": "Saarthi - Mental Health & Therapy Platform",
+  "description": "Comprehensive therapy booking and management platform with calendar sync, payment gateways, and automated session reminders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

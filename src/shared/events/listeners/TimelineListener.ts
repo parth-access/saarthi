@@ -236,4 +236,18 @@ export function registerTimelineListeners(eventBus: any) {
       metadata: { type, recipient, error }
     });
   });
+
+  // 4. Reminder Events
+  eventBus.subscribe('SendSessionReminder', async (event: any) => {
+    const { bookingId } = event.payload;
+    await writeTimelineEntry({
+      correlationId: event.correlationId || '',
+      bookingId,
+      actor: { type: 'system' },
+      event: 'SendSessionReminder',
+      severity: 'info',
+      message: 'Triggering 5-hour session reminder dispatch.',
+      metadata: { bookingId }
+    });
+  });
 }

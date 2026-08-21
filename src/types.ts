@@ -77,6 +77,12 @@ export interface Booking {
   calendarStatus?: 'PENDING' | 'CREATED' | 'FAILED' | 'RETRY_REQUIRED';
   calendarCreatedAt?: FirebaseTimestamp | Date | string | null | unknown;
   calendarError?: string;
+  reminderStatus?: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+  reminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
+  reminderScheduledFor?: FirebaseTimestamp | Date | string | null | unknown;
+  reminderError?: string;
+  studentReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
+  therapistReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
 }
 
 export interface BreakPreference {

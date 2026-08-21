@@ -13,7 +13,9 @@ export interface LogEntry {
     | 'THERAPIST_AUTH2'
     | 'CALENDAR'
     | 'ADMIN_CALENDAR'
-    | 'JOIN_SESSION';
+    | 'JOIN_SESSION'
+    | 'REMINDER'
+    | 'ADMIN_REMINDER';
   message: string;
   data?: unknown;
   error?: unknown;

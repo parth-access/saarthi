@@ -447,3 +447,167 @@ export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?
 
   return generateEmailLayout(content, 'Information regarding your Saarthi payment attempt.');
 }
+
+export interface SessionReminderEmailData {
+  patientName: string;
+  therapistName: string;
+  sessionType?: string;
+  sessionMode?: string;
+  date: string;
+  time: string;
+  duration?: string;
+  meetingUrl: string;
+  bookingToken?: string;
+  phone?: string;
+}
+
+export function generateSessionReminderStudentEmail(data: SessionReminderEmailData): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    
+    <div style="background-color: #F0F9FF; border-left: 4px solid ${COLORS.accent}; border-radius: 4px 8px 8px 4px; padding: 16px 20px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 15px; color: #0C4A6E; line-height: 1.5;">
+        ⏰ <strong>Session in 5 Hours:</strong> Your session with <strong>${data.therapistName}</strong> begins today at <strong>${data.time} (IST)</strong>.
+      </p>
+    </div>
+
+    <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${COLORS.text};">
+      We're here to help you get ready for a meaningful and supportive session. Please find your appointment details and Google Meet link below:
+    </p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 28px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted}; font-weight: 600;">Session Details</h3>
+      
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Psychologist:</td>
+          <td style="padding-bottom: 12px; font-weight: 600; font-size: 15px; color: ${COLORS.text};">${data.therapistName}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Session Type:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.sessionType || 'Individual Therapy Session'}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Date:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.date}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Time:</td>
+          <td style="padding-bottom: 12px; font-weight: 600; font-size: 15px; color: ${COLORS.accent};">${data.time} (IST)</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Duration:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || '50 minutes'}</td>
+        </tr>
+        <tr>
+          <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Mode:</td>
+          <td style="font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.sessionMode || 'Online Video (Google Meet)'}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #F0FFF4; border: 1px solid #C6F6D5; border-radius: 12px; padding: 24px; margin-bottom: 28px; text-align: center;">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #22543D;">Join Your Video Session</h3>
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #2F855A;">Click the button below when it's time for your session:</p>
+      
+      <a href="${data.meetingUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 32px; background-color: #2F855A; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        📹 Join Google Meet Session
+      </a>
+      
+      <p style="margin: 16px 0 0 0; font-size: 13px; color: #4A5568;">
+        Meeting link: <a href="${data.meetingUrl}" style="color: #2F855A; word-break: break-all;">${data.meetingUrl}</a>
+      </p>
+    </div>
+
+    <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: ${COLORS.text};">Quick Preparation Checklist</h3>
+    <ul style="margin: 0 0 28px 0; padding-left: 20px; color: ${COLORS.text}; line-height: 1.8; font-size: 14px;">
+      <li style="margin-bottom: 6px;">Find a quiet, private, and well-lit space where you feel comfortable speaking freely.</li>
+      <li style="margin-bottom: 6px;">Use headphones or earphones for enhanced privacy and audio clarity.</li>
+      <li style="margin-bottom: 6px;">Ensure a stable internet connection and test your microphone beforehand.</li>
+      <li>Join 2–3 minutes before the start time to settle in smoothly.</li>
+    </ul>
+
+    ${data.bookingToken ? `
+    <div style="text-align: center; margin-bottom: 28px;">
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
+        View Booking Details / Manage
+      </a>
+    </div>
+    ` : ''}
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, `Session Reminder: Your session with ${data.therapistName} is in 5 hours.`);
+}
+
+export function generateSessionReminderTherapistEmail(data: SessionReminderEmailData): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
+    
+    <div style="background-color: #F8FAFC; border-left: 4px solid ${COLORS.accent}; border-radius: 4px 8px 8px 4px; padding: 16px 20px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 15px; color: ${COLORS.text}; line-height: 1.5;">
+        ⏰ <strong>Upcoming Session in 5 Hours:</strong> You have a confirmed appointment with <strong>${data.patientName}</strong> today at <strong>${data.time} (IST)</strong>.
+      </p>
+    </div>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 28px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted}; font-weight: 600;">Session Details</h3>
+      
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Client Name:</td>
+          <td style="padding-bottom: 12px; font-weight: 600; font-size: 15px; color: ${COLORS.text};">${data.patientName}</td>
+        </tr>
+        ${data.phone ? `
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Phone:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.phone}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Session Type:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.sessionType || 'Individual Therapy Session'}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Date:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.date}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Time:</td>
+          <td style="padding-bottom: 12px; font-weight: 600; font-size: 15px; color: ${COLORS.accent};">${data.time} (IST)</td>
+        </tr>
+        <tr>
+          <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Duration:</td>
+          <td style="font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || '50 minutes'}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #F0FFF4; border: 1px solid #C6F6D5; border-radius: 12px; padding: 24px; margin-bottom: 28px; text-align: center;">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #22543D;">Google Meet Link</h3>
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #2F855A;">Use the secure Google Meet link below to conduct the session:</p>
+      
+      <a href="${data.meetingUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 32px; background-color: #2F855A; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        📹 Start / Join Google Meet
+      </a>
+      
+      <p style="margin: 16px 0 0 0; font-size: 13px; color: #4A5568;">
+        Meeting link: <a href="${data.meetingUrl}" style="color: #2F855A; word-break: break-all;">${data.meetingUrl}</a>
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 28px;">
+      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/therapist" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
+        Open Therapist Portal
+      </a>
+    </div>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, `Session Reminder: Upcoming session with ${data.patientName} in 5 hours.`);
+}
+

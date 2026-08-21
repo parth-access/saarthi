@@ -5,6 +5,7 @@ import { firestoreBookingRepository } from '@/domains/booking/repository/Firesto
 import { auditService } from '@/domains/audit/AuditService';
 import { logger } from '@/app/api/_lib/logger';
 import * as Sentry from '@sentry/nextjs';
+import { SessionReminderService } from './sessionReminderService';
 
 export interface CalendarEventResult {
   success: boolean;
@@ -164,6 +165,13 @@ Session Type: ${booking.sessionType || 'Individual'}`,
       booking.calendarError = undefined;
 
       await firestoreBookingRepository.save(booking);
+
+      // Automatically schedule 5-hour session reminder once meeting URL is established
+      try {
+        await SessionReminderService.scheduleSessionReminder(bookingId);
+      } catch (remErr) {
+        logger.warn('REMINDER', `Failed to auto-schedule reminder after calendar creation for ${bookingId}`, { error: String(remErr) });
+      }
 
       await auditService.logEvent(
         'CALENDAR_EVENT_CREATED',

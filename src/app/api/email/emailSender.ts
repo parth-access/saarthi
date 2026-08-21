@@ -10,7 +10,10 @@ import {
   generatePaymentReceiptEmail,
   generateBookingSlotReleasedEmail,
   generatePaymentFailedEmail,
-  type BookingEmailData 
+  generateSessionReminderStudentEmail,
+  generateSessionReminderTherapistEmail,
+  type BookingEmailData,
+  type SessionReminderEmailData
 } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
@@ -27,7 +30,7 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-async function sendEmailWithRetry(
+export async function sendEmailWithRetry(
   options: CreateEmailOptions, 
   bookingId: string, 
   emailType: string,
@@ -260,11 +263,12 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined';
+  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined' | 'session-reminder';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
   declineCustomNote?: string;
+  meetingUrl?: string;
   paymentDetails?: {
     amount?: number;
     currency?: string;
@@ -283,6 +287,8 @@ export interface EmailPayload {
     originalTime?: string;
     sessionMode?: string;
     bookingToken?: string;
+    meetingUrl?: string;
+    sessionType?: string;
   };
 }
 
@@ -546,6 +552,62 @@ export async function sendEmailAction(payload: EmailPayload) {
     
     await updateBookingEmailStatus(bookingId, 'sent');
     return { success: true, data };
+  }
+
+  if (type === 'session-reminder') {
+    const meetingUrl = payload.meetingUrl || bookingData.meetingUrl || bookingDetails?.meetingUrl;
+    if (!meetingUrl) {
+      throw new Error('Cannot send session reminder without a valid meeting URL');
+    }
+
+    const reminderData: SessionReminderEmailData = {
+      patientName: safePatientName,
+      therapistName: safeTherapistName,
+      sessionType: bookingData.sessionType || bookingDetails?.sessionType || 'Individual Therapy Session',
+      sessionMode: safeSessionMode,
+      date: safeDate,
+      time: safeTime,
+      duration: '50 minutes',
+      meetingUrl: meetingUrl,
+      bookingToken: safeBookingToken,
+      phone: safePatientPhone !== 'Not provided' ? safePatientPhone : undefined,
+    };
+
+    const studentPlainText = `Session Reminder: Your session with ${safeTherapistName} is in 5 hours at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
+
+    const studentPromise = sendEmailWithRetry({
+      from: 'Saarthi Reminders <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: `Reminder: Your therapy session with ${safeTherapistName} is in 5 hours`,
+      html: generateSessionReminderStudentEmail(reminderData),
+      text: studentPlainText,
+    }, bookingId, 'session-reminder-student');
+
+    let therapistPromise: Promise<unknown> | null = null;
+    if (therapistEmail) {
+      const therapistPlainText = `Session Reminder: Upcoming session with ${safePatientName} in 5 hours at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
+      therapistPromise = sendEmailWithRetry({
+        from: 'Saarthi Notifications <contact@saarthilife.com>',
+        to: therapistEmail,
+        subject: `Session Reminder: Appointment with ${safePatientName} in 5 hours`,
+        html: generateSessionReminderTherapistEmail(reminderData),
+        text: therapistPlainText,
+      }, bookingId, 'session-reminder-therapist');
+    } else {
+      logger.warn('REMINDER', `Therapist ${therapistId} has no email configured. Skipping therapist reminder email.`, { bookingId });
+    }
+
+    const results = await Promise.all([
+      studentPromise,
+      ...(therapistPromise ? [therapistPromise] : [])
+    ]);
+
+    return { 
+      success: true, 
+      studentSent: true, 
+      therapistSent: !!therapistEmail, 
+      data: results 
+    };
   }
 
   throw new Error('Invalid email type');

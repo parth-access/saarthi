@@ -52,9 +52,9 @@ export class OutboxProcessor {
         const currentAttempts = data.attempts || 0;
         const now = Date.now();
 
-        // Check if retry attempt is due according to exponential backoff
+        // Check if retry attempt or future-scheduled event is due
         const nextAttemptMillis = this.getMillis(data.nextAttemptAt);
-        if (currentAttempts > 0 && nextAttemptMillis > now + 500) {
+        if (nextAttemptMillis > now + 500) {
           return { shouldProcess: false, reason: 'not_due' };
         }
 
@@ -173,7 +173,7 @@ export class OutboxProcessor {
 
         // Check if nextAttemptAt is scheduled in the future
         const nextAttemptMillis = this.getMillis(data.nextAttemptAt);
-        if (data.attempts > 0 && nextAttemptMillis > now) {
+        if (nextAttemptMillis > now) {
           skipped++;
           continue;
         }

@@ -12,7 +12,11 @@ export type AuditEventType =
   | 'CALENDAR_CREATION_STARTED'
   | 'CALENDAR_EVENT_CREATED'
   | 'CALENDAR_CREATION_FAILED'
-  | 'CALENDAR_CREATION_RETRY';
+  | 'CALENDAR_CREATION_RETRY'
+  | 'REMINDER_SCHEDULED'
+  | 'REMINDER_SENT'
+  | 'REMINDER_FAILED'
+  | 'REMINDER_SKIPPED';
 
 export interface AuditEvent {
   id: string; // evt_xxx

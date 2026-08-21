@@ -5,6 +5,7 @@ import { registerCalendarListeners } from './CalendarListener';
 import { registerNotificationListeners } from './NotificationListener';
 import { registerTimelineListeners } from './TimelineListener';
 import { registerMetricsListeners } from './MetricsListener';
+import { registerReminderListeners } from './ReminderListener';
 
 export function registerListeners(eventBus: any) {
   registerAuditListeners(eventBus);
@@ -13,4 +14,5 @@ export function registerListeners(eventBus: any) {
   registerNotificationListeners(eventBus);
   registerTimelineListeners(eventBus);
   registerMetricsListeners(eventBus);
+  registerReminderListeners(eventBus);
 }

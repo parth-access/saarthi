@@ -597,6 +597,28 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
               ) : null}
             </div>
           )}
+
+          {booking.status === 'confirmed' && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+              {booking.reminderStatus === 'SENT' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> 5h Reminder Sent
+                </span>
+              ) : booking.reminderStatus === 'FAILED' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 font-semibold border border-red-100">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-600" /> Reminder Issue: {booking.reminderError || 'Failed'}
+                </span>
+              ) : booking.reminderStatus === 'SKIPPED' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600 font-medium border border-gray-200">
+                  <Clock className="w-3.5 h-3.5 text-gray-500" /> 5h Reminder Skipped
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-50 text-sky-700 font-medium border border-sky-100">
+                  <Bell className="w-3.5 h-3.5 text-sky-600" /> 5h Reminder Scheduled
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Side: Date/Time & Action */}
