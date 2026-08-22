@@ -145,4 +145,5 @@ export interface Therapist {
   email?: string;
 }
 
+
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';
