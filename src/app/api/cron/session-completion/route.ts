@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { SessionLifecycleService } from '@/services/sessionLifecycleService';
+import { verifyCronAuth } from '@/app/api/_lib/cronAuth';
 import { logger } from '@/app/api/_lib/logger';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   return handleCompletionCron(req);
@@ -11,12 +14,9 @@ export async function POST(req: Request) {
 }
 
 async function handleCompletionCron(req: Request) {
-  const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  // If CRON_SECRET is configured, enforce authorization
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const authCheck = verifyCronAuth(req);
+  if (!authCheck.authorized) {
+    return authCheck.response!;
   }
 
   try {
@@ -40,3 +40,4 @@ async function handleCompletionCron(req: Request) {
     );
   }
 }
+

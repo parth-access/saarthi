@@ -26,11 +26,11 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://www.googleapis.com https://www.googletagmanager.com https://*.googletagmanager.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.googleapis.com wss://firestore.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.ingest.sentry.io https://*.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src 'self' https://accounts.google.com https://ihealwithsaarthi.firebaseapp.com https://ihealwithsaarthi.web.app; worker-src 'self' blob:;",
+            value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://www.googleapis.com https://www.googletagmanager.com https://*.googletagmanager.com https://checkout.razorpay.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.googleapis.com wss://firestore.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.ingest.sentry.io https://*.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://api.razorpay.com https://lumberjack.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src 'self' https://accounts.google.com https://ihealwithsaarthi.firebaseapp.com https://ihealwithsaarthi.web.app https://api.razorpay.com; worker-src 'self' blob:;",
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'ALLOWALL',
           },
           {
             key: 'X-Content-Type-Options',
@@ -62,10 +62,6 @@ export default withSentryConfig(nextConfig, {
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
   },
-  webpack: {
-    treeshake: {
-      removeDebugLogging: true,
-    },
-    automaticVercelMonitors: true,
-  },
+  automaticVercelMonitors: true,
+  disableLogger: true,
 });

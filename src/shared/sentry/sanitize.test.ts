@@ -27,6 +27,7 @@ describe('Sentry Sanitization', () => {
 
   it('should scrub auth headers and cookies from Sentry events', () => {
     const mockEvent: ErrorEvent = {
+      type: undefined,
       event_id: 'test-event-123',
       request: {
         headers: {

@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { SessionReminderService } from '@/services/sessionReminderService';
+import { verifyCronAuth } from '@/app/api/_lib/cronAuth';
 import { logger } from '@/app/api/_lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const authCheck = verifyCronAuth(req);
+  if (!authCheck.authorized) {
+    return authCheck.response!;
+  }
+
   try {
     const result = await SessionReminderService.processDueReminders(25);
     logger.info('REMINDER', 'Periodic session reminders check completed', result);
@@ -28,6 +34,7 @@ export async function GET() {
   }
 }
 
-export async function POST() {
-  return GET();
+export async function POST(req: Request) {
+  return GET(req);
 }
+
