@@ -101,19 +101,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
     });
 
     if (shouldSendEmail && therapistId) {
-      // 1. Send Booking Confirmation Email
-      try {
-        await sendEmailAction({
-          type: 'booking-confirmed',
-          bookingId: bookingId,
-          therapistId: therapistId,
-        });
-        logger.info('EMAIL', 'Booking confirmation email queued', { bookingId });
-      } catch (err) {
-        logger.error('EMAIL', 'Failed to enqueue confirmation email', err);
-      }
-
-      // 2. Send Payment Receipt Email
+      // Send Payment Receipt Email
       try {
         await sendEmailAction({
           type: 'payment-receipt',

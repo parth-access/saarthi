@@ -838,7 +838,7 @@ describe('Command Handlers Suite', () => {
       expect(mockPayment.status).toBe('success');
       expect(mockPayment.razorpayPaymentId).toBe('pay_123');
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
+        type: 'payment-receipt',
         bookingId: 'bk_1',
       }));
     });
@@ -926,7 +926,7 @@ describe('Command Handlers Suite', () => {
 
       const handler = new ConfirmBookingCommandHandler();
 
-      // 1. Direct verify arrives first
+      // 1. Direct client verify arrives first
       const verifyCmd = new ConfirmBookingCommand('pay_123', 'order_123', 'sig_123', 'direct');
       const verifyRes = await handler.execute(verifyCmd);
       expect(verifyRes.success).toBe(true);
@@ -934,7 +934,7 @@ describe('Command Handlers Suite', () => {
       expect(mockBooking.paymentStatus).toBe('paid');
       expect(mockPayment.status).toBe('success');
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
+        type: 'payment-receipt',
         bookingId: 'bk_1',
       }));
 
@@ -995,7 +995,7 @@ describe('Command Handlers Suite', () => {
       expect(mockBooking.paymentStatus).toBe('paid');
       expect(mockPayment.status).toBe('success');
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
+        type: 'payment-receipt',
         bookingId: 'bk_1',
       }));
 
@@ -1053,7 +1053,7 @@ describe('Command Handlers Suite', () => {
       const res1 = await handler.execute(verifyCmd);
       expect(res1.success).toBe(true);
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
+        type: 'payment-receipt',
         bookingId: 'bk_1',
       }));
 
@@ -1103,7 +1103,7 @@ describe('Command Handlers Suite', () => {
       const res1 = await handler.execute(webhookCmd);
       expect(res1.success).toBe(true);
       expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
+        type: 'payment-receipt',
         bookingId: 'bk_1',
       }));
 
