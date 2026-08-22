@@ -20,7 +20,7 @@
     "googleapis": "^144.0.0",
     "lucide-react": "^0.475.0",
     "motion": "^12.4.7",
-    "next": "15.1.7",
+    "next": "15.1.11",
     "razorpay": "^2.9.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
