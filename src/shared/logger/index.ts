@@ -11,6 +11,57 @@ interface LogContext {
   [key: string]: unknown;
 }
 
+function serializeError(err: unknown, seen = new WeakSet()): unknown {
+  if (err === null || err === undefined) {
+    return err;
+  }
+
+  if (typeof err !== 'object' && typeof err !== 'function') {
+    return err;
+  }
+
+  if (seen.has(err as object)) {
+    return '[Circular]';
+  }
+  seen.add(err as object);
+
+  if (err instanceof Error) {
+    const errorObj: Record<string, unknown> = {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+      cause: err.cause ? serializeError(err.cause, seen) : undefined,
+    };
+
+    for (const key of Object.getOwnPropertyNames(err)) {
+      if (!['name', 'message', 'stack', 'cause'].includes(key)) {
+        try {
+          const val = (err as unknown as Record<string, unknown>)[key];
+          errorObj[key] = serializeError(val, seen);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return errorObj;
+  }
+
+  if (Array.isArray(err)) {
+    return err.map((item) => serializeError(item, seen));
+  }
+
+  const plainObj: Record<string, unknown> = {};
+  for (const key of Object.keys(err)) {
+    try {
+      const val = (err as unknown as Record<string, unknown>)[key];
+      plainObj[key] = serializeError(val, seen);
+    } catch {
+      // ignore
+    }
+  }
+  return plainObj;
+}
+
 export class Logger {
   private context: LogContext = {};
 
@@ -28,8 +79,8 @@ export class Logger {
       timestamp,
       level,
       message,
-      context: this.context,
-      meta,
+      context: serializeError(this.context),
+      meta: serializeError(meta),
     };
     
     // In production, this would go to a logging service or be formatted as structured JSON

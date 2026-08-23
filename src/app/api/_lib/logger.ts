@@ -29,17 +29,56 @@ export interface LogEntry {
   timestamp: string;
 }
 
-function serializeError(err: unknown) {
+function serializeError(err: unknown, seen = new WeakSet()): unknown {
+  if (err === null || err === undefined) {
+    return err;
+  }
+
+  if (typeof err !== 'object' && typeof err !== 'function') {
+    return err;
+  }
+
+  if (seen.has(err as object)) {
+    return '[Circular]';
+  }
+  seen.add(err as object);
+
   if (err instanceof Error) {
-    return {
+    const errorObj: Record<string, unknown> = {
       name: err.name,
       message: err.message,
       stack: err.stack,
-      cause: err.cause,
+      cause: err.cause ? serializeError(err.cause, seen) : undefined,
     };
+
+    // Extract any custom or non-standard properties (e.g. statusCode, status, code, data, response)
+    for (const key of Object.getOwnPropertyNames(err)) {
+      if (!['name', 'message', 'stack', 'cause'].includes(key)) {
+        try {
+          const val = (err as unknown as Record<string, unknown>)[key];
+          errorObj[key] = serializeError(val, seen);
+        } catch {
+          // ignore property read errors
+        }
+      }
+    }
+    return errorObj;
   }
 
-  return err;
+  if (Array.isArray(err)) {
+    return err.map((item) => serializeError(item, seen));
+  }
+
+  const plainObj: Record<string, unknown> = {};
+  for (const key of Object.keys(err)) {
+    try {
+      const val = (err as unknown as Record<string, unknown>)[key];
+      plainObj[key] = serializeError(val, seen);
+    } catch {
+      // ignore
+    }
+  }
+  return plainObj;
 }
 
 function formatLog(entry: LogEntry) {

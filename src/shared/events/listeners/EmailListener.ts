@@ -20,7 +20,8 @@ export function registerEmailListeners(eventBus: any) {
       });
       logger.info(`[EmailListener] Confirmation email triggered successfully for booking ${bookingId}`);
     } catch (err) {
-      logger.error(`[EmailListener] Failed to trigger confirmation email for booking ${bookingId}`, { error: String(err) });
+      logger.error(`[EmailListener] Failed to trigger confirmation email for booking ${bookingId}`, { error: err, bookingId });
+      throw err;
     }
   });
 
@@ -42,7 +43,8 @@ export function registerEmailListeners(eventBus: any) {
       });
       logger.info(`[EmailListener] Decline email triggered successfully for booking ${bookingId}`);
     } catch (err) {
-      logger.error(`[EmailListener] Failed to trigger decline email for booking ${bookingId}`, { error: String(err) });
+      logger.error(`[EmailListener] Failed to trigger decline email for booking ${bookingId}`, { error: err, bookingId });
+      throw err;
     }
   });
 }

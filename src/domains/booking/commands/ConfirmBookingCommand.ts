@@ -104,28 +104,48 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       });
     });
 
-    // Post-commit outbox processing
+    // Post-commit outbox processing and payment receipt email dispatch
     const outboxEventId = generateDeterministicEventId('booking', bookingId, 'confirmed');
-    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
-      logger.error('BOOKING', 'Async outbox processing error after confirmation', { bookingId, error: err });
-    });
 
+    const tasks: Promise<unknown>[] = [];
+
+    // 1. Process Outbox Event (triggers EmailListener -> confirmation email, CalendarListener, etc.)
+    tasks.push(
+      OutboxProcessor.processEvent(outboxEventId)
+        .then((result) => {
+          if (!result.success) {
+            logger.warn('BOOKING', `Outbox event processing status: ${result.status}`, { bookingId, outboxEventId, error: result.error });
+          }
+        })
+        .catch((err) => {
+          logger.error('BOOKING', 'Outbox processing error after confirmation', { bookingId, error: err });
+        })
+    );
+
+    // 2. Send Payment Receipt Email
     if (shouldSendEmail && therapistId) {
-      // Send Payment Receipt Email asynchronously without blocking the client response
-      sendEmailAction({
-        type: 'payment-receipt',
-        bookingId: bookingId,
-        therapistId: therapistId,
-        paymentDetails: {
-          paymentId: razorpayPaymentId,
-          orderId: razorpayOrderId,
-        }
-      }).then(() => {
-        logger.info('EMAIL', 'Payment receipt email queued/sent successfully', { bookingId });
-      }).catch((err) => {
-        logger.error('EMAIL', 'Failed to asynchronously send payment receipt email', { error: err, bookingId });
-      });
+      tasks.push(
+        sendEmailAction({
+          type: 'payment-receipt',
+          bookingId: bookingId,
+          therapistId: therapistId,
+          paymentDetails: {
+            paymentId: razorpayPaymentId,
+            orderId: razorpayOrderId,
+          }
+        })
+          .then(() => {
+            logger.info('EMAIL', 'Payment receipt email sent/queued successfully', { bookingId });
+          })
+          .catch((err) => {
+            logger.error('EMAIL', 'Failed to send payment receipt email', { error: err, bookingId });
+          })
+      );
     }
+
+    // Await all post-commit tasks so the serverless execution context stays active until delivery completes,
+    // while guaranteeing that email/outbox issues never roll back or fail the confirmed booking response.
+    await Promise.allSettled(tasks);
 
     logger.success('PAYMENT', `Payment verified completely via ${source}`, { 
       bookingId, 
