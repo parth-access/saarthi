@@ -38,11 +38,10 @@ export function useBooking() {
       const msg = (err instanceof Error ? err.message : String(err)) || 'Network error';
       setError(msg);
       handleError(err, 'Failed to submit booking.');
-      return { success: false, error: msg };
-    } finally {
       setSubmitting(false);
+      return { success: false, error: msg };
     }
   }
 
-  return { createBooking, lockSlot, submitting, error, setError };
+  return { createBooking, lockSlot, submitting, setSubmitting, error, setError };
 }

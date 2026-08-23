@@ -10,6 +10,7 @@ import { Booking } from '../entities/Booking';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { istToUtcIsoString } from '@/shared/utils/dateTime';
+import { logger } from '@/app/api/_lib/logger';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
@@ -33,12 +34,8 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     }
 
     const utcDateTime = istToUtcIsoString(data.date, data.time);
-
     const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
-
-    const newBookingId = firestoreBookingRepository.generateId();
-    const bookingToken = crypto.randomUUID() + crypto.randomUUID();
 
     let price = 1500;
     if (data.sessionMode === 'in_person') price = 2000;
@@ -46,12 +43,21 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     const currency = 'INR';
 
     const holdExpiresAtDate = new Date(Date.now() + 10 * 60 * 1000);
+    const newBookingId = firestoreBookingRepository.generateId();
+    const bookingToken = crypto.randomUUID() + crypto.randomUUID();
+
+    let existingBookingResult: { bookingId: string; orderId: string; amount: number; currency: string } | null = null;
 
     await adminDb.runTransaction(async (t) => {
       const doc = await t.get(slotRef);
       if (doc.exists) {
         const slotData = doc.data();
         let isExpired = false;
+        
+        if (slotData?.status === 'booked' || slotData?.isPermanent) {
+          throw new Error('This slot is already booked and confirmed.');
+        }
+
         if (slotData?.expiresAt) {
           const expiresDate = typeof slotData.expiresAt.toDate === 'function' 
             ? slotData.expiresAt.toDate() 
@@ -64,9 +70,55 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         if (isExpired) {
           t.delete(slotRef);
         } else if (slotData?.bookingId) {
+          // Check if this is an idempotent retry for the same lock/intent
+          if (lockId && slotData.lockId === lockId) {
+            const existingDoc = await t.get(adminDb.collection('bookings').doc(slotData.bookingId));
+            if (existingDoc.exists) {
+              const ebData = existingDoc.data();
+              if (ebData?.status === 'confirmed') {
+                throw new Error('This slot is already booked and confirmed.');
+              }
+              if (ebData?.razorpayOrderId) {
+                logger.info('BOOKING', `Idempotent duplicate create-booking request recognized for booking ${slotData.bookingId}`, {
+                  slotId,
+                  lockId,
+                  bookingId: slotData.bookingId,
+                  orderId: ebData.razorpayOrderId
+                });
+                existingBookingResult = {
+                  bookingId: slotData.bookingId,
+                  orderId: ebData.razorpayOrderId,
+                  amount: ebData.paymentAmount || amount,
+                  currency: ebData.paymentCurrency || currency
+                };
+                return;
+              }
+            }
+          }
           throw new Error('This slot is already booked.');
         } else if (slotData?.lockId && lockId && slotData.lockId !== lockId) {
           throw new Error('This slot is currently reserved by another user.');
+        }
+      } else {
+        // Double-check if a confirmed booking already exists in bookings collection
+        const existingConfirmedQuery = await t.get(
+          adminDb.collection('bookings')
+            .where('therapistId', '==', data.therapistId)
+            .where('date', '==', data.date)
+            .where('status', '==', 'confirmed')
+        );
+        const matchingDoc = existingConfirmedQuery.docs.find(d => d.data().time === data.time);
+        if (matchingDoc) {
+          t.set(slotRef, {
+            therapistId: data.therapistId,
+            date: data.date,
+            time: data.time,
+            bookingId: matchingDoc.id,
+            status: 'booked',
+            isPermanent: true,
+            updatedAt: FieldValue.serverTimestamp()
+          });
+          throw new Error('This slot is already booked and confirmed.');
         }
       }
 
@@ -132,6 +184,10 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       });
     });
 
+    if (existingBookingResult) {
+      return existingBookingResult;
+    }
+
     let orderId = '';
     try {
       const createPaymentOrderCommand = new CreatePaymentOrderCommand(
@@ -179,6 +235,13 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
       });
       throw new Error('Failed to initialize payment gateway.');
     }
+
+    logger.info('BOOKING', `Booking successfully created: ${newBookingId}`, {
+      slotId,
+      lockId,
+      bookingId: newBookingId,
+      orderId
+    });
 
     return { 
       bookingId: newBookingId,

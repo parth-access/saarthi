@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, Loader2 } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../ui/Button"
 import { cn } from "../../lib/utils"
@@ -14,7 +14,7 @@ import { SessionTypeStep } from "./steps/SessionTypeStep"
 import { DateStep } from "./steps/DateStep"
 import { SlotStep } from "./steps/SlotStep"
 import { DetailsStep } from "./steps/DetailsStep"
-import { ReviewStep } from "./steps/ReviewStep"
+import { ReviewStep, BookingFlowState } from "./steps/ReviewStep"
 
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
@@ -37,6 +37,9 @@ interface BookingState {
 
 const BookingSystem = () => {
   const [step, setStep] = React.useState(1)
+  const [bookingFlowState, setBookingFlowState] = React.useState<BookingFlowState>('IDLE')
+  const isProcessingRef = React.useRef<boolean>(false)
+  const isVerifyingRef = React.useRef<boolean>(false)
   const hasTrackedStartedRef = React.useRef(false)
   const hasTrackedSubmittedRef = React.useRef(false)
   const [bookingData, setBookingData] = React.useState<BookingState>({
@@ -55,7 +58,7 @@ const BookingSystem = () => {
   const [lockingTime, setLockingTime] = React.useState<string | null>(null)
   
   const { therapists } = useTherapists()
-  const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
+  const { createBooking, lockSlot, submitting, setSubmitting, error: submitError, setError: setSubmitError } = useBooking()
 
   const trackBookingStarted = React.useCallback((context?: Record<string, unknown>) => {
     if (!hasTrackedStartedRef.current) {
@@ -118,17 +121,36 @@ const BookingSystem = () => {
   }
 
   const handleConfirm = async () => {
-    const result = await createBooking({
-      ...bookingData,
-      lockId: activeLockId || undefined,
-      age: parseInt(bookingData.age)
-    })
+    // Synchronous mutex guard: reject any duplicate calls immediately
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setBookingFlowState('SUBMITTING_BOOKING');
+    setSubmitError(null);
 
-    if (result.success && result.data?.orderId) {
+    try {
+      const result = await createBooking({
+        ...bookingData,
+        lockId: activeLockId || undefined,
+        age: parseInt(bookingData.age)
+      });
+
+      if (!result.success || !result.data?.orderId) {
+        isProcessingRef.current = false;
+        setSubmitting(false);
+        setBookingFlowState('ERROR');
+        setSubmitError(result.error || 'Failed to initiate booking order.');
+        return;
+      }
+
       if (typeof window === 'undefined' || !(window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (...args: unknown[]) => void) => void, open: () => void } }).Razorpay) {
+        isProcessingRef.current = false;
+        setSubmitting(false);
+        setBookingFlowState('ERROR');
         setSubmitError('Razorpay SDK failed to load. Are you online?');
         return;
       }
+
+      setBookingFlowState('PAYMENT_OPEN');
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
@@ -139,36 +161,46 @@ const BookingSystem = () => {
         image: '/favicon.ico',
         order_id: result.data.orderId,
         handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }) {
-           try {
-             const verifyRes = await paymentService.verifyPayment({
-               bookingId: result.data.bookingId,
-               razorpay_payment_id: response.razorpay_payment_id,
-               razorpay_order_id: response.razorpay_order_id,
-               razorpay_signature: response.razorpay_signature
-             });
-             if (verifyRes.success) {
-               if (!hasTrackedSubmittedRef.current) {
-                 hasTrackedSubmittedRef.current = true;
-                 trackEvent('book_demo_submitted', {
-                   session_type: bookingData.sessionType,
-                   date_selected: bookingData.date,
-                 });
-               }
-               setStep(7);
-             } else {
-               throw new Error('Payment verification failed');
-             }
-           } catch (err) {
-             setSubmitError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support.');
-           }
+          if (isVerifyingRef.current) return;
+          isVerifyingRef.current = true;
+          setBookingFlowState('VERIFYING_PAYMENT');
+
+          try {
+            const verifyRes = await paymentService.verifyPayment({
+              bookingId: result.data.bookingId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            if (verifyRes.success) {
+              if (!hasTrackedSubmittedRef.current) {
+                hasTrackedSubmittedRef.current = true;
+                trackEvent('book_demo_submitted', {
+                  session_type: bookingData.sessionType,
+                  date_selected: bookingData.date,
+                });
+              }
+              setBookingFlowState('CONFIRMED');
+              setSubmitting(false);
+              setStep(7);
+            } else {
+              throw new Error('Payment verification failed');
+            }
+          } catch (err) {
+            isProcessingRef.current = false;
+            isVerifyingRef.current = false;
+            setSubmitting(false);
+            setBookingFlowState('ERROR');
+            setSubmitError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support.');
+          }
         },
         prefill: {
-            name: bookingData.name,
-            email: bookingData.email,
-            contact: bookingData.phone || '',
+          name: bookingData.name,
+          email: bookingData.email,
+          contact: bookingData.phone || '',
         },
         theme: {
-            color: '#E6A520'
+          color: '#E6A520'
         }
       };
 
@@ -183,27 +215,42 @@ const BookingSystem = () => {
         ...options,
         modal: {
           ondismiss: function () {
-            paymentService.reportPaymentFailure({
-              bookingId: result.data.bookingId,
-              orderId: result.data.orderId,
-              reason: 'Payment dismissed by user'
-            });
-            setSubmitError('Payment was not completed. Your slot hold has been released.');
+            if (!isVerifyingRef.current) {
+              paymentService.reportPaymentFailure({
+                bookingId: result.data.bookingId,
+                orderId: result.data.orderId,
+                reason: 'Payment dismissed by user'
+              });
+              isProcessingRef.current = false;
+              setSubmitting(false);
+              setBookingFlowState('ERROR');
+              setSubmitError('Payment was not completed. Your slot hold will expire shortly.');
+            }
           }
         }
       };
 
       const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(rzpOptions);
       rzp.on('payment.failed', function (response: RazorpayFailResponse) {
+        if (!isVerifyingRef.current) {
           const failReason = response?.error?.description || response?.error?.reason || 'Payment failed';
           paymentService.reportPaymentFailure({
             bookingId: result.data.bookingId,
             orderId: result.data.orderId,
             reason: failReason
           });
+          isProcessingRef.current = false;
+          setSubmitting(false);
+          setBookingFlowState('ERROR');
           setSubmitError(`Payment Failed: ${failReason}. If any money was debited, it will be refunded within 5-7 business days.`);
+        }
       });
       rzp.open();
+    } catch (err) {
+      isProcessingRef.current = false;
+      setSubmitting(false);
+      setBookingFlowState('ERROR');
+      setSubmitError((err instanceof Error ? err.message : String(err)) || 'An unexpected error occurred.');
     }
   }
 
@@ -235,6 +282,7 @@ const BookingSystem = () => {
             onConfirm={handleConfirm} 
             onBack={handleBack}
             submitting={submitting}
+            bookingFlowState={bookingFlowState}
             error={submitError}
           />
         )
@@ -313,6 +361,20 @@ const BookingSystem = () => {
           {renderCurrentStep()}
         </motion.div>
       </AnimatePresence>
+
+      {bookingFlowState === 'VERIFYING_PAYMENT' && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+              <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+            <h3 className="text-2xl font-serif font-bold text-primary">Confirming Your Booking</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Payment received! Confirming your appointment reservation and generating your session details. Please do not refresh or close this window...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

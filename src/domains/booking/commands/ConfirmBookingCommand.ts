@@ -62,10 +62,20 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
       data.updatedAt = FieldValue.serverTimestamp();
       
-      // Release lock / slot mark
+      // Permanently record slot as booked to prevent any race condition
       const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
       const slotRef = adminDb.collection('locked_slots').doc(slotId);
-      transaction.delete(slotRef);
+      transaction.set(slotRef, {
+        therapistId: data.therapistId,
+        date: data.date,
+        time: data.time,
+        userId: data.userId || data.email,
+        bookingId: bookingId,
+        status: 'booked',
+        isPermanent: true,
+        confirmedAt: verifiedAt,
+        updatedAt: verifiedAt
+      });
 
       await firestoreBookingRepository.save(data, transaction);
 
@@ -101,24 +111,28 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
     });
 
     if (shouldSendEmail && therapistId) {
-      // Send Payment Receipt Email
-      try {
-        await sendEmailAction({
-          type: 'payment-receipt',
-          bookingId: bookingId,
-          therapistId: therapistId,
-          paymentDetails: {
-            paymentId: razorpayPaymentId,
-            orderId: razorpayOrderId,
-          }
-        });
-        logger.info('EMAIL', 'Payment receipt email queued', { bookingId });
-      } catch (err) {
-        logger.error('EMAIL', 'Failed to enqueue payment receipt email', err);
-      }
+      // Send Payment Receipt Email asynchronously without blocking the client response
+      sendEmailAction({
+        type: 'payment-receipt',
+        bookingId: bookingId,
+        therapistId: therapistId,
+        paymentDetails: {
+          paymentId: razorpayPaymentId,
+          orderId: razorpayOrderId,
+        }
+      }).then(() => {
+        logger.info('EMAIL', 'Payment receipt email queued/sent successfully', { bookingId });
+      }).catch((err) => {
+        logger.error('EMAIL', 'Failed to asynchronously send payment receipt email', { error: err, bookingId });
+      });
     }
 
-    logger.success('PAYMENT', `Payment verified completely via ${source}`, { bookingId, razorpayPaymentId });
+    logger.success('PAYMENT', `Payment verified completely via ${source}`, { 
+      bookingId, 
+      razorpayPaymentId,
+      razorpayOrderId,
+      therapistId 
+    });
     return { success: true };
   }
 }

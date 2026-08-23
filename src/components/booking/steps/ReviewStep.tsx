@@ -5,6 +5,15 @@ import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
 
+export type BookingFlowState = 
+  | 'IDLE'
+  | 'SUBMITTING_BOOKING'
+  | 'PAYMENT_OPEN'
+  | 'PAYMENT_PROCESSING'
+  | 'VERIFYING_PAYMENT'
+  | 'CONFIRMED'
+  | 'ERROR';
+
 interface Props {
   data: {
     therapistId: string;
@@ -22,11 +31,42 @@ interface Props {
   onConfirm: () => void;
   onBack: () => void;
   submitting: boolean;
+  bookingFlowState?: BookingFlowState;
   error: string | null;
 }
 
-export const ReviewStep = ({ data, therapists, onConfirm, onBack, submitting, error }: Props) => {
+export const ReviewStep = ({ data, therapists, onConfirm, onBack, submitting, bookingFlowState = 'IDLE', error }: Props) => {
   const selectedTherapist = therapists.find(t => t.id === data.therapistId)
+  
+  const isBusy = submitting || (bookingFlowState !== 'IDLE' && bookingFlowState !== 'ERROR');
+  
+  const getButtonContent = () => {
+    if (bookingFlowState === 'VERIFYING_PAYMENT') {
+      return (
+        <span className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5" />
+          <span>Confirming Booking...</span>
+        </span>
+      );
+    }
+    if (bookingFlowState === 'PAYMENT_OPEN' || bookingFlowState === 'PAYMENT_PROCESSING') {
+      return (
+        <span className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5" />
+          <span>Payment in Progress...</span>
+        </span>
+      );
+    }
+    if (submitting || bookingFlowState === 'SUBMITTING_BOOKING') {
+      return (
+        <span className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5" />
+          <span>Initiating Payment...</span>
+        </span>
+      );
+    }
+    return "Confirm Session Request";
+  };
   
   const formatTime12h = (time24: string) => {
     if (!time24) return "";
@@ -89,13 +129,13 @@ export const ReviewStep = ({ data, therapists, onConfirm, onBack, submitting, er
       )}
 
       <div className="flex justify-between pt-6">
-        <Button variant="ghost" className="rounded-full" onClick={onBack} disabled={submitting}><ChevronLeft className="mr-2 h-4 w-4" /> Go Back</Button>
+        <Button variant="ghost" className="rounded-full" onClick={onBack} disabled={isBusy}><ChevronLeft className="mr-2 h-4 w-4" /> Go Back</Button>
         <Button 
           className="px-16 h-16 rounded-full text-lg shadow-2xl shadow-primary/20" 
-          disabled={submitting} 
+          disabled={isBusy} 
           onClick={onConfirm}
         >
-          {submitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Confirm Session Request"}
+          {getButtonContent()}
         </Button>
       </div>
     </div>

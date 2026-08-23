@@ -113,7 +113,7 @@ export class SlotReservationService {
             }
           }
 
-          if (data.bookingId) {
+          if (data.bookingId || data.status === 'booked' || data.isPermanent) {
             return {
               success: false,
               error: 'Slot is already booked and confirmed',
@@ -202,7 +202,7 @@ export class SlotReservationService {
         const data = doc.data() || {};
         
         // Cannot release if there is a completed booking associated with it
-        if (data.bookingId) {
+        if (data.bookingId || data.status === 'booked' || data.isPermanent) {
           return false;
         }
 
@@ -256,7 +256,7 @@ export class SlotReservationService {
         if (!doc.exists) return false;
 
         const data = doc.data() || {};
-        if (data.lockId !== lockId || data.bookingId) {
+        if (data.lockId !== lockId || data.bookingId || data.status === 'booked' || data.isPermanent) {
           return false;
         }
 
@@ -317,7 +317,7 @@ export class SlotReservationService {
         return { success: false, error: 'Lock credentials mismatch' };
       }
 
-      if (data.bookingId) {
+      if (data.bookingId || data.status === 'booked' || data.isPermanent) {
         return { success: false, error: 'Slot already booked' };
       }
 
@@ -365,6 +365,7 @@ export class SlotReservationService {
         if (!doc.exists) return false;
 
         const data = doc.data() || {};
+        if (data.status === 'booked' || data.isPermanent) return false;
         if (data.lockId !== lockId) return false;
 
         // If there's a booking associated, but it's not confirmed yet, we can mark it expired
