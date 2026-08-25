@@ -85,6 +85,59 @@ const FloatingInput = ({ icon: Icon, label, type, required = false, isPassword =
   )
 }
 
+function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): string {
+  if (!err) return fallbackMessage;
+
+  const code = (err as { code?: string })?.code || "";
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (
+    code === "auth/invalid-credential" ||
+    code === "auth/wrong-password" ||
+    code === "auth/user-not-found" ||
+    code === "auth/invalid-email-or-password" ||
+    message.includes("auth/invalid-credential") ||
+    message.includes("auth/wrong-password") ||
+    message.includes("auth/user-not-found")
+  ) {
+    return "Invalid email or password";
+  }
+
+  if (code === "auth/email-already-in-use" || message.includes("auth/email-already-in-use")) {
+    return "An account with this email address already exists";
+  }
+
+  if (code === "auth/weak-password" || message.includes("auth/weak-password")) {
+    return "Password is too weak. Please use at least 8 characters";
+  }
+
+  if (code === "auth/invalid-email" || message.includes("auth/invalid-email")) {
+    return "Please enter a valid email address";
+  }
+
+  if (code === "auth/too-many-requests" || message.includes("auth/too-many-requests")) {
+    return "Too many failed attempts. Please try again later";
+  }
+
+  if (code === "auth/network-request-failed" || message.includes("auth/network-request-failed")) {
+    return "Network error. Please check your internet connection and try again";
+  }
+
+  if (code === "auth/user-disabled" || message.includes("auth/user-disabled")) {
+    return "This account has been disabled. Please contact support";
+  }
+
+  if (code === "auth/popup-closed-by-user" || message.includes("auth/popup-closed-by-user") || message.includes("closed before completion")) {
+    return "Sign-in window was closed before completion";
+  }
+
+  if (err instanceof Error && message && !message.startsWith("Firebase:") && !message.includes("auth/")) {
+    return message;
+  }
+
+  return fallbackMessage;
+}
+
 export default function Login() {
   const router = useRouter();
 
@@ -118,21 +171,24 @@ export default function Login() {
 
     try {
       if (isRegister) {
-        if (!name) {
+        if (!name || !name.trim()) {
           throw new Error("Name is required");
         }
-        await register(email, password, name);
+        if (!password) {
+          throw new Error("Password is required");
+        }
+        if (password.length < 8) {
+          throw new Error("Password must be at least 8 characters");
+        }
+        await register(email, password, name.trim());
         toast.success("Welcome to Saarthi");
       } else {
         await login(email, password);
         toast.success("Welcome back");
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError((err instanceof Error ? err.message : String(err)) || (isRegister ? "Registration failed" : "Login failed"));
-      } else {
-        setError(isRegister ? "Registration failed" : "Login failed");
-      }
+      setError(getFriendlyAuthErrorMessage(err, isRegister ? "Registration failed" : "Login failed"));
+    } finally {
       setLoading(false);
     }
   };
@@ -184,6 +240,8 @@ export default function Login() {
                    initial={{ opacity: 0, y: -10, scale: 0.98 }} 
                    animate={{ opacity: 1, y: 0, scale: 1 }} 
                    exit={{ opacity: 0, scale: 0.98, height: 0 }}
+                   role="alert"
+                   aria-live="polite"
                    className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm mb-6 border border-red-100 flex items-start gap-3 shadow-sm"
                 >
                   <Shield className="w-4 h-4 mt-0.5 shrink-0" />
@@ -192,7 +250,7 @@ export default function Login() {
               )}
             </AnimatePresence>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" aria-busy={loading}>
               <AnimatePresence mode="popLayout">
                 {isRegister && (
                   <motion.div
@@ -240,7 +298,7 @@ export default function Login() {
                   disabled={loading}
                   whileHover={{ scale: 1.01, y: -2 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full h-14 bg-primary text-white rounded-2xl font-medium tracking-wide relative overflow-hidden flex items-center justify-center group shadow-[0_4px_20px_rgba(31,94,59,0.2)] hover:shadow-[0_8px_30px_rgba(31,94,59,0.3)] transition-shadow border border-primary/20"
+                  className="w-full h-14 bg-primary text-white rounded-2xl font-medium tracking-wide relative overflow-hidden flex items-center justify-center group shadow-[0_4px_20px_rgba(31,94,59,0.2)] hover:shadow-[0_8px_30px_rgba(31,94,59,0.3)] transition-shadow border border-primary/20 disabled:opacity-50"
                 >
                   <motion.div
                     initial={{ x: "-100%" }}
@@ -281,15 +339,13 @@ export default function Login() {
                   whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     setLoading(true);
+                    setError("");
                     try {
                       await loginWithGoogle();
-                      toast.success("Welcome back");
+                      toast.success("Signed in successfully");
                     } catch (err: unknown) {
-                      if (err instanceof Error) {
-                        setError((err instanceof Error ? err.message : String(err)) || "Google authentication failed");
-                      } else {
-                        setError("Google authentication failed");
-                      }
+                      setError(getFriendlyAuthErrorMessage(err, "Google authentication failed"));
+                    } finally {
                       setLoading(false);
                     }
                   }}
