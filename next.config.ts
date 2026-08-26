@@ -19,6 +19,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/book-demo',
+        destination: '/book',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -8,6 +8,12 @@ import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
 
+const rootOgParams = new URLSearchParams({
+  title: "Saarthi — Your Safe Space",
+  description: "Book verified, empathetic therapists for online counselling sessions in India.",
+});
+const rootOgImageUrl = `/api/og?${rootOgParams.toString()}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://saarthilife.com"),
   title: {
@@ -51,7 +57,7 @@ export const metadata: Metadata = {
     siteName: "Saarthi",
     images: [
       {
-        url: "/api/og?title=Saarthi — Your Safe Space&description=Book verified, empathetic therapists for online counselling sessions in India.",
+        url: rootOgImageUrl,
         width: 1200,
         height: 630,
         alt: "Saarthi — Online Therapy & Mental Wellness Support",
@@ -62,7 +68,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Saarthi — Online Therapy & Mental Wellness Support",
     description: "Book certified therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
-    images: ["/api/og?title=Saarthi — Your Safe Space&description=Book verified, empathetic therapists for online counselling sessions in India."],
+    images: [rootOgImageUrl],
   },
   alternates: {
     canonical: "/",

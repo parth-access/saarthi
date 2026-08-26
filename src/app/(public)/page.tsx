@@ -2,8 +2,14 @@ import React from 'react';
 import { Metadata } from 'next';
 import HomeClient from './HomeClient';
 
+const ogParams = new URLSearchParams({
+  title: 'Saarthi — Your Safe Space',
+  description: 'Book verified, empathetic therapists for online counselling sessions.',
+});
+const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
 export const metadata: Metadata = {
-  title: 'Saarthi — Online Therapy & Mental Wellness Support in India',
+  title: 'Online Therapy & Mental Wellness Support in India',
   description: 'Book online sessions with certified, empathetic therapists on Saarthi. Find expert guidance for anxiety, stress relief, student counselling, and emotional wellness.',
   openGraph: {
     title: 'Saarthi — Online Therapy & Mental Wellness Support',
@@ -11,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com',
     images: [
       {
-        url: '/api/og?title=Saarthi — Your Safe Space&description=Book verified, empathetic therapists for online counselling sessions.',
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: 'Saarthi Online Therapy & Counselling Platform',
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Saarthi — Online Therapy & Mental Wellness Support',
     description: 'Book online sessions with certified, empathetic therapists on Saarthi. Modern, professional counselling support in India.',
-    images: ['/api/og?title=Saarthi — Your Safe Space&description=Book verified, empathetic therapists for online counselling sessions.'],
+    images: [ogImageUrl],
   },
   alternates: {
     canonical: '/',
@@ -38,11 +45,12 @@ export default function Page() {
         'name': 'Saarthi',
         'url': 'https://saarthilife.com',
         'logo': 'https://saarthilife.com/saarthi-logo-Photoroom.png',
+        'description': 'Online therapy and mental wellness support platform connecting people with verified, empathetic therapists in India.',
         'contactPoint': {
           '@type': 'ContactPoint',
           'email': 'contact@saarthilife.com',
           'contactType': 'customer support',
-          'availableLanguage': 'English'
+          'availableLanguage': ['English', 'Hindi']
         }
       },
       {
@@ -53,22 +61,6 @@ export default function Page() {
         'publisher': {
           '@id': 'https://saarthilife.com/#organization'
         }
-      },
-      {
-        '@type': 'MedicalBusiness',
-        '@id': 'https://saarthilife.com/#medicalbusiness',
-        'name': 'Saarthi Therapy & Counselling',
-        'url': 'https://saarthilife.com',
-        'logo': 'https://saarthilife.com/saarthi-logo-Photoroom.png',
-        'description': 'Book certified therapists for online session therapy. Feel heard, understood, and supported in a gentle, warm, and professional space.',
-        'address': {
-          '@type': 'PostalAddress',
-          'addressLocality': 'Delhi',
-          'addressRegion': 'Delhi',
-          'addressCountry': 'IN'
-        },
-        'priceRange': '$$',
-        'areaServed': 'IN'
       }
     ]
   };

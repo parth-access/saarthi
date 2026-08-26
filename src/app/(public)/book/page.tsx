@@ -2,8 +2,14 @@ import React from 'react';
 import { Metadata } from 'next';
 import BookClient from './BookClient';
 
+const ogParams = new URLSearchParams({
+  title: 'Book Your Therapy Session',
+  description: 'Select a slot and reserve your confidential session with an empathetic professional.',
+});
+const ogImageUrl = `/api/og?${ogParams.toString()}`;
+
 export const metadata: Metadata = {
-  title: 'Book an Online Therapy Session | Saarthi',
+  title: 'Book an Online Therapy Session',
   description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
   openGraph: {
     title: 'Book an Online Therapy Session | Saarthi',
@@ -11,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com/book',
     images: [
       {
-        url: '/api/og?title=Book Your Therapy Session&description=Select a slot and reserve your confidential session with an empathetic professional.',
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: 'Saarthi Consultation Booking Scheduler',
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Book an Online Therapy Session | Saarthi',
     description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
-    images: ['/api/og?title=Book Your Therapy Session&description=Select a slot and reserve your confidential session with an empathetic professional.'],
+    images: [ogImageUrl],
   },
   alternates: {
     canonical: '/book',
