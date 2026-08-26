@@ -120,22 +120,34 @@ export async function GET(request: Request) {
 
     lockedSlotsSnapshot.docs.forEach((doc) => {
       const data = doc.data();
-      let isExpired = false;
-      
-      if (data?.expiresAt && typeof data.expiresAt.toDate === 'function' && data.expiresAt.toDate() < new Date()) {
-        isExpired = true;
-      } else if (data?.expiresAt && typeof data.expiresAt.toMillis === 'function' && data.expiresAt.toMillis() < Date.now()) {
-        isExpired = true;
-      } else if (data?.expiresAt && typeof data.expiresAt === 'number' && data.expiresAt < Date.now()) {
-        isExpired = true;
+
+      // 1. Permanent locks belong to confirmed bookings.
+      //    Those slots are already represented via bookedTimes — skip entirely,
+      //    otherwise every confirmed booking renders as both BOOKED and LOCKED.
+      if (data?.isPermanent === true || data?.status === 'booked') {
+        return;
       }
-      
+
+      // 2. Missing or unparseable expiresAt => treat as expired (legacy/orphan docs).
+      let expiresMs: number | null = null;
+      const raw = data?.expiresAt;
+      if (raw && typeof raw.toMillis === 'function') {
+        expiresMs = raw.toMillis();
+      } else if (raw && typeof raw.toDate === 'function') {
+        expiresMs = raw.toDate().getTime();
+      } else if (typeof raw === 'number') {
+        expiresMs = raw;
+      }
+
+      const isExpired = expiresMs === null || expiresMs < Date.now();
+
       if (isExpired) {
         locksToDelete.push(doc.id);
       } else {
         lockedTimes.push(data.time);
       }
     });
+
 
     // Cleanup stale locks in the background
     if (locksToDelete.length > 0) {
