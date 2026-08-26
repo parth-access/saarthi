@@ -9,6 +9,9 @@ import { Lock, User as UserIcon, Eye, EyeOff, Shield, ArrowRight, Heart, Mail, U
 import { toast } from "sonner";
 
 interface FloatingInputProps {
+  id?: string;
+  name?: string;
+  autoComplete?: string;
   icon: React.ElementType;
   label: string;
   type: string;
@@ -18,72 +21,97 @@ interface FloatingInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   showPassword?: boolean;
   togglePassword?: () => void;
+  helperText?: string;
 }
 
-const FloatingInput = ({ icon: Icon, label, type, required = false, isPassword = false, value, onChange, showPassword, togglePassword }: FloatingInputProps) => {
+const FloatingInput = ({
+  id,
+  name,
+  autoComplete,
+  icon: Icon,
+  label,
+  type,
+  required = false,
+  isPassword = false,
+  value,
+  onChange,
+  showPassword,
+  togglePassword,
+  helperText,
+}: FloatingInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const isActive = isFocused || value.length > 0;
+  const inputId = id || name || `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
 
   return (
-    <motion.div 
-       initial={false}
-       animate={{ 
-          y: isFocused ? -2 : 0, 
-          boxShadow: isFocused ? "0 4px 20px rgba(230, 165, 32, 0.08)" : "0 0px 0px rgba(0,0,0,0)"
-       }}
-       className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-[#E6A520] bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
-    >
-       <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-[#E6A520]' : 'text-primary/40'}`}>
-          <Icon className="w-5 h-5" />
-       </div>
-       
-       <div className="relative flex-1">
-         <motion.label
-           initial={false}
-           animate={{
-              y: isActive ? 8 : 16,
-              scale: isActive ? 0.75 : 1,
-              opacity: isActive ? 0.8 : 0.6
-           }}
-           className={`absolute left-0 top-0 text-sm font-medium origin-left pointer-events-none transition-colors duration-300 ${isFocused ? "text-[#E6A520]" : "text-primary"}`}
-         >
-           {label}
-         </motion.label>
-  
-         <input
-           type={isPassword && !showPassword ? "password" : type}
-           value={value}
-           onChange={onChange}
-           onFocus={() => setIsFocused(true)}
-           onBlur={() => setIsFocused(false)}
-           required={required}
-           className="w-full h-14 bg-transparent text-primary text-sm font-medium focus:outline-none pt-5 pb-1 pr-4"
-         />
-       </div>
+    <div className="space-y-1">
+      <motion.div 
+         initial={false}
+         animate={{ 
+            y: isFocused ? -2 : 0, 
+            boxShadow: isFocused ? "0 4px 20px rgba(230, 165, 32, 0.08)" : "0 0px 0px rgba(0,0,0,0)"
+         }}
+         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-[#E6A520] bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
+      >
+         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-[#E6A520]' : 'text-primary/40'}`}>
+            <Icon className="w-5 h-5" />
+         </div>
+         
+         <div className="relative flex-1">
+           <motion.label
+             htmlFor={inputId}
+             initial={false}
+             animate={{
+                y: isActive ? 8 : 16,
+                scale: isActive ? 0.75 : 1,
+                opacity: isActive ? 0.8 : 0.6
+             }}
+             className={`absolute left-0 top-0 text-sm font-medium origin-left pointer-events-none transition-colors duration-300 ${isFocused ? "text-[#E6A520]" : "text-primary"}`}
+           >
+             {label}
+           </motion.label>
+    
+           <input
+             id={inputId}
+             name={name}
+             autoComplete={autoComplete}
+             type={isPassword ? (showPassword ? "text" : "password") : type}
+             value={value}
+             onChange={onChange}
+             onFocus={() => setIsFocused(true)}
+             onBlur={() => setIsFocused(false)}
+             required={required}
+             className="w-full h-14 bg-transparent text-primary text-sm font-medium focus:outline-none pt-5 pb-1 pr-4"
+           />
+         </div>
 
-       {isPassword && (
-          <button 
-             type="button"
-             onClick={togglePassword}
-             className="w-12 flex items-center justify-center shrink-0 text-primary/40 hover:text-primary transition-colors focus:outline-none"
-             aria-label="Toggle password visibility"
-          >
-             <AnimatePresence mode="wait">
-               {showPassword ? (
-                 <motion.div key="eye-off" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
-                    <EyeOff className="w-4 h-4" />
-                 </motion.div>
-               ) : (
-                 <motion.div key="eye" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
-                    <Eye className="w-4 h-4" />
-                 </motion.div>
-               )}
-             </AnimatePresence>
-          </button>
-       )}
-    </motion.div>
-  )
-}
+         {isPassword && (
+            <button 
+               type="button"
+               onClick={togglePassword}
+               className="w-12 flex items-center justify-center shrink-0 text-primary/40 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-r-2xl select-none"
+               aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+               <AnimatePresence mode="wait">
+                 {showPassword ? (
+                   <motion.div key="eye-off" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
+                      <EyeOff className="w-4 h-4" />
+                   </motion.div>
+                 ) : (
+                   <motion.div key="eye" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
+                      <Eye className="w-4 h-4" />
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </button>
+         )}
+      </motion.div>
+      {helperText && (
+        <p className="text-xs text-primary/50 pl-3 pt-0.5">{helperText}</p>
+      )}
+    </div>
+  );
+};
 
 function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): string {
   if (!err) return fallbackMessage;
@@ -127,6 +155,14 @@ function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): str
     return "This account has been disabled. Please contact support";
   }
 
+  if (code === "auth/popup-blocked" || message.includes("auth/popup-blocked")) {
+    return "Pop-up was blocked by your browser. Please allow pop-ups and try again";
+  }
+
+  if (code === "auth/operation-not-allowed" || message.includes("auth/operation-not-allowed")) {
+    return "Sign-in method is currently unavailable";
+  }
+
   if (code === "auth/popup-closed-by-user" || message.includes("auth/popup-closed-by-user") || message.includes("closed before completion")) {
     return "Sign-in window was closed before completion";
   }
@@ -149,7 +185,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login, register, loginWithGoogle, currentUser } = useAuth();
+  const { login, register, loginWithGoogle, currentUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (currentUser) {
@@ -165,33 +201,74 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
 
-    setLoading(true);
-    setError("");
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter a valid email address");
+      return;
+    }
 
-    try {
-      if (isRegister) {
-        if (!name || !name.trim()) {
-          throw new Error("Name is required");
-        }
-        if (!password) {
-          throw new Error("Password is required");
-        }
-        if (password.length < 8) {
-          throw new Error("Password must be at least 8 characters");
-        }
-        await register(email, password, name.trim());
-        toast.success("Welcome to Saarthi");
-      } else {
-        await login(email, password);
-        toast.success("Welcome back");
+    if (isRegister) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        setError("Name is required");
+        return;
       }
-    } catch (err: unknown) {
-      setError(getFriendlyAuthErrorMessage(err, isRegister ? "Registration failed" : "Login failed"));
-    } finally {
-      setLoading(false);
+      if (!password) {
+        setError("Password is required");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+      
+      setLoading(true);
+      setError("");
+      try {
+        await register(trimmedEmail, password, trimmedName);
+        toast.success("Welcome to Saarthi");
+      } catch (err: unknown) {
+        setError(getFriendlyAuthErrorMessage(err, "Registration failed"));
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!password) {
+        setError("Password is required");
+        return;
+      }
+
+      setLoading(true);
+      setError("");
+      try {
+        await login(trimmedEmail, password);
+        toast.success("Welcome back");
+      } catch (err: unknown) {
+        setError(getFriendlyAuthErrorMessage(err, "Login failed"));
+      } finally {
+        setLoading(false);
+      }
     }
   };
+
+  if (authLoading || currentUser) {
+    return (
+      <div className="min-h-[100dvh] bg-[#FFFBE7] flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full"
+          />
+          <p className="text-sm font-medium text-primary/60">
+            {currentUser ? "Redirecting..." : "Loading safe space..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-[#FFFBE7] flex flex-col md:flex-row relative">
@@ -260,52 +337,73 @@ export default function Login() {
                     transition={{ duration: 0.3 }}
                   >
                     <FloatingInput 
+                      id="register-name"
+                      name="name"
+                      autoComplete="name"
                       icon={UserIcon}
                       label="Full Name"
                       type="text"
                       required
                       value={name}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setName(e.target.value);
+                        if (error) setError("");
+                      }}
                     />
                   </motion.div>
                 )}
               </AnimatePresence>
 
               <FloatingInput 
+                id="auth-email"
+                name="email"
+                autoComplete="email"
                 icon={Mail}
                 label="Email address"
                 type="email"
                 required
                 value={email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
               />
 
               <FloatingInput 
+                id="auth-password"
+                name="password"
+                autoComplete={isRegister ? "new-password" : "current-password"}
                 icon={Lock}
                 label="Password"
                 type="password"
                 required
                 isPassword
                 value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
                 showPassword={showPassword}
                 togglePassword={() => setShowPassword(!showPassword)}
+                helperText={isRegister ? "Must be at least 8 characters" : undefined}
               />
 
               <div className="pt-2">
                 <motion.button
                   type="submit"
                   disabled={loading}
-                  whileHover={{ scale: 1.01, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full h-14 bg-primary text-white rounded-2xl font-medium tracking-wide relative overflow-hidden flex items-center justify-center group shadow-[0_4px_20px_rgba(31,94,59,0.2)] hover:shadow-[0_8px_30px_rgba(31,94,59,0.3)] transition-shadow border border-primary/20 disabled:opacity-50"
+                  whileHover={loading ? {} : { scale: 1.01, y: -2 }}
+                  whileTap={loading ? {} : { scale: 0.98 }}
+                  className="w-full h-14 bg-primary text-white rounded-2xl font-medium tracking-wide relative overflow-hidden flex items-center justify-center group shadow-[0_4px_20px_rgba(31,94,59,0.2)] hover:shadow-[0_8px_30px_rgba(31,94,59,0.3)] transition-shadow border border-primary/20 disabled:opacity-50 select-none touch-manipulation"
                 >
-                  <motion.div
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: "200%" }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                    className="absolute inset-0 w-[150%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
-                  />
+                  {!loading && (
+                    <motion.div
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "200%" }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                      className="absolute inset-0 w-[150%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
+                    />
+                  )}
                   <span className="relative z-10 flex items-center gap-2">
                     {loading ? (
                       <span className="flex items-center gap-2">
@@ -335,9 +433,10 @@ export default function Login() {
             <div className="mt-8">
                <motion.button
                   type="button"
-                  whileHover={{ scale: 1.01, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={loading ? {} : { scale: 1.01, y: -2 }}
+                  whileTap={loading ? {} : { scale: 0.98 }}
                   onClick={async () => {
+                    if (loading) return;
                     setLoading(true);
                     setError("");
                     try {
@@ -350,7 +449,7 @@ export default function Login() {
                     }
                   }}
                   disabled={loading}
-                  className="w-full h-14 bg-white border border-primary/20 text-primary rounded-2xl font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/30 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="w-full h-14 bg-white border border-primary/20 text-primary rounded-2xl font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/30 transition-all shadow-sm hover:shadow-md disabled:opacity-50 select-none touch-manipulation"
                >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -365,10 +464,12 @@ export default function Login() {
             <div className="mt-8 pt-6 border-t border-primary/10 flex flex-col items-center">
               <button
                 onClick={() => {
+                  if (loading) return;
                   setIsRegister(!isRegister);
                   setError("");
                 }}
-                className="text-sm text-primary/60 hover:text-primary transition-colors inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded-md p-1"
+                disabled={loading}
+                className="text-sm text-primary/60 hover:text-primary transition-colors inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded-md p-1 disabled:opacity-50 select-none touch-manipulation"
                 type="button"
               >
                 {isRegister ? (
@@ -390,7 +491,7 @@ export default function Login() {
       </div>
 
       {/* Right side: Visuals / Reassurance (Hidden on mobile) */}
-      <div className="hidden md:flex w-1/2 min-h-screen bg-primary relative overflow-hidden flex-col items-center justify-center">
+      <div className="hidden md:flex w-1/2 min-h-[100dvh] bg-primary relative overflow-hidden flex-col items-center justify-center">
         {/* Ambient Glowing Blobs */}
         <motion.div 
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
@@ -489,3 +590,4 @@ export default function Login() {
     </div>
   );
 }
+
