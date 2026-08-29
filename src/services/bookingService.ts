@@ -36,6 +36,19 @@ export const bookingService = {
       return { success: false, error: (err instanceof Error ? err.message : String(err)) };
     }
   },
+
+  releaseLock: async (therapistId: string, date: string, time: string, lockId: string) => {
+    try {
+      return await fetchWithAuth('/api/bookings/lock-slot', {
+        method: 'DELETE',
+        body: JSON.stringify({ therapistId, date, time, lockId })
+      });
+    } catch (err) {
+      // Fire-and-forget release error logging
+      logger.warn('BOOKING', 'Release slot lock failed', { error: err, therapistId, date, time, lockId });
+      return { success: false };
+    }
+  },
   
   createBooking: async (
     bookingData: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { lockId?: string }

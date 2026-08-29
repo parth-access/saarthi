@@ -1,8 +1,9 @@
 import * as React from "react"
-import { ShieldCheck, AlertCircle, ChevronRight } from "lucide-react"
+import { ShieldCheck, AlertCircle, ChevronRight, RefreshCw } from "lucide-react"
 import { useTherapists } from "../../../hooks/useTherapists"
 import { cn } from "../../../lib/utils"
 import { Skeleton } from "../../ui/Skeleton"
+import { Button } from "../../ui/Button"
 
 interface Props {
   selectedId: string;
@@ -10,7 +11,7 @@ interface Props {
 }
 
 export const TherapistStep = ({ selectedId, onSelect }: Props) => {
-  const { therapists, loading, error } = useTherapists();
+  const { therapists, loading, error, refetch } = useTherapists();
 
   if (loading) {
     return (
@@ -41,9 +42,20 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
 
   if (error) {
     return (
-      <div className="py-16 text-center space-y-4">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto opacity-50" />
-        <p className="text-primary font-medium">{error}</p>
+      <div className="py-16 text-center space-y-5 bg-white rounded-[2.5rem] border border-red-100 p-8 shadow-sm">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto opacity-75" />
+        <div className="space-y-1">
+          <h4 className="text-xl font-serif font-bold text-primary">Unable to Load Therapists</h4>
+          <p className="text-muted-foreground text-sm max-w-sm mx-auto">{error}</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => refetch()} 
+          className="rounded-full px-6 border-primary/20 hover:bg-primary hover:text-white transition-all gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Try Again</span>
+        </Button>
       </div>
     );
   }

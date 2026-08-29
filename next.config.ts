@@ -63,14 +63,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT || 'javascript-nextjs',
-  silent: !process.env.CI,
-  widenClientFileUpload: true,
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
-  automaticVercelMonitors: true,
-  disableLogger: true,
-});
+// Wrap with Sentry config only if SENTRY_DSN or SENTRY_ORG is present, or export directly to keep dev server snappy and robust
+export default process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_ORG
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT || 'javascript-nextjs',
+      silent: true,
+      widenClientFileUpload: true,
+      sourcemaps: {
+        deleteSourcemapsAfterUpload: true,
+      },
+      automaticVercelMonitors: true,
+      disableLogger: true,
+    })
+  : nextConfig;

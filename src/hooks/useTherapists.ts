@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Therapist } from '../types';
 import { therapistService } from '../services/therapistService';
 
@@ -7,28 +7,22 @@ export function useTherapists() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    therapistService
-      .getTherapists()
-      .then((data) => {
-        if (mounted) {
-          setTherapists(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (mounted) {
-          setError((err instanceof Error ? err.message : String(err)));
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
+  const fetchTherapists = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await therapistService.getTherapists();
+      setTherapists(data);
+    } catch (err) {
+      setError((err instanceof Error ? err.message : String(err)) || 'Failed to load therapists');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { therapists, loading, error };
+  useEffect(() => {
+    fetchTherapists();
+  }, [fetchTherapists]);
+
+  return { therapists, loading, error, refetch: fetchTherapists };
 }

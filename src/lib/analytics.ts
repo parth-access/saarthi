@@ -68,6 +68,8 @@ function sanitizeEventParams(params?: Record<string, unknown>): Record<string, u
 }
 
 export type AnalyticsEventName =
+  | 'booking_flow_started'
+  | 'booking_confirmed'
   | 'book_demo_click'
   | 'book_demo_started'
   | 'book_demo_submitted'

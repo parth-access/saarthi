@@ -63,3 +63,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }
+
+const releaseSchema = z.object({
+  therapistId: z.string(),
+  date: z.string(),
+  time: z.string(),
+  lockId: z.string(),
+});
+
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json();
+    const parsed = releaseSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input data', details: parsed.error.format() }, { status: 400 });
+    }
+
+    const { therapistId, date, time, lockId } = parsed.data;
+    const session = await verifySession(req);
+    const released = await SlotReservationService.releaseLock(
+      therapistId,
+      date,
+      time,
+      lockId,
+      session?.uid
+    );
+
+    return NextResponse.json({ success: released });
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[DEBUG] release-slot failure: error=${errMsg}`);
+    return NextResponse.json({ success: false, error: 'Failed to release lock.' }, { status: 500 });
+  }
+}
