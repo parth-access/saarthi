@@ -4,6 +4,7 @@ import TherapistsClient from './TherapistsClient';
 import { ogImage } from '@/lib/og';
 import { therapistService } from '@/services/therapistService';
 import { Therapist } from '@/types';
+import { DEFAULT_THERAPISTS } from '@/constants/therapists';
 
 const therapistsOgImageUrl = ogImage(
   'Meet Our Verified Therapists',
@@ -37,25 +38,13 @@ export const metadata: Metadata = {
   },
 };
 
-const defaultTherapists: Therapist[] = [
-  {
-    id: '1',
-    name: 'Dravina Gupta',
-    specialization: 'Psychologist & Clinical Counsellor',
-    experience: '1+ Years',
-    bio: 'Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.',
-    image: '/dravina.png',
-    active: true,
-  },
-];
-
 export default async function Page() {
   let therapists: Therapist[] = [];
   try {
     const fetched = await therapistService.getTherapists();
-    therapists = fetched && fetched.length > 0 ? fetched : defaultTherapists;
+    therapists = fetched && fetched.length > 0 ? fetched : DEFAULT_THERAPISTS;
   } catch {
-    therapists = defaultTherapists;
+    therapists = DEFAULT_THERAPISTS;
   }
 
   const jsonLd = {

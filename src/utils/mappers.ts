@@ -38,14 +38,17 @@ export function mapBooking(id: string, data: Partial<Booking> & Record<string, u
 }
 
 export function mapTherapist(id: string, data: Partial<Therapist> & Record<string, unknown>): Therapist {
+  const name = data?.name || 'Unknown Therapist';
+  const rawSlug = data?.slug || (name.toLowerCase().includes('dravina') ? 'dravina' : undefined);
   return {
     id,
-    name: data?.name || 'Unknown Therapist',
+    name,
     specialization: data?.specialization || '',
     experience: data?.experience || '',
     bio: data?.bio || '',
     image: data?.image || '',
-    active: !!data?.active,
+    active: data?.active !== undefined ? !!data?.active : true,
+    slug: rawSlug,
     authId: data?.authId || '',
     email: data?.email || '',
   };

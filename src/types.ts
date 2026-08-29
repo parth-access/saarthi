@@ -141,9 +141,9 @@ export interface Therapist {
   bio: string;
   image: string;
   active: boolean;
+  slug?: string;
   authId?: string;
   email?: string;
 }
-
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';

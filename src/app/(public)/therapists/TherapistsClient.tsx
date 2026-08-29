@@ -10,21 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Therapist } from "@/types"
 import { therapistService } from "@/services/therapistService"
 import { trackEvent } from "@/lib/analytics"
-
-const fallbackTherapists: Therapist[] = [
-  {
-    id: "1",
-    name: "Dravina Gupta",
-    specialization: "Psychologist & Clinical Counsellor",
-    experience: "1+ Years",
-    bio: "Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.",
-    image: "/dravina.png",
-    active: true
-  }
-]
+import { DEFAULT_THERAPISTS, getTherapistCtaDetails } from "@/constants/therapists"
 
 export default function TherapistsPage() {
-  const [therapists, setTherapists] = React.useState<Therapist[]>(fallbackTherapists)
+  const [therapists, setTherapists] = React.useState<Therapist[]>(DEFAULT_THERAPISTS)
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
@@ -36,13 +25,13 @@ export default function TherapistsPage() {
           if (fetched && fetched.length > 0) {
             setTherapists(fetched)
           } else {
-            setTherapists(fallbackTherapists)
+            setTherapists(DEFAULT_THERAPISTS)
           }
         }
       } catch (err) {
         console.error("Failed to load therapists dynamically, falling back to static team list:", err)
         if (active) {
-          setTherapists(fallbackTherapists)
+          setTherapists(DEFAULT_THERAPISTS)
         }
       } finally {
         if (active) {
@@ -134,21 +123,36 @@ export default function TherapistsPage() {
                           <MapPin className="h-4 w-4" /> Online
                         </div>
                       </div>
-                      <Button 
-                        asChild 
-                        className="w-full h-14 rounded-2xl group/btn bg-primary hover:bg-primary/95 text-base font-bold shadow-xl shadow-primary/10"
-                        onClick={() => {
-                          trackEvent('book_demo_click', {
-                            location: 'therapists_directory',
-                            cta_text: 'Know Your Saarthi'
-                          });
-                        }}
-                      >
-                        <Link href={therapist.name === "Dravina Gupta" ? "/therapists/dravina" : "/booking"}>
-                          Know Your Saarthi
-                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                        </Link>
-                      </Button>
+                      {(() => {
+                        const cta = getTherapistCtaDetails(therapist);
+                        return (
+                          <Button 
+                            asChild 
+                            className="w-full h-14 rounded-2xl group/btn bg-primary hover:bg-primary/95 text-base font-bold shadow-xl shadow-primary/10"
+                            onClick={() => {
+                              if (cta.isProfile) {
+                                trackEvent('view_therapist_profile', {
+                                  location: 'therapists_directory',
+                                  therapist_id: therapist.id,
+                                  therapist_slug: therapist.slug || 'dravina',
+                                  therapist_name: therapist.name,
+                                });
+                              } else {
+                                trackEvent('book_session_click', {
+                                  location: 'therapists_directory',
+                                  therapist_id: therapist.id,
+                                  therapist_name: therapist.name,
+                                });
+                              }
+                            }}
+                          >
+                            <Link href={cta.href}>
+                              {cta.label}
+                              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                            </Link>
+                          </Button>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 </motion.div>
