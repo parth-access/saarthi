@@ -47,10 +47,8 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       // Re-use existing valid order ID if present (Idempotency requirement)
       if (txData.razorpayOrderId) {
         existingOrderId = txData.razorpayOrderId;
-        if (!txData.paymentAmount) {
-          throw new Error('Data corruption: Booking is missing paymentAmount');
-        }
-        amount = txData.paymentAmount;
+        amount = txData.paymentAmount ?? calculateBookingPrice(txData.sessionMode);
+        txData.paymentAmount = amount;
         return;
       }
 
@@ -58,10 +56,7 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       const existingPayment = await firestorePaymentRepository.findByBookingId(bookingId, transaction);
       if (existingPayment?.razorpayOrderId) {
         existingOrderId = existingPayment.razorpayOrderId;
-        if (!txData.paymentAmount) {
-          throw new Error('Data corruption: Booking is missing paymentAmount');
-        }
-        amount = txData.paymentAmount;
+        amount = txData.paymentAmount ?? existingPayment.amount ?? calculateBookingPrice(txData.sessionMode);
 
         // Repair booking entity state
         txData.razorpayOrderId = existingOrderId;
@@ -115,10 +110,8 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         }
       }
 
-      if (!txData.paymentAmount) {
-        throw new Error('Data corruption: Booking is missing paymentAmount');
-      }
-      amount = txData.paymentAmount;
+      amount = txData.paymentAmount ?? calculateBookingPrice(txData.sessionMode);
+      txData.paymentAmount = amount;
       therapistId = txData.therapistId;
       email = txData.email;
 

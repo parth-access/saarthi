@@ -123,28 +123,9 @@ export class AdminConfirmBookingCommandHandler
 
     if (shouldSendEmail) {
       const eventId = generateDeterministicEventId('booking', command.bookingId, 'confirmed');
-      OutboxProcessor.processEvent(eventId).catch((err) => {
+      await OutboxProcessor.processEvent(eventId).catch((err) => {
         console.error('[AdminConfirmBookingCommandHandler] Async outbox processing error:', err);
       });
-    }
-
-    if (shouldSendEmail && bookingData) {
-      try {
-        await sendEmailAction({
-          type: 'booking-confirmed',
-          bookingId: command.bookingId,
-          therapistId,
-          bookingDetails: {
-            name: (bookingData as Booking).name,
-            email: (bookingData as Booking).email,
-            phone: (bookingData as Booking).phone,
-            date: (bookingData as Booking).date,
-            time: (bookingData as Booking).time,
-          },
-        });
-      } catch (err) {
-        console.error('Failed to send confirmation email:', err);
-      }
     }
 
     return { success: true, alreadyConfirmed };

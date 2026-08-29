@@ -37,7 +37,7 @@ export class SlotReservationService {
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
 
     const doc = await t.get(slotRef);
-    if (doc.exists) {
+    if (doc?.exists) {
       const data = doc.data() || {};
       if (data.bookingId === bookingId) {
         t.delete(slotRef);
@@ -83,15 +83,20 @@ export class SlotReservationService {
     const rulesSnapshot = t ? await t.get(rulesRef) : await rulesRef.get();
     const overridesSnapshot = t ? await t.get(overridesRef) : await overridesRef.get();
 
-    const rules = rulesSnapshot.docs.map(doc => ({
+    const rules = (rulesSnapshot?.docs || []).map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as any[];
 
-    const overrides = overridesSnapshot.docs.map(doc => ({
+    const overrides = (overridesSnapshot?.docs || []).map(doc => ({
       id: doc.id,
       ...doc.data()
     })) as any[];
+
+    // If no custom rules or overrides are configured for this therapist, default to available
+    if (rules.length === 0 && overrides.length === 0) {
+      return true;
+    }
 
     // Helper functions for time slot generation
     const timeToMinutes = (timeStr: string): number => {
@@ -212,7 +217,7 @@ export class SlotReservationService {
     const newSlotRef = adminDb.collection('locked_slots').doc(newSlotId);
 
     const newSlotDoc = await t.get(newSlotRef);
-    if (newSlotDoc.exists) {
+    if (newSlotDoc?.exists) {
       const slotData = newSlotDoc.data()!;
       if (slotData?.expiresAt) {
         const expiresAtDate = typeof slotData.expiresAt.toDate === 'function'

@@ -118,7 +118,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
             .where('date', '==', data.date)
             .where('status', '==', 'confirmed')
         );
-        const matchingDoc = existingConfirmedQuery.docs.find(d => d.data().time === data.time);
+        const matchingDoc = (existingConfirmedQuery?.docs || []).find(d => typeof d.data === 'function' && d.data().time === data.time);
         if (matchingDoc) {
           t.set(slotRef, {
             therapistId: data.therapistId,

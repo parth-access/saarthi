@@ -37,6 +37,7 @@ export class Booking {
   lastEmailError?: string;
   declineReason?: string;
   declineCustomNote?: string;
+  noShowReason?: string;
   declinedAt?: FirebaseTimestamp | Date | string | null | unknown;
   declinedBy?: string;
   invalidToken?: boolean;
@@ -54,6 +55,10 @@ export class Booking {
   reminderError?: string;
   studentReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   therapistReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
+  reviewRating?: number;
+  reviewComment?: string;
+  reviewedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  reviewId?: string;
 
   constructor(data: Partial<Booking>) {
     Object.assign(this, data);
@@ -78,7 +83,11 @@ export class Booking {
     return this;
   }
 
-  confirmPayment(verifiedAt: Date | string | unknown, razorpayPaymentId?: string, options?: TransitionOptions): this {
+  confirmPayment(
+    verifiedAt: Date | string | FirebaseTimestamp | unknown,
+    razorpayPaymentId?: string,
+    options?: TransitionOptions
+  ): this {
     if (this.status !== 'confirmed') {
       BookingStateMachine.transition(this, 'confirmed', options);
     }
@@ -130,8 +139,12 @@ export class Booking {
     return this;
   }
 
-  markNoShow(options?: TransitionOptions): this {
+  markNoShow(reason?: string, options?: TransitionOptions): this {
     BookingStateMachine.transition(this, 'no_show', options);
+    if (reason) {
+      this.noShowReason = reason;
+      this.declineReason = reason; // For backward compatibility with older UI queries
+    }
     return this;
   }
 

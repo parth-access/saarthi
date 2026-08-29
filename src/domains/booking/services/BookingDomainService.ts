@@ -19,29 +19,35 @@ export class BookingDomainService {
   async awaitPayment(booking: Booking, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
     booking.awaitPayment({ skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'awaiting_payment');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingAwaitingPayment',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'awaiting_payment'
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'awaiting_payment');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingAwaitingPayment',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'awaiting_payment'
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -50,29 +56,35 @@ export class BookingDomainService {
   async initiatePayment(booking: Booking, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
     booking.initiatePayment({ skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'payment_initiated');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingPaymentInitiated',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'payment_initiated'
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'payment_initiated');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingPaymentInitiated',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'payment_initiated'
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -86,35 +98,48 @@ export class BookingDomainService {
     metadata?: Record<string, unknown>
   ): Promise<string> {
     const previousStatus = booking.status;
+    const previousPaymentStatus = booking.paymentStatus;
+    const previousPaymentId = booking.razorpayPaymentId;
+    const previousVerifiedAt = booking.paymentVerifiedAt;
+
     booking.confirmPayment(verifiedAt, razorpayPaymentId, { skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'confirmed');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingConfirmed',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'confirmed',
-        metadata: {
-          ...metadata,
-          verifiedAt,
-          razorpayPaymentId
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'confirmed');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingConfirmed',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'confirmed',
+          metadata: {
+            ...metadata,
+            verifiedAt,
+            razorpayPaymentId
+          }
         }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      booking.paymentStatus = previousPaymentStatus;
+      booking.razorpayPaymentId = previousPaymentId;
+      booking.paymentVerifiedAt = previousVerifiedAt;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -123,29 +148,35 @@ export class BookingDomainService {
   async completeBooking(booking: Booking, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
     booking.complete({ skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'completed');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingCompleted',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'completed'
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'completed');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingCompleted',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'completed'
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -153,34 +184,42 @@ export class BookingDomainService {
    */
   async markNoShow(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
-    booking.markNoShow({ skipEventBus: true });
-    if (reason) {
-      booking.declineReason = reason;
-    }
-    await this.bookingRepository.save(booking, transaction);
+    const previousNoShowReason = booking.noShowReason;
+    const previousDeclineReason = booking.declineReason;
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'no_show');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingNoShow',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'no_show',
-        reason
+    booking.markNoShow(reason, { skipEventBus: true });
+
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'no_show');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingNoShow',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'no_show',
+          reason
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      booking.noShowReason = previousNoShowReason;
+      booking.declineReason = previousDeclineReason;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -188,31 +227,40 @@ export class BookingDomainService {
    */
   async cancelBooking(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
+    const previousDeclineReason = booking.declineReason;
+
     booking.cancel(reason, { skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'cancelled');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingCancelled',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'cancelled',
-        reason
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'cancelled');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingCancelled',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'cancelled',
+          reason
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      booking.declineReason = previousDeclineReason;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -227,34 +275,49 @@ export class BookingDomainService {
     transaction?: Transaction
   ): Promise<string> {
     const previousStatus = booking.status;
+    const previousDeclineReason = booking.declineReason;
+    const previousDeclineCustomNote = booking.declineCustomNote;
+    const previousDeclinedBy = booking.declinedBy;
+    const previousDeclinedAt = booking.declinedAt;
+
     booking.decline(reason, declinedBy, customNote, timestamp, { skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'rejected');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingRejected',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'rejected',
-        reason,
-        declinedBy,
-        customNote,
-        timestamp
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'rejected');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingRejected',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'rejected',
+          reason,
+          declinedBy,
+          customNote,
+          timestamp
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      booking.declineReason = previousDeclineReason;
+      booking.declineCustomNote = previousDeclineCustomNote;
+      booking.declinedBy = previousDeclinedBy;
+      booking.declinedAt = previousDeclinedAt;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
@@ -263,33 +326,41 @@ export class BookingDomainService {
   async expireBooking(booking: Booking, transaction?: Transaction): Promise<string> {
     const previousStatus = booking.status;
     booking.expire({ skipEventBus: true });
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'expired');
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingExpired',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousStatus,
-        targetStatus: 'expired'
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'expired');
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingExpired',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousStatus,
+          targetStatus: 'expired'
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.status = previousStatus;
+      throw err;
     }
-
-    return eventId;
   }
 
   /**
    * Reschedules a booking to a new date/time and saves it.
+   * Note: The deterministic eventId includes `${newDate}_${newTime}` so rescheduling
+   * to the same target slot is idempotent while distinct reschedule operations are unique.
    */
   async rescheduleBooking(
     booking: Booking,
@@ -301,34 +372,51 @@ export class BookingDomainService {
   ): Promise<string> {
     const previousDate = booking.date;
     const previousTime = booking.time;
+    const previousOriginalDate = booking.originalDate;
+    const previousOriginalTime = booking.originalTime;
+    const previousUtcDateTime = booking.utcDateTime;
+    const previousRescheduledAt = booking.rescheduledAt;
+
     booking.reschedule(newDate, newTime, rescheduledAt, newUtcDateTime);
-    await this.bookingRepository.save(booking, transaction);
 
-    const eventId = generateDeterministicEventId('booking', booking.id, 'rescheduled', `${newDate}_${newTime}`);
-    const outboxPayload = {
-      id: eventId,
-      name: 'BookingRescheduled',
-      aggregateType: 'booking' as const,
-      aggregateId: booking.id,
-      payload: {
-        bookingId: booking.id,
-        booking: { ...booking },
-        previousDate,
-        previousTime,
-        date: newDate,
-        time: newTime,
-        rescheduledAt,
-        newUtcDateTime
+    try {
+      await this.bookingRepository.save(booking, transaction);
+
+      const eventId = generateDeterministicEventId('booking', booking.id, 'rescheduled', `${newDate}_${newTime}`);
+      const outboxPayload = {
+        id: eventId,
+        name: 'BookingRescheduled',
+        aggregateType: 'booking' as const,
+        aggregateId: booking.id,
+        payload: {
+          bookingId: booking.id,
+          booking: { ...booking },
+          previousDate,
+          previousTime,
+          date: newDate,
+          time: newTime,
+          rescheduledAt,
+          newUtcDateTime
+        }
+      };
+
+      if (transaction) {
+        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+      } else {
+        await OutboxService.recordEvent(outboxPayload);
       }
-    };
 
-    if (transaction) {
-      OutboxService.recordEventInTransaction(transaction, outboxPayload);
-    } else {
-      await OutboxService.recordEvent(outboxPayload);
+      return eventId;
+    } catch (err) {
+      booking.date = previousDate;
+      booking.time = previousTime;
+      booking.originalDate = previousOriginalDate;
+      booking.originalTime = previousOriginalTime;
+      booking.utcDateTime = previousUtcDateTime;
+      booking.rescheduledAt = previousRescheduledAt;
+      throw err;
     }
-
-    return eventId;
   }
 }
+
 

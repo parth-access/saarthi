@@ -24,6 +24,8 @@ vi.mock('@/lib/firebase/admin', () => {
   });
   const mockCollection = vi.fn(() => ({
     doc: mockDoc,
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
   }));
   const mockRunTransaction = vi.fn();
 

@@ -3,6 +3,7 @@ import { Booking } from '../entities/Booking';
 import { BookingRepository } from './BookingRepository';
 import { logger } from '@/shared/logger';
 import { Transaction, FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import crypto from 'crypto';
 
 export class BookingMapper {
   static toEntity(doc: DocumentSnapshot | QueryDocumentSnapshot): Booking {
@@ -17,14 +18,22 @@ export class BookingMapper {
   }
 
   static toPersistence(booking: Partial<Booking>): Record<string, unknown> {
-    return { ...booking } as Record<string, unknown>;
+    // Strip redundant doc id from doc payload
+    const { id, ...data } = booking as Record<string, unknown>;
+    const record: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        record[key] = value;
+      }
+    }
+    return record;
   }
 }
 
 export class FirestoreBookingRepository implements BookingRepository {
   generateId(): string {
     const YYYYMMDD = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const randomSuffix = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
     return `bk_${YYYYMMDD}_${randomSuffix}`;
   }
 
@@ -37,10 +46,21 @@ export class FirestoreBookingRepository implements BookingRepository {
       createdAt: booking.createdAt || FieldValue.serverTimestamp(),
       updatedAt: booking.updatedAt || FieldValue.serverTimestamp(),
     };
+
     if (transaction) {
+      const doc = await transaction.get(docRef);
+      if (doc.exists) {
+        throw new Error(`Booking with ID ${booking.id} already exists.`);
+      }
       transaction.set(docRef, data);
     } else {
-      await docRef.set(data);
+      await adminDb.runTransaction(async (t) => {
+        const doc = await t.get(docRef);
+        if (doc.exists) {
+          throw new Error(`Booking with ID ${booking.id} already exists.`);
+        }
+        t.set(docRef, data);
+      });
     }
   }
 
@@ -62,7 +82,11 @@ export class FirestoreBookingRepository implements BookingRepository {
         const data = doc.data();
         let isExpired = false;
         if (data?.expiresAt) {
-          const expiresDate = typeof data.expiresAt.toDate === 'function' ? data.expiresAt.toDate() : new Date(data.expiresAt);
+          const expiresDate = typeof data.expiresAt.toDate === 'function'
+            ? data.expiresAt.toDate()
+            : typeof data.expiresAt.toMillis === 'function'
+            ? new Date(data.expiresAt.toMillis())
+            : new Date(data.expiresAt);
           if (expiresDate < new Date()) {
             isExpired = true;
           }
@@ -117,6 +141,7 @@ export class FirestoreBookingRepository implements BookingRepository {
       const doc = await t.get(slotRef);
       if (doc.exists) {
         const data = doc.data();
+        // Safe non-blind delete guard: must match lockId and have NO active booking
         if (data?.lockId === lockId && !data.bookingId) {
           t.delete(slotRef);
         }
@@ -148,28 +173,24 @@ export class FirestoreBookingRepository implements BookingRepository {
     return BookingMapper.toEntity(snapshot.docs[0]);
   }
 
-  async findExpiredLocks(timeoutThreshold: Date): Promise<Booking[]> {
+  /**
+   * Finds stale/expired bookings awaiting payment or pending beyond a threshold timeout.
+   */
+  async findStaleBookings(timeoutThreshold: Date, limitCount: number = 500): Promise<Booking[]> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
-    const query = adminDb.collection('bookings').where('status', 'in', ['awaiting_payment', 'pending']);
-    const snapshot = await query.get();
-    
-    const bookings: Booking[] = [];
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      let createdAtDate: Date | null = null;
-      if (data?.createdAt) {
-        const ca = data.createdAt;
-        if (ca && typeof ca === 'object' && 'toDate' in ca && typeof (ca as { toDate: () => unknown }).toDate === 'function') {
-          createdAtDate = (ca as { toDate: () => Date }).toDate();
-        } else {
-          createdAtDate = new Date(ca as string | number);
-        }
-      }
-      if (createdAtDate && createdAtDate < timeoutThreshold) {
-        bookings.push(BookingMapper.toEntity(doc));
-      }
-    }
-    return bookings;
+    const snapshot = await adminDb.collection('bookings')
+      .where('status', 'in', ['awaiting_payment', 'pending'])
+      .where('createdAt', '<', Timestamp.fromDate(timeoutThreshold))
+      .limit(limitCount)
+      .get();
+    return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
+  }
+
+  /**
+   * @deprecated Use findStaleBookings instead.
+   */
+  async findExpiredLocks(timeoutThreshold: Date): Promise<Booking[]> {
+    return this.findStaleBookings(timeoutThreshold);
   }
 
   async save(booking: Booking, transaction?: Transaction): Promise<void> {
@@ -187,17 +208,21 @@ export class FirestoreBookingRepository implements BookingRepository {
     }
   }
 
-  async findAll(): Promise<Booking[]> {
+  async findAll(limitCount: number = 500): Promise<Booking[]> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
-    const snapshot = await adminDb.collection('bookings').orderBy('createdAt', 'desc').get();
+    const snapshot = await adminDb.collection('bookings')
+      .orderBy('createdAt', 'desc')
+      .limit(limitCount)
+      .get();
     return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
   }
 
-  async findByTherapistId(therapistId: string): Promise<Booking[]> {
+  async findByTherapistId(therapistId: string, limitCount: number = 500): Promise<Booking[]> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const snapshot = await adminDb.collection('bookings')
       .where('therapistId', '==', therapistId)
       .orderBy('createdAt', 'desc')
+      .limit(limitCount)
       .get();
     return snapshot.docs.map(doc => BookingMapper.toEntity(doc));
   }

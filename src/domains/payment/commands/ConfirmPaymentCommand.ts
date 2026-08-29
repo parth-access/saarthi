@@ -50,10 +50,14 @@ export class ConfirmPaymentCommandHandler implements CommandHandler<ConfirmPayme
         throw new Error('Payment order booking ID mismatch');
       }
 
-      // Idempotent execution: if payment is already marked as success, verify payment ID consistency and return early
+      // Idempotent execution: if payment is already marked as success, verify payment ID consistency and save signature if newly provided
       if (payment.status === 'success') {
         if (payment.razorpayPaymentId && payment.razorpayPaymentId !== paymentId && !paymentId.startsWith('mock_')) {
           throw new Error('Order already confirmed with a different payment ID');
+        }
+        if (signature && !payment.razorpaySignature) {
+          payment.razorpaySignature = signature;
+          await firestorePaymentRepository.save(payment, transaction);
         }
         return;
       }

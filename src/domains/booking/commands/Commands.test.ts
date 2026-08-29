@@ -703,7 +703,8 @@ describe('Command Handlers Suite', () => {
         status: 'awaiting_payment',
         orderCreationInProgress: true,
         orderCreationStartedAt: Date.now() - 120000,
-        email: 'patient@example.com'
+        email: 'patient@example.com',
+        paymentAmount: 1500
       });
 
       const mockDocUpdate = vi.fn().mockResolvedValue(true);
@@ -711,7 +712,7 @@ describe('Command Handlers Suite', () => {
         update: mockDocUpdate,
         collection: vi.fn(() => ({ doc: vi.fn(() => ({ set: vi.fn() })) }))
       };
-      vi.spyOn(adminDb, 'collection').mockReturnValue({
+      const collectionSpy = vi.spyOn(adminDb, 'collection').mockReturnValue({
         doc: vi.fn().mockReturnValue(mockDocRef)
       } as any);
 
@@ -739,6 +740,8 @@ describe('Command Handlers Suite', () => {
         orderCreationInProgress: false,
         orderCreationStartedAt: expect.anything()
       });
+
+      collectionSpy.mockRestore();
     });
   });
 
@@ -1276,15 +1279,28 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
 
       const mockTx = {
-        get: vi.fn().mockResolvedValue({
+        get: vi.fn().mockImplementation(async () => ({
           exists: true,
-          data: () => ({ authId: 'therapist_abc' })
-        }),
+          data: () => ({
+            authId: 'therapist_abc',
+            id: 'evt_booking_bk_1_rejected',
+            name: 'BookingRejected',
+            status: 'pending',
+            attempts: 0,
+            payload: {
+              bookingId: 'bk_1',
+              booking: mockBooking,
+              reason: 'Scheduling conflict',
+              declinedBy: 'therapist_abc',
+              customNote: 'Sorry Jane'
+            }
+          })
+        })),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
       };
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
       });
 
@@ -1324,36 +1340,47 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
 
       const mockTx = {
-        get: vi.fn()
-          .mockResolvedValueOnce({
+        get: vi.fn().mockImplementation(async (ref: any) => {
+          if (typeof ref?.id === 'string' && ref.id.includes('14:00')) {
+            return { exists: false };
+          }
+          if (typeof ref?.id === 'string' && ref.id.includes('10:00')) {
+            return {
+              exists: true,
+              data: () => ({ bookingId: 'bk_reschedule_1' })
+            };
+          }
+          return {
             exists: true,
+            empty: true,
+            docs: [],
             data: () => ({ authId: 'therapist_uid_1' })
-          })
-          .mockResolvedValueOnce({ exists: false }),
+          };
+        }),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
       };
 
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
         uid: 'therapist_uid_1',
         role: 'therapist'
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(updatedBooking.date).toBe('2026-08-31');
       expect(updatedBooking.time).toBe('14:00');
       expect(mockTx.delete).toHaveBeenCalled(); // Old slot released
       expect(mockTx.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           therapistId: 'therapist_1',
-          date: '2026-08-12',
+          date: '2026-08-31',
           time: '14:00',
           bookingId: 'bk_reschedule_1'
         })
@@ -1384,7 +1411,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
         uid: 'therapist_uid_1',
         role: 'therapist'
       });
@@ -1408,14 +1435,14 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
         uid: 'admin_uid_999',
         role: 'admin'
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(updatedBooking.date).toBe('2026-08-31');
       expect(updatedBooking.time).toBe('14:00');
     });
 
@@ -1434,13 +1461,13 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-15', '16:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '16:00', {
         isTokenFlow: true
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-15');
+      expect(updatedBooking.date).toBe('2026-08-31');
       expect(updatedBooking.time).toBe('16:00');
       expect(mockTx.set).toHaveBeenCalledWith(
         expect.anything(),
@@ -1459,7 +1486,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('invalid_id', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('invalid_id', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Booking not found");
@@ -1482,7 +1509,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_cancelled', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_cancelled', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
@@ -1505,7 +1532,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_rejected', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_rejected', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
@@ -1525,7 +1552,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
@@ -1552,11 +1579,11 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-12');
+      expect(updatedBooking.date).toBe('2026-08-31');
       expect(mockTx.delete).toHaveBeenCalled(); // Expired lock deleted
     });
 
@@ -1567,7 +1594,7 @@ describe('Command Handlers Suite', () => {
         throw new Error("This new slot is already booked.");
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
@@ -1589,7 +1616,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-12', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
@@ -1620,12 +1647,24 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
 
       const mockTx = {
-        get: vi.fn(),
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({
+            id: 'evt_booking_bk_admin_confirm_1_confirmed',
+            name: 'BookingConfirmed',
+            status: 'pending',
+            attempts: 0,
+            payload: {
+              bookingId: 'bk_admin_confirm_1',
+              booking: mockBooking,
+            }
+          })
+        }),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
       };
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx as any));
 
       const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
       const handler = new AdminConfirmBookingCommandHandler();
@@ -1774,12 +1813,24 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
 
       const mockTx1 = {
-        get: vi.fn(),
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({
+            id: 'evt_booking_bk_admin_confirm_1_confirmed',
+            name: 'BookingConfirmed',
+            status: 'pending',
+            attempts: 0,
+            payload: {
+              bookingId: 'bk_admin_confirm_1',
+              booking: mockBooking,
+            }
+          })
+        }),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
       };
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx1 as any));
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx1 as any));
 
       const adminCmd = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
       const adminHandler = new AdminConfirmBookingCommandHandler();
@@ -1804,12 +1855,24 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
 
       const mockTx2 = {
-        get: vi.fn(),
+        get: vi.fn().mockImplementation(async () => ({
+          exists: true,
+          data: () => ({
+            id: 'evt_booking_bk_admin_confirm_1_confirmed',
+            name: 'BookingConfirmed',
+            status: 'processed',
+            attempts: 1,
+            payload: {
+              bookingId: 'bk_admin_confirm_1',
+              booking: mockBooking,
+            }
+          })
+        })),
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
       };
-      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx2 as any));
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx2 as any));
 
       const confirmPaymentCmd = new ConfirmBookingCommand('pay_razorpay_123', 'order_123', 'sig_123', 'verify_api');
       const confirmPaymentHandler = new ConfirmBookingCommandHandler();

@@ -87,7 +87,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
     });
 
     const outboxEventId = generateDeterministicEventId('booking', bookingId, isDecline ? 'rejected' : 'cancelled');
-    OutboxProcessor.processEvent(outboxEventId).catch((err) => {
+    await OutboxProcessor.processEvent(outboxEventId).catch((err) => {
       console.error('[CancelBookingCommandHandler] Async outbox processing error:', err);
     });
 

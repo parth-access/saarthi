@@ -17,6 +17,7 @@ describe('BookingDomainService', () => {
       releaseSlot: vi.fn(),
       findById: vi.fn(),
       findByToken: vi.fn(),
+      findStaleBookings: vi.fn(),
       findExpiredLocks: vi.fn(),
       save: vi.fn(),
       findAll: vi.fn(),
@@ -70,6 +71,21 @@ describe('BookingDomainService', () => {
     await service.cancelBooking(booking, 'Customer requested cancellation');
     expect(booking.status).toBe('cancelled');
     expect(booking.declineReason).toBe('Customer requested cancellation');
+    expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+  });
+
+  it('should revert in-memory status if save fails on cancelBooking', async () => {
+    const booking = new Booking({ id: 'bk_1', status: 'confirmed' });
+    mockRepository.save = vi.fn().mockRejectedValue(new Error('Firestore write failed'));
+    await expect(service.cancelBooking(booking, 'Customer requested cancellation')).rejects.toThrow('Firestore write failed');
+    expect(booking.status).toBe('confirmed');
+  });
+
+  it('should transition to no_show and assign noShowReason and save', async () => {
+    const booking = new Booking({ id: 'bk_1', status: 'confirmed' });
+    await service.markNoShow(booking, 'Client did not attend session');
+    expect(booking.status).toBe('no_show');
+    expect(booking.noShowReason).toBe('Client did not attend session');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
   });
 

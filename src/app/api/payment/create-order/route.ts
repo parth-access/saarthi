@@ -21,13 +21,13 @@ export async function POST(request: Request) {
 
     const payloadSchema = z.object({
       bookingId: z.string().min(1)
-    }).strict();
+    });
 
     const body = await request.json().catch(() => null);
     const parsed = payloadSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid payload format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     const { bookingId } = parsed.data;

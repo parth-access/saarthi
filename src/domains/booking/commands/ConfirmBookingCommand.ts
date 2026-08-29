@@ -72,8 +72,19 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           throw new Error('razorpayOrderId mismatch');
         }
 
-        // Idempotent exit: if already confirmed or paid, return silently without raising error or re-dispatching side-effects
-        if (data.status === 'confirmed' || data.paymentStatus === 'paid') {
+        // Idempotent exit: if already paid, return silently without raising error or re-dispatching side-effects
+        if (data.paymentStatus === 'paid') {
+          return;
+        }
+
+        if (data.status === 'confirmed') {
+          data.paymentStatus = 'paid';
+          data.razorpayPaymentId = razorpayPaymentId;
+          const verifiedAt = FieldValue.serverTimestamp();
+          data.paymentVerifiedAt = verifiedAt;
+          data.updatedAt = verifiedAt;
+          await firestoreBookingRepository.save(data, transaction);
+          shouldSendEmail = false;
           return;
         }
 

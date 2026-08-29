@@ -47,7 +47,9 @@ export class RescheduleBookingCommandHandler {
       }
 
       // Defense-in-depth Access Control Guard
-      if (command.session.role === 'therapist') {
+      if (command.session.role === 'admin') {
+        // Admin is authorized to reschedule any booking
+      } else if (command.session.role === 'therapist') {
         const therapistDoc = await t.get(adminDb.collection('therapists').doc(booking.therapistId));
         if (!therapistDoc.exists || therapistDoc.data()?.authId !== command.session.uid) {
           throw new Error("Unauthorized to modify this booking");
