@@ -12,6 +12,8 @@ export default function robots(): MetadataRoute.Robots {
         '/admin/*',
         '/secure',
         '/secure/*',
+        '/manage-booking',
+        '/manage-booking/*',
         '/api/*',
       ],
     },

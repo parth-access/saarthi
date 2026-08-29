@@ -232,9 +232,9 @@ describe('GoogleCalendarService', () => {
 
   describe('CalendarListener Integration', () => {
     it('should subscribe and handle BookingConfirmed and BookingCancelled events', async () => {
-      const handlers: Record<string, Function> = {};
+      const handlers: Record<string, (data: unknown) => Promise<void> | void> = {};
       const mockEventBus = {
-        subscribe: vi.fn((event: string, handler: Function) => {
+        subscribe: vi.fn((event: string, handler: (data: unknown) => Promise<void> | void) => {
           handlers[event] = handler;
         })
       };
