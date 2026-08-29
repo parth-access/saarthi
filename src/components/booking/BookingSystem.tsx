@@ -24,6 +24,8 @@ import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
 
+import { BookingFormData } from "../../core/validations/booking.schema"
+
 interface BookingState {
   therapistId: string;
   sessionType: SessionType | "";
@@ -35,6 +37,7 @@ interface BookingState {
   gender: string;
   age: string;
   message: string;
+  consent?: boolean;
 }
 
 const loadRazorpay = (): Promise<boolean> => {
@@ -172,7 +175,7 @@ const BookingSystem = () => {
     }
   }
 
-  const handleDetailsSubmit = (details: { name: string; email: string; phone: string; gender: string; age: string; message?: string }) => {
+  const handleDetailsSubmit = (details: BookingFormData) => {
     trackBookingStarted({ step: 5 })
     setBookingData(prev => ({ ...prev, ...details }))
     handleNext()
@@ -334,7 +337,7 @@ const BookingSystem = () => {
           />
         )
       case 5:
-        return <DetailsStep initialData={bookingData} onNext={handleDetailsSubmit} onBack={handleBack} />
+        return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} />
       case 6:
         return (
           <ReviewStep 

@@ -3,6 +3,7 @@ import { format, addDays, startOfToday, isToday, isTomorrow } from "date-fns"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { cn } from "../../../lib/utils"
+import { BOOKING_WINDOW_DAYS } from "../../../shared/constants"
 
 interface Props {
   selectedDate: string;
@@ -21,7 +22,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
       
       <div className="relative">
         <div className="flex overflow-x-auto gap-4 pb-6 pt-4 snap-x snap-mandatory no-scrollbar w-full px-4 sm:px-0 -mx-4 sm:mx-0 mask-edges">
-          {[...Array(14)].map((_, i) => {
+          {[...Array(BOOKING_WINDOW_DAYS)].map((_, i) => {
             const day = addDays(startOfToday(), i)
             const dateStr = format(day, "yyyy-MM-dd")
             const isSelected = selectedDate === dateStr
@@ -33,6 +34,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
             return (
               <button
                 key={dateStr}
+                type="button"
                 onClick={() => onSelect(dateStr)}
                 className={cn(
                   "snap-center shrink-0 w-28 py-5 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group",
@@ -77,12 +79,6 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
           Find Slots <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .mask-edges { mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent); }
-      `}} />
     </div>
   );
 };

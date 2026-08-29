@@ -1,19 +1,6 @@
 export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
-  category:
-    | 'BOOKING'
-    | 'EMAIL'
-    | 'FIRESTORE'
-    | 'AUTH'
-    | 'MANAGE_BOOKING'
-    | 'SYSTEM'
-    | 'THERAPIST_MUTATION'
-    | 'PAYMENT'
-    | 'THERAPIST_AUTH'
-    | 'THERAPIST_AUTH2'
-    | 'CALENDAR'
-    | 'ADMIN_CALENDAR'
-    | 'JOIN_SESSION';
+  category: 'BOOKING' | 'EMAIL' | 'FIRESTORE' | 'AUTH' | 'MANAGE_BOOKING' | 'SYSTEM' | 'THERAPIST_MUTATION' | 'PAYMENT' | 'THERAPIST_AUTH' | 'THERAPIST_AUTH2' | 'CALENDAR' | 'ADMIN_CALENDAR' | 'JOIN_SESSION';
   message: string;
   data?: unknown;
   error?: unknown;

@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1f5e3b;
-  --color-primary-foreground: #ffffff;
-  --color-accent: #e6a520;
-  --color-accent-foreground: #ffffff;
-  --color-background: #fffbe7;
-  --color-text: #1a1a1a;
-  --color-muted: #e5e7eb;
-  --color-muted-foreground: #4b5563;
+  --color-primary: #1F5E3B;
+  --color-primary-foreground: #FFFFFF;
+  --color-accent: #E6A520;
+  --color-accent-foreground: #FFFFFF;
+  --color-background: #FFFBE7;
+  --color-text: #1A1A1A;
+  --color-muted: #E5E7EB;
+  --color-muted-foreground: #4B5563;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", serif;
@@ -25,12 +25,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif);
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -70,4 +65,17 @@
     font-size: 1rem;
     line-height: 1.6;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mask-edges {
+  mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
 }
