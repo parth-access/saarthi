@@ -33,7 +33,9 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       therapistId = data.therapistId;
 
       // Defense-in-depth Access Control Guard
-      if (sessionRole === 'therapist') {
+      if (sessionRole === 'admin') {
+        // Admin is authorized to cancel or decline any booking
+      } else if (sessionRole === 'therapist') {
         const therapistDoc = await t.get(adminDb.collection('therapists').doc(data.therapistId));
         if (!therapistDoc || !therapistDoc.exists || therapistDoc.data()?.authId !== cancelledBy) {
           throw new Error('Unauthorized to modify this booking');

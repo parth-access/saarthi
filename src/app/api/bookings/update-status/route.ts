@@ -15,11 +15,61 @@ import {
 import { BookingStatus } from '@/types';
 import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 
+const VALID_BOOKING_STATUSES = [
+  'pending',
+  'pending_approval',
+  'awaiting_payment',
+  'pending_payment',
+  'confirmed',
+  'rejected',
+  'cancelled',
+  'completed',
+  'draft',
+  'locked',
+  'slot_locked',
+  'payment_initiated',
+  'payment_started',
+  'rescheduled',
+  'expired',
+  'no_show',
+] as const;
+
+const STATUS_EVENT_NAMES: Record<string, string> = {
+  draft: 'BookingDraft',
+  awaiting_payment: 'BookingAwaitingPayment',
+  pending_payment: 'BookingPendingPayment',
+  pending: 'BookingPending',
+  pending_approval: 'BookingPendingApproval',
+  confirmed: 'BookingConfirmed',
+  rescheduled: 'BookingRescheduled',
+  completed: 'BookingCompleted',
+  no_show: 'BookingNoShow',
+  cancelled: 'BookingCancelled',
+  rejected: 'BookingRejected',
+  locked: 'BookingSlotLocked',
+  slot_locked: 'BookingSlotLocked',
+  payment_initiated: 'BookingPaymentInitiated',
+  payment_started: 'BookingPaymentInitiated',
+  expired: 'BookingExpired'
+};
+
 const schema = z.object({
-  bookingId: z.string(),
-  status: z.string(),
-  reason: z.string().optional()
+  bookingId: z.string().min(1, 'Booking ID is required'),
+  status: z.enum(VALID_BOOKING_STATUSES),
+  reason: z.string().optional(),
+  customNote: z.string().optional()
 });
+
+function getErrorResponse(error: unknown) {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (msg.includes('Unauthorized') || msg.includes('Forbidden')) {
+    return NextResponse.json({ success: false, error: msg }, { status: 403 });
+  }
+  if (msg.toLowerCase().includes('not found')) {
+    return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+  }
+  return NextResponse.json({ success: false, error: msg || 'Failed to update status' }, { status: 400 });
+}
 
 export async function POST(req: Request) {
   try {
@@ -29,9 +79,11 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const parsed = schema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid data', details: parsed.error.format() }, { status: 400 });
+    }
     
-    const { bookingId, status, reason } = parsed.data;
+    const { bookingId, status, reason, customNote } = parsed.data;
 
     let therapistAuthId = '';
     if (session.role === 'therapist') {
@@ -45,7 +97,8 @@ export async function POST(req: Request) {
         role: session.role || 'therapist'
       });
       if (!result.success) {
-        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+        const isAuth = result.error?.includes('Unauthorized') || result.error?.includes('Forbidden');
+        return NextResponse.json({ success: false, error: result.error }, { status: isAuth ? 403 : 400 });
       }
       return NextResponse.json(result);
     }
@@ -57,18 +110,20 @@ export async function POST(req: Request) {
         role: session.role || 'therapist'
       }, reason || 'Student did not attend');
       if (!result.success) {
-        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+        const isAuth = result.error?.includes('Unauthorized') || result.error?.includes('Forbidden');
+        return NextResponse.json({ success: false, error: result.error }, { status: isAuth ? 403 : 400 });
       }
       return NextResponse.json(result);
     }
 
-    // Handle cancellation or rejection using CancelBookingCommand
+    // Handle cancellation or rejection using CancelBookingCommand with reason and customNote
     if (status === 'cancelled' || status === 'rejected') {
       const command = new CancelBookingCommand(
         bookingId,
-        'Status updated by therapist/admin',
+        reason || 'Status updated by therapist/admin',
         session.uid,
-        session.role
+        session.role,
+        customNote
       );
       const handler = new CancelBookingCommandHandler();
       await handler.execute(command);
@@ -87,8 +142,7 @@ export async function POST(req: Request) {
     }
 
     const normTo = BookingStateMachine.normalizeStatus(status as BookingStatus);
-    const camelTo = normTo.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
-    const eventName = `Booking${camelTo.charAt(0).toUpperCase() + camelTo.slice(1)}`;
+    const eventName = STATUS_EVENT_NAMES[normTo] || `Booking${normTo.charAt(0).toUpperCase() + normTo.slice(1)}`;
     const outboxEventId = generateDeterministicEventId('booking', bookingId, normTo);
 
     await adminDb.runTransaction(async (t) => {
@@ -107,6 +161,7 @@ export async function POST(req: Request) {
       data.updatedAt = FieldValue.serverTimestamp();
       await firestoreBookingRepository.save(data, t);
 
+      // Trim sensitive user PII from outbox event payload
       OutboxService.recordEventInTransaction(t, {
         id: outboxEventId,
         name: eventName,
@@ -114,12 +169,16 @@ export async function POST(req: Request) {
         aggregateId: bookingId,
         payload: {
           bookingId,
-          booking: { ...data },
-          previousStatus,
           targetStatus: status,
+          previousStatus,
+          therapistId: data.therapistId,
+          date: data.date,
+          time: data.time,
+          sessionType: data.sessionType,
           metadata: {
             updatedBy: session.uid,
             role: session.role,
+            reason: reason || undefined
           }
         }
       });
@@ -129,7 +188,7 @@ export async function POST(req: Request) {
         action: 'status_updated',
         status,
         timestamp: FieldValue.serverTimestamp(),
-        details: `Booking status changed to ${status}`,
+        details: reason ? `Booking status changed to ${status}: ${reason}` : `Booking status changed to ${status}`,
         userId: session.uid
       });
     });
@@ -140,8 +199,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    const msg = (error instanceof Error ? error.message : String(error)).includes('not found') ? 'Booking not found' : 
-                (error instanceof Error ? error.message : String(error)).includes('Unauthorized') ? 'Unauthorized' : 'Failed to update status';
-    return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    return getErrorResponse(error);
   }
 }

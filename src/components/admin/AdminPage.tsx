@@ -23,11 +23,18 @@ import { ScheduleBuilder } from "@/components/dashboard/ScheduleBuilder"
 import { ContactsPanel } from "@/components/admin/ContactsPanel"
 import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel"
 
+const getErrorMessage = (err: unknown, fallback = "An unexpected error occurred."): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return fallback;
+};
+
 export const AdminPage = () => {
   const [bookings, setBookings] = React.useState<Booking[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState("")
   const [processingId, setProcessingId] = React.useState<string | null>(null)
+  const [processingTherapistId, setProcessingTherapistId] = React.useState<string | null>(null)
   
   const { currentUser } = useAuth()
   const [myTherapistProfile, setMyTherapistProfile] = React.useState<Therapist | null>(null)
@@ -55,9 +62,7 @@ export const AdminPage = () => {
       if (currentUser.role === 'admin') {
         const ths = await therapistService.getTherapists(true);
         setAllTherapists(ths);
-        if (ths.length > 0 && !adminSelectedTherapistId) {
-          setAdminSelectedTherapistId(ths[0].id);
-        }
+        setAdminSelectedTherapistId(prev => (prev || (ths.length > 0 ? ths[0].id : "")));
 
         const data = await bookingService.getBookings();
         setBookings(data)
@@ -76,15 +81,26 @@ export const AdminPage = () => {
 
     } catch (err) {
       console.error("Fetch data error:", err)
-      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "An unexpected error occurred while fetching data.")
+      setError(getErrorMessage(err, "An unexpected error occurred while fetching data."))
     } finally {
       setLoading(false)
     }
-  }, [adminSelectedTherapistId, currentUser?.role, currentUser?.uid]);
+  }, [currentUser?.role, currentUser?.uid]);
 
   React.useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Escape key handler for decline modal
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && declineBookingDoc && !isDeclining) {
+        setDeclineBookingDoc(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [declineBookingDoc, isDeclining]);
 
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
@@ -93,7 +109,7 @@ export const AdminPage = () => {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b))
     } catch (err) {
       console.error("Update status error:", err)
-      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "Something went wrong while updating the booking status.")
+      setError(getErrorMessage(err, "Something went wrong while updating the booking status."))
     } finally {
       setProcessingId(null)
     }
@@ -110,7 +126,7 @@ export const AdminPage = () => {
       setDeclineNote("");
     } catch (err) {
       console.error("Decline status error:", err)
-      setError(err instanceof Error ? (err instanceof Error ? err.message : String(err)) : "Failed to decline booking.")
+      setError(getErrorMessage(err, "Failed to decline booking."))
     } finally {
       setIsDeclining(false);
     }
@@ -120,8 +136,6 @@ export const AdminPage = () => {
     logout();
     navigate.push('/');
   }
-
-  const filteredBookings = bookings;
 
   const scheduleBuilderNode = (
     <div className="w-full">
@@ -171,21 +185,26 @@ export const AdminPage = () => {
             <Button
               variant="outline"
               size="sm"
-              disabled={loading}
-              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide cursor-pointer"
+              disabled={processingTherapistId === t.id}
+              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide cursor-pointer disabled:opacity-50"
               onClick={async () => {
                 try {
-                  setLoading(true);
+                  setProcessingTherapistId(t.id);
                   await therapistService.updateTherapistStatus(t.id, !t.active);
-                  await fetchData();
+                  setAllTherapists(prev => prev.map(item => item.id === t.id ? { ...item, active: !item.active } : item));
                 } catch (e) {
-                  console.error(e);
+                  console.error("Update therapist status error:", e);
+                  setError(getErrorMessage(e, "Failed to update therapist status."));
                 } finally {
-                  setLoading(false);
+                  setProcessingTherapistId(null);
                 }
               }}
             >
-              {t.active ? "Deactivate" : "Activate"}
+              {processingTherapistId === t.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                t.active ? "Deactivate" : "Activate"
+              )}
             </Button>
           </div>
         </div>
@@ -197,7 +216,7 @@ export const AdminPage = () => {
     <>
       <TherapistDashboard 
         therapist={myTherapistProfile}
-        bookings={currentUser?.role === 'admin' ? filteredBookings : bookings}
+        bookings={bookings}
         loading={loading}
         error={error}
         onRefresh={fetchData}
@@ -214,7 +233,7 @@ export const AdminPage = () => {
 
       <AnimatePresence>
         {declineBookingDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -230,7 +249,7 @@ export const AdminPage = () => {
             >
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0 animate-pulse">
+                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
                     <XCircle className="w-6 h-6" />
                   </div>
                   <div className="text-left">

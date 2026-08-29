@@ -86,11 +86,11 @@ export const bookingService = {
     }
   },
 
-  updateStatus: async (id: string, status: BookingStatus) => {
+  updateStatus: async (id: string, status: BookingStatus, reason?: string, customNote?: string) => {
     try {
       await fetchWithAuth('/api/bookings/update-status', {
         method: 'POST',
-        body: JSON.stringify({ bookingId: id, status })
+        body: JSON.stringify({ bookingId: id, status, reason, customNote })
       });
       logger.success('BOOKING', 'Updated booking status successfully', { bookingId: id, status });
       return { success: true };
@@ -100,11 +100,11 @@ export const bookingService = {
     }
   },
 
-  declineBooking: async (id: string, adminUid: string, reason: string, customNote: string) => {
+  declineBooking: async (id: string, adminUid: string, reason: string, customNote?: string) => {
     try {
-      await fetchWithAuth('/api/bookings/decline', {
+      await fetchWithAuth('/api/bookings/update-status', {
         method: 'POST',
-        body: JSON.stringify({ bookingId: id, reason, customNote })
+        body: JSON.stringify({ bookingId: id, status: 'rejected', reason, customNote })
       });
       logger.success('BOOKING', 'Declined booking successfully', { bookingId: id });
       return { success: true };
