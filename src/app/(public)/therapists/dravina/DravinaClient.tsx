@@ -58,7 +58,7 @@ export default function DravinaProfilePage() {
         languages={dravinaData.languages}
         experience={dravinaData.experience}
         shortIntro={dravinaData.shortIntro}
-        image="/about_page.png"
+        image="/dravina.png"
       />
       
       <AboutSection content={dravinaData.aboutContent} />

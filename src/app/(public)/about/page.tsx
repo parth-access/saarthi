@@ -1,6 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import AboutClient from './AboutClient';
+import { ogImage } from '@/lib/og';
+
+const aboutOgImageUrl = ogImage(
+  'About Saarthi — Meet Our Founders',
+  'A safe space founded by professional psychologists to walk with you on your emotional journey.'
+);
 
 export const metadata: Metadata = {
   title: 'About Saarthi — Our Founders, Mission & Team',
@@ -11,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com/about',
     images: [
       {
-        url: '/api/og?title=About Saarthi — Meet Our Founders&description=A safe space founded by professional psychologists to walk with you on your emotional journey.',
+        url: aboutOgImageUrl,
         width: 1200,
         height: 630,
         alt: 'About Saarthi Team and Founders',
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'About Saarthi — Our Founders, Mission & Team',
     description: 'Learn about Saarthi, the safe online mental health space founded by empathetic professionals. Meet founders Dravina and Krishna.',
-    images: ['/api/og?title=About Saarthi — Meet Our Founders&description=A safe space founded by professional psychologists to walk with you on your emotional journey.'],
+    images: [aboutOgImageUrl],
   },
   alternates: {
     canonical: '/about',

@@ -15,10 +15,10 @@ const fallbackTherapists: Therapist[] = [
   {
     id: "1",
     name: "Dravina Gupta",
-    specialization: "Psychologist",
+    specialization: "Psychologist & Clinical Counsellor",
     experience: "1+ Years",
-    bio: "Specializing in anxiety, depression, and mindfulness-based stress reduction. I believe in a compassionate, non-judgmental approach to healing.",
-    image: "/about_page.png",
+    bio: "Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.",
+    image: "/dravina.png",
     active: true
   }
 ]
@@ -115,7 +115,10 @@ export default function TherapistsPage() {
                     </div>
                     <CardHeader className="p-8">
                       <div className="space-y-2">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-accent">{therapist.specialization}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] uppercase font-black tracking-widest text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">{therapist.specialization}</span>
+                          <span className="text-[10px] font-semibold text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">Verified M.A. Clinical Psych</span>
+                        </div>
                         <CardTitle className="text-3xl font-serif text-primary group-hover:text-accent transition-colors">{therapist.name}</CardTitle>
                         <CardDescription className="text-muted-foreground line-clamp-3 leading-relaxed italic text-base">
                           &ldquo;{therapist.bio}&rdquo;

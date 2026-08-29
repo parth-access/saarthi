@@ -1,12 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import HomeClient from './HomeClient';
+import { ogImage } from '@/lib/og';
 
-const ogParams = new URLSearchParams({
-  title: 'Saarthi — Your Safe Space',
-  description: 'Book verified, empathetic therapists for online counselling sessions.',
-});
-const ogImageUrl = `/api/og?${ogParams.toString()}`;
+const ogImageUrl = ogImage(
+  'Saarthi — Your Safe Space',
+  'Book verified, empathetic therapists for online counselling sessions in India.'
+);
 
 export const metadata: Metadata = {
   title: 'Online Therapy & Mental Wellness Support in India',

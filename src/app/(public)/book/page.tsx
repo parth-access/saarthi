@@ -1,12 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import BookClient from './BookClient';
+import { ogImage } from '@/lib/og';
 
-const ogParams = new URLSearchParams({
-  title: 'Book Your Therapy Session',
-  description: 'Select a slot and reserve your confidential session with an empathetic professional.',
-});
-const ogImageUrl = `/api/og?${ogParams.toString()}`;
+const ogImageUrl = ogImage(
+  'Book Your Therapy Session',
+  'Select a slot and reserve your confidential session with an empathetic professional.'
+);
 
 export const metadata: Metadata = {
   title: 'Book an Online Therapy Session',

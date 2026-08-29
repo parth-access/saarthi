@@ -1,9 +1,17 @@
 import React from 'react';
 import { Metadata } from 'next';
 import TherapistsClient from './TherapistsClient';
+import { ogImage } from '@/lib/og';
+import { therapistService } from '@/services/therapistService';
+import { Therapist } from '@/types';
+
+const therapistsOgImageUrl = ogImage(
+  'Meet Our Verified Therapists',
+  'Connect with licensed, empathetic psychologists holding verified credentials on Saarthi.'
+);
 
 export const metadata: Metadata = {
-  title: 'Our Certified Online Therapists & Psychologists | Saarthi',
+  title: 'Our Certified Online Therapists & Psychologists',
   description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Find clinical therapists specializing in mindfulness, anxiety, depression, CBT, and stress management.',
   openGraph: {
     title: 'Our Certified Online Therapists & Psychologists | Saarthi',
@@ -11,7 +19,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com/therapists',
     images: [
       {
-        url: '/api/og?title=Meet Our Verified Therapists&description=Connect with licensed, empathetic psychologists holding verified credentials on Saarthi.',
+        url: therapistsOgImageUrl,
         width: 1200,
         height: 630,
         alt: 'Saarthi Certified Therapists and Psychologists',
@@ -19,37 +27,70 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Our Certified Online Therapists & Psychologists | Saarthi',
     description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Find clinical therapists.',
-    images: ['/api/og?title=Meet Our Verified Therapists&description=Connect with licensed, empathetic psychologists holding verified credentials on Saarthi.'],
+    images: [therapistsOgImageUrl],
   },
   alternates: {
     canonical: '/therapists',
   },
 };
 
-export default function Page() {
+const defaultTherapists: Therapist[] = [
+  {
+    id: '1',
+    name: 'Dravina Gupta',
+    specialization: 'Psychologist & Clinical Counsellor',
+    experience: '1+ Years',
+    bio: 'Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.',
+    image: '/dravina.png',
+    active: true,
+  },
+];
+
+export default async function Page() {
+  let therapists: Therapist[] = [];
+  try {
+    const fetched = await therapistService.getTherapists();
+    therapists = fetched && fetched.length > 0 ? fetched : defaultTherapists;
+  } catch {
+    therapists = defaultTherapists;
+  }
+
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'MedicalWebPage',
-    'name': 'Saarthi Certified Professional Therapists',
-    'description': 'Browse verified, empathetic clinical psychologists and counselors representing Saarthi online mental health network in Delhi and India.',
+    '@type': 'CollectionPage',
+    'name': 'Saarthi Certified Professional Therapists & Counsellors',
+    'description': 'Browse verified, empathetic clinical psychologists and counselors representing Saarthi online mental health network in India.',
+    'url': 'https://saarthilife.com/therapists',
     'mainEntity': {
       '@type': 'ItemList',
-      'itemListElement': [
-        {
+      'itemListElement': therapists.map((t, index) => {
+        const slug = t.name.toLowerCase().includes('dravina')
+          ? 'dravina'
+          : t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const profileUrl = `https://saarthilife.com/therapists/${slug}`;
+        const personId = `${profileUrl}/#person`;
+        const imageUrl = t.image
+          ? (t.image.startsWith('http') ? t.image : `https://saarthilife.com${t.image.startsWith('/') ? '' : '/'}${t.image}`)
+          : 'https://saarthilife.com/dravina.png';
+
+        return {
           '@type': 'ListItem',
-          'position': 1,
+          'position': index + 1,
           'item': {
             '@type': 'Person',
-            'name': 'Dravina Gupta',
-            'jobTitle': 'Founder & Psychologist',
-            'url': 'https://saarthilife.com/therapists/dravina',
-            'description': 'Specializing in anxiety, depression, relationship issues, and mindfulness-based stress reduction.'
-          }
-        }
-      ]
-    }
+            '@id': personId,
+            'url': profileUrl,
+            'name': t.name,
+            'jobTitle': t.specialization || 'Psychologist & Counsellor',
+            'image': imageUrl,
+            'description': t.bio,
+          },
+        };
+      }),
+    },
   };
 
   return (

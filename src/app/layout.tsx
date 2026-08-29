@@ -4,15 +4,15 @@ import "./globals.css";
 import Providers from './providers';
 import { Toaster } from "@/components/ui/Toaster";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { ogImage } from "@/lib/og";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
 
-const rootOgParams = new URLSearchParams({
-  title: "Saarthi — Your Safe Space",
-  description: "Book verified, empathetic therapists for online counselling sessions in India.",
-});
-const rootOgImageUrl = `/api/og?${rootOgParams.toString()}`;
+const rootOgImageUrl = ogImage(
+  "Saarthi — Your Safe Space",
+  "Book verified, empathetic therapists for online counselling sessions in India."
+);
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://saarthilife.com"),

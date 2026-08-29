@@ -28,7 +28,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
           >
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src="/vision_page.png"
+                src="/dravina.png"
                 alt="Dravina Gupta - Certified Psychologist at Saarthi"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"

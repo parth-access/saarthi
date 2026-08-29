@@ -1,6 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import ContactClient from './ContactClient';
+import { ogImage } from '@/lib/og';
+
+const contactOgImageUrl = ogImage(
+  'Contact Saarthi Support',
+  'Get in touch today. Our team is here to listen and guide you without judgment.'
+);
 
 export const metadata: Metadata = {
   title: 'Contact Saarthi — Online CBT, Anxiety & Wellness Counselling',
@@ -11,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com/contact',
     images: [
       {
-        url: '/api/og?title=Contact Saarthi Support&description=Get in touch today. Our team is here to listen and guide you without judgment.',
+        url: contactOgImageUrl,
         width: 1200,
         height: 630,
         alt: 'Contact Saarthi Counseling Platform',
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Contact Saarthi — Online CBT, Anxiety & Wellness Counselling',
     description: 'Contact Saarthi for professional counselling and online therapist sessions. Reach out today.',
-    images: ['/api/og?title=Contact Saarthi Support&description=Get in touch today. Our team is here to listen and guide you without judgment.'],
+    images: [contactOgImageUrl],
   },
   alternates: {
     canonical: '/contact',

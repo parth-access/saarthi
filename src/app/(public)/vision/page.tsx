@@ -1,6 +1,12 @@
 import React from 'react';
 import { Metadata } from 'next';
 import VisionClient from './VisionClient';
+import { ogImage } from '@/lib/og';
+
+const visionOgImageUrl = ogImage(
+  'Our Vision — Emotional Well-Being Made Simple',
+  'A noise-free sanctuary offering quiet support and holistic growth for mental health.'
+);
 
 export const metadata: Metadata = {
   title: 'Our Vision for Digital Mental Health | Saarthi',
@@ -11,7 +17,7 @@ export const metadata: Metadata = {
     url: 'https://saarthilife.com/vision',
     images: [
       {
-        url: '/api/og?title=Our Vision — Emotional Well-Being Made Simple&description=A noise-free sanctuary offering quiet support and holistic growth for mental health.',
+        url: visionOgImageUrl,
         width: 1200,
         height: 630,
         alt: 'Saarthi Vision and Philosophy',
@@ -19,9 +25,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Our Vision for Digital Mental Health | Saarthi',
     description: 'A noise-free sanctuary offering quiet support and holistic growth for mental health. Explore Saarthi’s vision.',
-    images: ['/api/og?title=Our Vision — Emotional Well-Being Made Simple&description=A noise-free sanctuary offering quiet support and holistic growth for mental health.'],
+    images: [visionOgImageUrl],
   },
   alternates: {
     canonical: '/vision',
