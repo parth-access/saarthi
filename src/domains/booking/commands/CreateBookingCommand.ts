@@ -11,6 +11,8 @@ import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { istToUtcIsoString } from '@/shared/utils/dateTime';
 import { logger } from '@/app/api/_lib/logger';
+import { calculateBookingPrice } from '../utils/pricing';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export class CreateBookingCommand implements Command {
   readonly name = 'CreateBookingCommand';
@@ -34,14 +36,12 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     }
 
     const utcDateTime = istToUtcIsoString(data.date, data.time);
-    const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+    const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
 
     const rawSessionMode = data.sessionMode?.toLowerCase();
     const normalizedSessionMode = rawSessionMode === 'in_person' ? 'in_person' : 'online';
-    let price = 1500;
-    if (normalizedSessionMode === 'in_person') price = 2000;
-    const amount = price;
+    const amount = calculateBookingPrice(data.sessionMode);
     const currency = 'INR';
 
     const holdExpiresAtDate = new Date(Date.now() + 10 * 60 * 1000);

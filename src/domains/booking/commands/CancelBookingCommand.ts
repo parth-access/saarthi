@@ -4,7 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
-import { sendEmailAction } from '@/app/api/email/emailSender';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export class CancelBookingCommand implements Command {
   readonly name = 'CancelBookingCommand';
@@ -13,7 +13,8 @@ export class CancelBookingCommand implements Command {
     public readonly reason: string,
     public readonly cancelledBy: string,
     public readonly sessionRole?: string,
-    public readonly customNote?: string
+    public readonly customNote?: string,
+    public readonly isTokenFlow?: boolean
   ) {}
 }
 
@@ -21,7 +22,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
   private readonly bookingDomainService = new BookingDomainService(firestoreBookingRepository);
 
   async execute(command: CancelBookingCommand): Promise<{ success: boolean }> {
-    const { bookingId, reason, cancelledBy, sessionRole, customNote } = command;
+    const { bookingId, reason, cancelledBy, sessionRole, customNote, isTokenFlow } = command;
     let isDecline = false;
     let therapistId = '';
 
@@ -31,11 +32,33 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
 
       therapistId = data.therapistId;
 
+      // Defense-in-depth Access Control Guard
       if (sessionRole === 'therapist') {
         const therapistDoc = await t.get(adminDb.collection('therapists').doc(data.therapistId));
         if (!therapistDoc || !therapistDoc.exists || therapistDoc.data()?.authId !== cancelledBy) {
           throw new Error('Unauthorized to modify this booking');
         }
+      } else if (isTokenFlow) {
+        if (data.invalidToken) {
+          throw new Error('Unauthorized: Booking token is invalidated');
+        }
+      } else if (cancelledBy) {
+        // Authenticated client user must own the booking
+        if (data.userId !== cancelledBy && data.email !== cancelledBy) {
+          throw new Error('Unauthorized: Client ownership mismatch');
+        }
+      } else {
+        throw new Error('Unauthorized: Cancel request requires a valid session or token context.');
+      }
+
+      // Block cancellation/decline of completed/no_show bookings
+      if (data.status === 'completed' || data.status === 'no_show') {
+        throw new Error('Cannot cancel or decline a completed or no-show booking');
+      }
+
+      // Idempotency: prevent re-cancelling already cancelled/rejected bookings
+      if (data.status === 'cancelled' || data.status === 'rejected') {
+        return;
       }
 
       // If booking is pending/awaiting_payment/confirmed, we can decline/cancel
@@ -57,9 +80,8 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       data.updatedAt = FieldValue.serverTimestamp();
       await firestoreBookingRepository.save(data, t);
 
-      const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
-      const slotRef = adminDb.collection('locked_slots').doc(slotId);
-      t.delete(slotRef);
+      // Safe non-blind slot delete using SlotReservationService
+      await SlotReservationService.releasePinInTransaction(t, data.therapistId, data.date, data.time, bookingId);
     });
 
     const outboxEventId = generateDeterministicEventId('booking', bookingId, isDecline ? 'rejected' : 'cancelled');
@@ -67,22 +89,6 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       console.error('[CancelBookingCommandHandler] Async outbox processing error:', err);
     });
 
-    if (isDecline && therapistId) {
-      try {
-        await sendEmailAction({
-          type: 'booking-declined',
-          bookingId,
-          therapistId,
-          declineReason: reason,
-          declineCustomNote: customNote
-        });
-      } catch (err) {
-        console.error('Failed to send decline email:', err);
-      }
-    }
-
     return { success: true };
   }
 }
-
-

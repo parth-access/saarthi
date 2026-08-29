@@ -7,6 +7,7 @@ import { BookingStateMachine } from '../state/BookingStateMachine';
 import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler, firestorePaymentRepository, razorpayGateway, Payment } from '@/domains/payment';
 import { SlotReservationService } from '../services/SlotReservationService';
 import { logger } from '@/app/api/_lib/logger';
+import { calculateBookingPrice } from '../utils/pricing';
 
 export class GeneratePaymentLinkCommand implements Command {
   readonly name = 'GeneratePaymentLinkCommand';
@@ -46,9 +47,10 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       // Re-use existing valid order ID if present (Idempotency requirement)
       if (txData.razorpayOrderId) {
         existingOrderId = txData.razorpayOrderId;
-        let price = 1500;
-        if (txData.sessionMode === 'in_person') price = 2000;
-        amount = txData.paymentAmount || price;
+        if (!txData.paymentAmount) {
+          throw new Error('Data corruption: Booking is missing paymentAmount');
+        }
+        amount = txData.paymentAmount;
         return;
       }
 
@@ -56,9 +58,10 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       const existingPayment = await firestorePaymentRepository.findByBookingId(bookingId, transaction);
       if (existingPayment?.razorpayOrderId) {
         existingOrderId = existingPayment.razorpayOrderId;
-        let price = 1500;
-        if (txData.sessionMode === 'in_person') price = 2000;
-        amount = txData.paymentAmount || price;
+        if (!txData.paymentAmount) {
+          throw new Error('Data corruption: Booking is missing paymentAmount');
+        }
+        amount = txData.paymentAmount;
 
         // Repair booking entity state
         txData.razorpayOrderId = existingOrderId;
@@ -112,9 +115,10 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         }
       }
 
-      let price = 1500;
-      if (txData.sessionMode === 'in_person') price = 2000;
-      amount = txData.paymentAmount || price;
+      if (!txData.paymentAmount) {
+        throw new Error('Data corruption: Booking is missing paymentAmount');
+      }
+      amount = txData.paymentAmount;
       therapistId = txData.therapistId;
       email = txData.email;
 
@@ -155,7 +159,7 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         const receiptMatches = existingRzpOrder.receipt === receipt;
         const amountMatches = existingRzpOrder.amount === amount * 100; // in paise
         const currencyMatches = (existingRzpOrder.currency || '').toUpperCase() === currency.toUpperCase();
-        const notesBookingIdMatches = !existingRzpOrder.notes?.bookingId || existingRzpOrder.notes.bookingId === bookingId;
+        const notesBookingIdMatches = existingRzpOrder.notes?.bookingId === bookingId;
 
         if (receiptMatches && amountMatches && currencyMatches && notesBookingIdMatches) {
           logger.info('PAYMENT', 'Recovered existing Razorpay order from gateway by receipt', { bookingId, orderId: existingRzpOrder.id });
@@ -210,6 +214,19 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
       await adminDb.runTransaction(async (transaction) => {
         const txData = await firestoreBookingRepository.findById(bookingId, transaction);
         if (!txData) throw new Error('Booking not found');
+
+        // Precondition check: if already confirmed/paid, do not overwrite status/paymentStatus
+        if (txData.status === 'confirmed' || txData.paymentStatus === 'paid' || txData.status === 'completed') {
+          // Reset the progress flag but do not clobber confirmed state
+          txData.orderCreationInProgress = false;
+          delete txData.orderCreationStartedAt;
+          // Store order ID anyway for completeness and reference
+          if (!txData.razorpayOrderId) {
+            txData.razorpayOrderId = orderId;
+          }
+          await firestoreBookingRepository.save(txData, transaction);
+          return;
+        }
 
         txData.paymentStatus = 'pending';
         txData.paymentAmount = amount;

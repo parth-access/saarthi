@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { logger } from '@/app/api/_lib/logger';
 import { OutboxProcessor, OutboxService, generateDeterministicEventId } from '@/shared/events/outbox';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export class FailPaymentCommand implements Command {
   readonly name = 'FailPaymentCommand';
@@ -66,12 +67,7 @@ export class FailPaymentCommandHandler implements CommandHandler<FailPaymentComm
       booking.updatedAt = FieldValue.serverTimestamp();
 
       // Release slot lock ONLY if this slot lock doc belongs to this specific booking
-      const slotId = `${booking.therapistId}_${booking.date}_${booking.time}`.replace(/\//g, '-');
-      const slotRef = adminDb.collection('locked_slots').doc(slotId);
-      const slotDoc = await transaction.get(slotRef);
-      if (slotDoc.exists && slotDoc.data()?.bookingId === bookingId) {
-        transaction.delete(slotRef);
-      }
+      await SlotReservationService.releasePinInTransaction(transaction, booking.therapistId, booking.date, booking.time, bookingId);
 
       await firestoreBookingRepository.save(booking, transaction);
 

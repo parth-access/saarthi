@@ -7,6 +7,7 @@ import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway } 
 import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export class ConfirmBookingCommand implements Command {
   readonly name = 'ConfirmBookingCommand';
@@ -88,7 +89,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         data.updatedAt = FieldValue.serverTimestamp();
         
         // Permanently record slot as booked to prevent any race condition
-        const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+        const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
         const slotRef = adminDb.collection('locked_slots').doc(slotId);
         transaction.set(slotRef, {
           therapistId: data.therapistId,

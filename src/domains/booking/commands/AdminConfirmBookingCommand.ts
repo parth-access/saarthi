@@ -8,6 +8,7 @@ import { BookingStateMachine } from '../state/BookingStateMachine';
 import { Booking } from '../entities/Booking';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
+import { SlotReservationService } from '../services/SlotReservationService';
 
 export interface AdminConfirmBookingSessionContext {
   uid?: string;
@@ -70,7 +71,7 @@ export class AdminConfirmBookingCommandHandler
       therapistId = booking.therapistId;
       bookingData = booking;
 
-      const slotId = `${booking.therapistId}_${booking.date}_${booking.time}`.replace(/\//g, '-');
+      const slotId = SlotReservationService.getSlotId(booking.therapistId, booking.date, booking.time);
       const slotRef = adminDb.collection('locked_slots').doc(slotId);
 
       if (booking.status === 'confirmed') {

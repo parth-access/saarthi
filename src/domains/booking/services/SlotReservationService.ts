@@ -19,6 +19,168 @@ export class SlotReservationService {
   }
 
   /**
+   * Safely releases/deletes a slot pin within an existing Firestore transaction,
+   * but ONLY if the pin belongs to the given bookingId (preventing blind deletes).
+   */
+  static async releasePinInTransaction(
+    t: Transaction,
+    therapistId: string,
+    date: string,
+    time: string,
+    bookingId: string
+  ): Promise<boolean> {
+    if (!adminDb) {
+      throw new Error('Firestore adminDb is not initialized.');
+    }
+
+    const slotId = this.getSlotId(therapistId, date, time);
+    const slotRef = adminDb.collection('locked_slots').doc(slotId);
+
+    const doc = await t.get(slotRef);
+    if (doc.exists) {
+      const data = doc.data() || {};
+      if (data.bookingId === bookingId) {
+        t.delete(slotRef);
+
+        const auditRef = adminDb.collection('audit_logs').doc();
+        t.set(auditRef, {
+          eventType: 'SLOT_RELEASED_TX',
+          therapistId,
+          date,
+          time,
+          bookingId,
+          timestamp: FieldValue.serverTimestamp(),
+          details: `Slot released safely in transaction for booking ${bookingId}`,
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Generates possible time slots for a therapist on a given date based on active recurring rules
+   * and overrides, and checks if the given time exists in those slots (excluding slot reservation/lock checks).
+   */
+  static async isSlotInTherapistAvailability(
+    therapistId: string,
+    date: string,
+    time: string,
+    t?: Transaction
+  ): Promise<boolean> {
+    if (!adminDb) {
+      throw new Error('Firestore adminDb is not initialized.');
+    }
+
+    // Local-safe date parsing
+    const [year, month, day] = date.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday ...
+
+    const rulesRef = adminDb.collection('therapistAvailability').doc(therapistId).collection('recurringRules');
+    const overridesRef = adminDb.collection('therapistAvailability').doc(therapistId).collection('overrides');
+
+    const rulesSnapshot = t ? await t.get(rulesRef) : await rulesRef.get();
+    const overridesSnapshot = t ? await t.get(overridesRef) : await overridesRef.get();
+
+    const rules = rulesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as any[];
+
+    const overrides = overridesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as any[];
+
+    // Helper functions for time slot generation
+    const timeToMinutes = (timeStr: string): number => {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const minutesToTime = (mins: number): string => {
+      const h = Math.floor(mins / 60).toString().padStart(2, '0');
+      const m = (mins % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const generateTimeSlots = (
+      startTime: string,
+      endTime: string,
+      durationMin: number,
+      cooldownMin: number,
+      breaks: { startTime: string; endTime: string }[] = []
+    ): string[] => {
+      const slots: string[] = [];
+      const startTotalM = timeToMinutes(startTime);
+      const endTotalM = timeToMinutes(endTime);
+
+      const parsedBreaks = (breaks || []).map(b => ({
+        start: timeToMinutes(b.startTime),
+        end: timeToMinutes(b.endTime)
+      }));
+
+      let currentM = startTotalM;
+
+      while (currentM + durationMin <= endTotalM) {
+        const sessionStart = currentM;
+        const sessionEnd = currentM + durationMin;
+
+        // Check if overlaps with any break
+        const overlapsBreak = parsedBreaks.some(
+          b => (sessionStart < b.end && sessionEnd > b.start)
+        );
+
+        if (overlapsBreak) {
+          const overlappingBreakInfo = parsedBreaks.find(b => (sessionStart < b.end && sessionEnd > b.start));
+          currentM = overlappingBreakInfo ? overlappingBreakInfo.end : currentM + durationMin + cooldownMin;
+          continue;
+        }
+
+        slots.push(minutesToTime(sessionStart));
+        currentM += durationMin + cooldownMin;
+      }
+      return slots;
+    };
+
+    // Check overrides first
+    const dateOverride = overrides.find(o => o.date === date);
+
+    if (dateOverride?.type === 'blocked') {
+      return false;
+    }
+
+    let possibleSlots: string[] = [];
+
+    if (dateOverride?.type === 'available' && dateOverride.startTime && dateOverride.endTime) {
+      possibleSlots = generateTimeSlots(
+        dateOverride.startTime,
+        dateOverride.endTime,
+        dateOverride.slotDuration || 60,
+        dateOverride.cooldownGap !== undefined ? dateOverride.cooldownGap : 0,
+        dateOverride.breaks || []
+      );
+    } else {
+      const matchingRules = rules.filter(r => r.dayOfWeek === dayOfWeek && r.isActive !== false);
+      const slotSet = new Set<string>();
+      matchingRules.forEach(rule => {
+        const slots = generateTimeSlots(
+          rule.startTime,
+          rule.endTime,
+          rule.slotDuration,
+          rule.cooldownGap !== undefined ? rule.cooldownGap : 0,
+          rule.breaks || []
+        );
+        slots.forEach(s => slotSet.add(s));
+      });
+      possibleSlots = Array.from(slotSet).sort();
+    }
+
+    return possibleSlots.includes(time);
+  }
+
+  /**
    * Atomically swaps a slot lock from an old slot to a new slot within an existing Firestore transaction.
    * Checks availability of the new slot, clearing expired locks if necessary.
    */
@@ -73,10 +235,7 @@ export class SlotReservationService {
     }
 
     // Ownership guard: only delete old slot if it belongs to this bookingId
-    const oldDoc = await t.get(oldSlotRef);
-    if (oldDoc.exists && oldDoc.data()?.bookingId === bookingId) {
-      t.delete(oldSlotRef);
-    }
+    await SlotReservationService.releasePinInTransaction(t, therapistId, oldDate, oldTime, bookingId);
 
     const isConfirmed = bookingContext?.status === 'confirmed' || bookingContext?.paymentStatus === 'paid';
     if (isConfirmed) {

@@ -46,20 +46,67 @@ export class RescheduleBookingCommandHandler {
         throw new Error("Booking not found");
       }
 
+      // Defense-in-depth Access Control Guard
       if (command.session.role === 'therapist') {
         const therapistDoc = await t.get(adminDb.collection('therapists').doc(booking.therapistId));
         if (!therapistDoc.exists || therapistDoc.data()?.authId !== command.session.uid) {
           throw new Error("Unauthorized to modify this booking");
         }
+      } else if (command.session.isTokenFlow) {
+        if (booking.invalidToken) {
+          throw new Error("Unauthorized: Reschedule token has been invalidated.");
+        }
+      } else if (command.session.uid) {
+        // Authenticated client user must own the booking
+        if (booking.userId !== command.session.uid && booking.email !== command.session.uid) {
+          throw new Error("Unauthorized: Client user ownership mismatch");
+        }
+      } else {
+        throw new Error("Unauthorized: No valid session context or credentials presented to reschedule booking.");
+      }
+
+      // Block rescheduling of completed or no_show bookings
+      if (booking.status === 'completed' || booking.status === 'no_show') {
+        throw new Error("Cannot reschedule a completed or no-show session.");
       }
 
       if (booking.status === 'cancelled' || booking.status === 'rejected') {
         throw new Error("Cannot reschedule a cancelled or rejected booking.");
       }
 
+      // 1. Validate booking window / past-time
+      const slotDate = new Date(`${command.newDate}T${command.newTime}:00+05:30`);
+      if (isNaN(slotDate.getTime())) {
+        throw new Error("Invalid reschedule date/time format.");
+      }
+
+      if (slotDate.getTime() < Date.now()) {
+        throw new Error("Cannot reschedule to a past date/time.");
+      }
+
+      const maxBookingDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
+      if (slotDate.getTime() > maxBookingDate.getTime()) {
+        throw new Error("Cannot reschedule further than 14 days in advance.");
+      }
+
+      // 2. Validate slot against therapist's actual availability rules and overrides
+      const isAvailable = await SlotReservationService.isSlotInTherapistAvailability(
+        booking.therapistId,
+        command.newDate,
+        command.newTime,
+        t
+      );
+      if (!isAvailable) {
+        throw new Error("The selected slot is outside the therapist's scheduled hours or overrides.");
+      }
+
       const oldDate = booking.date;
       const oldTime = booking.time;
 
+      const isConfirmed = booking.status === 'confirmed' || booking.paymentStatus === 'paid';
+      const freshHoldDate = isConfirmed ? null : new Date(Date.now() + 10 * 60 * 1000);
+
+      // 3. Atomically swap pins
       await SlotReservationService.swapSlotsInTransaction(
         t,
         booking.therapistId,
@@ -73,11 +120,12 @@ export class RescheduleBookingCommandHandler {
           paymentStatus: booking.paymentStatus,
           userId: booking.userId,
           email: booking.email,
-          holdExpiresAt: booking.holdExpiresAt,
+          holdExpiresAt: freshHoldDate,
           lockId: booking.bookingToken
         }
       );
 
+      // 4. Update booking domain model state
       await this.bookingDomainService.rescheduleBooking(
         booking,
         command.newDate,
@@ -86,6 +134,12 @@ export class RescheduleBookingCommandHandler {
         utcDateTime || undefined,
         t
       );
+
+      // Set new hold limit on the non-confirmed booking record for consistency with slot pin
+      if (!isConfirmed && freshHoldDate) {
+        booking.holdExpiresAt = freshHoldDate;
+        await this.bookingRepository.save(booking, t);
+      }
 
       const auditRef = adminDb.collection('bookings').doc(command.bookingId).collection('audit_logs').doc();
       t.set(auditRef, {
@@ -113,4 +167,3 @@ export class RescheduleBookingCommandHandler {
     return bookingData;
   }
 }
-
