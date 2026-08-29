@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     
     slotId = SlotReservationService.getSlotId(therapistId, date, time);
 
-    const command = new LockSlotCommand(therapistId, date, time, userId);
+    const command = new LockSlotCommand(therapistId, date, time, userId, parsed.data.lockId);
     const handler = new LockSlotCommandHandler();
     const result = await handler.execute(command);
 

@@ -36,6 +36,7 @@ export const updateBookingStatusSchema = z.object({
 export const lockSlotSchema = z.object({
   therapistId: z.string().min(1),
   date: z.string().min(1),
-  time: z.string().min(1)
+  time: z.string().min(1),
+  lockId: z.string().optional()
 }).strict();
 

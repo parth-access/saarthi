@@ -2,7 +2,7 @@ import { Command, CommandHandler } from './types';
 import { z } from 'zod';
 import { bookingSchema } from '@/server/validators/bookingValidators';
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 import { CreatePaymentOrderCommand, CreatePaymentOrderCommandHandler } from '@/domains/payment';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
@@ -37,8 +37,10 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
 
+    const rawSessionMode = data.sessionMode?.toLowerCase();
+    const normalizedSessionMode = rawSessionMode === 'in_person' ? 'in_person' : 'online';
     let price = 1500;
-    if (data.sessionMode === 'in_person') price = 2000;
+    if (normalizedSessionMode === 'in_person') price = 2000;
     const amount = price;
     const currency = 'INR';
 
@@ -84,6 +86,15 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
                   lockId,
                   bookingId: slotData.bookingId,
                   orderId: ebData.razorpayOrderId
+                });
+                const extendedHold = new Date(Date.now() + 10 * 60 * 1000);
+                t.update(slotRef, {
+                  expiresAt: Timestamp.fromDate(extendedHold),
+                  updatedAt: FieldValue.serverTimestamp()
+                });
+                t.update(existingDoc.ref, {
+                  holdExpiresAt: extendedHold,
+                  updatedAt: FieldValue.serverTimestamp()
                 });
                 existingBookingResult = {
                   bookingId: slotData.bookingId,
@@ -150,7 +161,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         paymentCurrency: currency,
         holdExpiresAt: holdExpiresAtDate,
         bookingToken,
-        sessionMode: data.sessionMode || 'Online',
+        sessionMode: normalizedSessionMode,
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
@@ -205,10 +216,10 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         razorpayOrderId: orderId
       });
 
-      // Process outbox event post-commit
+      // Process outbox event post-commit ONLY after order creation and update succeed
       const outboxEventId = generateDeterministicEventId('booking', newBookingId, 'awaiting_payment');
       OutboxProcessor.processEvent(outboxEventId).catch((err) => {
-        console.error('[CreateBookingCommandHandler] Async outbox processing error:', err);
+        logger.error('BOOKING', 'Async outbox processing error', err, { bookingId: newBookingId });
       });
     } catch {
       // Compensating transaction (perform all reads before writes)

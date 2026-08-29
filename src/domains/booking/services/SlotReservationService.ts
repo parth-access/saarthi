@@ -29,7 +29,15 @@ export class SlotReservationService {
     oldTime: string,
     newDate: string,
     newTime: string,
-    bookingId: string
+    bookingId: string,
+    bookingContext?: {
+      status?: string;
+      paymentStatus?: string;
+      userId?: string;
+      email?: string;
+      holdExpiresAt?: unknown;
+      lockId?: string;
+    }
   ): Promise<void> {
     if (!adminDb) {
       throw new Error('Firestore adminDb is not initialized.');
@@ -64,13 +72,58 @@ export class SlotReservationService {
       }
     }
 
-    t.delete(oldSlotRef);
-    t.set(newSlotRef, {
-      therapistId,
-      date: newDate,
-      time: newTime,
+    // Ownership guard: only delete old slot if it belongs to this bookingId
+    const oldDoc = await t.get(oldSlotRef);
+    if (oldDoc.exists && oldDoc.data()?.bookingId === bookingId) {
+      t.delete(oldSlotRef);
+    }
+
+    const isConfirmed = bookingContext?.status === 'confirmed' || bookingContext?.paymentStatus === 'paid';
+    if (isConfirmed) {
+      t.set(newSlotRef, {
+        therapistId,
+        date: newDate,
+        time: newTime,
+        bookingId,
+        userId: bookingContext?.userId || bookingContext?.email || 'system',
+        status: 'booked',
+        isPermanent: true,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } else {
+      const rawHold = bookingContext?.holdExpiresAt as { toDate?: () => Date } | string | number | Date | null | undefined;
+      const holdExpiresAt = rawHold
+        ? (typeof rawHold === 'object' && rawHold !== null && 'toDate' in rawHold && typeof rawHold.toDate === 'function'
+            ? rawHold.toDate()
+            : new Date(rawHold as string | number | Date))
+        : new Date(Date.now() + 10 * 60 * 1000);
+
+      t.set(newSlotRef, {
+        therapistId,
+        date: newDate,
+        time: newTime,
+        bookingId,
+        userId: bookingContext?.userId || bookingContext?.email || 'system',
+        lockId: bookingContext?.lockId || crypto.randomUUID(),
+        status: 'held',
+        expiresAt: Timestamp.fromDate(holdExpiresAt),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    const auditRef = adminDb.collection('audit_logs').doc();
+    t.set(auditRef, {
+      eventType: 'SLOT_SWAPPED',
       bookingId,
-      createdAt: FieldValue.serverTimestamp(),
+      therapistId,
+      oldDate,
+      oldTime,
+      newDate,
+      newTime,
+      timestamp: FieldValue.serverTimestamp(),
+      details: `Slot swapped from ${oldDate} ${oldTime} to ${newDate} ${newTime} for booking ${bookingId}`
     });
   }
 
@@ -121,20 +174,19 @@ export class SlotReservationService {
           }
 
           if (!isExpired) {
-            if (data.userId === userId && data.lockId === customLockId) {
+            if ((userId && data.userId === userId) || (customLockId && data.lockId === customLockId)) {
+              const activeLockId = data.lockId || customLockId || lockId;
               t.update(slotRef, {
                 expiresAt: Timestamp.fromDate(expiresAt),
                 updatedAt: FieldValue.serverTimestamp(),
               });
-              return { success: true, lockId: data.lockId, expiresAt };
+              return { success: true, lockId: activeLockId, expiresAt };
             } else {
               return {
                 success: false,
                 error: 'Slot is currently reserved by another user',
               };
             }
-          } else {
-            
           }
         }
 

@@ -67,7 +67,15 @@ export class RescheduleBookingCommandHandler {
         oldTime,
         command.newDate,
         command.newTime,
-        command.bookingId
+        command.bookingId,
+        {
+          status: booking.status,
+          paymentStatus: booking.paymentStatus,
+          userId: booking.userId,
+          email: booking.email,
+          holdExpiresAt: booking.holdExpiresAt,
+          lockId: booking.bookingToken
+        }
       );
 
       await this.bookingDomainService.rescheduleBooking(
