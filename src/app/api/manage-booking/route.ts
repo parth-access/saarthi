@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
-import { sendEmailAction } from "../email/emailSender";
 import { firestoreBookingRepository, RescheduleBookingCommand, RescheduleBookingCommandHandler } from "@/domains/booking";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
@@ -112,20 +111,15 @@ export async function POST(request: Request) {
     const handler = new RescheduleBookingCommandHandler();
     await handler.execute(command);
 
-    try {
-      await sendEmailAction({
-        type: "booking-rescheduled",
-        bookingId: bookingId,
-        therapistId: booking.therapistId,
-      });
-    } catch (err) {
-      logger.warn("MANAGE_BOOKING", "Failed to trigger reschedule email from manage-booking", { error: String(err), bookingId });
-    }
-
     logger.success('MANAGE_BOOKING', 'Booking rescheduled via token successfully', { bookingId, newDate, newTime });
     return NextResponse.json({ success: true, bookingId: bookingId }, { status: 200 });
   } catch (err) {
     logger.error('MANAGE_BOOKING', 'Reschedule failed', err, { ip: clientIp });
-    return NextResponse.json({ error: (err instanceof Error ? err.message : String(err)) || "Reschedule failed" }, { status: 500 });
+    const rawMsg = err instanceof Error ? err.message : String(err);
+    if (rawMsg.includes('unavailable') || rawMsg.includes('already booked')) {
+      return NextResponse.json({ error: rawMsg }, { status: 409 });
+    }
+    return NextResponse.json({ error: 'Failed to reschedule booking.' }, { status: 500 });
   }
+
 }

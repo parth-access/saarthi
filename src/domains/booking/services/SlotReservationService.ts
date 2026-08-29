@@ -206,10 +206,16 @@ export class SlotReservationService {
           return false;
         }
 
-        // Must match the lockId and optionally the userId
-        if (data.lockId !== lockId || (userId && data.userId !== userId)) {
+        // Must match the lockId
+        if (data.lockId !== lockId) {
           return false;
         }
+
+        // Ownership validation: If userId is passed or present in slot data, verify match
+        if (userId && data.userId && data.userId !== userId) {
+          return false;
+        }
+
 
         t.delete(slotRef);
 

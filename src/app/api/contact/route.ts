@@ -18,27 +18,17 @@ const ContactPayloadSchema = z.object({
   honeypot: z.string().max(0).optional().or(z.literal('')), // Must be empty
 });
 
-const ipRateLimit = new Map<string, { count: number, resetTime: number }>();
+import { checkRateLimit } from '../_lib/rateLimit';
 
 export async function POST(request: Request) {
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  const now = Date.now();
-  const rateRecord = ipRateLimit.get(ip);
-
-  if (rateRecord) {
-    if (now < rateRecord.resetTime) {
-      if (rateRecord.count > 5) {
-        return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-      }
-      rateRecord.count++;
-    } else {
-      ipRateLimit.set(ip, { count: 1, resetTime: now + 1000 * 60 * 15 });
-    }
-  } else {
-    ipRateLimit.set(ip, { count: 1, resetTime: now + 1000 * 60 * 15 });
+  const rateCheck = checkRateLimit(ip, 'contact_submit', 5, 15 * 60000);
+  if (!rateCheck.success) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
   try {
+
     const body = await request.json();
     const parsed = ContactPayloadSchema.safeParse(body);
 

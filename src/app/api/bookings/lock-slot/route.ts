@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../../../lib/firebase/admin';
-import { z } from 'zod';
+import { lockSlotSchema } from '@/server/validators/bookingValidators';
 import { verifySession } from '../../../../lib/auth/verifySession';
 import crypto from 'crypto';
 import { LockSlotCommand, LockSlotCommandHandler, SlotReservationService } from '@/domains/booking';
-
-const schema = z.object({
-  therapistId: z.string(),
-  date: z.string(),
-  time: z.string()
-});
+import { logger } from '../../_lib/logger';
+import { checkRateLimit } from '../../_lib/rateLimit';
+import { z } from 'zod';
 
 export async function POST(req: Request) {
   let therapistId = '';
@@ -18,25 +15,30 @@ export async function POST(req: Request) {
   let userId = '';
   let slotId = '';
   try {
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateCheck = checkRateLimit(clientIp, 'lock_slot', 10, 60000);
+    if (!rateCheck.success) {
+      logger.warn('BOOKING', 'Rate limit exceeded for lock-slot', { ip: clientIp });
+      return NextResponse.json({ error: 'Too many slot lock requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const session = await verifySession(req);
     const guestId = `guest_${crypto.randomUUID()}`;
     userId = session?.uid || guestId;
 
     const body = await req.json();
-    const parsed = schema.safeParse(body);
+    const parsed = lockSlotSchema.safeParse(body);
     if (!parsed.success) {
-      console.warn(`[DEBUG] lock-slot invalid input: ${JSON.stringify(parsed.error.format())}`);
+      logger.warn('BOOKING', 'lock-slot invalid input format', { ip: clientIp });
       return NextResponse.json({ error: 'Invalid input data', details: parsed.error.format() }, { status: 400 });
     }
     therapistId = parsed.data.therapistId;
     date = parsed.data.date;
     time = parsed.data.time;
 
-    console.log(`[DEBUG] lock-slot request: therapistId=${therapistId}, date=${date}, time=${time}, userId=${userId}`);
-
     const therapistDoc = await adminDb.collection('therapists').doc(therapistId).get();
     if (!therapistDoc.exists) {
-       console.warn(`[DEBUG] lock-slot therapist not found: ${therapistId}`);
+       logger.warn('BOOKING', 'lock-slot therapist not found', { therapistId });
        return NextResponse.json({ error: 'Therapist not found' }, { status: 404 });
     }
     
@@ -47,32 +49,36 @@ export async function POST(req: Request) {
     const result = await handler.execute(command);
 
     if (!result.success) {
-      console.warn(`[DEBUG] lock-slot failed: slotId=${slotId}, userId=${userId}, error=${result.error}`);
-      const isReserved = result.error?.includes('reserved');
+      const isReserved = result.error?.includes('reserved') || result.error?.includes('booked');
       return NextResponse.json(
         { success: false, error: result.error || 'Slot is currently unavailable.' },
         { status: isReserved ? 409 : 400 }
       );
     }
 
-    console.log(`[DEBUG] lock-slot success: slotId=${slotId}, lockId=${result.lockId}, userId=${userId}`);
+    logger.info('BOOKING', 'Slot lock acquired successfully', { slotId });
     return NextResponse.json({ success: true, lockId: result.lockId });
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[DEBUG] lock-slot failure: slotId=${slotId}, userId=${userId}, error=${errMsg}`);
+    logger.error('BOOKING', 'lock-slot error encountered', error);
     return NextResponse.json({ success: false, error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }
 
 const releaseSchema = z.object({
-  therapistId: z.string(),
-  date: z.string(),
-  time: z.string(),
-  lockId: z.string(),
-});
+  therapistId: z.string().min(1),
+  date: z.string().min(1),
+  time: z.string().min(1),
+  lockId: z.string().min(1),
+}).strict();
 
 export async function DELETE(req: Request) {
   try {
+    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateCheck = checkRateLimit(clientIp, 'release_slot', 20, 60000);
+    if (!rateCheck.success) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const body = await req.json();
     const parsed = releaseSchema.safeParse(body);
     if (!parsed.success) {
@@ -91,8 +97,8 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: released });
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[DEBUG] release-slot failure: error=${errMsg}`);
+    logger.error('BOOKING', 'release-slot error encountered', error);
     return NextResponse.json({ success: false, error: 'Failed to release lock.' }, { status: 500 });
   }
 }
+
