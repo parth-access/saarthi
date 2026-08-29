@@ -3,7 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { logger } from '@/app/api/_lib/logger';
-import { sendEmailAction } from '@/app/api/email/emailSender';
+import { OutboxProcessor, OutboxService, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export class FailPaymentCommand implements Command {
   readonly name = 'FailPaymentCommand';
@@ -65,10 +65,13 @@ export class FailPaymentCommandHandler implements CommandHandler<FailPaymentComm
       booking.failPayment(reason);
       booking.updatedAt = FieldValue.serverTimestamp();
 
-      // Release slot lock
+      // Release slot lock ONLY if this slot lock doc belongs to this specific booking
       const slotId = `${booking.therapistId}_${booking.date}_${booking.time}`.replace(/\//g, '-');
       const slotRef = adminDb.collection('locked_slots').doc(slotId);
-      transaction.delete(slotRef);
+      const slotDoc = await transaction.get(slotRef);
+      if (slotDoc.exists && slotDoc.data()?.bookingId === bookingId) {
+        transaction.delete(slotRef);
+      }
 
       await firestoreBookingRepository.save(booking, transaction);
 
@@ -96,37 +99,53 @@ export class FailPaymentCommandHandler implements CommandHandler<FailPaymentComm
         timestamp: FieldValue.serverTimestamp(),
         details: `Slot released due to payment failure/cancellation for booking ${bookingId}`
       });
-    });
 
-    if (shouldSendEmails && therapistId) {
-      // 1. Send Slot Released Email
-      try {
-        await sendEmailAction({
-          type: 'booking-slot-released',
-          bookingId,
-          therapistId,
-          declineReason: reason,
-        });
-        logger.info('EMAIL', 'Booking slot released email queued', { bookingId });
-      } catch (err) {
-        logger.error('EMAIL', 'Failed to send slot released email', err);
-      }
-
-      // 2. Send Payment Failed Email
-      try {
-        await sendEmailAction({
-          type: 'payment-failed',
-          bookingId,
-          therapistId,
-          paymentDetails: {
-            orderId: razorpayOrderId,
-            failureReason: reason,
+      // Record Outbox Events for reliable delivery if failure is verified (webhook or server source)
+      if (source !== 'client') {
+        const failedEventId = generateDeterministicEventId('booking', bookingId, 'payment_failed');
+        OutboxService.recordEventInTransaction(transaction, {
+          id: failedEventId,
+          name: 'PaymentFailed',
+          aggregateType: 'booking',
+          aggregateId: bookingId,
+          payload: {
+            bookingId,
+            therapistId: booking.therapistId,
+            razorpayOrderId: razorpayOrderId || booking.razorpayOrderId || null,
+            reason,
+            source
           }
         });
-        logger.info('EMAIL', 'Payment failed notification email queued', { bookingId });
-      } catch (err) {
-        logger.error('EMAIL', 'Failed to send payment failed email', err);
+
+        const releasedEventId = generateDeterministicEventId('booking', bookingId, 'slot_released');
+        OutboxService.recordEventInTransaction(transaction, {
+          id: releasedEventId,
+          name: 'SlotReleased',
+          aggregateType: 'booking',
+          aggregateId: bookingId,
+          payload: {
+            bookingId,
+            therapistId: booking.therapistId,
+            reason,
+            source
+          }
+        });
       }
+    });
+
+    // Process outbox events outside transaction for verified non-client failures
+    if (shouldSendEmails && therapistId && source !== 'client') {
+      const failedEventId = generateDeterministicEventId('booking', bookingId, 'payment_failed');
+      const releasedEventId = generateDeterministicEventId('booking', bookingId, 'slot_released');
+
+      await Promise.allSettled([
+        OutboxProcessor.processEvent(failedEventId).catch((err) => {
+          logger.error('PAYMENT', 'Failed to process PaymentFailed outbox event', { bookingId, error: err });
+        }),
+        OutboxProcessor.processEvent(releasedEventId).catch((err) => {
+          logger.error('PAYMENT', 'Failed to process SlotReleased outbox event', { bookingId, error: err });
+        })
+      ]);
     }
 
     return { success: true };

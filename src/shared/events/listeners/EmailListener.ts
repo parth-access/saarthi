@@ -47,4 +47,39 @@ export function registerEmailListeners(eventBus: any) {
       throw err;
     }
   });
+
+  eventBus.subscribe('PaymentFailed', async (event: any) => {
+    const { bookingId, therapistId, razorpayOrderId, reason } = event.payload;
+    try {
+      await sendEmailAction({
+        type: 'payment-failed',
+        bookingId,
+        therapistId,
+        paymentDetails: {
+          orderId: razorpayOrderId,
+          failureReason: reason,
+        }
+      });
+      logger.info(`[EmailListener] Payment failed notification email sent for booking ${bookingId}`);
+    } catch (err) {
+      logger.error(`[EmailListener] Failed to send payment failed email for booking ${bookingId}`, { error: err, bookingId });
+      throw err;
+    }
+  });
+
+  eventBus.subscribe('SlotReleased', async (event: any) => {
+    const { bookingId, therapistId, reason } = event.payload;
+    try {
+      await sendEmailAction({
+        type: 'booking-slot-released',
+        bookingId,
+        therapistId,
+        declineReason: reason,
+      });
+      logger.info(`[EmailListener] Slot released notification email sent for booking ${bookingId}`);
+    } catch (err) {
+      logger.error(`[EmailListener] Failed to send slot released email for booking ${bookingId}`, { error: err, bookingId });
+      throw err;
+    }
+  });
 }

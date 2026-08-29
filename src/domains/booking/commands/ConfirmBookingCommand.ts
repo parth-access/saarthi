@@ -58,75 +58,85 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
       throw new Error('Confirmed payment booking ID does not match requested booking ID');
     }
 
-    await adminDb.runTransaction(async (transaction) => {
-      const data = await firestoreBookingRepository.findById(bookingId, transaction);
-      if (!data) throw new Error('Booking not found');
+    try {
+      await adminDb.runTransaction(async (transaction) => {
+        const data = await firestoreBookingRepository.findById(bookingId, transaction);
+        if (!data) throw new Error('Booking not found');
 
-      if (expectedBookingId && data.id !== expectedBookingId) {
-        throw new Error('Booking ID mismatch');
-      }
+        if (expectedBookingId && data.id !== expectedBookingId) {
+          throw new Error('Booking ID mismatch');
+        }
 
-      if (data.razorpayOrderId !== razorpayOrderId) {
-        throw new Error('razorpayOrderId mismatch');
-      }
+        if (data.razorpayOrderId !== razorpayOrderId) {
+          throw new Error('razorpayOrderId mismatch');
+        }
 
-      // Idempotent exit: if already confirmed or paid, return silently without raising error or re-dispatching side-effects
-      if (data.status === 'confirmed' || data.paymentStatus === 'paid') {
-        return;
-      }
+        // Idempotent exit: if already confirmed or paid, return silently without raising error or re-dispatching side-effects
+        if (data.status === 'confirmed' || data.paymentStatus === 'paid') {
+          return;
+        }
 
-      if (data.paymentStatus !== 'pending' && data.status !== 'awaiting_payment') {
-        throw new Error('Booking is not in a payable state');
-      }
+        if (data.paymentStatus !== 'pending' && data.status !== 'awaiting_payment') {
+          throw new Error('Booking is not in a payable state');
+        }
 
-      therapistId = data.therapistId;
-      shouldSendEmail = true;
+        therapistId = data.therapistId;
+        shouldSendEmail = true;
 
-      const verifiedAt = FieldValue.serverTimestamp();
-      await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
-      data.updatedAt = FieldValue.serverTimestamp();
-      
-      // Permanently record slot as booked to prevent any race condition
-      const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
-      const slotRef = adminDb.collection('locked_slots').doc(slotId);
-      transaction.set(slotRef, {
-        therapistId: data.therapistId,
-        date: data.date,
-        time: data.time,
-        userId: data.userId || data.email,
-        bookingId: bookingId,
-        status: 'booked',
-        isPermanent: true,
-        confirmedAt: verifiedAt,
-        updatedAt: verifiedAt
+        const verifiedAt = FieldValue.serverTimestamp();
+        await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
+        data.updatedAt = FieldValue.serverTimestamp();
+        
+        // Permanently record slot as booked to prevent any race condition
+        const slotId = `${data.therapistId}_${data.date}_${data.time}`.replace(/\//g, '-');
+        const slotRef = adminDb.collection('locked_slots').doc(slotId);
+        transaction.set(slotRef, {
+          therapistId: data.therapistId,
+          date: data.date,
+          time: data.time,
+          userId: data.userId || data.email,
+          bookingId: bookingId,
+          status: 'booked',
+          isPermanent: true,
+          confirmedAt: verifiedAt,
+          updatedAt: verifiedAt
+        });
+
+        await firestoreBookingRepository.save(data, transaction);
+
+        const auditPayRef = adminDb.collection('audit_logs').doc();
+        transaction.set(auditPayRef, {
+          eventType: 'PAYMENT_SUCCEEDED',
+          bookingId,
+          therapistId: data.therapistId,
+          razorpayPaymentId,
+          razorpayOrderId,
+          source,
+          timestamp: FieldValue.serverTimestamp(),
+          details: `Payment confirmed via ${source} for booking ${bookingId}`
+        });
+
+        const auditBookRef = adminDb.collection('audit_logs').doc();
+        transaction.set(auditBookRef, {
+          eventType: 'BOOKING_CONFIRMED',
+          bookingId,
+          therapistId: data.therapistId,
+          date: data.date,
+          time: data.time,
+          source,
+          timestamp: FieldValue.serverTimestamp(),
+          details: `Booking ${bookingId} confirmed successfully`
+        });
       });
-
-      await firestoreBookingRepository.save(data, transaction);
-
-      const auditPayRef = adminDb.collection('audit_logs').doc();
-      transaction.set(auditPayRef, {
-        eventType: 'PAYMENT_SUCCEEDED',
+    } catch (bookingTxErr) {
+      logger.error('PAYMENT', 'CRITICAL: payment captured but booking confirm failed — webhook recovery required', bookingTxErr, {
         bookingId,
-        therapistId: data.therapistId,
-        razorpayPaymentId,
         razorpayOrderId,
-        source,
-        timestamp: FieldValue.serverTimestamp(),
-        details: `Payment confirmed via ${source} for booking ${bookingId}`
+        razorpayPaymentId,
+        source
       });
-
-      const auditBookRef = adminDb.collection('audit_logs').doc();
-      transaction.set(auditBookRef, {
-        eventType: 'BOOKING_CONFIRMED',
-        bookingId,
-        therapistId: data.therapistId,
-        date: data.date,
-        time: data.time,
-        source,
-        timestamp: FieldValue.serverTimestamp(),
-        details: `Booking ${bookingId} confirmed successfully`
-      });
-    });
+      throw bookingTxErr;
+    }
 
     // Post-commit outbox processing and payment receipt email dispatch
     const outboxEventId = generateDeterministicEventId('booking', bookingId, 'confirmed');
