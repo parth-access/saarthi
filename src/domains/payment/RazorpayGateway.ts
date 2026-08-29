@@ -18,6 +18,17 @@ export class RazorpayGateway implements PaymentGateway {
     });
   }
 
+  async fetchPayment(paymentId: string): Promise<{ id: string; order_id: string; status: string; amount: number; currency: string } | null> {
+    try {
+      const rzp = this.getClient();
+      const payment = await rzp.payments.fetch(paymentId);
+      return payment as unknown as { id: string; order_id: string; status: string; amount: number; currency: string };
+    } catch (error) {
+      console.error('[Razorpay] Failed to fetch payment details', error);
+      return null;
+    }
+  }
+
   async findOrderByReceipt(receipt: string): Promise<RazorpayOrderInfo | null> {
     try {
       const rzp = this.getClient();

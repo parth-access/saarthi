@@ -4,9 +4,16 @@ import { logger } from '../../_lib/logger';
 import { GeneratePaymentLinkCommand, GeneratePaymentLinkCommandHandler, firestoreBookingRepository } from '@/domains/booking';
 import { verifySession } from '@/lib/auth/verifySession';
 import { adminDb } from '@/lib/firebase/admin';
+import { checkRateLimit } from '../../_lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
+    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+    const rateCheck = checkRateLimit(clientIp, 'payment_create_order', 10, 60000);
+    if (!rateCheck.success) {
+      return NextResponse.json({ error: 'Too many order creation requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const session = await verifySession(request);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -14,13 +21,13 @@ export async function POST(request: Request) {
 
     const payloadSchema = z.object({
       bookingId: z.string().min(1)
-    });
+    }).strict();
 
     const body = await request.json().catch(() => null);
     const parsed = payloadSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid payload format' }, { status: 400 });
     }
 
     const { bookingId } = parsed.data;
@@ -60,9 +67,16 @@ export async function POST(request: Request) {
 
   } catch (error) {
     logger.error('PAYMENT', 'Failed to create payment order', error);
-    return NextResponse.json({ 
-      error: (error instanceof Error ? error.message : String(error)) || 'Failed to create payment order' 
-    }, { status: 500 });
+    const rawMsg = error instanceof Error ? error.message : String(error);
+    
+    if (rawMsg.includes('already completed') || rawMsg.includes('valid state') || rawMsg.includes('in progress')) {
+      return NextResponse.json({ error: rawMsg }, { status: 409 });
+    }
+    if (rawMsg.includes('not found')) {
+      return NextResponse.json({ error: rawMsg }, { status: 404 });
+    }
+
+    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 });
   }
 }
 

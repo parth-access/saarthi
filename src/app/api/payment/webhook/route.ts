@@ -34,19 +34,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    const payload = JSON.parse(payloadText);
-    const event = payload.event;
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(payloadText);
+    } catch (parseError) {
+      logger.error('PAYMENT', 'Failed to parse webhook JSON payload', parseError);
+      return NextResponse.json({ error: 'Malformed JSON payload' }, { status: 400 });
+    }
+
+    const event = payload.event as string;
+    const eventPayload = payload.payload as Record<string, Record<string, unknown>> | undefined;
 
     if (event === 'payment.captured') {
-      const paymentData = payload.payload.payment.entity;
-      const razorpayOrderId = paymentData.order_id;
-      const razorpayPaymentId = paymentData.id;
+      const paymentData = eventPayload?.payment?.entity as Record<string, unknown> | undefined;
+      const razorpayOrderId = paymentData?.order_id as string | undefined;
+      const razorpayPaymentId = paymentData?.id as string | undefined;
+
+      if (!razorpayOrderId || !razorpayPaymentId) {
+        logger.warn('PAYMENT', 'payment.captured webhook payload missing order_id or payment_id');
+        return NextResponse.json({ success: true, note: 'Missing required IDs' }, { status: 200 });
+      }
 
       const booking = await firestoreBookingRepository.findByOrderId(razorpayOrderId);
 
       if (!booking) {
-        logger.error('PAYMENT', 'No booking found for order', null, { razorpayOrderId });
-        return NextResponse.json({ success: true, note: 'Ignored' }, { status: 200 });
+        logger.error('PAYMENT', 'No booking found for order in webhook', null, { razorpayOrderId });
+        return NextResponse.json({ success: true, note: 'Ignored - booking not found' }, { status: 200 });
       }
 
       const bookingId = booking.id;
@@ -55,16 +68,17 @@ export async function POST(request: Request) {
         razorpayPaymentId,
         razorpayOrderId,
         undefined,
-        'webhook'
+        'webhook',
+        bookingId
       );
       const handler = new ConfirmBookingCommandHandler();
       await handler.execute(command);
 
       logger.success('PAYMENT', 'Payment verified via webhook', { bookingId, razorpayPaymentId });
     } else if (event === 'payment.failed') {
-      const paymentData = payload.payload.payment?.entity;
-      const razorpayOrderId = paymentData?.order_id;
-      const errorDescription = paymentData?.error_description || paymentData?.error_reason || 'Payment failed';
+      const paymentData = eventPayload?.payment?.entity as Record<string, unknown> | undefined;
+      const razorpayOrderId = paymentData?.order_id as string | undefined;
+      const errorDescription = (paymentData?.error_description || paymentData?.error_reason || 'Payment failed') as string;
 
       if (razorpayOrderId) {
         const failCommand = new FailPaymentCommand(
@@ -77,7 +91,14 @@ export async function POST(request: Request) {
         await failHandler.execute(failCommand);
 
         logger.warn('PAYMENT', 'Payment failure processed via webhook', { razorpayOrderId, errorDescription });
+      } else {
+        logger.warn('PAYMENT', 'Payment failure webhook missing order_id', { eventPayload });
       }
+    } else if (event === 'refund.processed') {
+      const refundData = eventPayload?.refund?.entity as Record<string, unknown> | undefined;
+      logger.info('PAYMENT', 'Refund processed webhook received', { refundId: refundData?.id, paymentId: refundData?.payment_id });
+    } else {
+      logger.info('PAYMENT', 'Unhandled webhook event received', { event });
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

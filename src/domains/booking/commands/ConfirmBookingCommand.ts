@@ -3,7 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
-import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler } from '@/domains/payment';
+import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway } from '@/domains/payment';
 import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
@@ -14,7 +14,8 @@ export class ConfirmBookingCommand implements Command {
     public readonly razorpayPaymentId: string,
     public readonly razorpayOrderId: string,
     public readonly razorpaySignature?: string,
-    public readonly source: string = 'direct'
+    public readonly source: string = 'direct',
+    public readonly expectedBookingId?: string
   ) {}
 }
 
@@ -22,41 +23,64 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
   private readonly bookingDomainService = new BookingDomainService(firestoreBookingRepository);
 
   async execute(command: ConfirmBookingCommand): Promise<{ success: boolean }> {
-    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, source } = command;
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, source, expectedBookingId } = command;
 
     let shouldSendEmail = false;
     let therapistId = '';
     let bookingId = '';
 
-    // 1. Confirm and verify payment in the Payment Domain first to get trusted bookingId
+    // 1. Ground truth Razorpay payment verification if available
+    if (razorpayPaymentId && !razorpayPaymentId.startsWith('mock_')) {
+      const rzpPayment = await razorpayGateway.fetchPayment(razorpayPaymentId);
+      if (rzpPayment) {
+        if (rzpPayment.order_id && rzpPayment.order_id !== razorpayOrderId) {
+          throw new Error('Razorpay payment order ID does not match expected order');
+        }
+        if (rzpPayment.status && rzpPayment.status !== 'captured' && rzpPayment.status !== 'authorized') {
+          throw new Error(`Razorpay payment status is ${rzpPayment.status}, expected captured or authorized`);
+        }
+      }
+    }
+
+    // 2. Confirm and verify payment in the Payment Domain first to get trusted bookingId
     const confirmPaymentCommand = new ConfirmPaymentCommand(
       razorpayOrderId,
       razorpayPaymentId,
       razorpaySignature,
-      source
+      source,
+      expectedBookingId
     );
     const confirmPaymentHandler = new ConfirmPaymentCommandHandler();
     const result = await confirmPaymentHandler.execute(confirmPaymentCommand); 
     bookingId = result.bookingId;
 
+    if (expectedBookingId && bookingId !== expectedBookingId) {
+      throw new Error('Confirmed payment booking ID does not match requested booking ID');
+    }
+
     await adminDb.runTransaction(async (transaction) => {
       const data = await firestoreBookingRepository.findById(bookingId, transaction);
       if (!data) throw new Error('Booking not found');
+
+      if (expectedBookingId && data.id !== expectedBookingId) {
+        throw new Error('Booking ID mismatch');
+      }
 
       if (data.razorpayOrderId !== razorpayOrderId) {
         throw new Error('razorpayOrderId mismatch');
       }
 
-      if (data.status === 'confirmed' && data.paymentStatus === 'paid') {
+      // Idempotent exit: if already confirmed or paid, return silently without raising error or re-dispatching side-effects
+      if (data.status === 'confirmed' || data.paymentStatus === 'paid') {
         return;
       }
 
-      if (data.paymentStatus !== 'pending') {
-        throw new Error('Booking is not in PAYMENT_PENDING state');
+      if (data.paymentStatus !== 'pending' && data.status !== 'awaiting_payment') {
+        throw new Error('Booking is not in a payable state');
       }
 
       therapistId = data.therapistId;
-      shouldSendEmail = data.status !== 'confirmed';
+      shouldSendEmail = true;
 
       const verifiedAt = FieldValue.serverTimestamp();
       await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
