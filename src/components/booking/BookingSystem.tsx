@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { CheckCircle2, Loader2, Mail, ShieldCheck } from "lucide-react"
+import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../ui/Button"
 import { cn } from "../../lib/utils"
@@ -89,7 +89,7 @@ const BookingSystem = () => {
   const { therapists } = useTherapists()
   const { currentUser } = useAuth()
   const isAuthenticated = Boolean(currentUser)
-  const { createBooking, lockSlot, submitting, setSubmitting, error: submitError, setError: setSubmitError } = useBooking()
+  const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
 
   // Clean up any pending setTimeout on unmount
   React.useEffect(() => {
@@ -185,7 +185,6 @@ const BookingSystem = () => {
     // Synchronous mutex guard: reject any duplicate calls immediately
     if (isProcessingRef.current) return;
     isProcessingRef.current = true;
-    setSubmitting(true);
     setBookingFlowState('SUBMITTING_BOOKING');
     setSubmitError(null);
 
@@ -193,7 +192,6 @@ const BookingSystem = () => {
       const isScriptLoaded = await loadRazorpay();
       if (!isScriptLoaded || typeof window === 'undefined' || !(window as unknown as { Razorpay?: unknown }).Razorpay) {
         isProcessingRef.current = false;
-        setSubmitting(false);
         setBookingFlowState('ERROR');
         setSubmitError('Unable to load payment gateway. Please check your internet connection and click to try again.');
         return;
@@ -207,7 +205,6 @@ const BookingSystem = () => {
 
       if (!result.success || !result.data?.orderId) {
         isProcessingRef.current = false;
-        setSubmitting(false);
         setBookingFlowState('ERROR');
         setSubmitError(result.error || 'Failed to initiate booking order.');
         return;
@@ -245,7 +242,6 @@ const BookingSystem = () => {
                 });
               }
               setBookingFlowState('CONFIRMED');
-              setSubmitting(false);
               setStep(7);
             } else {
               throw new Error('Payment verification failed');
@@ -253,7 +249,6 @@ const BookingSystem = () => {
           } catch (err) {
             isProcessingRef.current = false;
             isVerifyingRef.current = false;
-            setSubmitting(false);
             setBookingFlowState('ERROR');
             setSubmitError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support.');
           }
@@ -286,7 +281,6 @@ const BookingSystem = () => {
                 reason: 'Payment dismissed by user'
               });
               isProcessingRef.current = false;
-              setSubmitting(false);
               setBookingFlowState('ERROR');
               setSubmitError('Payment was not completed. Your slot hold will expire shortly.');
             }
@@ -304,7 +298,6 @@ const BookingSystem = () => {
             reason: failReason
           });
           isProcessingRef.current = false;
-          setSubmitting(false);
           setBookingFlowState('ERROR');
           setSubmitError(`Payment Failed: ${failReason}. If any money was debited, it will be refunded within 5-7 business days.`);
         }
@@ -312,7 +305,6 @@ const BookingSystem = () => {
       rzp.open();
     } catch (err) {
       isProcessingRef.current = false;
-      setSubmitting(false);
       setBookingFlowState('ERROR');
       setSubmitError((err instanceof Error ? err.message : String(err)) || 'An unexpected error occurred.');
     }
@@ -345,6 +337,7 @@ const BookingSystem = () => {
             therapists={therapists} 
             onConfirm={handleConfirm} 
             onBack={handleBack}
+            onJumpToSlots={() => setStep(4)}
             submitting={submitting}
             bookingFlowState={bookingFlowState}
             error={submitError}

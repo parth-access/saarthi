@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion } from "framer-motion"
-import { Mail, MapPin, Calendar, ArrowRight, HeartHandshake, PhoneCall } from "lucide-react"
+import { Mail, MapPin, Calendar, ArrowRight, HeartHandshake } from "lucide-react"
 import { ContactForm } from "@/components/forms/ContactForm"
 import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"

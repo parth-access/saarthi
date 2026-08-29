@@ -10,6 +10,7 @@ export function useAvailability(therapistId: string | null, date: string | null)
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchAvailability = useCallback(async () => {
     if (!therapistId || !date) {
@@ -23,7 +24,9 @@ export function useAvailability(therapistId: string | null, date: string | null)
     setError(null);
 
     try {
-      const res = await fetch(`/api/availability?therapistId=${therapistId}&date=${date}`);
+      const encodedId = encodeURIComponent(therapistId);
+      const encodedDate = encodeURIComponent(date);
+      const res = await fetch(`/api/availability?therapistId=${encodedId}&date=${encodedDate}`);
       if (!res.ok) {
         throw new Error('Unable to check slot availability. Please try again.');
       }
@@ -31,11 +34,11 @@ export function useAvailability(therapistId: string | null, date: string | null)
 
       const { availableSlots = [], bookedTimes = [], lockedTimes = [] } = availabilityData;
 
-      // Construct standard slot representation
-      const slotObjects: Slot[] = [];
+      // Deduplicate slots using Map (Booked & Locked override Available)
+      const slotMap = new Map<string, Slot>();
 
       availableSlots.forEach((time: string) => {
-        slotObjects.push({
+        slotMap.set(time, {
           time,
           isAvailable: true,
           reason: null
@@ -43,7 +46,7 @@ export function useAvailability(therapistId: string | null, date: string | null)
       });
 
       bookedTimes.forEach((time: string) => {
-        slotObjects.push({
+        slotMap.set(time, {
           time,
           isAvailable: false,
           reason: 'Booked'
@@ -51,14 +54,14 @@ export function useAvailability(therapistId: string | null, date: string | null)
       });
 
       lockedTimes.forEach((time: string) => {
-        slotObjects.push({
+        slotMap.set(time, {
           time,
           isAvailable: false,
           reason: 'Locked'
         });
       });
 
-      // Sort slot objects chronologically by time
+      const slotObjects = Array.from(slotMap.values());
       slotObjects.sort((a, b) => a.time.localeCompare(b.time));
 
       setSlots(slotObjects);
@@ -71,7 +74,24 @@ export function useAvailability(therapistId: string | null, date: string | null)
 
   useEffect(() => {
     fetchAvailability();
+  }, [fetchAvailability, refreshKey]);
+
+  // Re-validate availability on browser tab visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAvailability();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchAvailability]);
 
-  return { slots, loading, error, refetch: fetchAvailability };
+  const refetch = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
+  return { slots, loading, error, refetch };
 }

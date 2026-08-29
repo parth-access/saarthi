@@ -2,12 +2,11 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
-import { ChevronLeft, ChevronRight, ChevronDown, ShieldCheck, Lock, Sparkles } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, Lock, Sparkles } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../../ui/Button"
 import { Input } from "../../ui/Input"
 import { Textarea } from "../../ui/Textarea"
-import { cn } from "../../../lib/utils"
 
 const formSchema = bookingFormSchema;
 

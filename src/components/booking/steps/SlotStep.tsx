@@ -119,7 +119,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
           <Clock className="w-10 h-10 text-primary/20 mx-auto" />
           <div className="space-y-1">
             <p className="font-serif text-xl text-primary/60 tracking-tight">No availability on this day.</p>
-            <p className="text-xs text-muted-foreground">All slots are either booked or outside the specialist's working hours.</p>
+            <p className="text-xs text-muted-foreground">All slots are either booked or outside the specialist&apos;s working hours.</p>
           </div>
           <Button
             variant="outline"
