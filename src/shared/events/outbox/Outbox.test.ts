@@ -121,7 +121,7 @@ describe('Transactional Outbox Pattern', () => {
       // Simulate 3 transaction callback retries
       for (let attempt = 1; attempt <= 3; attempt++) {
         await adminDb.runTransaction(async (t) => {
-          OutboxService.recordEventInTransaction(t, mockPayload);
+          await OutboxService.recordEventInTransaction(t, mockPayload);
         });
       }
 
@@ -131,6 +131,34 @@ describe('Transactional Outbox Pattern', () => {
       expect(eventDoc.data()?.id).toBe(eventId);
       expect(eventDoc.data()?.status).toBe('pending');
       expect(eventDoc.data()?.attempts).toBe(0);
+    });
+
+    it('never resurrects or overwrites an already processed outbox event on command replay', async () => {
+      const eventId = generateDeterministicEventId('booking', 'bk_resurrect_test', 'confirmed');
+      const mockPayload = {
+        id: eventId,
+        name: 'BookingConfirmed',
+        aggregateType: 'booking' as const,
+        aggregateId: 'bk_resurrect_test',
+        payload: { bookingId: 'bk_resurrect_test', targetStatus: 'confirmed' }
+      };
+
+      // 1. Initial record and successful processing
+      await OutboxService.recordEvent(mockPayload);
+      vi.spyOn(EventBus, 'publish').mockResolvedValueOnce({ success: true, errors: [] });
+      await OutboxProcessor.processEvent(eventId);
+
+      const processedDoc = await adminDb.collection('outbox_events').doc(eventId).get();
+      expect(processedDoc.data()?.status).toBe('processed');
+
+      // 2. Command retry attempts to record again in transaction
+      await adminDb.runTransaction(async (t) => {
+        await OutboxService.recordEventInTransaction(t, mockPayload);
+      });
+
+      // 3. Confirm status is still strictly 'processed', not reset to 'pending'
+      const docAfterReplay = await adminDb.collection('outbox_events').doc(eventId).get();
+      expect(docAfterReplay.data()?.status).toBe('processed');
     });
   });
 
@@ -210,7 +238,7 @@ describe('Transactional Outbox Pattern', () => {
       expect(doc.data()?.nextAttemptAt).toBeDefined();
     });
 
-    it('marks event as failed when max attempts are exceeded', async () => {
+    it('marks event as dead when max attempts are exceeded', async () => {
       const eventId = generateDeterministicEventId('booking', 'bk_fail_max', 'confirmed');
       await OutboxService.recordEvent({
         id: eventId,
@@ -224,10 +252,10 @@ describe('Transactional Outbox Pattern', () => {
       vi.spyOn(EventBus, 'publish').mockRejectedValueOnce(new Error('Persistent downstream failure'));
 
       const result = await OutboxProcessor.processEvent(eventId);
-      expect(result.status).toBe('failed');
+      expect(result.status).toBe('dead');
 
       const doc = await adminDb.collection('outbox_events').doc(eventId).get();
-      expect(doc.data()?.status).toBe('failed');
+      expect(doc.data()?.status).toBe('dead');
       expect(doc.data()?.attempts).toBe(1);
       expect(doc.data()?.lastError).toContain('Persistent downstream failure');
     });

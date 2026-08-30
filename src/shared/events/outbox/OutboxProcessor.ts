@@ -1,3 +1,14 @@
+/**
+ * OutboxProcessor handles reliable asynchronous dispatch of transactional outbox events.
+ * 
+ * CONTRACT & ARCHITECTURE:
+ * - Handlers and EventBus listeners MUST be idempotent; event delivery is at-least-once.
+ * - Atomic claim transaction acquires lock and validates attempt/backoff criteria before dispatch.
+ * - EventBus listeners are invoked strictly OUTSIDE the Firestore claim transaction.
+ * - Failed events retry with bounded exponential backoff up to maxAttempts.
+ * - Events exceeding maxAttempts transition to terminal 'dead' status (dead-lettered) so they are not scanned continuously.
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -9,12 +20,12 @@ const LOCK_TIMEOUT_MS = 60000; // 60 seconds
 
 export interface ProcessEventResult {
   success: boolean;
-  status: 'processed' | 'already_processed' | 'failed' | 'in_progress' | 'not_found' | 'max_attempts_exceeded' | 'not_due';
+  status: 'processed' | 'already_processed' | 'failed' | 'in_progress' | 'not_found' | 'max_attempts_exceeded' | 'not_due' | 'dead';
   error?: string;
 }
 
 type ClaimResult =
-  | { shouldProcess: false; reason: 'not_found' | 'already_processed' | 'not_due' | 'in_progress' | 'max_attempts_exceeded' }
+  | { shouldProcess: false; reason: 'not_found' | 'already_processed' | 'not_due' | 'in_progress' | 'max_attempts_exceeded' | 'dead' }
   | { shouldProcess: true; event: OutboxEvent; reason: 'claimed' };
 
 export class OutboxProcessor {
@@ -46,6 +57,10 @@ export class OutboxProcessor {
         const data = doc.data() as OutboxEvent;
         if (data.status === 'processed') {
           return { shouldProcess: false, reason: 'already_processed' };
+        }
+
+        if (data.status === 'dead') {
+          return { shouldProcess: false, reason: 'dead' };
         }
 
         maxAttempts = data.maxAttempts || 5;
@@ -120,22 +135,33 @@ export class OutboxProcessor {
         error: null
       });
 
-      logger.info(`[OutboxProcessor] Successfully processed outbox event ${eventId} (${eventToProcess.name})`);
+      logger.info('[OutboxProcessor] Successfully processed outbox event', {
+        eventId,
+        name: eventToProcess.name,
+        attempts: attemptCount
+      });
       return { success: true, status: 'processed' };
     } catch (err: any) {
       const errMsg = String(err?.message || err);
-      logger.error(`[OutboxProcessor] Failed to execute listeners for outbox event ${eventId}`, { error: err });
-      
       const isMaxExceeded = attemptCount >= maxAttempts;
-      const nextStatus = isMaxExceeded ? 'failed' : 'pending';
+      const nextStatus = isMaxExceeded ? 'dead' : 'pending';
       const backoffDelayMs = calculateBackoffDelay(attemptCount);
-      const nextAttemptDate = new Date(Date.now() + backoffDelayMs);
+      const nextAttemptDate = isMaxExceeded ? null : new Date(Date.now() + backoffDelayMs);
+
+      logger.error('[OutboxProcessor] Failed to execute listeners for outbox event', {
+        eventId,
+        name: eventToProcess.name,
+        error: errMsg,
+        attempt: attemptCount,
+        maxAttempts,
+        isDeadLetter: isMaxExceeded
+      });
 
       try {
         await docRef.update({
           status: nextStatus,
           attempts: attemptCount,
-          nextAttemptAt: isMaxExceeded ? null : nextAttemptDate,
+          nextAttemptAt: nextAttemptDate,
           error: errMsg,
           lastError: errMsg,
           updatedAt: FieldValue.serverTimestamp()
@@ -143,12 +169,13 @@ export class OutboxProcessor {
       } catch (updateErr) {
         logger.error('[OutboxProcessor] Failed to update outbox event error status', { eventId, updateErr });
       }
-      return { success: false, status: 'failed', error: errMsg };
+      return { success: false, status: isMaxExceeded ? 'dead' : 'failed', error: errMsg };
     }
   }
 
   /**
    * Processes a batch of pending or retryable outbox events.
+   * Dead-lettered ('dead') and already-processed ('processed') events are excluded from scan.
    */
   static async processPendingEvents(limit: number = 10): Promise<{ processed: number; failed: number; skipped: number }> {
     if (!adminDb) return { processed: 0, failed: 0, skipped: 0 };
@@ -159,29 +186,15 @@ export class OutboxProcessor {
 
     try {
       const snapshot = await adminDb.collection(this.COLLECTION_NAME)
-        .where('status', 'in', ['pending', 'failed'])
+        .where('status', 'in', ['pending', 'processing'])
         .limit(limit)
         .get();
 
-      const now = Date.now();
       for (const doc of snapshot.docs) {
-        const data = doc.data() as OutboxEvent;
-        if (data.attempts >= (data.maxAttempts || 5)) {
-          skipped++;
-          continue;
-        }
-
-        // Check if nextAttemptAt is scheduled in the future
-        const nextAttemptMillis = this.getMillis(data.nextAttemptAt);
-        if (nextAttemptMillis > now) {
-          skipped++;
-          continue;
-        }
-
         const res = await this.processEvent(doc.id);
         if (res.success || res.status === 'processed' || res.status === 'already_processed') {
           processed++;
-        } else if (res.status === 'not_due' || res.status === 'in_progress') {
+        } else if (res.status === 'not_due' || res.status === 'in_progress' || res.status === 'max_attempts_exceeded' || res.status === 'dead') {
           skipped++;
         } else {
           failed++;
@@ -203,9 +216,10 @@ export class OutboxProcessor {
 
   private static getMillis(val: any): number {
     if (!val) return 0;
-    if (typeof val.toDate === 'function') return val.toDate().getTime();
-    if (val.seconds) return val.seconds * 1000;
     if (typeof val.toMillis === 'function') return val.toMillis();
+    if (typeof val.toDate === 'function') return val.toDate().getTime();
+    if (typeof val.seconds === 'number') return val.seconds * 1000 + Math.floor((val.nanoseconds || 0) / 1000000);
+    if (val instanceof Date) return val.getTime();
     const t = new Date(val);
     return isNaN(t.getTime()) ? 0 : t.getTime();
   }

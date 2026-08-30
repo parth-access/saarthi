@@ -31,14 +31,17 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
+          date: booking.date,
+          time: booking.time,
+          sessionMode: booking.sessionMode,
           previousStatus,
           targetStatus: 'awaiting_payment'
         }
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -68,14 +71,17 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
+          date: booking.date,
+          time: booking.time,
+          sessionMode: booking.sessionMode,
           previousStatus,
           targetStatus: 'payment_initiated'
         }
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -115,7 +121,10 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
+          date: booking.date,
+          time: booking.time,
+          sessionMode: booking.sessionMode,
           previousStatus,
           targetStatus: 'confirmed',
           metadata: {
@@ -127,7 +136,7 @@ export class BookingDomainService {
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -160,14 +169,16 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
+          date: booking.date,
+          time: booking.time,
           previousStatus,
           targetStatus: 'completed'
         }
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -200,7 +211,7 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
           previousStatus,
           targetStatus: 'no_show',
           reason
@@ -208,7 +219,7 @@ export class BookingDomainService {
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -242,7 +253,7 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
           previousStatus,
           targetStatus: 'cancelled',
           reason
@@ -250,7 +261,7 @@ export class BookingDomainService {
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -293,7 +304,7 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
           previousStatus,
           targetStatus: 'rejected',
           reason,
@@ -304,7 +315,7 @@ export class BookingDomainService {
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -338,14 +349,14 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
           previousStatus,
           targetStatus: 'expired'
         }
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }
@@ -390,7 +401,7 @@ export class BookingDomainService {
         aggregateId: booking.id,
         payload: {
           bookingId: booking.id,
-          booking: { ...booking },
+          therapistId: booking.therapistId,
           previousDate,
           previousTime,
           date: newDate,
@@ -401,7 +412,7 @@ export class BookingDomainService {
       };
 
       if (transaction) {
-        OutboxService.recordEventInTransaction(transaction, outboxPayload);
+        await OutboxService.recordEventInTransaction(transaction, outboxPayload);
       } else {
         await OutboxService.recordEvent(outboxPayload);
       }

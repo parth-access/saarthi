@@ -8,75 +8,87 @@ export class OutboxService {
   static readonly COLLECTION_NAME = 'outbox_events';
 
   /**
-   * Atomically records a deterministic outbox event within a Firestore transaction.
-   * If the transaction retries, it repeatedly targets the same deterministic document ID,
-   * completely preventing duplicate event emission.
+   * Atomically records a deterministic outbox event within a Firestore transaction using insert-only semantics.
+   * If the event already exists (e.g. from a prior transaction attempt, client retry, or replay),
+   * it leaves the existing event and its status untouched to prevent resurrection of processed events.
+   *
+   * @throws Error if adminDb is uninitialized to ensure reliable durability.
    */
-  static recordEventInTransaction<T = Record<string, any>>(
+  static async recordEventInTransaction<T = Record<string, any>>(
     transaction: Transaction,
     input: CreateOutboxEventInput<T>
-  ): string {
+  ): Promise<string> {
     if (!adminDb) {
-      logger.warn('[OutboxService] adminDb not initialized, skipping outbox recording in transaction');
-      return input.id;
+      logger.error('[OutboxService] adminDb not initialized, cannot record outbox event in transaction', { eventId: input.id });
+      throw new Error('[OutboxService] Database not initialized for durable transactional outbox recording');
     }
 
     const docRef = adminDb.collection(this.COLLECTION_NAME).doc(input.id);
+    const existing = await transaction.get(docRef);
+
+    // Idempotency: Never overwrite, re-assert, or reset status of an existing outbox event
+    if (existing?.exists) {
+      return input.id;
+    }
     
-    // Use merge: true so retry calls safely re-assert the event definition without throwing
-    transaction.set(
-      docRef,
-      {
-        id: input.id,
-        name: input.name,
-        aggregateType: input.aggregateType,
-        aggregateId: input.aggregateId,
-        payload: input.payload,
-        status: 'pending',
-        attempts: 0,
-        maxAttempts: input.maxAttempts || 5,
-        nextAttemptAt: input.nextAttemptAt || null,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        error: null,
-        lastError: null
-      },
-      { merge: true }
-    );
+    transaction.set(docRef, {
+      id: input.id,
+      name: input.name,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
+      payload: input.payload,
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: input.maxAttempts || 5,
+      nextAttemptAt: input.nextAttemptAt || null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      lastAttemptAt: null,
+      processedAt: null,
+      error: null,
+      lastError: null
+    });
 
     return input.id;
   }
 
   /**
-   * Records an outbox event outside of an active transaction.
+   * Records an outbox event outside of an active transaction using insert-only semantics.
+   *
+   * @throws Error if adminDb is uninitialized.
    */
   static async recordEvent<T = Record<string, any>>(
     input: CreateOutboxEventInput<T>
   ): Promise<string> {
     if (!adminDb) {
-      logger.warn('[OutboxService] adminDb not initialized, skipping outbox recording');
-      return input.id;
+      logger.error('[OutboxService] adminDb not initialized, cannot record outbox event', { eventId: input.id });
+      throw new Error('[OutboxService] Database not initialized for durable outbox recording');
     }
 
     const docRef = adminDb.collection(this.COLLECTION_NAME).doc(input.id);
-    await docRef.set(
-      {
-        id: input.id,
-        name: input.name,
-        aggregateType: input.aggregateType,
-        aggregateId: input.aggregateId,
-        payload: input.payload,
-        status: 'pending',
-        attempts: 0,
-        maxAttempts: input.maxAttempts || 5,
-        nextAttemptAt: input.nextAttemptAt || null,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        error: null,
-        lastError: null
-      },
-      { merge: true }
-    );
+    const existing = await docRef.get();
+
+    if (existing.exists) {
+      return input.id;
+    }
+
+    await docRef.set({
+      id: input.id,
+      name: input.name,
+      aggregateType: input.aggregateType,
+      aggregateId: input.aggregateId,
+      payload: input.payload,
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: input.maxAttempts || 5,
+      nextAttemptAt: input.nextAttemptAt || null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      lastAttemptAt: null,
+      processedAt: null,
+      error: null,
+      lastError: null
+    });
 
     return input.id;
   }

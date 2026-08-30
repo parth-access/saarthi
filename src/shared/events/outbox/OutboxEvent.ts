@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { FirebaseTimestamp } from '@/types';
 
-export type OutboxStatus = 'pending' | 'processing' | 'processed' | 'failed';
+export type OutboxStatus = 'pending' | 'processing' | 'processed' | 'failed' | 'dead';
 
 export interface OutboxEvent<TPayload = Record<string, any>> {
   id: string;
