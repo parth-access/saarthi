@@ -32,6 +32,15 @@ export interface FirebaseTimestamp {
   toMillis: () => number;
 }
 
+export interface RescheduleRecord {
+  previousDate: string;
+  previousTime: string;
+  newDate: string;
+  newTime: string;
+  rescheduledAt: FirebaseTimestamp | Date | string | unknown;
+  reason?: string;
+}
+
 export interface Booking {
   id: string;
   therapistId: string;
@@ -63,10 +72,12 @@ export interface Booking {
   rescheduledAt?: FirebaseTimestamp | Date | string | null | unknown;
   originalDate?: string;
   originalTime?: string;
+  rescheduleHistory?: RescheduleRecord[];
   emailStatus?: 'pending' | 'sent' | 'failed' | 'retrying';
   emailAttempts?: number;
   lastEmailAttemptAt?: FirebaseTimestamp | Date | string | null | unknown;
   lastEmailError?: string;
+  cancellationOrRejectionReason?: string;
   declineReason?: string;
   declineCustomNote?: string;
   declinedAt?: FirebaseTimestamp | Date | string | null | unknown;

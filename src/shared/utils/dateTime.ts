@@ -31,3 +31,39 @@ export function istToUtcIsoString(date: string, time: string): string {
     return '';
   }
 }
+
+/**
+ * Universal Timestamp/Date parsing utility.
+ * Reliably parses Firestore Timestamp, Date object, ISO string, milliseconds number, or null/undefined.
+ */
+export function toStandardDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === 'object') {
+    // Firestore Timestamp or object with toDate()
+    if ('toDate' in value && typeof (value as { toDate: () => unknown }).toDate === 'function') {
+      try {
+        const d = (value as { toDate: () => unknown }).toDate();
+        if (d instanceof Date && !isNaN(d.getTime())) return d;
+      } catch {
+        // fallback
+      }
+    }
+    // Firestore Timestamp with seconds / _seconds
+    const sec = (value as { seconds?: unknown; _seconds?: unknown }).seconds ?? (value as { _seconds?: unknown })._seconds;
+    if (typeof sec === 'number') {
+      const nanosec = (value as { nanoseconds?: unknown; _nanoseconds?: unknown }).nanoseconds ?? (value as { _nanoseconds?: unknown })._nanoseconds;
+      const ms = sec * 1000 + (typeof nanosec === 'number' ? Math.floor(nanosec / 1000000) : 0);
+      const d = new Date(ms);
+      return isNaN(d.getTime()) ? null : d;
+    }
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+

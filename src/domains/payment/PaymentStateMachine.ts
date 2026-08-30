@@ -1,12 +1,16 @@
 import { EventBus } from '@/shared/events/EventBus';
+import { PaymentStatus } from '@/types';
+import { InvalidPaymentTransitionError } from './errors/InvalidPaymentTransitionError';
 
-export type PaymentStatus = 'pending' | 'initiated' | 'success' | 'failed' | 'refunded';
+export type { PaymentStatus };
 
 const VALID_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
-  pending: ['initiated', 'success', 'failed'],
-  initiated: ['success', 'failed', 'pending'],
+  unpaid: ['pending', 'initiated', 'paid', 'success', 'failed'],
+  pending: ['initiated', 'paid', 'success', 'failed'],
+  initiated: ['paid', 'success', 'failed', 'pending'],
+  paid: ['refunded'],
   success: ['refunded'],
-  failed: ['initiated', 'success', 'pending'],
+  failed: ['initiated', 'pending', 'success'], // includes direct retry confirmation
   refunded: []
 };
 
@@ -28,7 +32,9 @@ export class PaymentStateMachine {
   ): void {
     const previousStatus = payment.status;
     if (!this.canTransition(previousStatus, targetStatus)) {
-      throw new Error(`Cannot transition payment ${payment.id} from status '${payment.status}' to '${targetStatus}'`);
+      throw new InvalidPaymentTransitionError(
+        `Cannot transition payment ${payment.id} from status '${payment.status}' to '${targetStatus}'`
+      );
     }
     payment.status = targetStatus;
 
@@ -45,6 +51,8 @@ export class PaymentStateMachine {
             targetStatus,
             metadata: options?.metadata
           }
+        }).catch((err) => {
+          console.error(`[PaymentStateMachine] Async error in central EventBus for ${eventName}:`, err);
         });
       } catch (err) {
         console.error('[PaymentStateMachine] Failed to publish event to central EventBus:', err);
@@ -52,3 +60,4 @@ export class PaymentStateMachine {
     }
   }
 }
+

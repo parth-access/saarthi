@@ -29,7 +29,11 @@ export class Payment {
   }
 
   confirm(verifiedAt: Date | string | unknown, paymentId: string, signature?: string, source?: string): this {
-    if (this.status !== 'success') {
+    if (paymentId && this.razorpayPaymentId && this.razorpayPaymentId !== paymentId) {
+      throw new Error(`Payment already confirmed with payment ID ${this.razorpayPaymentId}`);
+    }
+
+    if (this.status !== 'success' && this.status !== 'paid') {
       PaymentStateMachine.transition(this, 'success');
     }
     if (paymentId) {

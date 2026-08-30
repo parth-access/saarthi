@@ -15,9 +15,9 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   confirmed: ['completed', 'cancelled', 'rejected', 'rescheduled', 'no_show'],
   rescheduled: ['confirmed', 'cancelled', 'rejected', 'completed', 'no_show'],
   completed: [],
-  cancelled: [],
+  cancelled: ['awaiting_payment', 'pending_payment'], // Allows customer payment retries to regenerate payment link
   rejected: [],
-  expired: [],
+  expired: ['slot_locked', 'awaiting_payment'],
   no_show: [],
 };
 
@@ -65,7 +65,7 @@ export class BookingStateMachine {
     let skipEventBus = false;
 
     if (metadataOrOptions) {
-      if ('skipEventBus' in metadataOrOptions || 'metadata' in metadataOrOptions) {
+      if (typeof metadataOrOptions === 'object' && ('skipEventBus' in metadataOrOptions || 'metadata' in metadataOrOptions)) {
         const opts = metadataOrOptions as TransitionOptions;
         skipEventBus = Boolean(opts.skipEventBus);
         metadata = opts.metadata;
@@ -75,33 +75,59 @@ export class BookingStateMachine {
     }
 
     if (!skipEventBus) {
-      DomainEvents.dispatch({
-        name: eventName,
-        timestamp: new Date(),
-        data: {
-          bookingId: booking.id,
-          booking,
-          previousStatus,
-          targetStatus: targetState,
-          metadata,
-        },
-      });
+      // Safe non-PII payload to prevent exposing sensitive client mental-health disclosures to general listeners
+      const sanitizedBookingSummary = {
+        id: booking.id,
+        therapistId: booking.therapistId,
+        userId: booking.userId,
+        date: booking.date,
+        time: booking.time,
+        sessionMode: booking.sessionMode,
+        sessionType: booking.sessionType,
+        status: targetState,
+        paymentStatus: booking.paymentStatus,
+        paymentAmount: booking.paymentAmount,
+        paymentCurrency: booking.paymentCurrency,
+        razorpayOrderId: booking.razorpayOrderId,
+        razorpayPaymentId: booking.razorpayPaymentId
+      };
+
+      const eventPayload = {
+        bookingId: booking.id,
+        booking: sanitizedBookingSummary,
+        previousStatus,
+        targetStatus: targetState,
+        metadata,
+      };
+
+      // Safely dispatch domain events without allowing listener exceptions to corrupt caller workflow
+      try {
+        DomainEvents.dispatch({
+          name: eventName,
+          timestamp: new Date(),
+          data: {
+            ...eventPayload,
+            booking: booking as any, // Retain full instance reference for internal domain handlers
+          },
+        }).catch((err) => {
+          console.error(`[BookingStateMachine] Async error in DomainEvents for ${eventName}:`, err);
+        });
+      } catch (err) {
+        console.error(`[BookingStateMachine] Synchronous error in DomainEvents dispatch for ${eventName}:`, err);
+      }
 
       try {
         EventBus.publish({
           name: eventName,
           timestamp: new Date(),
-          payload: {
-            bookingId: booking.id,
-            booking,
-            previousStatus,
-            targetStatus: targetState,
-            metadata,
-          }
+          payload: eventPayload
+        }).catch((err) => {
+          console.error(`[BookingStateMachine] Async error in central EventBus for ${eventName}:`, err);
         });
       } catch (err) {
-        console.error('[BookingStateMachine] Failed to publish event to central EventBus:', err);
+        console.error(`[BookingStateMachine] Failed to publish event to central EventBus:`, err);
       }
     }
   }
 }
+

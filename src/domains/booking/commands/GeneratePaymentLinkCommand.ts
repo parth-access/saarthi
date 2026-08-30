@@ -49,6 +49,10 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         existingOrderId = txData.razorpayOrderId;
         amount = txData.paymentAmount ?? calculateBookingPrice(txData.sessionMode);
         txData.paymentAmount = amount;
+        if (txData.status !== 'awaiting_payment' && canTransitionToAwaiting) {
+          txData.awaitPayment({ skipEventBus: true });
+          await firestoreBookingRepository.save(txData, transaction);
+        }
         return;
       }
 
