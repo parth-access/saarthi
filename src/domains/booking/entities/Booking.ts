@@ -48,7 +48,7 @@ export class Booking {
   orderCreationStartedAt?: FirebaseTimestamp | Date | number | string | null | unknown;
   googleCalendarEventId?: string;
   meetingUrl?: string;
-  calendarStatus?: 'PENDING' | 'CREATED' | 'FAILED' | 'RETRY_REQUIRED';
+  calendarStatus?: 'PENDING' | 'CREATED' | 'FAILED' | 'RETRY_REQUIRED' | 'CANCELLED';
   calendarCreatedAt?: FirebaseTimestamp | Date | string | null | unknown;
   calendarError?: string;
   reminderStatus?: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';

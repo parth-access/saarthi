@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
-import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from '@/domains/booking';
+import { ConfirmBookingCommand, ConfirmBookingCommandHandler, SlotAlreadyBookedError } from '@/domains/booking';
 import { checkRateLimit } from '../../_lib/rateLimit';
 
 export async function POST(request: Request) {
@@ -58,6 +58,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     logger.error('PAYMENT', 'Payment verification failed', error);
+
+    // Double-booking prevented: the slot was confirmed for another booking
+    // between order creation and payment. The payment was captured and has been
+    // flagged for refund inside the command. Tell the user clearly.
+    if (error instanceof SlotAlreadyBookedError) {
+      return NextResponse.json(
+        { error: 'This time slot was just booked by someone else. Your payment will be refunded — please contact support if you need help.' },
+        { status: 409 }
+      );
+    }
+
     const rawMsg = error instanceof Error ? error.message : String(error);
     
     if (rawMsg.includes('mismatch') || rawMsg.includes('signature') || rawMsg.includes('not found')) {

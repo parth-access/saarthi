@@ -1,0 +1,89 @@
+name: Scheduled Jobs
+
+# Drives Saarthi's background cron endpoints on the Vercel Hobby plan, where
+# Vercel's own cron is limited to once-per-day / 2 jobs. GitHub Actions runs
+# these on a sub-daily schedule for free.
+#
+# Required repository configuration (Settings -> Secrets and variables -> Actions):
+#   - Secret   CRON_SECRET     : must equal the CRON_SECRET set in Vercel prod env
+#   - Variable PRODUCTION_URL  : production origin, no trailing slash
+#                                e.g. https://www.saarthilife.com
+#
+# Notes:
+#   - GitHub's minimum schedule interval is ~5 min and runs may be delayed
+#     under load; the endpoints are idempotent and skip when nothing is due,
+#     so occasional drift/duplication is safe.
+#   - GitHub disables scheduled workflows after 60 days of repo inactivity;
+#     any push (or a manual run) re-arms them.
+
+on:
+  schedule:
+    # Every 5 minutes (GitHub's minimum). All three endpoints are cheap and
+    # idempotent, so we hit them together each tick.
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+# Never let a slow run overlap the next tick.
+concurrency:
+  group: scheduled-jobs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drive-crons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate configuration
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repository secret is not set."
+            exit 1
+          fi
+          if [ -z "$PRODUCTION_URL" ]; then
+            echo "::error::PRODUCTION_URL repository variable is not set (e.g. https://www.saarthilife.com)."
+            exit 1
+          fi
+
+      - name: Process outbox
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PRODUCTION_URL%/}/api/cron/process-outbox"
+
+      - name: Send session reminders
+        if: ${{ !cancelled() }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PRODUCTION_URL%/}/api/cron/session-reminders"
+
+      - name: Complete past sessions
+        if: ${{ !cancelled() }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PRODUCTION_URL%/}/api/cron/session-completion"
+
+      - name: Retry calendar/Meet creation
+        if: ${{ !cancelled() }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PRODUCTION_URL%/}/api/cron/retry-calendar"

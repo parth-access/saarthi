@@ -5,5 +5,6 @@ export * from './state/BookingStateMachine';
 export * from './services/SlotReservationService';
 export * from './services/BookingDomainService';
 export * from './errors/InvalidBookingTransitionError';
+export * from './errors/SlotAlreadyBookedError';
 export * from './events/BookingEvents';
 export * from './commands';

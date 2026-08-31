@@ -16,6 +16,19 @@ export function registerCalendarListeners(eventBus: any) {
     }
   });
 
+  eventBus.subscribe('BookingRescheduled', async (event: any) => {
+    const { bookingId } = event.payload;
+    try {
+      logger.info(`[CalendarListener] Updating Google Calendar event for rescheduled booking ${bookingId}`);
+      const result = await GoogleCalendarService.updateCalendarEvent(bookingId);
+      if (!result.success) {
+        logger.warn(`[CalendarListener] Calendar update returned failure for booking ${bookingId}: ${result.error}`);
+      }
+    } catch (err) {
+      logger.error(`[CalendarListener] Exception during Google Calendar event update for booking ${bookingId}`, { error: err });
+    }
+  });
+
   eventBus.subscribe('BookingCancelled', async (event: any) => {
     const { bookingId } = event.payload;
     try {

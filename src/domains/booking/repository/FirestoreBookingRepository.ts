@@ -246,6 +246,22 @@ export class FirestoreBookingRepository implements BookingRepository {
     if (snapshot.empty) return null;
     return BookingMapper.toEntity(snapshot.docs[0]);
   }
+
+  /**
+   * Finds confirmed bookings whose Google Calendar/Meet creation failed or is still pending,
+   * so a cron can re-drive `createOrSyncCalendarEvent` (idempotent). Uses a single-field `in`
+   * query (no composite index) and filters status + missing meetingUrl in memory.
+   */
+  async findBookingsNeedingCalendarRetry(limitCount: number = 25): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const snapshot = await adminDb.collection('bookings')
+      .where('calendarStatus', 'in', ['RETRY_REQUIRED', 'FAILED', 'PENDING'])
+      .limit(limitCount)
+      .get();
+    return snapshot.docs
+      .map(doc => BookingMapper.toEntity(doc))
+      .filter(b => b.status === 'confirmed' && !b.meetingUrl);
+  }
 }
 
 export const firestoreBookingRepository = new FirestoreBookingRepository();

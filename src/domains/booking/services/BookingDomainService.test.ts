@@ -24,6 +24,7 @@ describe('BookingDomainService', () => {
       findByTherapistId: vi.fn(),
       findActiveBookingsByTherapistAndDate: vi.fn(),
       findByOrderId: vi.fn(),
+      findBookingsNeedingCalendarRetry: vi.fn(),
     };
     service = new BookingDomainService(mockRepository);
   });

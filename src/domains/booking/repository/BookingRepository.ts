@@ -34,4 +34,5 @@ export interface BookingRepository {
   findByTherapistId(therapistId: string, limitCount?: number): Promise<Booking[]>;
   findActiveBookingsByTherapistAndDate(therapistId: string, date: string): Promise<Booking[]>;
   findByOrderId(orderId: string): Promise<Booking | null>;
+  findBookingsNeedingCalendarRetry(limitCount?: number): Promise<Booking[]>;
 }

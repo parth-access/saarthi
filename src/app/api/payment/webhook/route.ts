@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
-import { 
-  firestoreBookingRepository, 
-  ConfirmBookingCommand, 
+import {
+  firestoreBookingRepository,
+  ConfirmBookingCommand,
   ConfirmBookingCommandHandler,
   FailPaymentCommand,
-  FailPaymentCommandHandler 
+  FailPaymentCommandHandler,
+  SlotAlreadyBookedError
 } from '@/domains/booking';
 
 export async function POST(request: Request) {
@@ -72,9 +73,20 @@ export async function POST(request: Request) {
         bookingId
       );
       const handler = new ConfirmBookingCommandHandler();
-      await handler.execute(command);
-
-      logger.success('PAYMENT', 'Payment verified via webhook', { bookingId, razorpayPaymentId });
+      try {
+        await handler.execute(command);
+        logger.success('PAYMENT', 'Payment verified via webhook', { bookingId, razorpayPaymentId });
+      } catch (confirmErr) {
+        // Double-booking prevented: the slot is already confirmed for another
+        // booking. Retrying the webhook will never succeed, so acknowledge (200)
+        // to stop Razorpay's retries. The captured payment has been flagged
+        // REFUND_REQUIRED inside the command for ops / the refund flow.
+        if (confirmErr instanceof SlotAlreadyBookedError) {
+          logger.error('PAYMENT', 'Webhook: double-booking prevented — payment requires refund, acknowledging to stop retries', confirmErr, { bookingId, razorpayPaymentId });
+          return NextResponse.json({ success: true, note: 'Slot conflict — refund required, not confirmed' }, { status: 200 });
+        }
+        throw confirmErr;
+      }
     } else if (event === 'payment.failed') {
       const paymentData = eventPayload?.payment?.entity as Record<string, unknown> | undefined;
       const razorpayOrderId = paymentData?.order_id as string | undefined;

@@ -3,27 +3,11 @@ import { sendEmailAction } from '@/app/api/email/emailSender';
 import { logger } from '@/shared/logger';
 
 export function registerEmailListeners(eventBus: any) {
-  eventBus.subscribe('BookingConfirmed', async (event: any) => {
-    const { bookingId, booking } = event.payload;
-    try {
-      await sendEmailAction({
-        type: 'booking-confirmed',
-        bookingId: bookingId,
-        therapistId: booking.therapistId,
-        bookingDetails: {
-          name: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          date: booking.date,
-          time: booking.time,
-        }
-      });
-      logger.info(`[EmailListener] Confirmation email triggered successfully for booking ${bookingId}`);
-    } catch (err) {
-      logger.error(`[EmailListener] Failed to trigger confirmation email for booking ${bookingId}`, { error: err, bookingId });
-      throw err;
-    }
-  });
+  // NOTE: The session-confirmation email is intentionally NOT sent here.
+  // It is dispatched by GoogleCalendarService.createOrSyncCalendarEvent AFTER the real
+  // Google Meet link exists, so the customer never receives a confirmation without a link
+  // (and never a fabricated one). The immediate payment-receipt email is sent separately
+  // by ConfirmBookingCommand, so payment is still acknowledged even if calendar is pending.
 
   eventBus.subscribe('BookingRejected', async (event: any) => {
     const { bookingId, booking } = event.payload;

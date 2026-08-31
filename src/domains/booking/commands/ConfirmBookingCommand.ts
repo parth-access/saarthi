@@ -8,6 +8,7 @@ import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { SlotReservationService } from '../services/SlotReservationService';
+import { SlotAlreadyBookedError } from '../errors/SlotAlreadyBookedError';
 
 export class ConfirmBookingCommand implements Command {
   readonly name = 'ConfirmBookingCommand';
@@ -72,6 +73,14 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           throw new Error('razorpayOrderId mismatch');
         }
 
+        // Read the permanent slot pin UP-FRONT — before any write in this
+        // transaction — so that (a) Firestore's read-before-write ordering is
+        // satisfied and (b) concurrent confirmations for the same slot conflict
+        // at the Firestore level (the slot ref is now part of the tx read set).
+        const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
+        const slotRef = adminDb.collection('locked_slots').doc(slotId);
+        const slotSnap = await transaction.get(slotRef);
+
         // Idempotent exit: if already paid, return silently without raising error or re-dispatching side-effects
         if (data.paymentStatus === 'paid') {
           return;
@@ -95,13 +104,29 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         therapistId = data.therapistId;
         shouldSendEmail = true;
 
+        // Double-booking guard: refuse to confirm onto a slot that is already
+        // permanently pinned to a DIFFERENT booking. This is the invariant that
+        // was previously lost at confirm time — the pin was written with an
+        // unconditional `set` and the slot was never read, so two bookings that
+        // both survived the hold window could both confirm on one slot.
+        const existingSlot = slotSnap?.exists ? (slotSnap.data() || {}) : null;
+        if (
+          existingSlot &&
+          (existingSlot.isPermanent === true || existingSlot.status === 'booked') &&
+          existingSlot.bookingId &&
+          existingSlot.bookingId !== bookingId
+        ) {
+          throw new SlotAlreadyBookedError(
+            'Slot already confirmed for another booking',
+            { bookingId, conflictingBookingId: existingSlot.bookingId, slotId }
+          );
+        }
+
         const verifiedAt = FieldValue.serverTimestamp();
         await this.bookingDomainService.confirmPayment(data, verifiedAt, razorpayPaymentId, transaction, { source });
         data.updatedAt = FieldValue.serverTimestamp();
-        
+
         // Permanently record slot as booked to prevent any race condition
-        const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
-        const slotRef = adminDb.collection('locked_slots').doc(slotId);
         transaction.set(slotRef, {
           therapistId: data.therapistId,
           date: data.date,
@@ -141,6 +166,36 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         });
       });
     } catch (bookingTxErr) {
+      // A slot conflict means the payment was captured but the slot is already
+      // owned by another confirmed booking. Do NOT confirm (that would double-book);
+      // instead flag this captured payment as owing a refund so it is discoverable
+      // by ops and, once implemented, the automated refund flow (see P1-1).
+      if (bookingTxErr instanceof SlotAlreadyBookedError) {
+        logger.error('PAYMENT', 'CRITICAL: double-booking prevented at confirm — captured payment requires refund', bookingTxErr, {
+          bookingId,
+          razorpayOrderId,
+          razorpayPaymentId,
+          source,
+          conflictingBookingId: (bookingTxErr.metadata?.conflictingBookingId as string | undefined)
+        });
+        try {
+          await adminDb.collection('audit_logs').add({
+            eventType: 'REFUND_REQUIRED',
+            reason: 'double_booking_prevented',
+            bookingId,
+            razorpayOrderId,
+            razorpayPaymentId,
+            conflictingBookingId: (bookingTxErr.metadata?.conflictingBookingId as string | undefined) || null,
+            source,
+            timestamp: FieldValue.serverTimestamp(),
+            details: `Payment captured for booking ${bookingId} but slot was already confirmed for another booking — refund required`
+          });
+        } catch (auditErr) {
+          logger.error('PAYMENT', 'Failed to record REFUND_REQUIRED audit marker after double-booking prevention', auditErr, { bookingId });
+        }
+        throw bookingTxErr;
+      }
+
       logger.error('PAYMENT', 'CRITICAL: payment captured but booking confirm failed — webhook recovery required', bookingTxErr, {
         bookingId,
         razorpayOrderId,

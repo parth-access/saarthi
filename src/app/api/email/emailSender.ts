@@ -357,6 +357,7 @@ export async function sendEmailAction(payload: EmailPayload) {
   const safeOriginalTime = bookingData.originalTime || bookingDetails?.originalTime ? escapeString(bookingData.originalTime || bookingDetails?.originalTime || '') : undefined;
   const safeSessionMode = bookingData.sessionMode || bookingDetails?.sessionMode ? escapeString(bookingData.sessionMode || bookingDetails?.sessionMode || '') : undefined;
   const safeBookingToken = bookingData.bookingToken || bookingDetails?.bookingToken;
+  const meetingUrl = payload.meetingUrl || bookingData.meetingUrl || bookingDetails?.meetingUrl;
 
   const emailData: BookingEmailData = {
     patientName: safePatientName,
@@ -367,6 +368,7 @@ export async function sendEmailAction(payload: EmailPayload) {
     phone: safePatientPhone,
     sessionMode: safeSessionMode,
     bookingToken: safeBookingToken,
+    meetingUrl: meetingUrl,
   };
 
   if (type === 'booking-received') {

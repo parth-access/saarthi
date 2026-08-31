@@ -9,7 +9,7 @@ import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBooki
 import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from './RescheduleBookingCommand';
 import { AdminConfirmBookingCommand, AdminConfirmBookingCommandHandler } from './AdminConfirmBookingCommand';
 import { adminDb } from '@/lib/firebase/admin';
-import { firestoreBookingRepository, Booking } from '@/domains/booking';
+import { firestoreBookingRepository, Booking, SlotAlreadyBookedError } from '@/domains/booking';
 import { firestorePaymentRepository, Payment, razorpayGateway } from '@/domains/payment';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { EventBus } from '@/shared/events/EventBus';
@@ -891,6 +891,76 @@ describe('Command Handlers Suite', () => {
       expect(mockBooking.paymentStatus).toBe('paid');
       expect(mockPayment.status).toBe('success');
       expect(sendEmailAction).not.toHaveBeenCalled();
+    });
+
+    it('B2. Double-booking prevented: confirming onto a slot already pinned to another booking throws and never overwrites the pin', async () => {
+      // Protects against: P0-2 — confirm-time slot pin overwriting a slot already
+      // permanently owned by a different confirmed booking (double-booking).
+      const mockBooking = new Booking({
+        id: 'bk_LOSER',
+        status: 'payment_initiated',
+        paymentStatus: 'pending',
+        email: 'jane@example.com',
+        therapistId: 'therapist_1',
+        name: 'Jane Doe',
+        date: '2026-09-01',
+        time: '10:00',
+        razorpayOrderId: 'order_loser',
+      });
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      const mockPayment = new Payment({
+        id: 'order_loser',
+        bookingId: 'bk_LOSER',
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: 'order_loser',
+      });
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(mockPayment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+
+      const slotSetSpy = vi.fn();
+      const mockTx = {
+        // The slot is already permanently pinned to a DIFFERENT confirmed booking.
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({
+            isPermanent: true,
+            status: 'booked',
+            bookingId: 'bk_WINNER',
+            therapistId: 'therapist_1',
+            date: '2026-09-01',
+            time: '10:00',
+          }),
+        }),
+        set: slotSetSpy,
+        delete: vi.fn(),
+        update: vi.fn(),
+      };
+      // NOTE: ConfirmBookingCommand runs TWO transactions — the inner
+      // ConfirmPaymentCommand transaction first, then the booking-confirm
+      // transaction that holds the double-booking guard. Use a persistent
+      // mockImplementation (not ...Once) so BOTH transactions see this mockTx,
+      // otherwise the slot read in the booking transaction falls through to a
+      // leaked mock and the guard never observes the WINNER pin.
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+
+      const command = new ConfirmBookingCommand('pay_loser', 'order_loser', 'sig_loser', 'direct', 'bk_LOSER');
+      const handler = new ConfirmBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+
+      // The losing booking must NOT be confirmed/paid.
+      expect(mockBooking.status).not.toBe('confirmed');
+      expect(mockBooking.paymentStatus).not.toBe('paid');
+
+      // The permanent pin must never be overwritten to the losing booking.
+      const pinnedToLoser = slotSetSpy.mock.calls.some(
+        (call: any[]) => call[1] && call[1].bookingId === 'bk_LOSER'
+      );
+      expect(pinnedToLoser).toBe(false);
     });
 
     it('C. verify -> webhook race sequence converges safely to confirmed and paid', async () => {

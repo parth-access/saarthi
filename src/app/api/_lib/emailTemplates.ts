@@ -7,6 +7,7 @@ export interface BookingEmailData {
   time: string;
   phone?: string;
   bookingToken?: string;
+  meetingUrl?: string;
 }
 
 const COLORS = {
@@ -157,6 +158,15 @@ export function generateBookingConfirmedEmail(data: BookingEmailData): string {
       <li style="margin-bottom: 8px;">Keep water or notes nearby if you'd like.</li>
       <li>You may reschedule if needed.</li>
     </ul>
+
+    ${data.meetingUrl ? `
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${data.meetingUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 14px 32px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 600; font-size: 16px; text-decoration: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Join Google Meet</a>
+      <p style="margin: 12px 0 0 0; font-size: 13px; color: ${COLORS.textMuted};">
+        Meeting link: <a href="${data.meetingUrl}" style="color: ${COLORS.accent}; word-break: break-all;">${data.meetingUrl}</a>
+      </p>
+    </div>
+    ` : ''}
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
