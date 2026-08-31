@@ -197,8 +197,13 @@ const BookingSystem = () => {
         return;
       }
 
+      // `consent` is enforced client-side by bookingFormSchema; the backend
+      // bookingSchema is .strict() and rejects it (unrecognized_keys → 400).
+      // Strip it before sending so the payload matches the strict contract.
+      const payload = { ...bookingData };
+      delete payload.consent;
       const result = await createBooking({
-        ...bookingData,
+        ...payload,
         lockId: activeLockId || undefined,
         age: parseInt(bookingData.age, 10) || 25
       });
