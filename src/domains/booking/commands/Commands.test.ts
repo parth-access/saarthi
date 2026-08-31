@@ -98,6 +98,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -137,6 +138,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -167,6 +169,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -206,6 +209,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
@@ -274,6 +278,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -305,6 +310,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -336,6 +342,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -364,6 +371,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -407,6 +415,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -452,6 +461,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -493,6 +503,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -539,6 +550,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -587,6 +599,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -642,6 +655,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -681,6 +695,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -726,6 +741,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -752,6 +768,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -780,6 +797,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -826,6 +844,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -877,6 +896,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
         return callback(mockTx as any);
@@ -938,6 +958,7 @@ describe('Command Handlers Suite', () => {
         set: slotSetSpy,
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       // NOTE: ConfirmBookingCommand runs TWO transactions — the inner
       // ConfirmPaymentCommand transaction first, then the booking-confirm
@@ -994,6 +1015,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1055,6 +1077,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1117,6 +1140,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1167,6 +1191,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1218,6 +1243,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1265,6 +1291,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1304,6 +1331,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
 
@@ -1369,6 +1397,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
         return callback(mockTx as any);
@@ -1430,6 +1459,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => {
@@ -1475,6 +1505,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
@@ -1499,6 +1530,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
@@ -1525,6 +1557,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
@@ -1643,6 +1676,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
 
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
@@ -1733,6 +1767,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx as any));
 
@@ -1760,6 +1795,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1782,6 +1818,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1800,6 +1837,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1820,6 +1858,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1847,6 +1886,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1869,6 +1909,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (cb) => cb(mockTx as any));
 
@@ -1899,6 +1940,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx1 as any));
 
@@ -1941,6 +1983,7 @@ describe('Command Handlers Suite', () => {
         set: vi.fn(),
         delete: vi.fn(),
         update: vi.fn(),
+        create: vi.fn(),
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx2 as any));
 

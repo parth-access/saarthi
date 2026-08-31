@@ -62,6 +62,10 @@ describe('Regression Tests: Firestore Transactions, EventBus & Idempotency', () 
         set: vi.fn().mockImplementation(() => {
           callLog.push('set');
         }),
+        create: vi.fn().mockImplementation(() => {
+          // Outbox event recording is a write (insert-only) — must occur after all reads.
+          callLog.push('create');
+        }),
         delete: vi.fn().mockImplementation(() => {
           callLog.push('delete');
         }),

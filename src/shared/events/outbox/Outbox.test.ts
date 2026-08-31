@@ -27,6 +27,15 @@ vi.mock('@/lib/firebase/admin', () => {
           store.set(path, data);
         }
       }),
+      create: vi.fn(async (data: any) => {
+        // Mirror Firestore: create fails if the document already exists.
+        if (store.has(path)) {
+          const err: any = new Error(`Cannot create document ${path}: already exists`);
+          err.code = 6; // ALREADY_EXISTS
+          throw err;
+        }
+        store.set(path, data);
+      }),
       update: vi.fn(async (data: any) => {
         const existing = store.get(path) || {};
         store.set(path, { ...existing, ...data });
@@ -73,6 +82,16 @@ vi.mock('@/lib/firebase/admin', () => {
         const transaction = {
           get: vi.fn(async (ref: any) => ref.get()),
           set: vi.fn((ref: any, data: any, options?: any) => ref.set(data, options)),
+          // Mirror firebase-admin: transaction.create is synchronous (buffers the
+          // write) and fails the transaction if the document already exists.
+          create: vi.fn((ref: any, data: any) => {
+            if (store.has(ref.path)) {
+              const err: any = new Error(`Cannot create document ${ref.path}: already exists`);
+              err.code = 6; // ALREADY_EXISTS
+              throw err;
+            }
+            store.set(ref.path, data);
+          }),
           update: vi.fn((ref: any, data: any) => ref.update(data)),
           delete: vi.fn((ref: any) => ref.delete()),
         };
@@ -108,7 +127,7 @@ describe('Transactional Outbox Pattern', () => {
   });
 
   describe('OutboxService.recordEventInTransaction', () => {
-    it('records event atomically in transaction and is idempotent across retries', async () => {
+    it('records the event once and refuses to duplicate it on command replay (insert-only)', async () => {
       const eventId = generateDeterministicEventId('booking', 'bk_retry_test', 'awaiting_payment');
       const mockPayload = {
         id: eventId,
@@ -118,14 +137,22 @@ describe('Transactional Outbox Pattern', () => {
         payload: { bookingId: 'bk_retry_test', targetStatus: 'awaiting_payment' }
       };
 
-      // Simulate 3 transaction callback retries
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        await adminDb.runTransaction(async (t) => {
-          await OutboxService.recordEventInTransaction(t, mockPayload);
-        });
-      }
+      // First committed transaction records the event.
+      await adminDb.runTransaction(async (t) => {
+        await OutboxService.recordEventInTransaction(t, mockPayload);
+      });
 
-      // Verify only 1 single outbox document exists with deterministic ID
+      // A replayed command that reaches this method again with the same deterministic
+      // id aborts (ALREADY_EXISTS) rather than silently no-oping — insert-only, so the
+      // event can never be overwritten or reset. (Real Firestore auto-retries re-run the
+      // callback before any commit, so they never collide.)
+      await expect(
+        adminDb.runTransaction(async (t) => {
+          await OutboxService.recordEventInTransaction(t, mockPayload);
+        })
+      ).rejects.toThrow(/already exists/i);
+
+      // Exactly one untouched outbox document exists with the deterministic ID.
       const eventDoc = await adminDb.collection('outbox_events').doc(eventId).get();
       expect(eventDoc.exists).toBe(true);
       expect(eventDoc.data()?.id).toBe(eventId);
@@ -151,12 +178,15 @@ describe('Transactional Outbox Pattern', () => {
       const processedDoc = await adminDb.collection('outbox_events').doc(eventId).get();
       expect(processedDoc.data()?.status).toBe('processed');
 
-      // 2. Command retry attempts to record again in transaction
-      await adminDb.runTransaction(async (t) => {
-        await OutboxService.recordEventInTransaction(t, mockPayload);
-      });
+      // 2. Command replay tries to record the same event again in a transaction.
+      //    Insert-only semantics abort the transaction instead of touching the doc.
+      await expect(
+        adminDb.runTransaction(async (t) => {
+          await OutboxService.recordEventInTransaction(t, mockPayload);
+        })
+      ).rejects.toThrow(/already exists/i);
 
-      // 3. Confirm status is still strictly 'processed', not reset to 'pending'
+      // 3. Confirm status is still strictly 'processed', never reset to 'pending'
       const docAfterReplay = await adminDb.collection('outbox_events').doc(eventId).get();
       expect(docAfterReplay.data()?.status).toBe('processed');
     });

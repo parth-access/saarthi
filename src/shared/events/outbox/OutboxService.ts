@@ -9,8 +9,20 @@ export class OutboxService {
 
   /**
    * Atomically records a deterministic outbox event within a Firestore transaction using insert-only semantics.
-   * If the event already exists (e.g. from a prior transaction attempt, client retry, or replay),
-   * it leaves the existing event and its status untouched to prevent resurrection of processed events.
+   *
+   * Uses a WRITE-ONLY `transaction.create` (never a read) so this stays legal when
+   * invoked after the aggregate write — Firestore requires all reads in a transaction
+   * to precede all writes, and every caller records the event after saving its
+   * aggregate. (A prior read+set here threw "Firestore transactions require all reads
+   * to be executed before all writes." and aborted booking creation.)
+   *
+   * `create` is inherently insert-only: if the deterministic event id already exists
+   * (a genuine command replay), the commit fails with ALREADY_EXISTS and the whole
+   * transaction aborts, so a processed event is never overwritten, re-asserted, or reset
+   * to pending. Firestore's own transaction auto-retries never collide because they
+   * re-run the callback before anything is committed. Upstream idempotency guards
+   * (e.g. confirm's "already paid" early exit, create's lockId short-circuit) intercept
+   * real replays before they reach this method.
    *
    * @throws Error if adminDb is uninitialized to ensure reliable durability.
    */
@@ -24,14 +36,8 @@ export class OutboxService {
     }
 
     const docRef = adminDb.collection(this.COLLECTION_NAME).doc(input.id);
-    const existing = await transaction.get(docRef);
 
-    // Idempotency: Never overwrite, re-assert, or reset status of an existing outbox event
-    if (existing?.exists) {
-      return input.id;
-    }
-    
-    transaction.set(docRef, {
+    transaction.create(docRef, {
       id: input.id,
       name: input.name,
       aggregateType: input.aggregateType,
