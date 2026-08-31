@@ -35,6 +35,8 @@ export function Footer() {
                 <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
                 <li><Link href="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
                 <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
                 <li>
                   <Link href="/admin"
                     className="hover:text-primary transition-colors block"
@@ -69,8 +71,12 @@ export function Footer() {
           </div>
         </div>
         
-        <div className="border-t border-muted pt-8 text-center text-sm text-muted-foreground">
+        <div className="border-t border-muted pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+          </div>
         </div>
       </div>
     </footer>

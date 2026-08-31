@@ -61,6 +61,11 @@ export class Booking {
   reviewComment?: string;
   reviewedAt?: FirebaseTimestamp | Date | string | null | unknown;
   reviewId?: string;
+  refundStatus?: 'refunded' | 'partial' | 'failed';
+  refundId?: string;
+  refundedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  /** Refunded amount in paise (booking-level visibility; the `refunds` collection is source of truth). */
+  refundAmount?: number;
 
   constructor(data: Partial<Booking>) {
     Object.assign(this, data);

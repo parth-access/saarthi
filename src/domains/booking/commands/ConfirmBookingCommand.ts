@@ -3,7 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
-import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway } from '@/domains/payment';
+import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway, firestoreRefundRepository } from '@/domains/payment';
 import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
@@ -192,6 +192,25 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           });
         } catch (auditErr) {
           logger.error('PAYMENT', 'Failed to record REFUND_REQUIRED audit marker after double-booking prevention', auditErr, { bookingId });
+        }
+
+        // Enqueue an idempotent, retryable FULL refund for this stranded capture.
+        // A double-booking capture must always be returned 100% (agreed policy). The
+        // deterministic `refund_<paymentId>` doc id guarantees at most one refund per
+        // payment; the process-refunds cron drives the actual Razorpay call.
+        if (razorpayPaymentId && !razorpayPaymentId.startsWith('mock_')) {
+          try {
+            await firestoreRefundRepository.enqueue({
+              id: firestoreRefundRepository.refundIdForPayment(razorpayPaymentId),
+              bookingId,
+              razorpayPaymentId,
+              razorpayOrderId,
+              refundPercent: 100,
+              reason: 'double_booking',
+            });
+          } catch (enqueueErr) {
+            logger.error('PAYMENT', 'Failed to enqueue refund after double-booking prevention', enqueueErr, { bookingId, razorpayPaymentId });
+          }
         }
         throw bookingTxErr;
       }

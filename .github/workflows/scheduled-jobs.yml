@@ -87,3 +87,13 @@ jobs:
           curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             "${PRODUCTION_URL%/}/api/cron/retry-calendar"
+
+      - name: Process refunds
+        if: ${{ !cancelled() }}
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          curl -sS -f --retry 2 --retry-delay 5 --max-time 60 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PRODUCTION_URL%/}/api/cron/process-refunds"

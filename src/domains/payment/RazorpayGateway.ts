@@ -1,6 +1,6 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import { PaymentGateway, CreateOrderParams, OrderDetails, RazorpayOrderInfo } from './PaymentGateway';
+import { PaymentGateway, CreateOrderParams, OrderDetails, RazorpayOrderInfo, PaymentRefundState, RefundResult } from './PaymentGateway';
 import { config } from '@/shared/config';
 
 export class RazorpayGateway implements PaymentGateway {
@@ -27,6 +27,54 @@ export class RazorpayGateway implements PaymentGateway {
       console.error('[Razorpay] Failed to fetch payment details', error);
       return null;
     }
+  }
+
+  /**
+   * Reads the authoritative capture + refund state of a payment straight from
+   * Razorpay. Used before issuing a refund so we never double-refund: if the
+   * payment already shows `refund_status: 'full'` (or enough `amount_refunded`),
+   * the caller reconciles instead of refunding again. Throws on API error so the
+   * refund is retried rather than silently treated as "not refunded".
+   */
+  async fetchPaymentRefundState(paymentId: string): Promise<PaymentRefundState | null> {
+    const rzp = this.getClient();
+    const payment = await rzp.payments.fetch(paymentId);
+    if (!payment) return null;
+    const p = payment as unknown as {
+      status: string;
+      amount: number;
+      amount_refunded?: number;
+      refund_status?: string;
+    };
+    return {
+      status: p.status,
+      amountPaise: Number(p.amount) || 0,
+      amountRefundedPaise: Number(p.amount_refunded) || 0,
+      refundStatus: p.refund_status || 'null',
+    };
+  }
+
+  /**
+   * Issues a refund against a captured payment. `amountPaise` is the amount in the
+   * smallest currency unit; `receipt` is our internal reference (the deterministic
+   * refund doc id) so refunds are traceable back to our records. Throws on failure
+   * so the caller keeps the refund retryable and does NOT mark the booking refunded.
+   */
+  async refundPayment(
+    paymentId: string,
+    amountPaise: number,
+    notes?: Record<string, string | number>,
+    receipt?: string
+  ): Promise<RefundResult> {
+    const rzp = this.getClient();
+    const refund = await rzp.payments.refund(paymentId, {
+      amount: amountPaise,
+      speed: 'normal',
+      notes,
+      receipt: receipt ?? null,
+    });
+    const r = refund as unknown as { id: string; status: string; amount: number };
+    return { id: r.id, status: r.status, amount: Number(r.amount) || amountPaise };
   }
 
   async findOrderByReceipt(receipt: string): Promise<RazorpayOrderInfo | null> {

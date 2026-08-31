@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
+import { adminDb } from '@/lib/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
+import { firestoreRefundRepository } from '@/domains/payment';
 import {
   firestoreBookingRepository,
   ConfirmBookingCommand,
@@ -10,6 +13,24 @@ import {
   FailPaymentCommandHandler,
   SlotAlreadyBookedError
 } from '@/domains/booking';
+
+/** Best-effort booking-level reconcile after a refund webhook (refunds collection is source of truth). */
+async function reconcileBookingRefunded(
+  bookingId: string,
+  refundId?: string,
+  amountPaise?: number
+): Promise<void> {
+  if (!adminDb) return;
+  const update: Record<string, unknown> = {
+    paymentStatus: 'refunded',
+    refundStatus: 'refunded',
+    refundedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+  if (refundId) update.refundId = refundId;
+  if (typeof amountPaise === 'number') update.refundAmount = amountPaise;
+  await adminDb.collection('bookings').doc(bookingId).update(update);
+}
 
 export async function POST(request: Request) {
   try {
@@ -108,7 +129,34 @@ export async function POST(request: Request) {
       }
     } else if (event === 'refund.processed') {
       const refundData = eventPayload?.refund?.entity as Record<string, unknown> | undefined;
-      logger.info('PAYMENT', 'Refund processed webhook received', { refundId: refundData?.id, paymentId: refundData?.payment_id });
+      const paymentId = refundData?.payment_id as string | undefined;
+      const gatewayRefundId = refundData?.id as string | undefined;
+      const amountRefundedPaise = Number(refundData?.amount) || undefined;
+
+      logger.info('PAYMENT', 'Refund processed webhook received', { refundId: gatewayRefundId, paymentId });
+
+      // Reconcile the refund we track (deterministic doc id) + booking. This closes the
+      // loop for refunds that complete asynchronously or were issued from the Razorpay
+      // dashboard. Idempotent: an already-PROCESSED doc is left as-is.
+      if (paymentId) {
+        try {
+          const refund = await firestoreRefundRepository.findByPaymentId(paymentId);
+          if (refund && refund.status !== 'PROCESSED') {
+            await firestoreRefundRepository.save({
+              ...refund,
+              status: 'PROCESSED',
+              refundId: gatewayRefundId ?? refund.refundId,
+              amountRefundedPaise: amountRefundedPaise ?? refund.amountRefundedPaise,
+            });
+            await reconcileBookingRefunded(refund.bookingId, gatewayRefundId, amountRefundedPaise);
+            logger.success('PAYMENT', 'Refund reconciled via webhook', { bookingId: refund.bookingId, paymentId, refundId: gatewayRefundId });
+          } else if (!refund) {
+            logger.warn('PAYMENT', 'refund.processed webhook: no tracked refund doc for payment', { paymentId, refundId: gatewayRefundId });
+          }
+        } catch (reconcileErr) {
+          logger.error('PAYMENT', 'Failed to reconcile refund from webhook', reconcileErr, { paymentId });
+        }
+      }
     } else {
       logger.info('PAYMENT', 'Unhandled webhook event received', { event });
     }

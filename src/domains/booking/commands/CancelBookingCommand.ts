@@ -5,6 +5,28 @@ import { firestoreBookingRepository } from '../repository/FirestoreBookingReposi
 import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { SlotReservationService } from '../services/SlotReservationService';
+import { computeRefundPercent, firestoreRefundRepository } from '@/domains/payment';
+import { parseSessionTimeIST } from '@/services/googleCalendarService';
+import { Booking } from '../entities/Booking';
+
+/**
+ * Best-effort resolution of the session's start instant (ms) for the refund
+ * policy. Prefers the stored UTC timestamp; falls back to the IST-localized
+ * date/time. Returns NaN when neither can be parsed — computeRefundPercent then
+ * fails safe to 0% (never over-refunds on unparseable data).
+ */
+function resolveSessionStartMs(data: Booking): number {
+  if (data.utcDateTime) {
+    const t = Date.parse(String(data.utcDateTime));
+    if (Number.isFinite(t)) return t;
+  }
+  try {
+    const { startIso } = parseSessionTimeIST(data.date, data.time);
+    return Date.parse(startIso);
+  } catch {
+    return NaN;
+  }
+}
 
 export class CancelBookingCommand implements Command {
   readonly name = 'CancelBookingCommand';
@@ -66,6 +88,38 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       // If booking is pending/awaiting_payment/confirmed, we can decline/cancel
       isDecline = data.status === 'pending' || data.status === 'pending_approval' || data.status === 'awaiting_payment';
 
+      // Refund decision for a PAID (previously confirmed) booking being cancelled.
+      // Computed BEFORE the cancellation writes below and enqueued inside the same
+      // transaction (read-before-write: enqueue reads its create-guarded doc up-front)
+      // so cancel + refund-enqueue commit atomically. Percent is fixed by the
+      // time-to-session policy at THIS moment; the actual paise are computed later
+      // from Razorpay's authoritative captured amount by the process-refunds cron.
+      let refundNote = '';
+      if (
+        !isDecline &&
+        data.paymentStatus === 'paid' &&
+        data.razorpayPaymentId &&
+        !data.razorpayPaymentId.startsWith('mock_')
+      ) {
+        const percent = computeRefundPercent(resolveSessionStartMs(data), Date.now());
+        if (percent > 0) {
+          await firestoreRefundRepository.enqueue(
+            {
+              id: firestoreRefundRepository.refundIdForPayment(data.razorpayPaymentId),
+              bookingId,
+              razorpayPaymentId: data.razorpayPaymentId,
+              razorpayOrderId: data.razorpayOrderId,
+              refundPercent: percent,
+              reason: 'cancellation',
+            },
+            t
+          );
+          refundNote = `Refund enqueued at ${percent}% per cancellation policy`;
+        } else {
+          refundNote = 'No refund per cancellation policy (<24h to session start)';
+        }
+      }
+
       if (isDecline) {
         await this.bookingDomainService.declineBooking(
           data,
@@ -81,6 +135,20 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
 
       data.updatedAt = FieldValue.serverTimestamp();
       await firestoreBookingRepository.save(data, t);
+
+      // Human audit trail for the refund decision (enqueued or intentionally skipped).
+      if (refundNote) {
+        const refundAuditRef = adminDb.collection('audit_logs').doc();
+        t.set(refundAuditRef, {
+          eventType: 'REFUND_POLICY_APPLIED',
+          bookingId,
+          therapistId: data.therapistId,
+          razorpayPaymentId: data.razorpayPaymentId,
+          cancelledBy,
+          timestamp: FieldValue.serverTimestamp(),
+          details: refundNote,
+        });
+      }
 
       // Safe non-blind slot delete using SlotReservationService
       await SlotReservationService.releasePinInTransaction(t, data.therapistId, data.date, data.time, bookingId);
