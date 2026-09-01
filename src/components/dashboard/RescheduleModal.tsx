@@ -1,48 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Booking } from '@/types';
+import { useAvailability } from '@/hooks/useAvailability';
+import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
+import { formatSessionTimeRange, SESSION_DURATION_LABEL } from '@/lib/sessionDisplay';
+import { toast } from 'sonner';
 
 interface RescheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   session: Booking | null;
-  onSubmit: (reason: string, preferredDate: string, preferredTime: string) => Promise<void>;
+  /** Called with the updated booking after a successful server-side reschedule. */
+  onRescheduled?: (booking: Partial<Booking> & { id: string }) => void;
 }
 
-export function RescheduleModal({ isOpen, onClose, session, onSubmit }: RescheduleModalProps) {
-  const [reason, setReason] = useState('');
-  const [preferredDate, setPreferredDate] = useState('');
-  const [preferredTime, setPreferredTime] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+/** Build the selectable date window: today .. today + BOOKING_WINDOW_DAYS (local). */
+function useDateWindow() {
+  return useMemo(() => {
+    const days: { iso: string; weekday: string; day: string; month: string }[] = [];
+    const base = new Date();
+    for (let i = 0; i <= BOOKING_WINDOW_DAYS; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      days.push({
+        iso,
+        weekday: d.toLocaleDateString('en-GB', { weekday: 'short' }),
+        day: d.toLocaleDateString('en-GB', { day: 'numeric' }),
+        month: d.toLocaleDateString('en-GB', { month: 'short' }),
+      });
+    }
+    return days;
+  }, []);
+}
+
+export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: RescheduleModalProps) {
+  const dateWindow = useDateWindow();
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Reset state when opened
-  React.useEffect(() => {
+  const { slots, loading: slotsLoading, error: slotsError } = useAvailability(
+    isOpen && selectedDate ? session?.therapistId ?? null : null,
+    isOpen ? selectedDate || null : null
+  );
+
+  // Reset selection whenever the modal (re)opens.
+  useEffect(() => {
     if (isOpen) {
-      setReason('');
-      setPreferredDate('');
-      setPreferredTime('');
+      setSelectedDate('');
+      setSelectedTime('');
       setError('');
+      setSubmitting(false);
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reason.trim()) {
-      setError('Please provide a reason for rescheduling.');
+  const availableSlots = useMemo(() => slots.filter((s) => s.isAvailable), [slots]);
+
+  const handleSubmit = async () => {
+    if (!session || !selectedDate || !selectedTime) {
+      setError('Please choose a new date and time for your session.');
       return;
     }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
     setError('');
     try {
-      await onSubmit(reason, preferredDate, preferredTime);
-      onClose();
+      const res = await fetch('/api/bookings/reschedule-self', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: session.id, newDate: selectedDate, newTime: selectedTime }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        toast.success('Your session has been rescheduled.');
+        onRescheduled?.(data.booking ?? { id: session.id, date: selectedDate, time: selectedTime });
+        onClose();
+      } else {
+        setError(data.error || 'We could not reschedule to that slot. Please pick another time.');
+      }
     } catch {
-      setError('Failed to send reschedule request. Please try again.');
+      setError('Something went wrong while rescheduling. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -58,104 +98,136 @@ export function RescheduleModal({ isOpen, onClose, session, onSubmit }: Reschedu
             className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reschedule-title"
+            initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center mt-safe p-4 sm:p-0"
+            exit={{ opacity: 0, scale: 0.96, y: 20 }}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col"
           >
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10">
-              <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50">
-                <h3 className="text-xl font-serif text-primary">Request Reschedule</h3>
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10 flex flex-col max-h-[88vh]">
+              <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 shrink-0">
+                <div>
+                  <h3 id="reschedule-title" className="text-xl font-serif text-primary">Reschedule Session</h3>
+                  <p className="text-xs text-primary/60 font-sans mt-1">
+                    Currently {session.date} · {formatSessionTimeRange(session.time)}
+                  </p>
+                </div>
                 <button
                   onClick={onClose}
                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
-                  aria-label="Close modal"
+                  aria-label="Close reschedule dialog"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="p-6 space-y-6 overflow-y-auto font-sans">
+                {/* Date picker */}
                 <div>
-                  <p className="text-sm text-primary/70 mb-4">
-                    Current session: <strong className="text-primary">{session.date} at {session.time}</strong>
-                  </p>
-                  
-                  <label htmlFor="reason" className="block text-sm font-medium text-primary mb-2">
-                    Reason for rescheduling <span className="text-red-500">*</span>
+                  <label className="flex items-center gap-2 text-sm font-medium text-primary mb-3">
+                    <CalendarIcon className="w-4 h-4 text-[#E6A520]" /> Choose a new date
                   </label>
-                  <textarea
-                    id="reason"
-                    rows={4}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Please briefly explain why you need to reschedule..."
-                    className="w-full rounded-2xl border border-primary/20 bg-white/50 px-4 py-3 text-sm text-primary placeholder:text-primary/30 transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30 resize-none"
-                  />
-                  {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="pref-date" className="block text-sm font-medium text-primary mb-2">
-                      Preferred Date (Optional)
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <CalendarIcon className="h-4 w-4 text-primary/40" />
-                      </div>
-                      <input
-                        type="date"
-                        id="pref-date"
-                        value={preferredDate}
-                        onChange={(e) => setPreferredDate(e.target.value)}
-                        className="w-full rounded-2xl border border-primary/20 bg-white/50 pl-10 pr-4 py-2.5 text-sm text-primary transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="pref-time" className="block text-sm font-medium text-primary mb-2">
-                      Preferred Time (Optional)
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Clock className="h-4 w-4 text-primary/40" />
-                      </div>
-                      <input
-                        type="time"
-                        id="pref-time"
-                        value={preferredTime}
-                        onChange={(e) => setPreferredTime(e.target.value)}
-                        className="w-full rounded-2xl border border-primary/20 bg-white/50 pl-10 pr-4 py-2.5 text-sm text-primary transition-all duration-200 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 hover:border-primary/30"
-                      />
-                    </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                    {dateWindow.map((d) => {
+                      const active = selectedDate === d.iso;
+                      return (
+                        <button
+                          key={d.iso}
+                          onClick={() => { setSelectedDate(d.iso); setSelectedTime(''); setError(''); }}
+                          className={`shrink-0 w-16 py-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                            active
+                              ? 'bg-primary text-white border-primary shadow-sm'
+                              : 'bg-white text-primary/70 border-primary/10 hover:border-[#E6A520]/40 hover:bg-[#FFFBE7]'
+                          }`}
+                          aria-pressed={active}
+                        >
+                          <span className="block text-[10px] uppercase tracking-wider opacity-70">{d.weekday}</span>
+                          <span className="block text-lg font-semibold leading-tight">{d.day}</span>
+                          <span className="block text-[10px] uppercase tracking-wider opacity-70">{d.month}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-primary/5">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-primary border border-primary/20 bg-transparent hover:bg-primary/5 rounded-2xl transition-all duration-200 hover:-translate-y-0.5"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#E6A520] hover:bg-[#E6A520]/90 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:-translate-y-0 disabled:hover:shadow-sm flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <React.Fragment>
-                        <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                        Submitting...
-                      </React.Fragment>
+                {selectedDate && (
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-primary mb-3">
+                      <Clock className="w-4 h-4 text-[#E6A520]" /> Available times
+                      <span className="text-xs text-primary/40 font-normal">({SESSION_DURATION_LABEL} session)</span>
+                    </label>
+
+                    {slotsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-primary/50 py-6 justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Checking the calendar…
+                      </div>
+                    ) : slotsError ? (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-2xl p-4">
+                        <AlertCircle className="w-4 h-4 shrink-0" /> {slotsError}
+                      </div>
+                    ) : availableSlots.length === 0 ? (
+                      <div className="text-sm text-primary/60 bg-[#FFFBE7]/50 border border-dashed border-primary/15 rounded-2xl p-5 text-center">
+                        No open times on this day. Please try another date.
+                      </div>
                     ) : (
-                      'Send Request'
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {availableSlots.map((s) => {
+                          const active = selectedTime === s.time;
+                          return (
+                            <button
+                              key={s.time}
+                              onClick={() => { setSelectedTime(s.time); setError(''); }}
+                              className={`py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
+                                active
+                                  ? 'bg-[#E6A520] text-white border-[#E6A520] shadow-sm'
+                                  : 'bg-white text-primary/80 border-primary/10 hover:border-[#E6A520]/40 hover:bg-[#FFFBE7]'
+                              }`}
+                              aria-pressed={active}
+                            >
+                              {s.time}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </button>
-                </div>
-              </form>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="flex items-center gap-2 text-sm text-red-600" role="alert">
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 p-6 border-t border-primary/5 bg-white shrink-0 font-sans">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-3 text-sm font-medium text-primary border border-primary/20 bg-transparent hover:bg-primary/5 rounded-2xl transition-all disabled:opacity-50"
+                >
+                  Keep current time
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitting || !selectedDate || !selectedTime}
+                  className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-primary hover:bg-primary/90 rounded-2xl transition-all shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <React.Fragment>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Rescheduling…
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment>
+                      <CheckCircle2 className="w-4 h-4" /> Confirm new time
+                    </React.Fragment>
+                  )}
+                </button>
+              </div>
             </div>
           </motion.div>
         </React.Fragment>

@@ -36,17 +36,35 @@ export class CancelBookingCommand implements Command {
     public readonly cancelledBy: string,
     public readonly sessionRole?: string,
     public readonly customNote?: string,
-    public readonly isTokenFlow?: boolean
+    public readonly isTokenFlow?: boolean,
+    /**
+     * Verified session email (from verifySession). Authorizes bookings that were
+     * created unauthenticated and carry only an `email` (no `userId`), mirroring
+     * the userId-OR-email ownership model used by join-session.
+     */
+    public readonly ownerEmail?: string
   ) {}
 }
 
-export class CancelBookingCommandHandler implements CommandHandler<CancelBookingCommand, { success: boolean }> {
+export interface CancelBookingResult {
+  success: boolean;
+  /** 'cancelled' for confirmed bookings, 'rejected' for pending/awaiting declines. */
+  outcome: 'cancelled' | 'rejected';
+  /** Refund percent enqueued per the cancellation policy (0 when none). */
+  refundPercent: number;
+  /** True when a refund was actually enqueued for processing. */
+  refundEnqueued: boolean;
+}
+
+export class CancelBookingCommandHandler implements CommandHandler<CancelBookingCommand, CancelBookingResult> {
   private readonly bookingDomainService = new BookingDomainService(firestoreBookingRepository);
 
-  async execute(command: CancelBookingCommand): Promise<{ success: boolean }> {
-    const { bookingId, reason, cancelledBy, sessionRole, customNote, isTokenFlow } = command;
+  async execute(command: CancelBookingCommand): Promise<CancelBookingResult> {
+    const { bookingId, reason, cancelledBy, sessionRole, customNote, isTokenFlow, ownerEmail } = command;
     let isDecline = false;
     let therapistId = '';
+    let refundPercent = 0;
+    let refundEnqueued = false;
 
     await adminDb.runTransaction(async (t) => {
       const data = await firestoreBookingRepository.findById(bookingId, t);
@@ -66,9 +84,15 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
         if (data.invalidToken) {
           throw new Error('Unauthorized: Booking token is invalidated');
         }
-      } else if (cancelledBy) {
-        // Authenticated client user must own the booking
-        if (data.userId !== cancelledBy && data.email !== cancelledBy) {
+      } else if (cancelledBy || ownerEmail) {
+        // Authenticated client user must own the booking (by uid or verified email).
+        const ownsByUid =
+          !!cancelledBy && (data.userId === cancelledBy || data.email === cancelledBy);
+        const ownsByEmail =
+          !!ownerEmail &&
+          !!data.email &&
+          data.email.toLowerCase() === ownerEmail.toLowerCase();
+        if (!ownsByUid && !ownsByEmail) {
           throw new Error('Unauthorized: Client ownership mismatch');
         }
       } else {
@@ -102,6 +126,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
         !data.razorpayPaymentId.startsWith('mock_')
       ) {
         const percent = computeRefundPercent(resolveSessionStartMs(data), Date.now());
+        refundPercent = percent;
         if (percent > 0) {
           await firestoreRefundRepository.enqueue(
             {
@@ -114,6 +139,7 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
             },
             t
           );
+          refundEnqueued = true;
           refundNote = `Refund enqueued at ${percent}% per cancellation policy`;
         } else {
           refundNote = 'No refund per cancellation policy (<24h to session start)';
@@ -159,6 +185,11 @@ export class CancelBookingCommandHandler implements CommandHandler<CancelBooking
       console.error('[CancelBookingCommandHandler] Async outbox processing error:', err);
     });
 
-    return { success: true };
+    return {
+      success: true,
+      outcome: isDecline ? 'rejected' : 'cancelled',
+      refundPercent,
+      refundEnqueued,
+    };
   }
 }

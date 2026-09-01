@@ -10,6 +10,12 @@ import { istToUtcIsoString } from '@/shared/utils/dateTime';
 
 export interface RescheduleBookingSessionContext {
   uid?: string;
+  /**
+   * Verified session email (from verifySession). Used to authorize bookings
+   * that were created unauthenticated and carry only an `email` (no `userId`),
+   * mirroring the userId-OR-email ownership model used by join-session.
+   */
+  email?: string;
   role?: string;
   isTokenFlow?: boolean;
 }
@@ -58,9 +64,16 @@ export class RescheduleBookingCommandHandler {
         if (booking.invalidToken) {
           throw new Error("Unauthorized: Reschedule token has been invalidated.");
         }
-      } else if (command.session.uid) {
-        // Authenticated client user must own the booking
-        if (booking.userId !== command.session.uid && booking.email !== command.session.uid) {
+      } else if (command.session.uid || command.session.email) {
+        // Authenticated client user must own the booking (by uid or verified email).
+        const ownsByUid =
+          !!command.session.uid &&
+          (booking.userId === command.session.uid || booking.email === command.session.uid);
+        const ownsByEmail =
+          !!command.session.email &&
+          !!booking.email &&
+          booking.email.toLowerCase() === command.session.email.toLowerCase();
+        if (!ownsByUid && !ownsByEmail) {
           throw new Error("Unauthorized: Client user ownership mismatch");
         }
       } else {

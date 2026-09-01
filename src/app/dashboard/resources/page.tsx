@@ -1,296 +1,256 @@
 "use client";
 
-
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, BookOpen, Wind, Heart, PlayCircle, Lock, Sparkles, Anchor, Smile } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, BookOpen, Wind, Heart, Anchor, Smile } from "lucide-react";
+import Link from "next/link";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { toast } from "sonner";
+import { BreathingPlayer, type BreathingPattern } from "@/components/dashboard/BreathingPlayer";
 
-function Resources() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("all");
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+const EXERCISES: BreathingPattern[] = [
+  {
+    id: "box-breathing",
+    title: "Box Breathing",
+    desc: "A steady four-count rhythm that settles a racing mind. Four equal sides, over and over.",
+    color: "bg-[#FFFBE7]",
+    phases: [
+      { label: "Breathe in", seconds: 4 },
+      { label: "Hold", seconds: 4 },
+      { label: "Breathe out", seconds: 4 },
+      { label: "Hold", seconds: 4 },
+    ],
+  },
+  {
+    id: "4-7-8",
+    title: "4-7-8 Relaxation",
+    desc: "A longer exhale tips your body towards rest. Helpful when sleep feels far away.",
+    color: "bg-emerald-50",
+    phases: [
+      { label: "Breathe in", seconds: 4 },
+      { label: "Hold", seconds: 7 },
+      { label: "Breathe out", seconds: 8 },
+    ],
+  },
+];
 
-  const moodAffirmations: Record<string, string> = {
-    calm: "Beautiful. You are resting in a peaceful space. Let this softness carry you through the day.",
-    anxious: "It is okay to feel anxious. Take a slow, quiet breath right now. You are safe, you are held, of this moment you are in control.",
-    happy: "Your joy is sweet and grounding. Savor this light, and let it warm your heart and those around you.",
-    tired: "Your body is asking for softness. Give yourself permission to pause, rest, and do nothing. You have earned this release.",
-    grounded: "Magnificent. Feeling connected is a beautiful state. You are a steady, calming anchor for yourself today."
-  };
+const MOODS: { emoji: string; label: string; affirmation: string }[] = [
+  { emoji: "😞", label: "Low", affirmation: "Heaviness is allowed to exist without being explained. Be gentle with today's pace." },
+  { emoji: "😟", label: "Anxious", affirmation: "Your body is trying to protect you. A slow exhale is enough of a first step." },
+  { emoji: "😐", label: "Flat", affirmation: "Not every day needs a feeling. Neutral is a resting place, not a failure." },
+  { emoji: "🙂", label: "Okay", affirmation: "Steady counts. Notice one small thing that helped you get here." },
+  { emoji: "😊", label: "Good", affirmation: "Let this land properly — good days are worth noticing on purpose." },
+];
 
-  const categories = [
-    { id: "all", label: "All Resources" },
-    { id: "breathing", label: "Breathing Exercises" },
-    { id: "journaling", label: "Journaling Prompts" },
-    { id: "articles", label: "Wellness Articles" },
-  ];
+const GROUNDING = [
+  { count: "5", sense: "things you can see", hint: "Name them slowly — the light, a colour, the edge of the room." },
+  { count: "4", sense: "things you can feel", hint: "Your feet on the floor, fabric on your arms, the chair behind you." },
+  { count: "3", sense: "things you can hear", hint: "Traffic, a fan, your own breathing." },
+  { count: "2", sense: "things you can smell", hint: "Or two smells you like, if there's nothing in the air." },
+  { count: "1", sense: "thing you can taste", hint: "Or one taste you're looking forward to." },
+];
 
-  const breathingExercises = [
-    {
-      id: "box-breathing",
-      title: "Box Breathing",
-      duration: "5 mins",
-      desc: "Find immediate calm and focus with this simple four-count rhythm.",
-      color: "bg-[#FFFBE7]",
-    },
-    {
-      id: "4-7-8",
-      title: "4-7-8 Relaxation",
-      duration: "10 mins",
-      desc: "Promote deep relaxation and better sleep.",
-      color: "bg-emerald-50",
-    }
-  ];
+const REFLECTION_PROMPTS = [
+  "What took the most out of me this week, and what gave something back?",
+  "If I could hand one worry to someone else for a day, which would it be?",
+  "What do I want my next session to make room for?",
+  "When did I last feel like myself, and what was happening around me?",
+];
 
-  const articles = [
-    {
-      title: "Understanding Emotional Safety",
-      readTime: "4 min read",
-      category: "Wellness",
-    },
-    {
-      title: "The Power of Sitting with Your Thoughts",
-      readTime: "6 min read",
-      category: "Mindfulness",
-    },
-    {
-      title: "Navigating Transitions",
-      readTime: "5 min read",
-      category: "Growth",
-    }
-  ];
+function Wellness() {
+  const [openExercise, setOpenExercise] = useState<string | null>(null);
+  const [mood, setMood] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen pt-24 pb-24 bg-[#FFFBE7]">
-      <div className="container mx-auto px-6 max-w-6xl">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-sm text-primary/60 hover:text-primary mb-8 transition-colors group cursor-pointer"
+    <div className="pt-24 pb-24 px-4 sm:px-6">
+      <div className="container mx-auto max-w-5xl">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 text-sm text-primary/60 hover:text-primary mb-8 transition-colors group font-sans"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Back to Dashboard
-        </button>
+          Back to dashboard
+        </Link>
 
-        <div className="mb-12">
-          <h1 className="text-3xl md:text-5xl font-serif text-primary tracking-tight mb-4">
-            Wellness Resources
-          </h1>
-          <p className="text-primary/70 text-lg max-w-2xl">
-            A curated collection of tools, exercises, and insights designed to bring you calm, clarity, and balance.
+        <div className="mb-10 font-sans">
+          <h1 className="text-3xl sm:text-4xl font-serif text-primary">Wellness corner</h1>
+          <p className="text-sm text-primary/60 mt-2 max-w-2xl leading-relaxed">
+            A few things you can do right now, in this tab, between sessions. Nothing here is
+            recorded or shared — it runs on your screen and disappears when you leave.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4 mb-10 border-b border-primary/5 pb-4 font-sans">
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActiveTab(c.id)}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                activeTab === c.id
-                  ? "bg-primary text-[#FFFBE7]"
-                  : "bg-white text-primary/70 hover:bg-white/70 hover:text-primary shadow-sm border border-primary/5"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8 space-y-12">
-            
-            {(activeTab === "all" || activeTab === "breathing") && (
-              <section>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
-                    <Wind className="w-6 h-6 text-[#E6A520]" />
-                    Breathing Exercises
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {breathingExercises.map((ex) => (
-                    <motion.div
-                      whileHover={{ y: -4 }}
-                      key={ex.id}
-                      className={`p-6 rounded-3xl border border-primary/10 shadow-sm relative overflow-hidden group cursor-pointer ${ex.color}`}
-                    >
-                      <div className="flex justify-between items-start mb-12">
-                         <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                            <Wind className="w-5 h-5" />
-                         </div>
-                         <span className="text-xs font-medium px-3 py-1 bg-white/50 rounded-full">{ex.duration}</span>
-                      </div>
-                      <h3 className="text-xl font-medium text-primary mb-2">{ex.title}</h3>
-                      <p className="text-primary/60 text-sm leading-relaxed mb-6 font-sans">{ex.desc}</p>
-                      
-                      <div className="flex items-center gap-2 text-sm font-medium text-primary uppercase tracking-wider font-sans">
-                         <PlayCircle className="w-5 h-5 text-[#E6A520] group-hover:scale-110 transition-transform" />
-                         Begin Practice
-                      </div>
-                      
-                      {/* Decorative gradient */}
-                      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 blur-3xl rounded-full" />
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {(activeTab === "all" || activeTab === "journaling") && (
-              <div className="space-y-12">
-                <section>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
-                      <BookOpen className="w-6 h-6 text-[#E6A520]" />
-                      Guided Journaling
-                    </h2>
-                  </div>
-                  <div className="bg-white rounded-3xl border border-primary/10 p-8 sm:p-10 shadow-sm relative overflow-hidden">
-                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6A520]/5 rounded-bl-[100px] -z-0" />
-                     <div className="relative z-10 max-w-xl">
-                        <p className="text-xs font-bold tracking-widest text-[#E6A520] uppercase mb-3 font-sans">Daily Prompt</p>
-                        <h3 className="text-2xl sm:text-3xl font-serif text-primary mb-4 leading-tight">
-                          &ldquo;What is one thing you can let go of today that isn&apos;t serving you?&rdquo;
-                        </h3>
-                        <p className="text-primary/60 mb-8 font-sans">
-                          Take a few minutes to reflect on this. You don&apos;t have to write perfectly, just honestly. 
-                          Your reflections are entirely private and securely encrypted.
-                        </p>
-                        <button className="flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-full text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm w-fit cursor-pointer font-sans">
-                          <Lock className="w-4 h-4" />
-                          Start Writing Privately
-                        </button>
-                     </div>
-                  </div>
-                </section>
-
-                <section>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-serif text-primary flex items-center gap-3">
-                      <Anchor className="w-6 h-6 text-[#E6A520]" />
-                      Sensory Grounding (5-4-3-2-1)
-                    </h2>
-                  </div>
-                  <div className="bg-[#FFFBE7]/40 rounded-3xl border border-primary/10 p-6 sm:p-8 shadow-sm">
-                    <p className="text-sm text-primary/70 mb-6 font-sans">
-                       When overwhelmed, use the 5-4-3-2-1 technique to anchor yourself in the present moment by noticing details around you.
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center font-sans">
-                      {[
-                        { step: "5", title: "See", desc: "Five things in your line of sight" },
-                        { step: "4", title: "Touch", desc: "Four textures you can feel" },
-                        { step: "3", title: "Hear", desc: "Three distant sounds" },
-                        { step: "2", title: "Smell", desc: "Two scents in the air" },
-                        { step: "1", title: "Taste", desc: "One flavor on your tongue" }
-                      ].map((g, i) => (
-                        <div key={i} className="bg-white rounded-2xl p-4 border border-primary/5 hover:border-[#E6A520]/20 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
-                          <span className="block text-2xl font-bold text-[#E6A520] mb-0.5">{g.step}</span>
-                          <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{g.title}</h4>
-                          <p className="text-[10px] text-primary/50 leading-tight">{g.desc}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
-                <section className="p-8 bg-black/[0.01] border-2 border-dashed border-primary/10 rounded-3xl text-center font-sans">
-                  <Sparkles className="w-8 h-8 text-[#E6A520]/50 mx-auto mb-3" />
-                  <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-1">More Calming Pathways</h3>
-                  <p className="text-xs text-primary/50 max-w-sm mx-auto">
-                    We are crafting Sleep Journeys, Indian Raga Soundscapes, and Biofeedback Loops with clinical experts. Arriving soon.
-                  </p>
-                </section>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Breathing — a real guided timer, one open at a time */}
+            <section aria-labelledby="breathing-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-1">
+                <Wind className="w-5 h-5 text-[#E6A520]" />
+                <h2 id="breathing-heading" className="text-xl font-serif text-primary">Guided breathing</h2>
               </div>
-            )}
-            
-          </div>
+              <p className="text-sm text-primary/60 font-sans mb-6">
+                Pick a rhythm and the timer will pace you through it.
+              </p>
 
-          <div className="lg:col-span-4 space-y-8 font-sans">
-            {/* Interactive Daily Mood check-in */}
-            <div className="bg-white rounded-3xl border border-primary/10 p-6 sm:p-8 shadow-sm">
-              <h3 className="font-serif text-lg text-primary mb-2 flex items-center gap-2">
+              <div className="space-y-4">
+                {EXERCISES.map((exercise) => {
+                  const isOpen = openExercise === exercise.id;
+                  return (
+                    <div key={exercise.id} className={`rounded-3xl border border-primary/10 ${exercise.color} p-5`}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenExercise(isOpen ? null : exercise.id)}
+                        aria-expanded={isOpen}
+                        className="w-full text-left cursor-pointer group"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="font-serif text-lg text-primary">{exercise.title}</h3>
+                            <p className="text-xs text-primary/60 mt-1 leading-relaxed font-sans max-w-md">{exercise.desc}</p>
+                            <p className="text-[11px] uppercase tracking-widest text-primary/40 mt-2 font-sans">
+                              {exercise.phases.map((p) => p.seconds).join(" · ")} seconds
+                            </p>
+                          </div>
+                          <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-white/70 border border-primary/10 rounded-full px-3 py-1.5 font-sans group-hover:bg-white transition-colors">
+                            {isOpen ? "Close" : "Practise"}
+                          </span>
+                        </div>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <BreathingPlayer pattern={exercise} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+            {/* Grounding — static content, honestly presented as something to read and do */}
+            <section aria-labelledby="grounding-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-1">
+                <Anchor className="w-5 h-5 text-[#E6A520]" />
+                <h2 id="grounding-heading" className="text-xl font-serif text-primary">The 5-4-3-2-1 grounding walk</h2>
+              </div>
+              <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
+                When your thoughts are moving faster than you are, this pulls attention back into the
+                room through your senses. Work down the list at your own speed.
+              </p>
+              <ol className="space-y-3 font-sans">
+                {GROUNDING.map((step) => (
+                  <li key={step.count} className="flex items-start gap-4 p-4 rounded-2xl bg-[#FFFBE7]/70 border border-primary/5">
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-white border border-primary/10 flex items-center justify-center font-serif text-lg text-[#E6A520]">
+                      {step.count}
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-primary">{step.sense}</p>
+                      <p className="text-xs text-primary/55 mt-1 leading-relaxed">{step.hint}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            {/* Reflection prompts — no storage, and it says so rather than implying a journal */}
+            <section aria-labelledby="reflection-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-1">
+                <BookOpen className="w-5 h-5 text-[#E6A520]" />
+                <h2 id="reflection-heading" className="text-xl font-serif text-primary">Questions worth sitting with</h2>
+              </div>
+              <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
+                Saarthi doesn&apos;t store journals, so there&apos;s nothing to save here. Write these
+                wherever you already write, or bring one to your next session as a starting point.
+              </p>
+              <ul className="space-y-3 font-sans">
+                {REFLECTION_PROMPTS.map((prompt) => (
+                  <li key={prompt} className="p-4 rounded-2xl border border-primary/10 bg-[#FFFBE7]/50 text-sm text-primary/80 leading-relaxed">
+                    &ldquo;{prompt}&rdquo;
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+          <aside className="space-y-6">
+            {/* Mood check-in — local only, and labelled as such */}
+            <section aria-labelledby="mood-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 shadow-sm">
+              <div className="flex items-center gap-2.5 mb-1">
                 <Smile className="w-5 h-5 text-[#E6A520]" />
-                Daily Emotional Check-in
-              </h3>
-              <p className="text-xs text-primary/50 mb-6">How does your heart feel in this quiet moment?</p>
-              
-              <div className="grid grid-cols-5 gap-2 mb-6">
-                {[
-                  { id: "anxious", emoji: "🥺", label: "Anxious" },
-                  { id: "tired", emoji: "🥱", label: "Weary" },
-                  { id: "calm", emoji: "😌", label: "Calm" },
-                  { id: "grounded", emoji: "🧘", label: "Steady" },
-                  { id: "happy", emoji: "☀️", label: "Bright" }
-                ].map((mood, idx) => (
+                <h2 id="mood-heading" className="text-lg font-serif text-primary">How are you, right now?</h2>
+              </div>
+              <p className="text-xs text-primary/55 font-sans mb-5 leading-relaxed">
+                Just for you — this isn&apos;t saved or sent to your therapist.
+              </p>
+              <div className="flex items-center justify-between gap-1" role="group" aria-label="Choose how you feel">
+                {MOODS.map((m, index) => (
                   <button
-                    key={idx}
-                    onClick={() => setSelectedMood(mood.id)}
-                    className={`p-2.5 rounded-2xl border text-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
-                      selectedMood === mood.id 
-                        ? 'border-[#E6A520] bg-[#FFFBE7] scale-105 shadow-sm'
-                        : 'border-primary/5 bg-primary/[0.01] hover:border-primary/10 hover:bg-primary/[0.02]'
+                    key={m.label}
+                    type="button"
+                    onClick={() => setMood(mood === index ? null : index)}
+                    aria-pressed={mood === index}
+                    title={m.label}
+                    className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-all cursor-pointer ${
+                      mood === index
+                        ? "border-[#E6A520] bg-[#FFFBE7] shadow-sm"
+                        : "border-transparent hover:bg-black/[0.03]"
                     }`}
-                    title={mood.label}
                   >
-                    <span>{mood.emoji}</span>
-                    <span className="text-[9px] mt-1 text-primary/40 block font-normal leading-none">{mood.label}</span>
+                    <span className="text-xl" aria-hidden="true">{m.emoji}</span>
+                    <span className="text-[10px] font-medium text-primary/60 font-sans">{m.label}</span>
                   </button>
                 ))}
               </div>
-
-              <AnimatePresence mode="wait">
-                {selectedMood ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
+              <AnimatePresence initial={false}>
+                {mood !== null && (
+                  <motion.p
+                    key={mood}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="p-4 bg-[#FFFBE7]/60 border border-primary/5 rounded-2xl text-xs text-primary/80 leading-relaxed font-sans animate-fade-in"
+                    exit={{ opacity: 0 }}
+                    className="mt-5 p-4 rounded-2xl bg-[#FFFBE7]/70 border border-primary/5 text-sm text-primary/75 leading-relaxed font-sans"
                   >
-                    {moodAffirmations[selectedMood]}
-                  </motion.div>
-                ) : (
-                  <div className="text-center py-3 text-xs text-primary/30 border border-dashed border-primary/10 rounded-2xl">
-                    Select a feeling to receive a gentle nudge
-                  </div>
+                    {MOODS[mood].affirmation}
+                  </motion.p>
                 )}
               </AnimatePresence>
-            </div>
+            </section>
 
-            <div className="bg-white rounded-3xl border border-primary/10 p-8 shadow-sm">
-              <h3 className="font-serif text-xl text-primary mb-6">Curated Reads</h3>
-              <div className="space-y-6">
-                {articles.map((article, i) => (
-                  <div key={i} className="group cursor-pointer">
-                    <p className="text-xs text-[#E6A520] font-medium tracking-wider uppercase mb-1">{article.category}</p>
-                    <h4 className="font-medium text-primary group-hover:underline decoration-primary/30 underline-offset-4 line-clamp-2">{article.title}</h4>
-                    <p className="text-xs text-primary/40 mt-1">{article.readTime}</p>
-                  </div>
-                ))}
+            {/* Real routes only: the live therapist directory and the booking flow */}
+            <section className="rounded-[2rem] bg-primary text-white p-6 shadow-sm">
+              <Heart className="w-6 h-6 text-[#E6A520] mb-3" />
+              <h2 className="text-lg font-serif mb-2">Some things need a person</h2>
+              <p className="text-sm text-white/70 leading-relaxed font-sans mb-5">
+                Breathing helps in the moment. If something keeps coming back, talk it through with a
+                therapist who can hold the whole picture.
+              </p>
+              <div className="space-y-2.5 font-sans">
+                <Link
+                  href="/book"
+                  className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-white text-primary text-sm font-semibold hover:bg-white/90 transition-colors"
+                >
+                  Book a session
+                </Link>
+                <Link
+                  href="/therapists"
+                  className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-white/25 text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                >
+                  Meet the therapists
+                </Link>
               </div>
-              <button 
-                onClick={() => toast.info("More clinical articles are being added to our library.")}
-                className="w-full mt-6 py-3 border border-primary/10 rounded-2xl text-sm font-medium text-primary hover:bg-[#FFFBE7] transition-colors cursor-pointer"
-              >
-                View All Articles
-              </button>
-            </div>
+            </section>
 
-            <div className="bg-primary text-[#FFFBE7] rounded-3xl p-8 relative overflow-hidden font-sans">
-               <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#FFFBE7]/10 blur-3xl rounded-full" />
-               <Heart className="w-8 h-8 text-[#E6A520] mb-6" />
-               <h3 className="font-serif text-2xl mb-3">Need to talk?</h3>
-               <p className="text-white/70 text-sm mb-8 leading-relaxed">
-                 Resources are helpful, but sometimes you just need another human. Our therapists are here when you&apos;re ready.
-               </p>
-               <button onClick={() => router.push("/therapists")} className="w-full py-3 bg-[#E6A520] text-primary font-medium text-sm rounded-xl hover:bg-[#c48b1a] transition-colors cursor-pointer">
-                 Find a Therapist
-               </button>
-            </div>
-          </div>
+            <p className="text-xs text-primary/50 leading-relaxed font-sans px-2">
+              If you&apos;re in immediate danger or thinking about harming yourself, please contact
+              your local emergency number or the Tele-MANAS helpline on{" "}
+              <a href="tel:14416" className="font-medium text-primary underline hover:text-[#E6A520]">14416</a>{" "}
+              (India, 24×7). Saarthi isn&apos;t a crisis service.
+            </p>
+          </aside>
         </div>
       </div>
     </div>
@@ -299,8 +259,8 @@ function Resources() {
 
 export default function ResourcesRoute() {
   return (
-    <ProtectedRoute allowedRoles={['client', 'admin']}>
-      <Resources />
+    <ProtectedRoute allowedRoles={["client", "admin"]}>
+      <Wellness />
     </ProtectedRoute>
   );
 }

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown } from 'lucide-react';
+import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown, Loader2 } from 'lucide-react';
 import { Booking, Therapist } from '@/types';
 import { normalizeImageUrl } from '@/lib/utils';
+import { useJoinSession } from '@/hooks/useJoinSession';
+import { formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming } from '@/lib/sessionDisplay';
 import Image from 'next/image';
 
 interface SessionDetailsModalProps {
@@ -11,14 +13,16 @@ interface SessionDetailsModalProps {
   session: Booking | null;
   therapist: Therapist | undefined;
   onReschedule: () => void;
+  onCancel?: () => void;
 }
 
-export function SessionDetailsModal({ isOpen, onClose, session, therapist, onReschedule }: SessionDetailsModalProps) {
+export function SessionDetailsModal({ isOpen, onClose, session, therapist, onReschedule, onCancel }: SessionDetailsModalProps) {
   const [showTimeline, setShowTimeline] = useState(false);
+  const { join, joiningId } = useJoinSession();
 
   if (!session) return null;
 
-  const isFuture = new Date(`${session.date}T${session.time}`) > new Date();
+  const isFuture = isUpcoming(session);
 
   // Determine active step
   const getStepIndex = () => {
@@ -159,12 +163,12 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                 <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
                   <Calendar className="w-5 h-5 text-[#E6A520] mb-3" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Date</p>
-                  <p className="font-medium text-primary text-sm">{session.date}</p>
+                  <p className="font-medium text-primary text-sm">{formatSessionDate(session.date)}</p>
                 </div>
                 <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
                   <Clock className="w-5 h-5 text-[#E6A520] mb-3" />
-                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Time</p>
-                  <p className="font-medium text-primary text-sm">{session.time}</p>
+                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Time · {SESSION_DURATION_LABEL}</p>
+                  <p className="font-medium text-primary text-sm">{formatSessionTimeRange(session.time)}</p>
                 </div>
                 <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
                   <Video className="w-5 h-5 text-[#E6A520] mb-3" />
@@ -197,19 +201,18 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             <div className="p-6 border-t border-primary/5 bg-white space-y-3 relative z-10 shadow-[0_-10px_40px_rgb(0,0,0,0.05)]">
               {session.status === 'confirmed' && (
                 <button
-                  onClick={() => {
-                    if (session.meetingUrl) {
-                      window.open(session.meetingUrl, '_blank', 'noopener,noreferrer');
-                    } else {
-                      window.location.href = `/dashboard/bookings`;
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md"
+                  onClick={() => join(session)}
+                  disabled={joiningId === session.id}
+                  className="flex items-center justify-center gap-2 w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-sm hover:shadow-md"
                 >
-                  <Video className="w-4 h-4" /> Join Google Meet Session
+                  {joiningId === session.id ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
+                  ) : (
+                    <><Video className="w-4 h-4" /> Join Google Meet Session</>
+                  )}
                 </button>
               )}
-              {isFuture && (session.status === 'confirmed' || session.status === 'pending') && (
+              {isFuture && (session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
                 <button
                   onClick={() => {
                     onClose();
@@ -217,16 +220,19 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                   }}
                   className="w-full py-3.5 text-sm font-medium text-primary hover:text-white bg-white hover:bg-primary border border-primary/20 hover:border-primary rounded-2xl transition-all duration-300 shadow-sm"
                 >
-                  Request to Reschedule
+                  Reschedule
                 </button>
               )}
-              {session.paymentStatus !== 'paid' && session.status !== 'cancelled' && session.status !== 'rejected' && (
-                <a
-                  href={`/payment?token=${session.bookingToken || session.id}`}
-                  className="flex items-center justify-center w-full py-3.5 px-4 bg-[#E6A520] hover:bg-[#c48b1a] text-white rounded-2xl font-medium text-sm transition-all duration-300 shadow-sm hover:shadow-md"
+              {onCancel && (session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval' || session.status === 'awaiting_payment') && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onCancel();
+                  }}
+                  className="w-full py-3 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 hover:border-red-600 rounded-2xl transition-all duration-300"
                 >
-                  Complete Payment Details
-                </a>
+                  Cancel session
+                </button>
               )}
               <a
                 href={`mailto:support@saarthilife.com?subject=Re: Session ${session.id}`}

@@ -1,298 +1,250 @@
 "use client";
 
-
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Calendar, ChevronLeft, ChevronRight, Clock, Video, CreditCard } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, Video, CreditCard, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase/client";
-import { Booking, Therapist } from "@/types";
+import { Booking } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
+import { CancelModal } from "@/components/dashboard/CancelModal";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { useJoinSession } from "@/hooks/useJoinSession";
+import {
+  formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming
+} from "@/lib/sessionDisplay";
+
+type Filter = "all" | "upcoming" | "completed" | "cancelled" | "rejected" | "unpaid";
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "completed", label: "Completed" },
+  { key: "unpaid", label: "Unpaid" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "rejected", label: "Rejected" },
+];
+
+function getStatusClasses(status: string) {
+  if (status === "confirmed") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (status === "pending" || status === "pending_approval") return "bg-amber-50 text-amber-700 border-amber-200";
+  if (status === "awaiting_payment" || status === "pending_payment") return "bg-amber-100 text-amber-800 border-amber-300";
+  if (status === "rejected") return "bg-red-50 text-red-600 border-red-100";
+  if (status === "cancelled" || status === "expired" || status === "no_show") return "bg-gray-50 text-gray-500 border-gray-100";
+  return "bg-primary/5 text-primary border-primary/10";
+}
+
+const isUnpaidHold = (b: Booking) =>
+  b.status === "awaiting_payment" || b.status === "pending_payment" || b.paymentStatus === "unpaid";
 
 function DashboardBookings() {
-  const { currentUser } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [therapists, setTherapists] = useState<Record<string, Therapist>>({});
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled' | 'rejected' | 'awaiting_payment'>('all');
+  const { bookings, therapists, initialLoading, error, refresh } = useDashboardData();
+  const { join, joiningId } = useJoinSession();
 
-  const [selectedSession, setSelectedSession] = useState<Booking | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selected, setSelected] = useState<Booking | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
-  const handleJoinSession = async (session: Booking) => {
-    if (session.meetingUrl) {
-      window.open(session.meetingUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    try {
-      setJoiningId(session.id);
-      const idToken = await auth?.currentUser?.getIdToken();
-      if (!idToken) {
-        toast.error("Authentication required to access meeting link");
-        return;
+  const filtered = useMemo(() => {
+    return bookings.filter((b) => {
+      if (filter === "upcoming") {
+        return isUpcoming(b) && b.status !== "cancelled" && b.status !== "rejected" && b.status !== "expired";
       }
-      toast.loading("Preparing Google Meet conference...", { id: "join-meet" });
-      const res = await fetch(`/api/bookings/join-session?bookingId=${session.id}`, {
-        headers: { Authorization: `Bearer ${idToken}` }
-      });
-      const data = await res.json();
-      if (res.ok && data.meetingUrl) {
-        toast.success("Google Meet link acquired! Opening...", { id: "join-meet" });
-        window.open(data.meetingUrl, '_blank', 'noopener,noreferrer');
-      } else {
-        toast.error(data.error || "Meeting link is being prepared. Please try again shortly.", { id: "join-meet" });
-      }
-    } catch {
-      toast.error("Failed to fetch meeting link", { id: "join-meet" });
-    } finally {
-      setJoiningId(null);
-    }
-  };
-
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    const fetchBookings = async () => {
-      try {
-        const bookingsRef = collection(db, 'bookings');
-        const q = query(
-          bookingsRef, 
-          where('email', '==', currentUser.email)
-        );
-        
-        const snap = await getDocs(q);
-        const allBookings = snap.docs.map(d => ({ id: d.id, ...d.data() } as Booking));
-        
-        // Sort in memory by date descending to avoid composite index requirements
-        allBookings.sort((a, b) => {
-          const dateA = a.date || "";
-          const dateB = b.date || "";
-          return dateB.localeCompare(dateA);
-        });
-        
-        setBookings(allBookings);
-        
-        const tIds = new Set<string>();
-        allBookings.forEach(b => tIds.add(b.therapistId));
-        
-        const tMap: Record<string, Therapist> = {};
-        for (const tId of Array.from(tIds)) {
-          const tDoc = await getDoc(doc(db, 'therapists', tId));
-          if (tDoc.exists()) {
-            tMap[tId] = { id: tDoc.id, ...tDoc.data() } as Therapist;
-          }
-        }
-        setTherapists(tMap);
-        
-      } catch (err) {
-        console.error("Failed to load bookings:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchBookings();
-  }, [currentUser]);
-
-  const handleRescheduleSubmit = async (reason: string, preferredDate: string, preferredTime: string) => {
-    if (!selectedSession || !currentUser) return;
-    
-    const res = await fetch('/api/reschedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: currentUser.uid,
-        userEmail: currentUser.email,
-        userName: currentUser.email?.split('@')[0],
-        therapistId: selectedSession.therapistId,
-        bookingId: selectedSession.id,
-        reason,
-        preferredDate,
-        preferredTime
-      })
+      if (filter === "completed") return b.status === "completed";
+      if (filter === "cancelled") return b.status === "cancelled";
+      if (filter === "rejected") return b.status === "rejected";
+      if (filter === "unpaid") return isUnpaidHold(b);
+      return true;
     });
-    if (!res.ok) throw new Error("Failed to send request");
-  };
+  }, [bookings, filter]);
 
-  const nowStr = new Date().toISOString().split('T')[0];
-  
-  const filteredBookings = bookings.filter(b => {
-    if (filter === 'upcoming') return b.date >= nowStr && b.status !== 'cancelled' && b.status !== 'rejected';
-    if (filter === 'completed') return b.status === 'completed';
-    if (filter === 'cancelled') return b.status === 'cancelled';
-    if (filter === 'rejected') return b.status === 'rejected';
-    if (filter === 'awaiting_payment') return b.status === 'awaiting_payment';
-    return true; // all
-  });
-
-  const getStatusClasses = (status: string) => {
-    if (status === 'confirmed') return 'bg-emerald-50 text-emerald-700 border-emerald-200 font-sans';
-    if (status === 'pending' || status === 'pending_approval') return 'bg-amber-50 text-amber-700 border-amber-200 font-sans';
-    if (status === 'awaiting_payment') return 'bg-amber-100 text-amber-800 border-amber-300 font-sans font-bold animate-pulse';
-    if (status === 'rejected') return 'bg-red-50 text-red-600 border-red-100 font-sans';
-    if (status === 'cancelled') return 'bg-gray-50 text-gray-500 border-gray-100 font-sans';
-    return 'bg-primary/5 text-primary border-primary/10 font-sans';
-  };
-
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="min-h-screen pt-32 pb-24 flex items-center justify-center bg-[#FFFBE7]">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      <div className="pt-28 pb-24 px-4 sm:px-6">
+        <div className="container mx-auto max-w-5xl space-y-6">
+          <Skeleton className="h-10 w-56 rounded-2xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && bookings.length === 0) {
+    return (
+      <div className="pt-28 pb-24 px-4 sm:px-6">
+        <div className="container mx-auto max-w-md text-center bg-white border border-primary/10 rounded-[2rem] p-10 shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-7 h-7 text-red-500" />
+          </div>
+          <h2 className="text-xl font-serif text-primary mb-2">We hit a snag</h2>
+          <p className="text-sm text-primary/60 font-sans mb-6">{error}</p>
+          <button
+            onClick={() => refresh()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary/90 transition-colors cursor-pointer"
+          >
+            <RefreshCw className="w-4 h-4" /> Try again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-24 bg-[#FFFBE7]">
-      <div className="container mx-auto px-6 max-w-5xl">
+    <div className="pt-28 pb-24 px-4 sm:px-6">
+      <div className="container mx-auto max-w-5xl">
         <div className="mb-8 font-sans">
           <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-primary/60 hover:text-primary mb-6 transition-colors">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back to Dashboard
+            <ChevronLeft className="w-4 h-4 mr-1" /> Back to dashboard
           </Link>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <h1 className="text-3xl sm:text-4xl font-serif text-primary">All Sessions</h1>
-            
-            <div className="flex flex-wrap bg-white rounded-3xl p-1.5 border border-primary/10 shadow-sm w-fit gap-1 sm:gap-2">
-              {(['all', 'upcoming', 'completed', 'awaiting_payment', 'cancelled', 'rejected'] as const).map(f => (
+            <h1 className="text-3xl sm:text-4xl font-serif text-primary">All sessions</h1>
+
+            <div role="tablist" aria-label="Filter sessions" className="flex flex-wrap bg-white rounded-3xl p-1.5 border border-primary/10 shadow-sm w-fit gap-1 sm:gap-2">
+              {FILTERS.map((f) => (
                 <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-4 xl:px-5 py-2 rounded-2xl text-xs sm:text-sm font-medium capitalize transition-all cursor-pointer ${
-                    filter === f ? 'bg-primary text-white shadow-sm' : 'text-primary/60 hover:text-primary hover:bg-black/5'
+                  key={f.key}
+                  role="tab"
+                  aria-selected={filter === f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+                    filter === f.key ? "bg-primary text-white shadow-sm" : "text-primary/60 hover:text-primary hover:bg-black/5"
                   }`}
                 >
-                  {f.replace('_', ' ')}
+                  {f.label}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
+        {error && bookings.length > 0 && (
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 font-sans">
+            <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /> {error}</span>
+            <button onClick={() => refresh()} className="inline-flex items-center gap-1.5 font-medium hover:underline cursor-pointer">
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
+          </div>
+        )}
+
         <div className="bg-white/50 border border-primary/10 rounded-[2.5rem] p-4 sm:p-8 shadow-sm">
-          {filteredBookings.length === 0 ? (
-            <div className="text-center py-16 text-primary/60 bg-white rounded-3xl border border-primary/5 font-sans">
-              <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>🌿 Your wellness journey awaits. No {filter !== 'all' ? filter.replace('_', ' ') : ''} sessions found.</p>
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-primary/5 font-sans">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-primary/20" />
+              <p className="text-primary/60 mb-5">
+                {bookings.length === 0
+                  ? "You haven't booked a session yet."
+                  : `No ${filter === "all" ? "" : FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} sessions to show.`}
+              </p>
+              <Link
+                href="/book"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-full hover:bg-primary/90 transition-colors"
+              >
+                Book a session <ChevronRight className="w-4 h-4" />
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredBookings.map(session => {
+              {filtered.map((session) => {
                 const t = therapists[session.therapistId];
-                const isUnpaid = session.status === 'awaiting_payment' || session.paymentStatus === 'unpaid';
-                
+                const unpaid = isUnpaidHold(session);
+                const canReschedule =
+                  isUpcoming(session) &&
+                  (session.status === "confirmed" || session.status === "pending" || session.status === "pending_approval");
                 return (
-                  <div 
-                    key={session.id} 
-                    onClick={() => {
-                        setSelectedSession(session);
-                        setIsDetailsOpen(true);
-                    }}
-                    className={`border rounded-3xl p-6 sm:p-8 hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col h-full text-left relative overflow-hidden ${
-                      isUnpaid ? 'border-amber-200 bg-amber-50/[0.02]' : 'border-primary/10 hover:border-primary/20 bg-white'
+                  <div
+                    key={session.id}
+                    className={`border rounded-3xl p-6 hover:shadow-md transition-all duration-300 flex flex-col h-full relative overflow-hidden ${
+                      unpaid ? "border-amber-200 bg-white" : "border-primary/10 hover:border-primary/20 bg-white"
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-                      <div className="flex gap-4 items-center sm:items-start">
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div className="flex gap-4 items-center min-w-0">
                         {t?.image ? (
                           <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10">
                             <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center text-primary font-serif shrink-0 border border-primary/10">
-                            {t?.name.charAt(0) || "T"}
+                          <div className="w-12 h-12 rounded-full bg-[#FFFBE7] flex items-center justify-center text-[#E6A520] font-serif shrink-0 border border-primary/10">
+                            {t?.name?.charAt(0) || "T"}
                           </div>
                         )}
-                        <div>
-                          <p className="text-[10px] sm:text-xs uppercase tracking-widest text-[#E6A520] font-bold mb-1 font-sans">
-                            {session.sessionType || '1:1'} Session
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase tracking-widest text-[#E6A520] font-bold mb-1 font-sans">
+                            {session.sessionType || "1:1"} Session
                           </p>
-                          <h3 className="font-semibold text-base sm:text-lg text-primary">{t?.name || "Assigned Therapist"}</h3>
+                          <h3 className="font-semibold text-base text-primary truncate">{t?.name || "Assigned Therapist"}</h3>
                         </div>
                       </div>
-                      <div className="self-start relative top-0 sm:top-1.5 shrink-0">
-                         <span className={`px-2.5 py-1 text-[10px] sm:text-xs rounded-full uppercase tracking-wider font-medium border ${getStatusClasses(session.status)}`}>
-                          {session.status.replace('_', ' ')}
+                      <span className={`shrink-0 px-2.5 py-1 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize font-sans ${getStatusClasses(session.status)}`}>
+                        {session.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 py-4 border-y border-primary/5 text-sm mb-4 bg-[#FFFBE7]/30 -mx-6 px-6 flex-1 font-sans">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-[#E6A520]/80 shrink-0" />
+                        <span className="font-medium text-primary">{formatSessionDate(session.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#E6A520]/80 shrink-0" />
+                        <span className="font-medium text-primary">{formatSessionTimeRange(session.time)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4 text-primary/40 shrink-0" />
+                        <span className="font-medium text-primary/70 capitalize">{session.sessionMode || "Video call"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-primary/40 shrink-0" />
+                        <span className={`capitalize font-semibold text-xs ${session.paymentStatus === "paid" ? "text-emerald-700" : "text-amber-800"}`}>
+                          {session.paymentStatus || "unpaid"}
                         </span>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 py-4 border-y border-primary/5 text-sm text-primary/70 mb-4 bg-[#FFFBE7]/30 -mx-6 sm:-mx-8 px-6 sm:px-8 flex-1 font-sans">
-                       <div className="flex items-center gap-2">
-                         <Calendar className="w-4 h-4 text-[#E6A520]/80" />
-                         <span className="font-medium text-primary">{session.date}</span>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <Clock className="w-4 h-4 text-[#E6A520]/80" />
-                         <span className="font-medium text-primary">{session.time}</span>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <Video className="w-4 h-4 text-primary/40" />
-                         <span className="font-medium capitalize">{session.sessionMode || 'Video Call'}</span>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <CreditCard className="w-4 h-4 text-primary/40" />
-                         <span className={`capitalize font-bold text-xs ${session.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-800'}`}>
-                           {session.paymentStatus || 'unpaid'}
-                         </span>
-                       </div>
-                    </div>
 
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 shrink-0">
-                        {isUnpaid ? (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSession(session);
-                              setIsDetailsOpen(true);
-                            }}
-                            className="px-3.5 py-1.5 bg-[#E6A520] hover:bg-[#c48b1a] text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer"
-                          >
-                            Pay Now
-                          </button>
-                        ) : (
-                          <div className="flex gap-2">
-                            {session.status === 'confirmed' ? (
-                              <button 
-                                disabled={joiningId === session.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleJoinSession(session);
-                                }}
-                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer animate-fade-in flex items-center gap-1.5"
-                              >
-                                <Video className="w-3 h-3" />
-                                {joiningId === session.id ? 'Connecting...' : 'Join Session'}
-                              </button>
-                            ) : null}
-                            {(session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedSession(session);
-                                  setIsRescheduleOpen(true);
-                                }}
-                                className="px-3 py-1.5 bg-white hover:bg-primary/5 hover:border-[#E6A520]/20 border border-primary/10 text-primary font-semibold text-[10px] uppercase tracking-wider rounded-lg shadow-sm cursor-pointer transition-all"
-                              >
-                                Reschedule
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                    <p className="text-[11px] text-primary/40 font-sans mb-4">{SESSION_DURATION_LABEL} session</p>
 
-                      <div className="flex justify-end items-center text-xs font-medium text-primary/40 group-hover:text-[#E6A520] transition-colors font-sans">
-                        Details <ChevronRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform duration-300" />
-                      </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {session.status === "confirmed" && (
+                        <button
+                          disabled={joiningId === session.id}
+                          onClick={() => join(session)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-sm cursor-pointer transition-colors font-sans"
+                        >
+                          {joiningId === session.id
+                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting…</>
+                            : <><Video className="w-3.5 h-3.5" /> Join</>}
+                        </button>
+                      )}
+                      {canReschedule && (
+                        <button
+                          onClick={() => { setSelected(session); setRescheduleOpen(true); }}
+                          className="px-3.5 py-2 bg-white hover:bg-primary/5 border border-primary/15 text-primary font-medium text-xs rounded-xl cursor-pointer transition-all font-sans"
+                        >
+                          Reschedule
+                        </button>
+                      )}
+                      {unpaid && (
+                        <Link
+                          href="/book"
+                          className="px-3.5 py-2 bg-[#E6A520] hover:bg-[#c48b1a] text-white font-semibold text-xs rounded-xl shadow-sm transition-colors font-sans"
+                        >
+                          Book again
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => { setSelected(session); setDetailsOpen(true); }}
+                        className="ml-auto inline-flex items-center text-xs font-medium text-primary/50 hover:text-[#E6A520] transition-colors font-sans cursor-pointer"
+                      >
+                        Details <ChevronRight className="w-4 h-4 ml-0.5" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -301,23 +253,27 @@ function DashboardBookings() {
           )}
         </div>
       </div>
-
-      <SessionDetailsModal 
-        isOpen={isDetailsOpen}
-        onClose={() => setIsDetailsOpen(false)}
-        session={selectedSession}
-        therapist={selectedSession ? therapists[selectedSession.therapistId] : undefined}
-        onReschedule={() => {
-            setIsDetailsOpen(false);
-            setIsRescheduleOpen(true);
-        }}
+      <SessionDetailsModal
+        isOpen={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        session={selected}
+        therapist={selected ? therapists[selected.therapistId] : undefined}
+        onReschedule={() => setRescheduleOpen(true)}
+        onCancel={() => setCancelOpen(true)}
       />
 
-      <RescheduleModal 
-        isOpen={isRescheduleOpen}
-        onClose={() => setIsRescheduleOpen(false)}
-        session={selectedSession}
-        onSubmit={handleRescheduleSubmit}
+      <RescheduleModal
+        isOpen={rescheduleOpen}
+        onClose={() => setRescheduleOpen(false)}
+        session={selected}
+        onRescheduled={() => { refresh(); }}
+      />
+
+      <CancelModal
+        isOpen={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        session={selected}
+        onCancelled={() => { refresh(); }}
       />
     </div>
   );
@@ -325,7 +281,7 @@ function DashboardBookings() {
 
 export default function DashboardBookingsRoute() {
   return (
-    <ProtectedRoute allowedRoles={['client', 'admin']}>
+    <ProtectedRoute allowedRoles={["client", "admin"]}>
       <DashboardBookings />
     </ProtectedRoute>
   );
