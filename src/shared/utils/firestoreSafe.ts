@@ -31,10 +31,18 @@ const SENTINEL_CONSTRUCTORS = new Set([
 /**
  * True when `value` is a Firestore `FieldValue` sentinel rather than a concrete
  * value. Detected structurally so this file needs no firebase-admin import.
+ *
+ * Three probes, because the two SDKs spell the marker differently and neither
+ * spelling is guaranteed to survive bundling: firebase-admin exposes
+ * `methodName` (a prototype getter returning e.g. `'FieldValue.serverTimestamp'`),
+ * the web SDK uses `_methodName`, and the constructor-name set is the last
+ * resort — it is the only one of the three that minification can rename, so it
+ * must not be the only check.
  */
 export function isFirestoreSentinel(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
-  const candidate = value as { _methodName?: unknown; constructor?: { name?: string } };
+  const candidate = value as { methodName?: unknown; _methodName?: unknown; constructor?: { name?: string } };
+  if (typeof candidate.methodName === 'string') return true;
   if (typeof candidate._methodName === 'string') return true;
   const ctorName = candidate.constructor?.name;
   return !!ctorName && SENTINEL_CONSTRUCTORS.has(ctorName);
@@ -114,4 +122,48 @@ export function assertNoSentinelsInsideArrays(payload: unknown, context: string)
         `(found at "${offendingPath}"). Use a concrete Date/Timestamp for array elements.`
     );
   }
+}
+
+/**
+ * Plain objects are walked; class instances (`Timestamp`, `Date`, `DocumentReference`,
+ * FieldValue sentinels) are opaque values and must be returned untouched.
+ */
+function isWalkableObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object') return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Removes `undefined` from a would-be Firestore payload, recursively.
+ *
+ * This app never enables `ignoreUndefinedProperties`, so a single `undefined`
+ * anywhere in a document makes the Firestore client reject the whole write —
+ * and inside a transaction that aborts every other write with it. That is how an
+ * optional field nobody passed (`customNote` on a decline) turned into a 500 on
+ * `/api/bookings/cancel-self`.
+ *
+ * Object keys holding `undefined` are dropped, which matches how the rest of the
+ * codebase persists optional fields (see `BookingMapper.toPersistence`). Array
+ * elements are replaced with `null` instead of being dropped, so positions and
+ * arity survive — silently reindexing an array would corrupt data to save a
+ * write. Sentinels, `Timestamp`s and `Date`s pass through as values, and `null`
+ * is preserved: it is a legal Firestore value and means something different from
+ * absence.
+ */
+export function pruneUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((element) => (element === undefined ? null : pruneUndefined(element))) as unknown as T;
+  }
+
+  if (isWalkableObject(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      if (nested === undefined) continue;
+      out[key] = pruneUndefined(nested);
+    }
+    return out as unknown as T;
+  }
+
+  return value;
 }

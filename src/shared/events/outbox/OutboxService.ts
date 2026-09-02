@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { TxWriter } from '@/shared/firestore/transactionPhases';
 import { CreateOutboxEventInput, OutboxEvent } from './OutboxEvent';
+import { pruneUndefined } from '@/shared/utils/firestoreSafe';
 import { logger } from '@/shared/logger';
 
 export class OutboxService {
@@ -28,6 +29,17 @@ export class OutboxService {
    * The parameter is typed {@link TxWriter} (not `Transaction`) so this method
    * structurally cannot regain a read: `transaction.get` is not even in scope.
    *
+   * `payload` is the one free-form part of the document — every caller builds it
+   * from optional domain fields — so it is run through {@link pruneUndefined}
+   * first. This app does not enable `ignoreUndefinedProperties`, so a single
+   * `undefined` in there makes the client reject the document and abort the
+   * caller's entire transaction with it. That is exactly how declining a booking
+   * with no custom note (`payload.customNote: undefined`, passed by
+   * `/api/bookings/cancel-self`, `/api/bookings/decline` and the admin
+   * update-status route) returned a 500 while the booking itself saved fine:
+   * `BookingMapper.toPersistence` strips undefined for the aggregate, and nothing
+   * did for the event.
+   *
    * @throws Error if adminDb is uninitialized to ensure reliable durability.
    */
   static async recordEventInTransaction<T = Record<string, any>>(
@@ -46,7 +58,7 @@ export class OutboxService {
       name: input.name,
       aggregateType: input.aggregateType,
       aggregateId: input.aggregateId,
-      payload: input.payload,
+      payload: pruneUndefined(input.payload),
       status: 'pending',
       attempts: 0,
       maxAttempts: input.maxAttempts || 5,
@@ -64,6 +76,10 @@ export class OutboxService {
 
   /**
    * Records an outbox event outside of an active transaction using insert-only semantics.
+   *
+   * `payload` is pruned of `undefined` for the same reason as
+   * {@link recordEventInTransaction} — the two paths must not disagree about what
+   * a recordable event is.
    *
    * @throws Error if adminDb is uninitialized.
    */
@@ -87,7 +103,7 @@ export class OutboxService {
       name: input.name,
       aggregateType: input.aggregateType,
       aggregateId: input.aggregateId,
-      payload: input.payload,
+      payload: pruneUndefined(input.payload),
       status: 'pending',
       attempts: 0,
       maxAttempts: input.maxAttempts || 5,
