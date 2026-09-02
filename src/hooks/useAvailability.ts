@@ -6,7 +6,24 @@ export interface Slot {
   reason: string | null;
 }
 
-export function useAvailability(therapistId: string | null, date: string | null) {
+/**
+ * Slot availability for a therapist on one IST calendar day.
+ *
+ * `excludeBookingId` is for the reschedule flows: without it the booking being
+ * moved reports its own current time as `Booked`, so the client's existing slot
+ * disappears from the grid. The server authorizes the exclusion against the
+ * session, so passing a booking the caller does not own fails rather than
+ * leaking anything.
+ *
+ * Temporal filtering (past slots, beyond the booking window) is decided by the
+ * server against IST — never by the browser clock — and arrives here as a
+ * `reason`, so a caller can render it greyed out instead of dropping it.
+ */
+export function useAvailability(
+  therapistId: string | null,
+  date: string | null,
+  excludeBookingId?: string | null
+) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,41 +41,46 @@ export function useAvailability(therapistId: string | null, date: string | null)
     setError(null);
 
     try {
-      const encodedId = encodeURIComponent(therapistId);
-      const encodedDate = encodeURIComponent(date);
-      const res = await fetch(`/api/availability?therapistId=${encodedId}&date=${encodedDate}`);
+      const params = new URLSearchParams({ therapistId, date });
+      if (excludeBookingId) {
+        params.set('excludeBookingId', excludeBookingId);
+      }
+      const res = await fetch(`/api/availability?${params.toString()}`);
       if (!res.ok) {
         throw new Error('Unable to check slot availability. Please try again.');
       }
       const availabilityData = await res.json();
 
-      const { availableSlots = [], bookedTimes = [], lockedTimes = [] } = availabilityData;
+      const {
+        availableSlots = [],
+        bookedTimes = [],
+        lockedTimes = [],
+        pastTimes = [],
+        beyondWindowTimes = [],
+      } = availabilityData;
 
-      // Deduplicate slots using Map (Booked & Locked override Available)
+      // Deduplicate slots using Map. Later writes win, so the order below is the
+      // precedence order: an unavailable reason always overrides "available".
       const slotMap = new Map<string, Slot>();
 
       availableSlots.forEach((time: string) => {
-        slotMap.set(time, {
-          time,
-          isAvailable: true,
-          reason: null
-        });
+        slotMap.set(time, { time, isAvailable: true, reason: null });
       });
 
       bookedTimes.forEach((time: string) => {
-        slotMap.set(time, {
-          time,
-          isAvailable: false,
-          reason: 'Booked'
-        });
+        slotMap.set(time, { time, isAvailable: false, reason: 'Booked' });
       });
 
       lockedTimes.forEach((time: string) => {
-        slotMap.set(time, {
-          time,
-          isAvailable: false,
-          reason: 'Locked'
-        });
+        slotMap.set(time, { time, isAvailable: false, reason: 'Locked' });
+      });
+
+      beyondWindowTimes.forEach((time: string) => {
+        slotMap.set(time, { time, isAvailable: false, reason: 'Too far' });
+      });
+
+      pastTimes.forEach((time: string) => {
+        slotMap.set(time, { time, isAvailable: false, reason: 'Past' });
       });
 
       const slotObjects = Array.from(slotMap.values());
@@ -70,7 +92,7 @@ export function useAvailability(therapistId: string | null, date: string | null)
     } finally {
       setLoading(false);
     }
-  }, [therapistId, date]);
+  }, [therapistId, date, excludeBookingId]);
 
   useEffect(() => {
     fetchAvailability();

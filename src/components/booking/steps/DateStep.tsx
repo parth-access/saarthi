@@ -1,9 +1,9 @@
 import * as React from "react"
-import { format, addDays, startOfToday, isToday, isTomorrow } from "date-fns"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { cn } from "../../../lib/utils"
 import { BOOKING_WINDOW_DAYS } from "../../../shared/constants"
+import { istDatePlusDays } from "../../../shared/scheduling/slots"
 
 interface Props {
   selectedDate: string;
@@ -13,23 +13,48 @@ interface Props {
 }
 
 export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
+  /**
+   * The offered days are IST calendar days, not the browser's. Availability
+   * rules, the booking window and the server's validation are all expressed in
+   * IST, so a device in another timezone (or with a skewed clock) would otherwise
+   * offer a day that has already passed in IST — and label the wrong day "Today".
+   *
+   * Labels are formatted with `timeZone: 'UTC'` from a UTC-midnight anchor, so no
+   * local offset can shift the rendered day back or forward either.
+   */
+  const days = React.useMemo(() => {
+    const now = new Date()
+    return [...Array(BOOKING_WINDOW_DAYS)].map((_, i) => {
+      const dateStr = istDatePlusDays(i, now)
+      const [y, m, d] = dateStr.split('-').map(Number)
+      const anchor = new Date(Date.UTC(y, m - 1, d))
+      const fmt = (options: Intl.DateTimeFormatOptions) =>
+        anchor.toLocaleDateString('en-GB', { ...options, timeZone: 'UTC' })
+
+      let label = fmt({ weekday: 'short' })
+      if (i === 0) label = "Today"
+      else if (i === 1) label = "Tomorrow"
+
+      return {
+        dateStr,
+        label,
+        dayNum: fmt({ day: '2-digit' }),
+        monthShort: fmt({ month: 'short' }),
+      }
+    })
+  }, [])
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="text-center">
         <h3 className="text-3xl font-serif text-primary tracking-tight">Preferred Date</h3>
         <p className="text-muted-foreground mt-2 text-sm italic">Choose a day that works for you</p>
       </div>
-      
+
       <div className="relative">
         <div className="flex overflow-x-auto gap-4 pb-6 pt-4 snap-x snap-mandatory no-scrollbar w-full px-4 sm:px-0 -mx-4 sm:mx-0 mask-edges">
-          {[...Array(BOOKING_WINDOW_DAYS)].map((_, i) => {
-            const day = addDays(startOfToday(), i)
-            const dateStr = format(day, "yyyy-MM-dd")
+          {days.map(({ dateStr, label, dayNum, monthShort }) => {
             const isSelected = selectedDate === dateStr
-            
-            let label = format(day, "EEE")
-            if (isToday(day)) label = "Today"
-            else if (isTomorrow(day)) label = "Tomorrow"
 
             return (
               <button
@@ -53,13 +78,13 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                   {label}
                 </span>
                 <span className="text-3xl font-serif font-medium tracking-tight mb-1">
-                  {format(day, "dd")}
+                  {dayNum}
                 </span>
                 <span className={cn(
                   "text-xs font-semibold transition-colors",
                    isSelected ? "text-white/80" : "text-primary/50"
                 )}>
-                  {format(day, "MMM")}
+                  {monthShort}
                 </span>
               </button>
             )

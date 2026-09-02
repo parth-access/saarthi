@@ -24,6 +24,7 @@ import {
 import { Booking, BookingStatus, Therapist } from "../../types"
 import { cn, toDateSafe } from "../../lib/utils"
 import { OperationsPanel } from "../admin/OperationsPanel"
+import { isValidClientAge, parseAgeInput } from "@/shared/validation/age"
 
 interface TherapistDashboardProps {
   therapist: Therapist | null;
@@ -543,8 +544,24 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 )
 
+/**
+ * Renders an intake age for the therapist/admin card.
+ *
+ * This card previously rendered `{booking.age}y` unconditionally under an
+ * `uppercase` parent, so a missing age became "Y" and an implausible stored age
+ * became a confident-looking fact — the reported "MALE, 1Y" for an 18-year-old.
+ * Absent now reads as absent, and an out-of-range value is shown WITH a marker
+ * rather than hidden, because an admin needs to see that the record is wrong.
+ */
+const formatAgeLabel = (age: unknown): string | null => {
+  const parsed = parseAgeInput(age);
+  if (parsed === null) return null;
+  return isValidClientAge(parsed) ? `${parsed}y` : `${parsed}y (unverified)`;
+}
+
 const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessing }: { booking: Booking; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void; isProcessing: boolean }) => {
   const formattedDate = booking.date ? format(parseISO(booking.date), "EEEE, MMM d, yyyy") : 'No Date';
+  const ageLabel = formatAgeLabel(booking.age);
 
   return (
     <div className="bg-white rounded-3xl p-5 md:p-6 border border-primary/5 hover:border-primary/10 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all group overflow-hidden relative">
@@ -562,7 +579,10 @@ const NewSessionCard = ({ booking, onUpdateStatus, onDeclineRequest, isProcessin
                 {booking.name}
               </h3>
               <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] font-bold uppercase tracking-widest text-primary/40">
-                <span className="flex items-center gap-1.5"><User className="w-3 h-3" /> {booking.gender}, {booking.age}y</span>
+                <span className="flex items-center gap-1.5">
+                  <User className="w-3 h-3" />
+                  {[booking.gender || null, ageLabel].filter(Boolean).join(', ') || 'Details not provided'}
+                </span>
                 <span>•</span>
                 <span className="px-2 py-0.5 rounded-full bg-primary/5">{booking.sessionType}</span>
                 {booking.phone && (

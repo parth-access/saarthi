@@ -6,7 +6,15 @@ import { CreateBookingCommand, CreateBookingCommandHandler } from './CreateBooki
 import { EventBus } from '@/shared/events/EventBus';
 import { registerListeners } from '@/shared/events/listeners';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { Booking } from '../entities/Booking';
+import { istDatePlusDays } from '@/shared/scheduling/slots';
+
+/**
+ * `CreateBookingCommand` rejects past slots and slots beyond the booking window,
+ * so create fixtures must be anchored to "now" rather than to a literal date.
+ */
+const CREATE_TARGET_DATE = istDatePlusDays(3);
 
 // Mock admin database
 vi.mock('@/lib/firebase/admin', () => {
@@ -20,6 +28,9 @@ vi.mock('@/lib/firebase/admin', () => {
         set: vi.fn().mockResolvedValue(undefined),
         get: vi.fn().mockResolvedValue({ exists: false }),
       }),
+      // therapistAvailability/{id}/recurringRules and /overrides, read by
+      // `isSlotInTherapistAvailability`. Empty => no rules configured => available.
+      get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
     }),
   });
   const mockCollection = vi.fn(() => ({
@@ -98,7 +109,7 @@ describe('Regression Tests: Firestore Transactions, EventBus & Idempotency', () 
           name: 'Alice Smith',
           email: 'alice@example.com',
           phone: '9876543210',
-          date: '2026-08-20',
+          date: CREATE_TARGET_DATE,
           time: '10:00',
           sessionMode: 'online'
         },
@@ -171,8 +182,12 @@ describe('Regression Tests: Firestore Transactions, EventBus & Idempotency', () 
   });
 
   describe('C. Transaction Retry Safety & Idempotent Event Publishing', () => {
-    it('when state transition occurs, email listener triggers with expected payload', async () => {
+    it('a confirmed state transition drives the calendar/Meet path and never emails a link-less confirmation', async () => {
       registerListeners(EventBus);
+      const calendarSyncSpy = vi
+        .spyOn(GoogleCalendarService, 'createOrSyncCalendarEvent')
+        .mockResolvedValue({ success: true, calendarEventId: 'gcal_1', meetingUrl: 'https://meet.google.com/abc-defg-hij' });
+
       const booking = new Booking({
         id: 'bk_retry_test',
         therapistId: 'therapist_1',
@@ -191,14 +206,16 @@ describe('Regression Tests: Firestore Transactions, EventBus & Idempotency', () 
       // Give asynchronous EventBus listeners a tick to complete
       await new Promise((r) => setTimeout(r, 20));
 
-      expect(sendEmailAction).toHaveBeenCalledTimes(1);
-      expect(sendEmailAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'booking-confirmed',
-          bookingId: 'bk_retry_test',
-          therapistId: 'therapist_1',
-        })
-      );
+      // `BookingConfirmed` must reach the calendar integration...
+      expect(calendarSyncSpy).toHaveBeenCalledTimes(1);
+      expect(calendarSyncSpy).toHaveBeenCalledWith('bk_retry_test');
+
+      // ...and no listener may email a confirmation off the back of the bus alone.
+      // The customer confirmation is sent by GoogleCalendarService only once a REAL
+      // Meet link exists (see the note at the top of EmailListener.ts), so a bus
+      // dispatch on its own must produce zero emails — otherwise a client can be
+      // told their session is confirmed with no link, or a fabricated one.
+      expect(sendEmailAction).not.toHaveBeenCalled();
     });
 
     it('AuditListener handles events without throwing even if Firestore is invoked', async () => {

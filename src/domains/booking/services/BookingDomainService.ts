@@ -1,6 +1,8 @@
 import { Booking } from '../entities/Booking';
 import { BookingRepository } from '../repository/BookingRepository';
-import { Transaction } from 'firebase-admin/firestore';
+import type { TxWriter } from '@/shared/firestore/transactionPhases';
+import type { Transaction } from 'firebase-admin/firestore';
+import type { ArraySafeTimestamp } from '@/types';
 import { OutboxService, generateDeterministicEventId } from '@/shared/events/outbox';
 
 export class BookingDomainService {
@@ -9,6 +11,11 @@ export class BookingDomainService {
   /**
    * Registers a new booking in the system, setting its initial state and saving it.
    */
+  /**
+   * Registers a new booking in the system, setting its initial state and saving it.
+   * Takes a full `Transaction` because `repository.create` read-guards against
+   * an existing document; call it in the transaction's read phase.
+   */
   async createBooking(booking: Booking, transaction?: Transaction): Promise<void> {
     await this.bookingRepository.create(booking, transaction);
   }
@@ -16,7 +23,7 @@ export class BookingDomainService {
   /**
    * Moves booking status to awaiting_payment and registers a durable outbox event.
    */
-  async awaitPayment(booking: Booking, transaction?: Transaction): Promise<string> {
+  async awaitPayment(booking: Booking, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     booking.awaitPayment({ skipEventBus: true });
 
@@ -56,7 +63,7 @@ export class BookingDomainService {
   /**
    * Initiates the payment state on a booking and registers a durable outbox event.
    */
-  async initiatePayment(booking: Booking, transaction?: Transaction): Promise<string> {
+  async initiatePayment(booking: Booking, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     booking.initiatePayment({ skipEventBus: true });
 
@@ -100,7 +107,7 @@ export class BookingDomainService {
     booking: Booking,
     verifiedAt: Date | string | unknown,
     razorpayPaymentId?: string,
-    transaction?: Transaction,
+    transaction?: TxWriter,
     metadata?: Record<string, unknown>
   ): Promise<string> {
     const previousStatus = booking.status;
@@ -154,7 +161,7 @@ export class BookingDomainService {
   /**
    * Completes a booking, saves it, and registers a durable outbox event.
    */
-  async completeBooking(booking: Booking, transaction?: Transaction): Promise<string> {
+  async completeBooking(booking: Booking, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     booking.complete({ skipEventBus: true });
 
@@ -193,7 +200,7 @@ export class BookingDomainService {
   /**
    * Marks a booking as no_show, saves it, and registers a durable outbox event.
    */
-  async markNoShow(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {
+  async markNoShow(booking: Booking, reason?: string, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     const previousNoShowReason = booking.noShowReason;
     const previousDeclineReason = booking.declineReason;
@@ -236,7 +243,7 @@ export class BookingDomainService {
   /**
    * Cancels a booking with an optional reason, saves it, and registers a durable outbox event.
    */
-  async cancelBooking(booking: Booking, reason?: string, transaction?: Transaction): Promise<string> {
+  async cancelBooking(booking: Booking, reason?: string, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     const previousDeclineReason = booking.declineReason;
 
@@ -283,7 +290,7 @@ export class BookingDomainService {
     declinedBy?: string,
     customNote?: string,
     timestamp?: unknown,
-    transaction?: Transaction
+    transaction?: TxWriter
   ): Promise<string> {
     const previousStatus = booking.status;
     const previousDeclineReason = booking.declineReason;
@@ -334,7 +341,7 @@ export class BookingDomainService {
   /**
    * Marks a booking as expired and saves it.
    */
-  async expireBooking(booking: Booking, transaction?: Transaction): Promise<string> {
+  async expireBooking(booking: Booking, transaction?: TxWriter): Promise<string> {
     const previousStatus = booking.status;
     booking.expire({ skipEventBus: true });
 
@@ -370,6 +377,12 @@ export class BookingDomainService {
 
   /**
    * Reschedules a booking to a new date/time and saves it.
+   *
+   * `rescheduledAt` is an {@link ArraySafeTimestamp} — a concrete instant, never a
+   * `FieldValue.serverTimestamp()` sentinel. It lands inside the `rescheduleHistory`
+   * array, and Firestore rejects sentinels anywhere inside an array; the type makes
+   * that a compile error instead of a transaction-aborting runtime failure.
+   *
    * Note: The deterministic eventId includes `${newDate}_${newTime}` so rescheduling
    * to the same target slot is idempotent while distinct reschedule operations are unique.
    */
@@ -377,9 +390,9 @@ export class BookingDomainService {
     booking: Booking,
     newDate: string,
     newTime: string,
-    rescheduledAt?: unknown,
+    rescheduledAt?: ArraySafeTimestamp,
     newUtcDateTime?: string,
-    transaction?: Transaction
+    transaction?: TxWriter
   ): Promise<string> {
     const previousDate = booking.date;
     const previousTime = booking.time;

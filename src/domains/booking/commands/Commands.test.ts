@@ -12,8 +12,19 @@ import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository, Booking, SlotAlreadyBookedError } from '@/domains/booking';
 import { firestorePaymentRepository, Payment, razorpayGateway } from '@/domains/payment';
 import { sendEmailAction } from '@/app/api/email/emailSender';
+import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { EventBus } from '@/shared/events/EventBus';
 import { registerListeners } from '@/shared/events/listeners';
+import { istDatePlusDays } from '@/shared/scheduling/slots';
+import { SlotReservationService } from '../services/SlotReservationService';
+
+/**
+ * `CreateBookingCommand` validates that the target slot is in the future and
+ * inside the booking window, so a create fixture MUST be relative to "now" — a
+ * hardcoded literal starts failing with 'Cannot book a slot in the past.' the day
+ * the calendar passes it. Three days out is comfortably inside the 14-day window.
+ */
+const CREATE_TARGET_DATE = istDatePlusDays(3);
 
 vi.mock("@/shared/config", () => ({
   config: {
@@ -53,6 +64,11 @@ vi.mock('@/lib/firebase/admin', () => {
         delete: vi.fn(),
         update: vi.fn(),
       })),
+      // `isSlotInTherapistAvailability` reads
+      // therapistAvailability/{id}/recurringRules and /overrides. An empty result
+      // means "no rules configured", which the service treats as available — the
+      // right default for tests that are about transactions, not about schedules.
+      get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
     })),
   }));
 
@@ -111,7 +127,7 @@ describe('Command Handlers Suite', () => {
           email: 'jane@example.com',
           phone: '9999999999',
           age: 25,
-          date: '2026-07-20',
+          date: CREATE_TARGET_DATE,
           time: '11:00',
           message: 'Stress management',
           sessionMode: 'online',
@@ -150,7 +166,7 @@ describe('Command Handlers Suite', () => {
           name: 'John Doe',
           email: 'john@example.com',
           phone: '9999999999',
-          date: '2026-07-20',
+          date: CREATE_TARGET_DATE,
           time: '11:00',
           sessionMode: 'online'
         },
@@ -183,7 +199,7 @@ describe('Command Handlers Suite', () => {
           name: 'Jane Doe',
           email: 'jane@example.com',
           phone: '9999999999',
-          date: '2026-07-20',
+          date: CREATE_TARGET_DATE,
           time: '11:00',
           sessionMode: 'online'
         },
@@ -222,7 +238,7 @@ describe('Command Handlers Suite', () => {
           name: 'User A',
           email: 'usera@example.com',
           phone: '9999999999',
-          date: '2026-07-20',
+          date: CREATE_TARGET_DATE,
           time: '11:00',
           sessionMode: 'online'
         },
@@ -236,7 +252,7 @@ describe('Command Handlers Suite', () => {
           name: 'User B',
           email: 'userb@example.com',
           phone: '8888888888',
-          date: '2026-07-20',
+          date: CREATE_TARGET_DATE,
           time: '11:00',
           sessionMode: 'online'
         },
@@ -257,6 +273,116 @@ describe('Command Handlers Suite', () => {
       expect(rejected).toHaveLength(1);
       expect((rejected[0] as PromiseRejectedResult).reason.message).toContain('This slot is already booked.');
       expect(razorpayGateway.createOrder).toHaveBeenCalledTimes(1);
+    });
+
+    /**
+     * The create path used to validate only that the therapist existed and the
+     * slot pin was free, while the reschedule path rejected past times, times
+     * beyond the booking window, and times outside the therapist's hours. Pinning
+     * an arbitrary slot id always succeeds (nobody else holds it), so a request
+     * that skipped the wizard could book any of the three. These assert the
+     * refusal happens BEFORE any Firestore write or Razorpay call.
+     */
+    describe('4b. Server-side slot validation (parity with reschedule)', () => {
+      const createWith = (over: { date?: string; time?: string }) =>
+        new CreateBookingCommand(
+          {
+            therapistId: 'therapist_1',
+            name: 'Mallory',
+            email: 'mallory@example.com',
+            phone: '9999999999',
+            date: CREATE_TARGET_DATE,
+            time: '11:00',
+            sessionMode: 'online',
+            ...over,
+          },
+          'user_m',
+          'mallory@example.com'
+        );
+
+      const expectRefusedBeforeAnyWrite = async (command: CreateBookingCommand, message: string) => {
+        const handler = new CreateBookingCommandHandler();
+        await expect(handler.execute(command)).rejects.toThrow(message);
+        expect(adminDb.runTransaction).not.toHaveBeenCalled();
+        expect(razorpayGateway.createOrder).not.toHaveBeenCalled();
+      };
+
+      it('refuses a slot that has already passed', async () => {
+        await expectRefusedBeforeAnyWrite(
+          createWith({ date: istDatePlusDays(-1) }),
+          'Cannot book a slot in the past.'
+        );
+      });
+
+      it('refuses a slot beyond the booking window', async () => {
+        await expectRefusedBeforeAnyWrite(
+          createWith({ date: istDatePlusDays(60) }),
+          'Cannot book further than'
+        );
+      });
+
+      it('refuses an impossible calendar day that passes the shape check', async () => {
+        // '2026-02-30' matches /^\d{4}-\d{2}-\d{2}$/, so the zod schema admits it;
+        // without this check `Date.UTC` would roll it to 2 March and the booking
+        // would be stored for a day the client never named.
+        await expectRefusedBeforeAnyWrite(createWith({ date: '2026-02-30' }), 'Invalid booking date/time.');
+      });
+
+      it("refuses a slot outside the therapist's scheduled hours", async () => {
+        vi.spyOn(SlotReservationService, 'isSlotInTherapistAvailability').mockResolvedValueOnce(false);
+        await expectRefusedBeforeAnyWrite(
+          createWith({ time: '03:00' }),
+          "The selected slot is outside the therapist's scheduled hours or overrides."
+        );
+      });
+    });
+
+    describe('4c. Age is persisted as given, never fabricated', () => {
+      /** Returns the `bookings/{id}` payload the transaction actually wrote. */
+      const capturePersistedBooking = async (age?: number) => {
+        const writes: Record<string, unknown>[] = [];
+        const mockTx = {
+          get: vi.fn().mockResolvedValue({ exists: false }),
+          set: vi.fn((_ref: unknown, data: Record<string, unknown>) => { writes.push(data); }),
+          delete: vi.fn(),
+          update: vi.fn(),
+          create: vi.fn(),
+        };
+        vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => callback(mockTx as any));
+
+        const handler = new CreateBookingCommandHandler();
+        await handler.execute(new CreateBookingCommand(
+          {
+            therapistId: 'therapist_1',
+            name: 'Aarav',
+            email: 'aarav@example.com',
+            phone: '9999999999',
+            date: CREATE_TARGET_DATE,
+            time: '11:00',
+            sessionMode: 'online',
+            ...(age !== undefined ? { age } : {}),
+          },
+          'user_aarav',
+          'aarav@example.com'
+        ));
+
+        // The booking doc is the only write carrying `bookingToken`; the others are
+        // the slot pin and two audit_logs entries.
+        return writes.find((w) => 'bookingToken' in w)!;
+      };
+
+      it('writes exactly the age supplied', async () => {
+        const persisted = await capturePersistedBooking(18);
+        expect(persisted.age).toBe(18);
+      });
+
+      it('omits the field entirely when no age was supplied', async () => {
+        // The old client sent `parseInt(age, 10) || 25`, so an absent age became a
+        // confident 25 in Firestore. Absent must stay absent — `toPersistence`
+        // strips undefined rather than writing a substitute.
+        const persisted = await capturePersistedBooking();
+        expect('age' in persisted).toBe(false);
+      });
     });
 
     it('5. GeneratePaymentLinkCommand: fails and skips Razorpay when slot is claimed by another user', async () => {
@@ -1419,6 +1545,15 @@ describe('Command Handlers Suite', () => {
   describe('RescheduleBookingCommand', () => {
     let mockBooking: Booking;
 
+    /**
+     * Reschedule targets MUST be resolved relative to "now": the handler rejects
+     * past date/times and anything more than 14 days out, so a hardcoded literal
+     * silently rots into a `Cannot reschedule to a past date/time.` failure once
+     * the calendar passes it. `istDatePlusDays` is the same IST helper the API and
+     * the UI use, so the fixture and production agree on what "in 5 days" means.
+     */
+    const TARGET_DATE = istDatePlusDays(5);
+
     beforeEach(() => {
       mockBooking = new Booking({
         id: 'bk_reschedule_1',
@@ -1466,21 +1601,21 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', {
         uid: 'therapist_uid_1',
         role: 'therapist'
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-31');
+      expect(updatedBooking.date).toBe(TARGET_DATE);
       expect(updatedBooking.time).toBe('14:00');
       expect(mockTx.delete).toHaveBeenCalled(); // Old slot released
       expect(mockTx.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           therapistId: 'therapist_1',
-          date: '2026-08-31',
+          date: TARGET_DATE,
           time: '14:00',
           bookingId: 'bk_reschedule_1'
         })
@@ -1512,7 +1647,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', {
         uid: 'therapist_uid_1',
         role: 'therapist'
       });
@@ -1537,14 +1672,14 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', {
         uid: 'admin_uid_999',
         role: 'admin'
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-31');
+      expect(updatedBooking.date).toBe(TARGET_DATE);
       expect(updatedBooking.time).toBe('14:00');
     });
 
@@ -1564,13 +1699,13 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '16:00', {
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '16:00', {
         isTokenFlow: true
       });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-31');
+      expect(updatedBooking.date).toBe(TARGET_DATE);
       expect(updatedBooking.time).toBe('16:00');
       expect(mockTx.set).toHaveBeenCalledWith(
         expect.anything(),
@@ -1589,7 +1724,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('invalid_id', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('invalid_id', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Booking not found");
@@ -1612,7 +1747,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_cancelled', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_cancelled', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
@@ -1635,7 +1770,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_rejected', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_rejected', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("Cannot reschedule a cancelled or rejected booking.");
@@ -1655,7 +1790,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
@@ -1683,11 +1818,11 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
       const updatedBooking = await handler.execute(command);
 
-      expect(updatedBooking.date).toBe('2026-08-31');
+      expect(updatedBooking.date).toBe(TARGET_DATE);
       expect(mockTx.delete).toHaveBeenCalled(); // Expired lock deleted
     });
 
@@ -1698,7 +1833,7 @@ describe('Command Handlers Suite', () => {
         throw new Error("This new slot is already booked.");
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
@@ -1720,7 +1855,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-31', '14:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '14:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
@@ -1771,16 +1906,37 @@ describe('Command Handlers Suite', () => {
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx as any));
 
+      const calendarSyncSpy = vi
+        .spyOn(GoogleCalendarService, 'createOrSyncCalendarEvent')
+        .mockResolvedValue({ success: true, calendarEventId: 'gcal_1', meetingUrl: 'https://meet.google.com/abc-defg-hij' });
+
       const command = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
       const handler = new AdminConfirmBookingCommandHandler();
       const result = await handler.execute(command);
 
       expect(result.success).toBe(true);
       expect(mockBooking.status).toBe('confirmed');
-      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'booking-confirmed',
-        bookingId: 'bk_admin_confirm_1'
-      }));
+
+      // The confirmation email is deliberately NOT sent by this handler, and not by
+      // an email listener either. `BookingConfirmed` is recorded in the SAME
+      // transaction as the status change (transactional outbox), and the customer
+      // email is dispatched by GoogleCalendarService only once a REAL Google Meet
+      // link exists — so nobody ever receives a confirmation without a link (see the
+      // note at the top of EmailListener.ts). What this handler must therefore
+      // guarantee is (a) the durable event and (b) that processing it drives the
+      // calendar/Meet path. The "email carries the real Meet link" assertion lives in
+      // googleCalendarService.test.ts, which is the layer that actually owns it.
+      expect(mockTx.create).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          id: 'outbox_booking_bk_admin_confirm_1_confirmed',
+          name: 'BookingConfirmed',
+          aggregateId: 'bk_admin_confirm_1',
+          status: 'pending',
+        })
+      );
+      expect(calendarSyncSpy).toHaveBeenCalledWith('bk_admin_confirm_1');
+      expect(sendEmailAction).not.toHaveBeenCalled();
     });
 
     it('B. Therapist manually confirms own booking', async () => {
@@ -1944,18 +2100,21 @@ describe('Command Handlers Suite', () => {
       };
       vi.mocked(adminDb.runTransaction).mockImplementation(async (cb) => cb(mockTx1 as any));
 
+      const calendarSyncSpy = vi
+        .spyOn(GoogleCalendarService, 'createOrSyncCalendarEvent')
+        .mockResolvedValue({ success: true, calendarEventId: 'gcal_1', meetingUrl: 'https://meet.google.com/abc-defg-hij' });
+
       const adminCmd = new AdminConfirmBookingCommand('bk_admin_confirm_1', { role: 'admin', uid: 'admin_1' });
       const adminHandler = new AdminConfirmBookingCommandHandler();
       await adminHandler.execute(adminCmd);
 
       expect(mockBooking.status).toBe('confirmed');
       expect(mockBooking.paymentStatus).toBe('pending');
-      expect(sendEmailAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'booking-confirmed',
-          bookingId: 'bk_admin_confirm_1',
-        })
-      );
+      // Manual confirmation hands the customer notification to the calendar/Meet
+      // path (which owns the confirmation email once a real link exists), so the
+      // "no duplicate email" assertion below is measured against that single
+      // dispatch — not against an email this handler sends itself.
+      expect(calendarSyncSpy).toHaveBeenCalledWith('bk_admin_confirm_1');
 
       vi.clearAllMocks();
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);

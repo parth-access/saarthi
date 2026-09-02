@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { therapistService } from "../../services/therapistService";
 import { TherapistAvailabilityRule, TherapistOverride } from "../../types";
-import { 
-  CalendarDays, Clock, Settings, Save, Trash, CalendarOff, AlertCircle 
+import { generateTimeSlots } from "../../shared/scheduling/slots";
+import {
+  CalendarDays, Clock, Settings, Save, Trash, CalendarOff, AlertCircle
 } from "lucide-react";
 
 interface ScheduleBuilderProps {
@@ -49,37 +50,17 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
     );
   };
 
+  /**
+   * Preview of the start times this rule will actually produce. It calls the same
+   * `generateTimeSlots` that `/api/availability` lists with and that
+   * `SlotReservationService` validates against — previously this was a private
+   * re-implementation ("duplicated ... just for preview"), so a therapist could
+   * be shown a cadence that production never generated.
+   */
   const calculatePreviewSlots = () => {
-    const slots: string[] = [];
-    if (!startTime || !endTime) return slots;
-    
-    // logic duplicated from useAvailability just for preview
-    const [startH, startM] = startTime.split(':').map(Number);
-    const [endH, endM] = endTime.split(':').map(Number);
-    let currentM = startH * 60 + startM;
-    const endTotalM = endH * 60 + endM;
-
-    const bStartM = breakStart ? parseInt(breakStart.split(':')[0])*60 + parseInt(breakStart.split(':')[1]) : 0;
-    const bEndM = breakEnd ? parseInt(breakEnd.split(':')[0])*60 + parseInt(breakEnd.split(':')[1]) : 0;
-    
-    // sanity check
-    if (duration <= 0) return slots;
-
-    while (currentM + duration <= endTotalM) {
-      const sStart = currentM;
-      const sEnd = currentM + duration;
-
-      if (breakStart && breakEnd && sStart < bEndM && sEnd > bStartM) {
-        currentM = bEndM;
-        continue;
-      }
-
-      const h = Math.floor(sStart / 60).toString().padStart(2, '0');
-      const m = (sStart % 60).toString().padStart(2, '0');
-      slots.push(`${h}:${m}`);
-      currentM += duration + cooldown;
-    }
-    return slots;
+    if (!startTime || !endTime) return [];
+    const breaks = breakStart && breakEnd ? [{ startTime: breakStart, endTime: breakEnd }] : [];
+    return generateTimeSlots(startTime, endTime, duration, cooldown, breaks);
   };
 
   const handleSaveRules = async () => {

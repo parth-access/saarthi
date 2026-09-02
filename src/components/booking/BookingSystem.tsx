@@ -23,6 +23,7 @@ import { useAuth } from "../../contexts/AuthContext"
 import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
+import { parseValidClientAge } from "@/shared/validation/age"
 
 import { BookingFormData } from "../../core/validations/booking.schema"
 
@@ -197,15 +198,34 @@ const BookingSystem = () => {
         return;
       }
 
-      // `consent` is enforced client-side by bookingFormSchema; the backend
-      // bookingSchema is .strict() and rejects it (unrecognized_keys → 400).
-      // Strip it before sending so the payload matches the strict contract.
-      const payload = { ...bookingData };
-      delete payload.consent;
+      // The payload is built field by field, deliberately, because the backend
+      // `bookingSchema` is `.strict()`: any extra key is a 400, which is exactly how
+      // `consent` (a client-only field) once broke booking creation. Spreading form
+      // state here would re-introduce that class of bug the next time the wizard
+      // gains a field.
+      //
+      // `age` is the other trap. It lives in form state as the raw
+      // `<input type="number">` string while the wire contract is a number, and this
+      // call used to send `parseInt(bookingData.age, 10) || 25` — inventing 25
+      // whenever the field was empty or unparseable, so the booking was stored and
+      // shown to the therapist carrying an age nobody had typed. It is now sent only
+      // when it genuinely parses; `bookingFormSchema` already refuses to leave step 5
+      // with an invalid age and `bookingSchema` re-validates server-side, so an
+      // omitted key means "genuinely absent" rather than "unknown, guess something".
+      const parsedAge = parseValidClientAge(bookingData.age);
+
       const result = await createBooking({
-        ...payload,
+        therapistId: bookingData.therapistId,
+        sessionType: bookingData.sessionType,
+        date: bookingData.date,
+        time: bookingData.time,
+        name: bookingData.name,
+        email: bookingData.email,
+        phone: bookingData.phone,
+        gender: bookingData.gender,
+        message: bookingData.message,
         lockId: activeLockId || undefined,
-        age: parseInt(bookingData.age, 10) || 25
+        ...(parsedAge !== null ? { age: parsedAge } : {})
       });
 
       if (!result.success || !result.data?.orderId) {

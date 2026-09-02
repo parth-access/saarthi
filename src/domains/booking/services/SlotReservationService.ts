@@ -1,6 +1,8 @@
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue, Timestamp, Transaction } from 'firebase-admin/firestore';
+import { DocumentReference, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from '@/shared/logger';
+import type { TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
+import { generateTimeSlots } from '@/shared/scheduling/slots';
 import crypto from 'crypto';
 
 export interface LockResult {
@@ -8,6 +10,40 @@ export interface LockResult {
   lockId?: string;
   expiresAt?: Date;
   error?: string;
+}
+
+/**
+ * Outcome of the read phase for releasing a slot pin. Carries the document
+ * reference and the ownership decision so the write phase needs no further
+ * reads.
+ */
+export interface PinReleasePlan {
+  slotRef: DocumentReference;
+  /** True only when the pin exists AND belongs to this bookingId. */
+  shouldRelease: boolean;
+  therapistId: string;
+  date: string;
+  time: string;
+  bookingId: string;
+}
+
+/** Outcome of the read phase for moving a booking's pin to a different slot. */
+export interface SlotSwapPlan {
+  /** Release plan for the slot the booking is leaving. */
+  oldPin: PinReleasePlan;
+  newSlotRef: DocumentReference;
+  /**
+   * True when the target slot held an *expired* hold that must be deleted
+   * before the new pin is written. Live holds and booked pins throw during the
+   * read phase instead.
+   */
+  clearExpiredTarget: boolean;
+  therapistId: string;
+  oldDate: string;
+  oldTime: string;
+  newDate: string;
+  newTime: string;
+  bookingId: string;
 }
 
 export class SlotReservationService {
@@ -19,63 +55,86 @@ export class SlotReservationService {
   }
 
   /**
-   * Safely releases/deletes a slot pin within an existing Firestore transaction,
-   * but ONLY if the pin belongs to the given bookingId (preventing blind deletes).
+   * READ PHASE — decides whether the pin for this slot may be released, without
+   * writing anything. Ownership is enforced here (never a blind delete): the
+   * pin is only releasable when it names this exact bookingId.
+   *
+   * Pair with {@link applyPinRelease}. This split exists because the previous
+   * single-call helper performed its `transaction.get` wherever it happened to
+   * be invoked, which was after other writes in the cancel and reschedule
+   * paths — the production
+   * "Firestore transactions require all reads to be executed before all writes"
+   * failure.
    */
-  static async releasePinInTransaction(
-    t: Transaction,
+  static async readPinReleasePlan(
+    reader: TxReader,
     therapistId: string,
     date: string,
     time: string,
     bookingId: string
-  ): Promise<boolean> {
+  ): Promise<PinReleasePlan> {
     if (!adminDb) {
       throw new Error('Firestore adminDb is not initialized.');
     }
 
-    const slotId = this.getSlotId(therapistId, date, time);
-    const slotRef = adminDb.collection('locked_slots').doc(slotId);
+    const slotRef = adminDb.collection('locked_slots').doc(this.getSlotId(therapistId, date, time));
+    const doc = await reader.get(slotRef);
+    const shouldRelease = !!doc?.exists && (doc.data() || {}).bookingId === bookingId;
 
-    const doc = await t.get(slotRef);
-    if (doc?.exists) {
-      const data = doc.data() || {};
-      if (data.bookingId === bookingId) {
-        t.delete(slotRef);
-
-        const auditRef = adminDb.collection('audit_logs').doc();
-        t.set(auditRef, {
-          eventType: 'SLOT_RELEASED_TX',
-          therapistId,
-          date,
-          time,
-          bookingId,
-          timestamp: FieldValue.serverTimestamp(),
-          details: `Slot released safely in transaction for booking ${bookingId}`,
-        });
-        return true;
-      }
-    }
-    return false;
+    return { slotRef, shouldRelease, therapistId, date, time, bookingId };
   }
 
   /**
-   * Generates possible time slots for a therapist on a given date based on active recurring rules
-   * and overrides, and checks if the given time exists in those slots (excluding slot reservation/lock checks).
+   * WRITE PHASE — applies a {@link PinReleasePlan}. Returns whether the pin was
+   * actually released. Performs no reads, so it is safe to call at any point
+   * after the read phase.
+   */
+  static applyPinRelease(writer: TxWriter, plan: PinReleasePlan): boolean {
+    if (!adminDb) {
+      throw new Error('Firestore adminDb is not initialized.');
+    }
+    if (!plan.shouldRelease) return false;
+
+    writer.delete(plan.slotRef);
+
+    const auditRef = adminDb.collection('audit_logs').doc();
+    writer.set(auditRef, {
+      eventType: 'SLOT_RELEASED_TX',
+      therapistId: plan.therapistId,
+      date: plan.date,
+      time: plan.time,
+      bookingId: plan.bookingId,
+      timestamp: FieldValue.serverTimestamp(),
+      details: `Slot released safely in transaction for booking ${plan.bookingId}`,
+    });
+    return true;
+  }
+
+  /**
+   * Checks that `time` is one of the start times the therapist's recurring rules
+   * and date overrides generate for `date` — i.e. CADENCE only. Reservation
+   * (`locked_slots`), existing bookings and temporality (past / booking window)
+   * are each checked elsewhere by the caller.
+   *
+   * The generator is imported from `@/shared/scheduling/slots`, the same one
+   * `/api/availability` lists with. It used to be a private copy inlined here,
+   * which meant the lister and this validator could drift apart and offer a slot
+   * that would then be refused.
    */
   static async isSlotInTherapistAvailability(
     therapistId: string,
     date: string,
     time: string,
-    t?: Transaction
+    t?: TxReader
   ): Promise<boolean> {
     if (!adminDb) {
       throw new Error('Firestore adminDb is not initialized.');
     }
 
-    // Local-safe date parsing
+    // Local-safe date parsing. Weekday is derived in UTC so the server's own
+    // timezone cannot shift the calendar date's day-of-week.
     const [year, month, day] = date.split('-').map(Number);
-    const selectedDate = new Date(year, month - 1, day);
-    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday ...
+    const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay(); // 0 = Sunday, 1 = Monday ...
 
     const rulesRef = adminDb.collection('therapistAvailability').doc(therapistId).collection('recurringRules');
     const overridesRef = adminDb.collection('therapistAvailability').doc(therapistId).collection('overrides');
@@ -97,57 +156,6 @@ export class SlotReservationService {
     if (rules.length === 0 && overrides.length === 0) {
       return true;
     }
-
-    // Helper functions for time slot generation
-    const timeToMinutes = (timeStr: string): number => {
-      const [h, m] = timeStr.split(':').map(Number);
-      return h * 60 + m;
-    };
-
-    const minutesToTime = (mins: number): string => {
-      const h = Math.floor(mins / 60).toString().padStart(2, '0');
-      const m = (mins % 60).toString().padStart(2, '0');
-      return `${h}:${m}`;
-    };
-
-    const generateTimeSlots = (
-      startTime: string,
-      endTime: string,
-      durationMin: number,
-      cooldownMin: number,
-      breaks: { startTime: string; endTime: string }[] = []
-    ): string[] => {
-      const slots: string[] = [];
-      const startTotalM = timeToMinutes(startTime);
-      const endTotalM = timeToMinutes(endTime);
-
-      const parsedBreaks = (breaks || []).map(b => ({
-        start: timeToMinutes(b.startTime),
-        end: timeToMinutes(b.endTime)
-      }));
-
-      let currentM = startTotalM;
-
-      while (currentM + durationMin <= endTotalM) {
-        const sessionStart = currentM;
-        const sessionEnd = currentM + durationMin;
-
-        // Check if overlaps with any break
-        const overlapsBreak = parsedBreaks.some(
-          b => (sessionStart < b.end && sessionEnd > b.start)
-        );
-
-        if (overlapsBreak) {
-          const overlappingBreakInfo = parsedBreaks.find(b => (sessionStart < b.end && sessionEnd > b.start));
-          currentM = overlappingBreakInfo ? overlappingBreakInfo.end : currentM + durationMin + cooldownMin;
-          continue;
-        }
-
-        slots.push(minutesToTime(sessionStart));
-        currentM += durationMin + cooldownMin;
-      }
-      return slots;
-    };
 
     // Check overrides first
     const dateOverride = overrides.find(o => o.date === date);
@@ -186,17 +194,73 @@ export class SlotReservationService {
   }
 
   /**
-   * Atomically swaps a slot lock from an old slot to a new slot within an existing Firestore transaction.
-   * Checks availability of the new slot, clearing expired locks if necessary.
+   * READ PHASE — validates that a booking may move to `newDate`/`newTime` and
+   * returns everything the write phase needs. Throws (aborting before any write)
+   * when the target slot is booked or actively held by someone else.
+   *
+   * Both reads it needs — the target slot and the booking's current pin — happen
+   * here. The previous single-call version read the target slot, deleted an
+   * expired hold, and only *then* read the old pin, which violated Firestore's
+   * read-before-write rule whenever the target carried a stale lock.
    */
-  static async swapSlotsInTransaction(
-    t: Transaction,
+  static async readSlotSwapPlan(
+    reader: TxReader,
     therapistId: string,
     oldDate: string,
     oldTime: string,
     newDate: string,
     newTime: string,
-    bookingId: string,
+    bookingId: string
+  ): Promise<SlotSwapPlan> {
+    if (!adminDb) {
+      throw new Error('Firestore adminDb is not initialized.');
+    }
+
+    const newSlotRef = adminDb.collection('locked_slots').doc(this.getSlotId(therapistId, newDate, newTime));
+    const newSlotDoc = await reader.get(newSlotRef);
+
+    let clearExpiredTarget = false;
+
+    if (newSlotDoc?.exists) {
+      const slotData = newSlotDoc.data()!;
+      const ownedByThisBooking = slotData?.bookingId === bookingId;
+
+      if (!ownedByThisBooking) {
+        const expiresAtDate = toDateOrNull(slotData?.expiresAt);
+        if (expiresAtDate && expiresAtDate < new Date()) {
+          // Stale hold from an abandoned checkout — reclaimable.
+          clearExpiredTarget = true;
+        } else if ('bookingId' in slotData) {
+          throw new Error('This new slot is already booked.');
+        } else {
+          throw new Error('This new slot is unavailable.');
+        }
+      }
+    }
+
+    const oldPin = await this.readPinReleasePlan(reader, therapistId, oldDate, oldTime, bookingId);
+
+    return {
+      oldPin,
+      newSlotRef,
+      clearExpiredTarget,
+      therapistId,
+      oldDate,
+      oldTime,
+      newDate,
+      newTime,
+      bookingId,
+    };
+  }
+
+  /**
+   * WRITE PHASE — applies a {@link SlotSwapPlan}: clears a reclaimed stale hold,
+   * releases the booking's old pin (ownership-checked during the read phase) and
+   * pins the new slot. Performs no reads.
+   */
+  static applySlotSwap(
+    writer: TxWriter,
+    plan: SlotSwapPlan,
     bookingContext?: {
       status?: string;
       paymentStatus?: string;
@@ -205,46 +269,22 @@ export class SlotReservationService {
       holdExpiresAt?: unknown;
       lockId?: string;
     }
-  ): Promise<void> {
+  ): void {
     if (!adminDb) {
       throw new Error('Firestore adminDb is not initialized.');
     }
 
-    const oldSlotId = this.getSlotId(therapistId, oldDate, oldTime);
-    const oldSlotRef = adminDb.collection('locked_slots').doc(oldSlotId);
+    const { newSlotRef, therapistId, oldDate, oldTime, newDate, newTime, bookingId } = plan;
 
-    const newSlotId = this.getSlotId(therapistId, newDate, newTime);
-    const newSlotRef = adminDb.collection('locked_slots').doc(newSlotId);
-
-    const newSlotDoc = await t.get(newSlotRef);
-    if (newSlotDoc?.exists) {
-      const slotData = newSlotDoc.data()!;
-      if (slotData?.expiresAt) {
-        const expiresAtDate = typeof slotData.expiresAt.toDate === 'function'
-          ? slotData.expiresAt.toDate()
-          : typeof slotData.expiresAt.toMillis === 'function'
-          ? new Date(slotData.expiresAt.toMillis())
-          : new Date(slotData.expiresAt);
-        if (expiresAtDate < new Date()) {
-          t.delete(newSlotRef);
-        } else if ('bookingId' in slotData) {
-          throw new Error("This new slot is already booked.");
-        } else {
-          throw new Error("This new slot is unavailable.");
-        }
-      } else if ('bookingId' in slotData) {
-        throw new Error("This new slot is already booked.");
-      } else {
-        throw new Error("This new slot is unavailable.");
-      }
+    if (plan.clearExpiredTarget) {
+      writer.delete(newSlotRef);
     }
 
-    // Ownership guard: only delete old slot if it belongs to this bookingId
-    await SlotReservationService.releasePinInTransaction(t, therapistId, oldDate, oldTime, bookingId);
+    this.applyPinRelease(writer, plan.oldPin);
 
     const isConfirmed = bookingContext?.status === 'confirmed' || bookingContext?.paymentStatus === 'paid';
     if (isConfirmed) {
-      t.set(newSlotRef, {
+      writer.set(newSlotRef, {
         therapistId,
         date: newDate,
         time: newTime,
@@ -256,14 +296,9 @@ export class SlotReservationService {
         updatedAt: FieldValue.serverTimestamp(),
       });
     } else {
-      const rawHold = bookingContext?.holdExpiresAt as { toDate?: () => Date } | string | number | Date | null | undefined;
-      const holdExpiresAt = rawHold
-        ? (typeof rawHold === 'object' && rawHold !== null && 'toDate' in rawHold && typeof rawHold.toDate === 'function'
-            ? rawHold.toDate()
-            : new Date(rawHold as string | number | Date))
-        : new Date(Date.now() + 10 * 60 * 1000);
+      const holdExpiresAt = toDateOrNull(bookingContext?.holdExpiresAt) ?? new Date(Date.now() + 10 * 60 * 1000);
 
-      t.set(newSlotRef, {
+      writer.set(newSlotRef, {
         therapistId,
         date: newDate,
         time: newTime,
@@ -278,7 +313,7 @@ export class SlotReservationService {
     }
 
     const auditRef = adminDb.collection('audit_logs').doc();
-    t.set(auditRef, {
+    writer.set(auditRef, {
       eventType: 'SLOT_SWAPPED',
       bookingId,
       therapistId,
@@ -287,7 +322,7 @@ export class SlotReservationService {
       newDate,
       newTime,
       timestamp: FieldValue.serverTimestamp(),
-      details: `Slot swapped from ${oldDate} ${oldTime} to ${newDate} ${newTime} for booking ${bookingId}`
+      details: `Slot swapped from ${oldDate} ${oldTime} to ${newDate} ${newTime} for booking ${bookingId}`,
     });
   }
 
@@ -674,4 +709,35 @@ export class SlotReservationService {
 
     return { cleanedCount };
   }
+}
+
+/**
+ * Coerces the several shapes a stored expiry can take (Firestore `Timestamp`,
+ * `Date`, ISO string, epoch millis) into a `Date`, or `null` when absent or
+ * unparseable. An unparseable expiry is treated as "no expiry" so a live hold is
+ * never mistaken for a stale one.
+ */
+function toDateOrNull(value: unknown): Date | null {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  if (typeof value === 'object') {
+    const candidate = value as { toDate?: () => Date; toMillis?: () => number };
+    if (typeof candidate.toDate === 'function') {
+      const d = candidate.toDate();
+      return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
+    }
+    if (typeof candidate.toMillis === 'function') {
+      const ms = candidate.toMillis();
+      return Number.isFinite(ms) ? new Date(ms) : null;
+    }
+    return null;
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  return null;
 }

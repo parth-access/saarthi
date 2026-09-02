@@ -3,12 +3,37 @@ import { Booking } from '../entities/Booking';
 import { BookingDomainService } from './BookingDomainService';
 import { BookingRepository } from '../repository/BookingRepository';
 import { BookingEvents } from '../events/BookingEvents';
+import { OutboxService } from '@/shared/events/outbox';
+
+/**
+ * Every `BookingDomainService` mutator records a durable outbox event next to the
+ * state change — that is part of its contract, not an incidental detail.
+ *
+ * These are unit tests with a mocked repository and no Firestore, so the outbox
+ * WRITER is mocked here; left real, `OutboxService.recordEvent` reaches the
+ * uninitialised `adminDb` and every mutator rejects with
+ * "[OutboxService] Database not initialized for durable outbox recording" — a
+ * harness artefact rather than the behaviour under test. `generateDeterministicEventId`
+ * is deliberately kept REAL (via `importOriginal`) so the event ids asserted below
+ * are the exact ids production writes, which is what makes replay idempotent.
+ */
+vi.mock('@/shared/events/outbox', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/events/outbox')>();
+  return {
+    ...actual,
+    OutboxService: {
+      recordEvent: vi.fn().mockResolvedValue(undefined),
+      recordEventInTransaction: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
 
 describe('BookingDomainService', () => {
   let mockRepository: BookingRepository;
   let service: BookingDomainService;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     BookingEvents.clear();
     mockRepository = {
       generateId: vi.fn(),
@@ -25,6 +50,7 @@ describe('BookingDomainService', () => {
       findActiveBookingsByTherapistAndDate: vi.fn(),
       findByOrderId: vi.fn(),
       findBookingsNeedingCalendarRetry: vi.fn(),
+      findByClient: vi.fn(),
     };
     service = new BookingDomainService(mockRepository);
   });
@@ -40,6 +66,14 @@ describe('BookingDomainService', () => {
     await service.awaitPayment(booking);
     expect(booking.status).toBe('awaiting_payment');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_awaiting_payment',
+        name: 'BookingAwaitingPayment',
+        aggregateType: 'booking',
+        aggregateId: 'bk_1',
+      })
+    );
   });
 
   it('should transition to payment_initiated and save', async () => {
@@ -47,6 +81,12 @@ describe('BookingDomainService', () => {
     await service.initiatePayment(booking);
     expect(booking.status).toBe('payment_initiated');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_payment_initiated',
+        name: 'BookingPaymentInitiated',
+      })
+    );
   });
 
   it('should transition to confirmed, update paymentStatus/razorpayPaymentId and save', async () => {
@@ -58,6 +98,12 @@ describe('BookingDomainService', () => {
     expect(booking.razorpayPaymentId).toBe('pay_123');
     expect(booking.paymentVerifiedAt).toBe(verifiedAt);
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_confirmed',
+        name: 'BookingConfirmed',
+      })
+    );
   });
 
   it('should transition to completed and save', async () => {
@@ -65,6 +111,12 @@ describe('BookingDomainService', () => {
     await service.completeBooking(booking);
     expect(booking.status).toBe('completed');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_completed',
+        name: 'BookingCompleted',
+      })
+    );
   });
 
   it('should transition to cancelled and save', async () => {
@@ -73,6 +125,12 @@ describe('BookingDomainService', () => {
     expect(booking.status).toBe('cancelled');
     expect(booking.declineReason).toBe('Customer requested cancellation');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_cancelled',
+        name: 'BookingCancelled',
+      })
+    );
   });
 
   it('should revert in-memory status if save fails on cancelBooking', async () => {
@@ -80,6 +138,8 @@ describe('BookingDomainService', () => {
     mockRepository.save = vi.fn().mockRejectedValue(new Error('Firestore write failed'));
     await expect(service.cancelBooking(booking, 'Customer requested cancellation')).rejects.toThrow('Firestore write failed');
     expect(booking.status).toBe('confirmed');
+    // A failed aggregate write must not leave an event claiming the cancellation happened.
+    expect(OutboxService.recordEvent).not.toHaveBeenCalled();
   });
 
   it('should transition to no_show and assign noShowReason and save', async () => {
@@ -88,6 +148,12 @@ describe('BookingDomainService', () => {
     expect(booking.status).toBe('no_show');
     expect(booking.noShowReason).toBe('Client did not attend session');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_no_show',
+        name: 'BookingNoShow',
+      })
+    );
   });
 
   it('should transition to rejected (decline) and save', async () => {
@@ -100,6 +166,12 @@ describe('BookingDomainService', () => {
     expect(booking.declineCustomNote).toBe('Sorry about that');
     expect(booking.declinedAt).toBe(declinedAt);
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_rejected',
+        name: 'BookingRejected',
+      })
+    );
   });
 
   it('should transition to expired and save', async () => {
@@ -107,6 +179,12 @@ describe('BookingDomainService', () => {
     await service.expireBooking(booking);
     expect(booking.status).toBe('expired');
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_expired',
+        name: 'BookingExpired',
+      })
+    );
   });
 
   it('should reschedule, update fields and save', async () => {
@@ -120,5 +198,13 @@ describe('BookingDomainService', () => {
     expect(booking.utcDateTime).toBe('2026-07-21T11:00:00.000Z');
     expect(booking.rescheduledAt).toBe(rescheduledAt);
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
+    // The target slot is part of the event id, so re-issuing the SAME reschedule is
+    // idempotent while a genuinely different reschedule gets its own event.
+    expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'outbox_booking_bk_1_rescheduled_2026-07-21_11-00',
+        name: 'BookingRescheduled',
+      })
+    );
   });
 });

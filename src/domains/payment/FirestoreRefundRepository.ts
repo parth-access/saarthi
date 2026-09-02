@@ -1,5 +1,6 @@
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue, Transaction, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { DocumentReference, FieldValue, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import type { TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
 import { RefundRepository, RefundRequest } from './RefundRepository';
 
 const COLLECTION = 'refunds';
@@ -23,19 +24,22 @@ function toEntity(doc: DocumentSnapshot | QueryDocumentSnapshot): RefundRequest 
   };
 }
 
+export interface RefundEnqueuePlan {
+  ref: DocumentReference;
+  payload: Record<string, unknown>;
+  /** False when a refund request for this payment already exists. */
+  shouldCreate: boolean;
+}
+
 export class FirestoreRefundRepository implements RefundRepository {
   refundIdForPayment(razorpayPaymentId: string): string {
     return `refund_${razorpayPaymentId}`;
   }
 
-  async enqueue(
-    request: Omit<RefundRequest, 'status' | 'attempts' | 'createdAt' | 'updatedAt'>,
-    transaction?: Transaction
-  ): Promise<boolean> {
-    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
-    const ref = adminDb.collection(COLLECTION).doc(request.id);
-
-    const payload = {
+  private buildEnqueuePayload(
+    request: Omit<RefundRequest, 'status' | 'attempts' | 'createdAt' | 'updatedAt'>
+  ): Record<string, unknown> {
+    return {
       bookingId: request.bookingId,
       razorpayPaymentId: request.razorpayPaymentId,
       razorpayOrderId: request.razorpayOrderId ?? null,
@@ -46,23 +50,45 @@ export class FirestoreRefundRepository implements RefundRepository {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
+  }
 
-    // Create-guard: never overwrite an existing refund request for this payment.
-    const write = (doc: DocumentSnapshot, t?: Transaction): boolean => {
-      if (doc.exists) return false;
-      if (t) {
-        t.set(ref, payload);
-      }
-      return true;
-    };
+  /**
+   * READ PHASE — resolves the create-guard for an enqueue without writing.
+   * Pair with {@link applyEnqueue} when enqueuing inside a caller's transaction,
+   * so the guard read happens before that transaction's writes.
+   */
+  async readEnqueuePlan(
+    request: Omit<RefundRequest, 'status' | 'attempts' | 'createdAt' | 'updatedAt'>,
+    reader: TxReader
+  ): Promise<RefundEnqueuePlan> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const ref = adminDb.collection(COLLECTION).doc(request.id);
+    const doc = await reader.get(ref);
+    return { ref, payload: this.buildEnqueuePayload(request), shouldCreate: !doc.exists };
+  }
 
-    if (transaction) {
-      const doc = await transaction.get(ref);
-      return write(doc, transaction);
-    }
+  /**
+   * WRITE PHASE — applies a {@link RefundEnqueuePlan}. Never overwrites an
+   * existing refund request, which is what makes double-cancel idempotent.
+   */
+  applyEnqueue(writer: TxWriter, plan: RefundEnqueuePlan): boolean {
+    if (!plan.shouldCreate) return false;
+    writer.set(plan.ref, plan.payload);
+    return true;
+  }
+
+  /**
+   * Enqueues a refund in its own transaction. For enqueuing inside an existing
+   * transaction use {@link readEnqueuePlan} + {@link applyEnqueue} instead — a
+   * combined read+write helper cannot guarantee the caller's phase ordering.
+   */
+  async enqueue(
+    request: Omit<RefundRequest, 'status' | 'attempts' | 'createdAt' | 'updatedAt'>
+  ): Promise<boolean> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     return adminDb.runTransaction(async (t) => {
-      const doc = await t.get(ref);
-      return write(doc, t);
+      const plan = await this.readEnqueuePlan(request, t);
+      return this.applyEnqueue(t, plan);
     });
   }
 

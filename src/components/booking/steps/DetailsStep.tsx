@@ -2,6 +2,7 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
+import { MAX_CLIENT_AGE, MIN_CLIENT_AGE } from "@/shared/constants"
 import { ChevronLeft, ChevronRight, ChevronDown, Lock, Sparkles } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../../ui/Button"
@@ -123,15 +124,16 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
             <label htmlFor="booking-age" className="text-[10px] uppercase font-black tracking-widest text-primary/60 ml-1">
               Age
             </label>
-            <Input 
+            <Input
               id="booking-age"
-              {...register("age")} 
-              type="number" 
-              min={1}
-              max={120}
+              {...register("age")}
+              type="number"
+              min={MIN_CLIENT_AGE}
+              max={MAX_CLIENT_AGE}
+              step={1}
               inputMode="numeric"
-              placeholder="E.g. 26" 
-              className="h-14 rounded-2xl bg-primary/5 border border-transparent focus:border-primary/20 focus:ring-2 focus:ring-primary/10" 
+              placeholder="E.g. 26"
+              className="h-14 rounded-2xl bg-primary/5 border border-transparent focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
             />
             {errors.age && <p className="text-xs text-red-500 ml-1">{errors.age.message}</p>}
           </div>

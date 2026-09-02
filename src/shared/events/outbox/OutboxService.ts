@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { adminDb } from '@/lib/firebase/admin';
-import { FieldValue, Transaction } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import type { TxWriter } from '@/shared/firestore/transactionPhases';
 import { CreateOutboxEventInput, OutboxEvent } from './OutboxEvent';
 import { logger } from '@/shared/logger';
 
@@ -24,10 +25,13 @@ export class OutboxService {
    * (e.g. confirm's "already paid" early exit, create's lockId short-circuit) intercept
    * real replays before they reach this method.
    *
+   * The parameter is typed {@link TxWriter} (not `Transaction`) so this method
+   * structurally cannot regain a read: `transaction.get` is not even in scope.
+   *
    * @throws Error if adminDb is uninitialized to ensure reliable durability.
    */
   static async recordEventInTransaction<T = Record<string, any>>(
-    transaction: Transaction,
+    transaction: TxWriter,
     input: CreateOutboxEventInput<T>
   ): Promise<string> {
     if (!adminDb) {

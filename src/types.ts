@@ -32,12 +32,24 @@ export interface FirebaseTimestamp {
   toMillis: () => number;
 }
 
+/**
+ * A concrete instant that is safe to store *inside a Firestore array*.
+ *
+ * Firestore rejects `FieldValue` sentinels (`serverTimestamp()` and friends)
+ * anywhere inside an array, including inside an object that is an array element.
+ * `FieldValue` is structurally incompatible with every member of this union, so
+ * typing array-element timestamps as `ArraySafeTimestamp` turns that runtime
+ * Firestore rejection into a compile error.
+ */
+export type ArraySafeTimestamp = FirebaseTimestamp | Date | string | number;
+
 export interface RescheduleRecord {
   previousDate: string;
   previousTime: string;
   newDate: string;
   newTime: string;
-  rescheduledAt: FirebaseTimestamp | Date | string | unknown;
+  /** Concrete instant — never a Firestore sentinel (see {@link ArraySafeTimestamp}). */
+  rescheduledAt: ArraySafeTimestamp;
   reason?: string;
 }
 

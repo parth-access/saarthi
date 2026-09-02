@@ -37,6 +37,24 @@ export class GeneratePaymentLinkCommandHandler implements CommandHandler<Generat
         throw new Error('Payment is already completed for this booking.');
       }
 
+      // A settled booking must never be resurrected by generating a payment order.
+      //
+      // `BookingStateMachine` intentionally still *permits* cancelled/expired →
+      // awaiting_payment (it is a mechanical transition table, and the entity-level
+      // recovery transition is asserted in BookingStateMachine.test.ts). But the
+      // slot pin for a settled booking has already been released by
+      // `SlotReservationService.applyPinRelease`, and this handler only *checks*
+      // `locked_slots` for a conflicting bookingId — it never re-reserves. Reviving
+      // such a booking would therefore hand the client a payment order for a slot
+      // nobody is holding, so a concurrent booker can take it and both end up paid
+      // for the same time. Payment in this product is upfront-only; a stale unpaid
+      // booking is re-created via the booking wizard, not re-paid in place.
+      const SETTLED_STATUSES = ['cancelled', 'rejected', 'expired', 'no_show'];
+      const normalizedStatus = BookingStateMachine.normalizeStatus(txData.status);
+      if (SETTLED_STATUSES.includes(normalizedStatus)) {
+        throw new Error('Booking is not in a valid state to create a payment order');
+      }
+
       const isAwaiting = txData.status === 'awaiting_payment';
       const canTransitionToAwaiting = BookingStateMachine.canTransition(txData.status, 'awaiting_payment');
 

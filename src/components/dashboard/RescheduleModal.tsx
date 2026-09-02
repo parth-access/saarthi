@@ -4,6 +4,7 @@ import { X, Calendar as CalendarIcon, Clock, Loader2, CheckCircle2, AlertCircle 
 import { Booking } from '@/types';
 import { useAvailability } from '@/hooks/useAvailability';
 import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
+import { istDatePlusDays } from '@/shared/scheduling/slots';
 import { formatSessionTimeRange, SESSION_DURATION_LABEL } from '@/lib/sessionDisplay';
 import { toast } from 'sonner';
 
@@ -15,19 +16,30 @@ interface RescheduleModalProps {
   onRescheduled?: (booking: Partial<Booking> & { id: string }) => void;
 }
 
-/** Build the selectable date window: today .. today + BOOKING_WINDOW_DAYS (local). */
+/**
+ * Build the selectable date window: IST today .. IST today + BOOKING_WINDOW_DAYS.
+ *
+ * The days must be IST calendar days, not the browser's. Saarthi's booking
+ * window, the therapist's rules and the server's validation are all expressed in
+ * IST, so a device in another timezone (or with a skewed clock) otherwise offers
+ * a day that has already passed in IST and omits the last day of the window.
+ * The labels are rendered from the same IST date parts for the same reason.
+ */
 function useDateWindow() {
   return useMemo(() => {
     const days: { iso: string; weekday: string; day: string; month: string }[] = [];
-    const base = new Date();
+    const now = new Date();
     for (let i = 0; i <= BOOKING_WINDOW_DAYS; i++) {
-      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const iso = istDatePlusDays(i, now);
+      const [y, m, d] = iso.split('-').map(Number);
+      // Render the label from the IST date itself, read back in UTC so no local
+      // offset is reapplied.
+      const labelDate = new Date(Date.UTC(y, m - 1, d));
       days.push({
         iso,
-        weekday: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-        day: d.toLocaleDateString('en-GB', { day: 'numeric' }),
-        month: d.toLocaleDateString('en-GB', { month: 'short' }),
+        weekday: labelDate.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }),
+        day: labelDate.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'UTC' }),
+        month: labelDate.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }),
       });
     }
     return days;
@@ -41,9 +53,14 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // `excludeBookingId` keeps this booking from blocking itself: its own slot is
+  // held by its own pin and listed among the therapist's active bookings, so
+  // without it the client's current time is reported as `Booked` and vanishes
+  // from the grid below (which renders available slots only).
   const { slots, loading: slotsLoading, error: slotsError } = useAvailability(
     isOpen && selectedDate ? session?.therapistId ?? null : null,
-    isOpen ? selectedDate || null : null
+    isOpen ? selectedDate || null : null,
+    isOpen ? session?.id ?? null : null
   );
 
   // Reset selection whenever the modal (re)opens.

@@ -10,6 +10,8 @@ import { Booking } from '../entities/Booking';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { istToUtcIsoString } from '@/shared/utils/dateTime';
+import { slotTemporalReason } from '@/shared/scheduling/slots';
+import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
 import { logger } from '@/app/api/_lib/logger';
 import { calculateBookingPrice } from '../utils/pricing';
 import { SlotReservationService } from '../services/SlotReservationService';
@@ -36,6 +38,38 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     }
 
     const utcDateTime = istToUtcIsoString(data.date, data.time);
+
+    // The slot must be a real, offerable slot — the same three checks
+    // `RescheduleBookingCommand` applies. Until now this path validated only that
+    // the therapist existed and the pin was free, so a request that skipped the
+    // wizard could book a time that had already passed, a time months away, or a
+    // time outside the therapist's working hours; the reschedule path refused all
+    // three. The pin is not a substitute for these checks: pinning an arbitrary
+    // slot id always succeeds because nobody else is holding it.
+    if (!utcDateTime) {
+      // Shape is validated by `bookingSchema`; this catches impossible calendar
+      // days (2026-02-30) and stops an empty `utcDateTime` from being persisted,
+      // which the reminder and completion crons read.
+      throw new Error('Invalid booking date/time.');
+    }
+
+    const temporalReason = slotTemporalReason(data.date, data.time);
+    if (temporalReason === 'past') {
+      throw new Error('Cannot book a slot in the past.');
+    }
+    if (temporalReason === 'beyond_window') {
+      throw new Error(`Cannot book further than ${BOOKING_WINDOW_DAYS} days in advance.`);
+    }
+
+    const isWithinAvailability = await SlotReservationService.isSlotInTherapistAvailability(
+      data.therapistId,
+      data.date,
+      data.time
+    );
+    if (!isWithinAvailability) {
+      throw new Error("The selected slot is outside the therapist's scheduled hours or overrides.");
+    }
+
     const slotId = SlotReservationService.getSlotId(data.therapistId, data.date, data.time);
     const slotRef = adminDb.collection('locked_slots').doc(slotId);
 
@@ -146,11 +180,13 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         updatedAt: FieldValue.serverTimestamp()
       });
 
-      const age = data.age !== undefined ? (typeof data.age === 'string' ? parseInt(data.age, 10) : data.age) : undefined;
-
+      // `data.age` arrives already parsed and range-checked by `bookingSchema.age`
+      // (an out-of-range or non-integer age fails the request at the boundary), so
+      // the `...data` spread below carries the final `number | undefined`. This used
+      // to be a bare `parseInt` here, which is how 'abc' reached Firestore as NaN
+      // and how an unvalidated 1 was stored for an 18-year-old.
       const booking = new Booking({
         ...data,
-        age,
         id: newBookingId,
         email,
         userId,

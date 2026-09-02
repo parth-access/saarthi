@@ -1,4 +1,5 @@
-import { FirebaseTimestamp, BookingStatus, PaymentStatus, RescheduleRecord } from '@/types';
+import { FirebaseTimestamp, BookingStatus, PaymentStatus, RescheduleRecord, ArraySafeTimestamp } from '@/types';
+import { toArraySafeTimestamp } from '@/shared/utils/firestoreSafe';
 import { BookingStateMachine, TransitionOptions } from '../state/BookingStateMachine';
 
 export class Booking {
@@ -175,7 +176,28 @@ export class Booking {
     return this;
   }
 
-  reschedule(newDate: string, newTime: string, rescheduledAt?: unknown, newUtcDateTime?: string, reason?: string): this {
+  /**
+   * Moves the appointment to a new date/time and appends a history record.
+   *
+   * `rescheduledAt` must be a CONCRETE instant (`Date`, Firestore `Timestamp`,
+   * ISO string or epoch millis) — not a `FieldValue.serverTimestamp()` sentinel.
+   * `rescheduleHistory` is a Firestore array, and Firestore rejects sentinels
+   * anywhere inside an array; passing one produced the production failure
+   * `FieldValue.serverTimestamp() cannot be used inside an array (found in
+   * field "rescheduleHistory.0.rescheduledAt")`, which aborted the entire
+   * reschedule transaction (slot swap, booking update, outbox event and calendar
+   * sync all rolled back together).
+   *
+   * The parameter type now rejects sentinels at compile time;
+   * `toArraySafeTimestamp` is the runtime backstop for untyped callers.
+   */
+  reschedule(
+    newDate: string,
+    newTime: string,
+    rescheduledAt?: ArraySafeTimestamp,
+    newUtcDateTime?: string,
+    reason?: string
+  ): this {
     if (this.status === 'cancelled' || this.status === 'rejected' || this.status === 'completed') {
       throw new Error(`Cannot reschedule a ${this.status} booking`);
     }
@@ -188,6 +210,8 @@ export class Booking {
       this.originalTime = this.time;
     }
 
+    const rescheduledAtSafe = toArraySafeTimestamp(rescheduledAt) as ArraySafeTimestamp;
+
     // Append to reschedule audit history
     if (!this.rescheduleHistory) {
       this.rescheduleHistory = [];
@@ -197,7 +221,7 @@ export class Booking {
       previousTime: this.time,
       newDate,
       newTime,
-      rescheduledAt: rescheduledAt || new Date(),
+      rescheduledAt: rescheduledAtSafe,
       reason
     });
 
@@ -206,7 +230,7 @@ export class Booking {
     if (newUtcDateTime) {
       this.utcDateTime = newUtcDateTime;
     }
-    this.rescheduledAt = rescheduledAt || new Date();
+    this.rescheduledAt = rescheduledAtSafe;
     return this;
   }
 }

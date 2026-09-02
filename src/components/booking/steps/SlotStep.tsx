@@ -27,33 +27,12 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     }
   }
 
-  // Calculate IST current date and time for past slot detection
-  const istInfo = React.useMemo(() => {
-    try {
-      const now = new Date();
-      const istFormatter = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Kolkata',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      const parts = istFormatter.formatToParts(now);
-      const year = parts.find(p => p.type === 'year')?.value;
-      const month = parts.find(p => p.type === 'month')?.value;
-      const day = parts.find(p => p.type === 'day')?.value;
-      const hour = parts.find(p => p.type === 'hour')?.value;
-      const minute = parts.find(p => p.type === 'minute')?.value;
-      
-      const istDateStr = `${year}-${month}-${day}`;
-      const istTimeStr = `${hour}:${minute}`;
-      return { istDateStr, istTimeStr, isToday: date === istDateStr };
-    } catch {
-      return { istDateStr: '', istTimeStr: '', isToday: false };
-    }
-  }, [date]);
+  // Past-slot detection is decided by the server against IST (see
+  // /api/availability + @/shared/scheduling/slots) and arrives as `slot.reason`.
+  // It deliberately does NOT re-derive "now" from the browser clock here: that
+  // copy of the rule lived only in this component, so every other consumer of
+  // useAvailability silently lacked it, and a skewed or non-IST device clock
+  // disagreed with the validation the booking command then applied.
 
   if (loading) {
     return (
@@ -134,9 +113,9 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
           {slots.map(slot => {
             const isLoading = lockingTime === slot.time
             const isAnyLoading = !!lockingTime
-            const isPastSlot = istInfo.isToday && slot.time < istInfo.istTimeStr;
-            const isAvailable = slot.isAvailable && !isPastSlot;
-            const reasonLabel = isPastSlot ? 'Past' : slot.reason;
+            const isPastSlot = slot.reason === 'Past';
+            const isAvailable = slot.isAvailable;
+            const reasonLabel = slot.reason;
 
             return (
               <button

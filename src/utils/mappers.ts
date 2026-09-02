@@ -1,4 +1,5 @@
 import { Booking, Therapist, BookingStatus } from '../types';
+import { parseAgeInput } from '../shared/validation/age';
 
 export function mapBooking(id: string, data: Partial<Booking> & Record<string, unknown>): Booking {
   return {
@@ -8,7 +9,12 @@ export function mapBooking(id: string, data: Partial<Booking> & Record<string, u
     email: data?.email || '',
     phone: data?.phone || '',
     gender: data?.gender || '',
-    age: data?.age || 0,
+    // `data?.age || 0` used to turn an absent age into a confident "0", which the
+    // therapist/admin card then rendered as "0y". Absence must stay absent so the
+    // UI can say so. Legacy docs may hold the age as a string, hence the parse;
+    // an out-of-range value (e.g. a stored `1`) is deliberately NOT dropped here —
+    // the display layer flags it, so a real data problem stays visible.
+    age: parseAgeInput(data?.age) ?? undefined,
     date: data?.date || '',
     time: data?.time || '',
     sessionType: data?.sessionType || '',

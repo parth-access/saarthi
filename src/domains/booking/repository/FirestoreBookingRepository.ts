@@ -2,7 +2,9 @@ import { adminDb } from '@/lib/firebase/admin';
 import { Booking } from '../entities/Booking';
 import { BookingRepository } from './BookingRepository';
 import { logger } from '@/shared/logger';
-import { Transaction, FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { Transaction, FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot } from 'firebase-admin/firestore';
+import type { TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
+import { assertNoSentinelsInsideArrays } from '@/shared/utils/firestoreSafe';
 import crypto from 'crypto';
 
 export class BookingMapper {
@@ -17,6 +19,17 @@ export class BookingMapper {
     });
   }
 
+  /**
+   * Serializes a booking for Firestore.
+   *
+   * Fails fast — with the offending field path — if a `FieldValue` sentinel ended
+   * up inside an array. Firestore rejects that at commit time with a message that
+   * aborts the whole transaction (the production
+   * `... found in field "rescheduleHistory.0.rescheduledAt"` failure), so catching
+   * it at the mapper turns a silent transaction rollback into a precise error.
+   * The primary defence is the `ArraySafeTimestamp` type on array-element
+   * timestamps; this is the runtime backstop for untyped callers.
+   */
   static toPersistence(booking: Partial<Booking>): Record<string, unknown> {
     // Strip redundant doc id from doc payload
     const { id, ...data } = booking as Record<string, unknown>;
@@ -26,6 +39,7 @@ export class BookingMapper {
         record[key] = value;
       }
     }
+    assertNoSentinelsInsideArrays(record, `BookingMapper.toPersistence(${String(id ?? 'unknown')})`);
     return record;
   }
 }
@@ -157,7 +171,11 @@ export class FirestoreBookingRepository implements BookingRepository {
     }
   }
 
-  async findById(bookingId: string, transaction?: Transaction): Promise<Booking | null> {
+  /**
+   * Read-only seam: accepts a `TxReader` so it can be called from a transaction's
+   * read phase (and is not allowed to grow a write).
+   */
+  async findById(bookingId: string, transaction?: TxReader): Promise<Booking | null> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const docRef = adminDb.collection('bookings').doc(bookingId);
     const doc = transaction ? await transaction.get(docRef) : await docRef.get();
@@ -193,7 +211,7 @@ export class FirestoreBookingRepository implements BookingRepository {
     return this.findStaleBookings(timeoutThreshold);
   }
 
-  async save(booking: Booking, transaction?: Transaction): Promise<void> {
+  async save(booking: Booking, transaction?: TxWriter): Promise<void> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const docRef = adminDb.collection('bookings').doc(booking.id);
     const persistenceData = BookingMapper.toPersistence(booking);
@@ -261,6 +279,44 @@ export class FirestoreBookingRepository implements BookingRepository {
     return snapshot.docs
       .map(doc => BookingMapper.toEntity(doc))
       .filter(b => b.status === 'confirmed' && !b.meetingUrl);
+  }
+
+  /**
+   * Every booking belonging to one client.
+   *
+   * Two equality queries merged in memory rather than one `Filter.or`, because a
+   * booking made while signed in carries `userId` while a guest booking carries
+   * only `email`, and the same person legitimately has both. Two single-field
+   * queries need no composite index and cannot silently return a partial set the
+   * way a mis-indexed OR would.
+   *
+   * The identities MUST come from a verified session. This method is the read
+   * side of receipt authorization, so passing a client-supplied email here would
+   * hand over somebody else's records.
+   */
+  async findByClient(
+    identity: { uid?: string; email?: string },
+    limitCount: number = 200
+  ): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const uid = identity.uid?.trim();
+    const email = identity.email?.trim();
+    if (!uid && !email) return [];
+
+    const collection = adminDb.collection('bookings');
+    const queries = [
+      uid ? collection.where('userId', '==', uid).limit(limitCount).get() : null,
+      email ? collection.where('email', '==', email).limit(limitCount).get() : null,
+    ].filter((q): q is Promise<QuerySnapshot> => q !== null);
+
+    const snapshots = await Promise.all(queries);
+    const byId = new Map<string, Booking>();
+    for (const snapshot of snapshots) {
+      for (const doc of snapshot.docs) {
+        if (!byId.has(doc.id)) byId.set(doc.id, BookingMapper.toEntity(doc));
+      }
+    }
+    return Array.from(byId.values());
   }
 }
 
