@@ -16,6 +16,33 @@
   --shadow-soft: 0 10px 40px -10px rgba(31, 94, 59, 0.08);
 }
 
+/*
+ * Admin operations console tokens.
+ *
+ * Additive: the brand palette above is untouched. An operations console has to
+ * distinguish states the four brand colours cannot — deep green already means
+ * "Saarthi", so it cannot also mean "paid", and gold cannot mean both "accent"
+ * and "needs attention". These are the semantic states the admin surfaces read
+ * from real booking/payment/calendar fields.
+ *
+ * Every foreground below clears WCAG AA (>= 4.5:1) on both #FFFFFF and the
+ * cream page background; the paired `-surface` is its tint for badges and rows.
+ */
+@theme {
+  --color-success: #15703F;
+  --color-success-surface: #EAF6EF;
+  --color-warning: #A15C07;
+  --color-warning-surface: #FDF3E2;
+  --color-danger: #A8200D;
+  --color-danger-surface: #FBECEA;
+  --color-info: #1B4F9C;
+  --color-info-surface: #EAF1FB;
+  --color-neutral-surface: #F4F5F3;
+
+  /* Cream-tinted hairline: gray-200 reads cold against #FFFBE7. */
+  --color-hairline: #E6E2CE;
+}
+
 @layer base {
   body {
     background-color: var(--color-background);
@@ -78,4 +105,53 @@
 .mask-edges {
   mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
+}
+
+/*
+ * Dense heading scale for the admin console.
+ *
+ * The base scale is tuned for marketing pages, where `h1` is 4rem on desktop.
+ * An operator screen fits a page title, several panel titles and a table on one
+ * viewport, so headings are re-scaled inside `.admin-dense` rather than by
+ * changing the global rules the public site depends on. Elements keep their
+ * semantic level (and their document outline) — only the type size changes.
+ */
+.admin-dense h1 {
+  font-size: 1.375rem;
+  line-height: 1.25;
+}
+.admin-dense h2 {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+.admin-dense h3 {
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+.admin-dense h4,
+.admin-dense h5,
+.admin-dense h6 {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.admin-dense p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+@media (min-width: 768px) {
+  .admin-dense h1 {
+    font-size: 1.5rem;
+  }
+  .admin-dense h2 {
+    font-size: 1.125rem;
+  }
+  .admin-dense h3 {
+    font-size: 1rem;
+  }
+}
+
+/* Tabular figures keep money and counts aligned down a column. */
+.admin-dense .tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
