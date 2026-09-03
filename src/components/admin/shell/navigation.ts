@@ -73,8 +73,8 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         label: 'Bookings',
         purpose: 'Find any session and operate on it. The source of truth.',
         icon: CalendarClock,
-        status: 'planned',
-        backedBy: ['bookings', 'POST /api/bookings/update-status'],
+        status: 'ready',
+        backedBy: ['GET /api/admin/bookings', 'bookings'],
       },
       {
         href: '/admin/clients',
