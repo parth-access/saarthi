@@ -12,13 +12,19 @@
  * about absent values live: a missing amount is an em dash, never `₹0`, and a
  * missing timestamp is an em dash, never `Invalid Date`.
  *
- * There is no row-level action menu yet. Actions arrive in the next increment
- * wired to the existing booking commands; a menu of buttons that do nothing
- * would be worse than none, because an operator would plan around it.
+ * The session cell is the link to the booking. It is a link and not a row-wide
+ * click handler so that the email, phone and copy-id controls inside the row stay
+ * usable, and so an operator can open a booking in a new tab — which is what
+ * working through a list of them actually looks like.
+ *
+ * There is still no row-level action menu. Actions arrive wired to the existing
+ * booking commands; a menu of buttons that do nothing would be worse than none,
+ * because an operator would plan around it.
  */
-import { Check, Copy, Video, VideoOff } from 'lucide-react';
-import { useState } from 'react';
+import { Video, VideoOff } from 'lucide-react';
+import Link from 'next/link';
 import type { AdminBookingRow } from '@/domains/booking/queries/adminBookingQuery';
+import { CopyableId } from './CopyableId';
 import {
   DISPLAY_TIME_ZONE_LABEL,
   formatAmount,
@@ -42,6 +48,10 @@ interface BookingsTableProps {
 
 const HEAD_CLASSES =
   'px-3 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/50';
+
+export function bookingDetailHref(id: string): string {
+  return `/admin/bookings/${encodeURIComponent(id)}`;
+}
 
 export function BookingsTable({ rows, therapistNames, refreshing }: BookingsTableProps) {
   const therapistName = (id: string) => therapistNames[id] ?? id ?? '—';
@@ -73,7 +83,13 @@ export function BookingsTable({ rows, therapistNames, refreshing }: BookingsTabl
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-hairline/70 last:border-0 align-top hover:bg-neutral-surface/40">
                 <td className="px-3 py-2.5">
-                  <p className="font-medium text-primary">{formatSessionDay(row.date)}</p>
+                  <Link
+                    href={bookingDetailHref(row.id)}
+                    className="font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    {formatSessionDay(row.date)}
+                    <span className="sr-only"> — open this booking</span>
+                  </Link>
                   <p className="tabular text-xs text-muted-foreground">
                     {row.time || '—'} {DISPLAY_TIME_ZONE_LABEL}
                   </p>
@@ -96,7 +112,7 @@ export function BookingsTable({ rows, therapistNames, refreshing }: BookingsTabl
                   {formatCreatedAt(row.createdAtIso)}
                 </td>
                 <td className="px-3 py-2.5">
-                  <CopyId id={row.id} />
+                  <CopyableId id={row.id} />
                 </td>
               </tr>
             ))}
@@ -111,9 +127,13 @@ export function BookingsTable({ rows, therapistNames, refreshing }: BookingsTabl
           <li key={row.id} className="rounded-xl border border-hairline bg-white p-3 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium text-primary">
+                <Link
+                  href={bookingDetailHref(row.id)}
+                  className="font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
                   {formatSessionDay(row.date)} · {row.time || '—'} {DISPLAY_TIME_ZONE_LABEL}
-                </p>
+                  <span className="sr-only"> — open this booking</span>
+                </Link>
                 <p className="text-xs text-muted-foreground">{formatSessionKind(row)}</p>
               </div>
               <StatusCell row={row} />
@@ -143,7 +163,7 @@ export function BookingsTable({ rows, therapistNames, refreshing }: BookingsTabl
             </dl>
 
             <div className="mt-2.5 border-t border-hairline pt-2.5">
-              <CopyId id={row.id} />
+              <CopyableId id={row.id} />
             </div>
           </li>
         ))}
@@ -248,54 +268,5 @@ function Badge({ label, tone, title }: { label: string; tone: Parameters<typeof 
     >
       {label}
     </span>
-  );
-}
-
-/**
- * The booking id, and a button that really copies it.
- *
- * `navigator.clipboard` is unavailable over plain HTTP and can be denied by
- * permission policy, so the failure is reported instead of being swallowed —
- * a button that says "Copied" while the clipboard still holds something else
- * leads to the wrong booking id being pasted into a refund.
- */
-function CopyId({ id }: { id: string }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
-
-  const copy = async () => {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
-      await navigator.clipboard.writeText(id);
-      setState('copied');
-    } catch {
-      setState('failed');
-    }
-    window.setTimeout(() => setState('idle'), 2000);
-  };
-
-  return (
-    <div className="flex items-center gap-1">
-      <code className="truncate rounded bg-neutral-surface px-1.5 py-0.5 font-mono text-[0.6875rem] text-primary/80">
-        {id}
-      </code>
-      <button
-        type="button"
-        onClick={copy}
-        aria-label={`Copy booking id ${id}`}
-        title={state === 'failed' ? 'Could not reach the clipboard — select the id manually.' : 'Copy booking id'}
-        className="rounded-md p-1 text-primary/50 hover:bg-neutral-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        {state === 'copied' ? (
-          <Check aria-hidden="true" className="h-3.5 w-3.5 text-success" />
-        ) : (
-          <Copy aria-hidden="true" className="h-3.5 w-3.5" />
-        )}
-      </button>
-      {/* Announced, not just coloured: the icon change alone is invisible to a
-          screen reader and to anyone not looking at that corner of the row. */}
-      <span role="status" aria-live="polite" className="text-[0.6875rem] text-muted-foreground">
-        {state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : ''}
-      </span>
-    </div>
   );
 }

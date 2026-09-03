@@ -35,6 +35,11 @@ function discoverAdminRoutes(dir = ADMIN_APP_DIR, routePrefix = '/admin'): strin
   return routes;
 }
 
+/** `/admin/bookings/[bookingId]` — a route Next.js fills in from the URL. */
+function isDynamicRoute(route: string): boolean {
+  return route.includes('[');
+}
+
 describe('admin navigation model', () => {
   it('gives every section a distinct route', () => {
     const hrefs = ADMIN_NAV_ITEMS.map((item) => item.href);
@@ -61,10 +66,25 @@ describe('admin navigation model', () => {
     }
   });
 
-  it('leaves no admin page unreachable from the nav', () => {
+  it('leaves no static admin page unreachable from the nav', () => {
     const navigable = new Set(ADMIN_NAV_ITEMS.map((item) => item.href));
     for (const route of discoverAdminRoutes()) {
+      if (isDynamicRoute(route)) continue; // Covered by the test below.
       expect(navigable.has(route), `${route} is not in the nav`).toBe(true);
+    }
+  });
+
+  it('hangs every detail route off a section that is actually built', () => {
+    // A dynamic route is reached by clicking a row, not from the rail, so it has
+    // no nav entry of its own. What makes it reachable is its parent section
+    // being real: a detail page under a section still rendering a placeholder is
+    // one nothing links to, and only a typed URL would find it.
+    for (const route of discoverAdminRoutes().filter(isDynamicRoute)) {
+      const parent = resolveAdminNavItem(route);
+      expect(parent, `${route} resolves to no section`).not.toBeNull();
+      expect(parent?.status, `${route} hangs off ${parent?.href}, which is not built yet`).toBe(
+        'ready'
+      );
     }
   });
 });

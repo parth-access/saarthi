@@ -16,11 +16,15 @@
  *    in one table.
  *  - the Meet column only claims something is *wrong* when it is: a confirmed
  *    session with no link is actionable, and an unconfirmed one is not.
+ *
+ * The badge and indicator functions take the *fields they read* rather than a
+ * whole `AdminBookingRow`, so the detail view badges a booking with these exact
+ * rules instead of growing a second, drifting set. `AdminBookingRow` satisfies
+ * each of those shapes structurally, so the table's call sites are unchanged.
  */
 import {
   bookingStatusGroupFor,
   paymentStatusGroupFor,
-  type AdminBookingRow,
   type AdminTone,
 } from '@/domains/booking/queries/adminBookingQuery';
 
@@ -89,7 +93,11 @@ export interface StatusBadge {
   readonly title: string;
 }
 
-export function statusBadge(row: AdminBookingRow): StatusBadge {
+/**
+ * Takes the status alone rather than a row, so the detail view badges a booking
+ * with the same rules the list does instead of growing a second set.
+ */
+export function statusBadge(row: { readonly status: string }): StatusBadge {
   const group = bookingStatusGroupFor(row.status);
   if (!group) {
     // A status outside the known union. Saying so is the useful thing: the row is
@@ -107,7 +115,7 @@ export function statusBadge(row: AdminBookingRow): StatusBadge {
   };
 }
 
-export function paymentBadge(row: AdminBookingRow): StatusBadge | null {
+export function paymentBadge(row: { readonly paymentStatus: string | null }): StatusBadge | null {
   if (!row.paymentStatus) return null;
   const group = paymentStatusGroupFor(row.paymentStatus);
   return {
@@ -201,7 +209,11 @@ export interface MeetIndicator {
  * to ignore the column. `calendarStatus` is named when it is known, because
  * `FAILED` and `PENDING` call for different responses.
  */
-export function meetIndicator(row: AdminBookingRow): MeetIndicator {
+export function meetIndicator(row: {
+  readonly hasMeetingLink: boolean;
+  readonly status: string;
+  readonly calendarStatus: string | null;
+}): MeetIndicator {
   if (row.hasMeetingLink) {
     return {
       presence: 'ready',
@@ -236,7 +248,10 @@ export interface RowFlag {
   readonly title: string;
 }
 
-export function rowFlags(row: AdminBookingRow): readonly RowFlag[] {
+export function rowFlags(row: {
+  readonly rescheduleCount: number;
+  readonly refundStatus: string | null;
+}): readonly RowFlag[] {
   const flags: RowFlag[] = [];
   if (row.rescheduleCount > 0) {
     flags.push({
@@ -257,7 +272,10 @@ export function rowFlags(row: AdminBookingRow): readonly RowFlag[] {
 }
 
 /** `Individual therapy · Video` — omits what is not stored. */
-export function formatSessionKind(row: AdminBookingRow): string {
+export function formatSessionKind(row: {
+  readonly sessionType: string;
+  readonly sessionMode: string | null;
+}): string {
   const parts = [row.sessionType, row.sessionMode].filter(
     (part): part is string => typeof part === 'string' && part.trim().length > 0
   );

@@ -512,7 +512,7 @@ export interface AdminBookingSource {
  * unrecognisable becomes `null`; the UI prints a dash, which is honest, instead
  * of "Invalid Date".
  */
-function isoOrNull(value: unknown): string | null {
+export function isoOrNull(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
   if (typeof value === 'number') {
