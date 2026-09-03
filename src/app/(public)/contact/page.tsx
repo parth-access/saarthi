@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contact Saarthi — Online CBT, Anxiety & Wellness Counselling',
     description: 'Reach out to Saarthi for booking support or general mental wellness inquiries. Message our psychologists to start online therapy.',
-    url: 'https://saarthilife.com/contact',
+    url: 'https://www.saarthilife.com/contact',
     images: [
       {
         url: contactOgImageUrl,

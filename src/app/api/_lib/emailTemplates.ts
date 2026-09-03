@@ -170,7 +170,7 @@ export function generateBookingConfirmedEmail(data: BookingEmailData): string {
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
     </div>
     ` : ''}
 
@@ -215,7 +215,7 @@ export function generateBookingRescheduledEmail(data: BookingEmailData, original
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Manage Booking</a>
     </div>
     ` : ''}
 
@@ -293,7 +293,7 @@ export function generatePaymentReceiptEmail(data: PaymentReceiptEmailData): stri
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Booking Details</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Booking Details</a>
     </div>
     ` : ''}
 
@@ -337,7 +337,7 @@ export function generateBookingSlotReleasedEmail(data: BookingEmailData, reason?
     <p style="margin: 0 0 24px 0;">No session has been booked. You are welcome to browse our calendar at any time to pick a convenient slot.</p>
 
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Find Available Slot</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Find Available Slot</a>
     </div>
 
     <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
@@ -396,7 +396,7 @@ export function generateTherapistNotificationEmail(data: BookingEmailData, type:
     </div>
 
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/admin" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Dashboard</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/admin" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">View Dashboard</a>
     </div>
   `;
 
@@ -448,7 +448,7 @@ export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?
     <p style="margin: 0 0 24px 0;">You can re-attempt your booking whenever you are ready:</p>
 
     <div style="text-align: center; margin-bottom: 32px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Try Booking Again</a>
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Try Booking Again</a>
     </div>
 
     <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
@@ -539,7 +539,7 @@ export function generateSessionReminderStudentEmail(data: SessionReminderEmailDa
 
     ${data.bookingToken ? `
     <div style="text-align: center; margin-bottom: 28px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/manage-booking?token=${data.bookingToken}" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
         View Booking Details / Manage
       </a>
     </div>
@@ -609,7 +609,7 @@ export function generateSessionReminderTherapistEmail(data: SessionReminderEmail
     </div>
 
     <div style="text-align: center; margin-bottom: 28px;">
-      <a href="${process.env.APP_URL || 'https://saarthilife.com'}/therapist" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/therapist" style="display: inline-block; padding: 10px 20px; background-color: #EDF2F7; color: ${COLORS.text}; font-weight: 500; font-size: 14px; text-decoration: none; border-radius: 6px;">
         Open Therapist Portal
       </a>
     </div>

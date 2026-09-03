@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Terms of Service | Saarthi',
     description: "Saarthi's Terms of Service govern your use of our online therapy platform, session bookings, rescheduling policies, and counsellor consultations.",
-    url: 'https://saarthilife.com/terms',
+    url: 'https://www.saarthilife.com/terms',
     images: [
       {
         url: termsOgImageUrl,
@@ -43,12 +43,12 @@ export default function TermsPage() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     'name': 'Saarthi Terms of Service',
-    'url': 'https://saarthilife.com/terms',
+    'url': 'https://www.saarthilife.com/terms',
     'description': 'Terms of Service for Saarthi mental health and therapy booking platform.',
     'publisher': {
       '@type': 'Organization',
       'name': 'Saarthi',
-      'url': 'https://saarthilife.com'
+      'url': 'https://www.saarthilife.com'
     }
   };
 

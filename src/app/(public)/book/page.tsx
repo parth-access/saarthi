@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Book an Online Therapy Session | Saarthi',
     description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
-    url: 'https://saarthilife.com/book',
+    url: 'https://www.saarthilife.com/book',
     images: [
       {
         url: ogImageUrl,

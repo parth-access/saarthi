@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Our Vision for Digital Mental Health | Saarthi',
     description: 'Read how Saarthi stands as a quiet sanctuary for gentle mental wellness guidance. Modern, compassionate emotional support.',
-    url: 'https://saarthilife.com/vision',
+    url: 'https://www.saarthilife.com/vision',
     images: [
       {
         url: visionOgImageUrl,
@@ -44,7 +44,7 @@ export default function Page() {
     'publisher': {
       '@type': 'Organization',
       'name': 'Saarthi',
-      'url': 'https://saarthilife.com'
+      'url': 'https://www.saarthilife.com'
     }
   };
 

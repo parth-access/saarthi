@@ -15,7 +15,7 @@ const rootOgImageUrl = ogImage(
 );
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://saarthilife.com"),
+  metadataBase: new URL("https://www.saarthilife.com"),
   title: {
     template: "%s | Saarthi",
     default: "Saarthi — Online Therapy & Mental Wellness Support",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     "depression counselling",
     "CBT online"
   ],
-  authors: [{ name: "Saarthi Team", url: "https://saarthilife.com" }],
+  authors: [{ name: "Saarthi Team", url: "https://www.saarthilife.com" }],
   creator: "Saarthi",
   publisher: "Saarthi",
   robots: {
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://saarthilife.com",
+    url: "https://www.saarthilife.com",
     title: "Saarthi — Online Therapy & Mental Wellness Support",
     description: "Book certified therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
     siteName: "Saarthi",

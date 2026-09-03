@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Our Certified Online Therapists & Psychologists | Saarthi',
     description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Professional online sessions for stress, anxiety, and wellness.',
-    url: 'https://saarthilife.com/therapists',
+    url: 'https://www.saarthilife.com/therapists',
     images: [
       {
         url: therapistsOgImageUrl,
@@ -52,18 +52,18 @@ export default async function Page() {
     '@type': 'CollectionPage',
     'name': 'Saarthi Certified Professional Therapists & Counsellors',
     'description': 'Browse verified, empathetic clinical psychologists and counselors representing Saarthi online mental health network in India.',
-    'url': 'https://saarthilife.com/therapists',
+    'url': 'https://www.saarthilife.com/therapists',
     'mainEntity': {
       '@type': 'ItemList',
       'itemListElement': therapists.map((t, index) => {
         const slug = t.name.toLowerCase().includes('dravina')
           ? 'dravina'
           : t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        const profileUrl = `https://saarthilife.com/therapists/${slug}`;
+        const profileUrl = `https://www.saarthilife.com/therapists/${slug}`;
         const personId = `${profileUrl}/#person`;
         const imageUrl = t.image
-          ? (t.image.startsWith('http') ? t.image : `https://saarthilife.com${t.image.startsWith('/') ? '' : '/'}${t.image}`)
-          : 'https://saarthilife.com/dravina.png';
+          ? (t.image.startsWith('http') ? t.image : `https://www.saarthilife.com${t.image.startsWith('/') ? '' : '/'}${t.image}`)
+          : 'https://www.saarthilife.com/dravina.png';
 
         return {
           '@type': 'ListItem',

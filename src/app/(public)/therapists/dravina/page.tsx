@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
     description: 'Book online sessions with Dravina Gupta, a certified psychologist specializing in CBT, anxiety therapy, anger management, and mindfulness on Saarthi.',
-    url: 'https://saarthilife.com/therapists/dravina',
+    url: 'https://www.saarthilife.com/therapists/dravina',
     images: [
       {
         url: dravinaOgImageUrl,
@@ -41,17 +41,17 @@ export default function Page() {
     '@graph': [
       {
         '@type': 'Person',
-        '@id': 'https://saarthilife.com/therapists/dravina/#person',
-        'url': 'https://saarthilife.com/therapists/dravina',
+        '@id': 'https://www.saarthilife.com/therapists/dravina/#person',
+        'url': 'https://www.saarthilife.com/therapists/dravina',
         'name': 'Dravina Gupta',
         'jobTitle': 'Psychologist & Clinical Counsellor',
         'knowsLanguage': ['Hindi', 'English'],
         'description': 'Psychologist holding a Master’s in Clinical Psychology, specializing in anger management, anxiety, depression, and Cognitive Behavioral Therapy.',
-        'image': 'https://saarthilife.com/dravina.png',
+        'image': 'https://www.saarthilife.com/dravina.png',
         'worksFor': {
           '@type': 'Organization',
           'name': 'Saarthi',
-          'url': 'https://saarthilife.com'
+          'url': 'https://www.saarthilife.com'
         },
         'knowsAbout': [
           'Cognitive Behavioral Therapy (CBT)',
@@ -65,12 +65,12 @@ export default function Page() {
       {
         '@type': 'ProfessionalService',
         'name': 'Dravina Gupta Psychotherapeutic Services',
-        'url': 'https://saarthilife.com/therapists/dravina',
-        'image': 'https://saarthilife.com/dravina.png',
+        'url': 'https://www.saarthilife.com/therapists/dravina',
+        'image': 'https://www.saarthilife.com/dravina.png',
         'description': 'Online psychological consulting and CBT sessions for stress relief, adolescent concerns, anger, and anxiety.',
         'email': 'contact@saarthilife.com',
         'provider': {
-          '@id': 'https://saarthilife.com/therapists/dravina/#person'
+          '@id': 'https://www.saarthilife.com/therapists/dravina/#person'
         },
         'areaServed': 'IN',
         'serviceType': 'Online Psychological Therapy & Counselling',

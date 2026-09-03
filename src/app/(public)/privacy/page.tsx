@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Privacy Policy | Saarthi',
     description: "Saarthi's Privacy Policy details how we collect, process, and safeguard your personal contact and confidential intake details.",
-    url: 'https://saarthilife.com/privacy',
+    url: 'https://www.saarthilife.com/privacy',
     images: [
       {
         url: privacyOgImageUrl,
@@ -43,12 +43,12 @@ export default function PrivacyPage() {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     'name': 'Saarthi Privacy Policy',
-    'url': 'https://saarthilife.com/privacy',
+    'url': 'https://www.saarthilife.com/privacy',
     'description': 'Privacy Policy for Saarthi mental health and therapy booking platform.',
     'publisher': {
       '@type': 'Organization',
       'name': 'Saarthi',
-      'url': 'https://saarthilife.com'
+      'url': 'https://www.saarthilife.com'
     }
   };
 
