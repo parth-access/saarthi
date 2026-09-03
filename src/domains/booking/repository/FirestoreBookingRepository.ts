@@ -2,8 +2,9 @@ import { adminDb } from '@/lib/firebase/admin';
 import { Booking } from '../entities/Booking';
 import { BookingRepository } from './BookingRepository';
 import { logger } from '@/shared/logger';
-import { Transaction, FieldValue, Timestamp, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot } from 'firebase-admin/firestore';
+import { Transaction, FieldValue, FieldPath, Timestamp, DocumentSnapshot, QueryDocumentSnapshot, QuerySnapshot, Query } from 'firebase-admin/firestore';
 import type { TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
+import type { AdminBookingQueryPlan, BookingLookup } from '../queries/adminBookingQuery';
 import { assertNoSentinelsInsideArrays } from '@/shared/utils/firestoreSafe';
 import crypto from 'crypto';
 
@@ -310,6 +311,115 @@ export class FirestoreBookingRepository implements BookingRepository {
     ].filter((q): q is Promise<QuerySnapshot> => q !== null);
 
     const snapshots = await Promise.all(queries);
+    const byId = new Map<string, Booking>();
+    for (const snapshot of snapshots) {
+      for (const doc of snapshot.docs) {
+        if (!byId.has(doc.id)) byId.set(doc.id, BookingMapper.toEntity(doc));
+      }
+    }
+    return Array.from(byId.values());
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Admin console reads
+   *
+   * Deliberately not on the `BookingRepository` interface. That contract is
+   * what the booking domain needs to function; these two are a reporting
+   * surface for one screen, and widening the interface would force every
+   * implementation (including test doubles) to grow methods no domain command
+   * calls.
+   * ---------------------------------------------------------------- */
+
+  /**
+   * One page of the admin bookings list, executed exactly as planned.
+   *
+   * The plan comes from `planAdminBookingList`, which has already refused any
+   * filter combination this project has no composite index for — so a query that
+   * reaches Firestore here is one the index file supports. Nothing is filtered
+   * after the fetch: a page must be a real page, because dropping rows in memory
+   * turns "50 per page" into an unpredictable number and makes an empty result
+   * indistinguishable from "no matches exist".
+   *
+   * `hasMore` comes from the plan asking for one extra document rather than from
+   * a `count()` call, which would double the reads on every page turn.
+   */
+  async findAdminPage(plan: AdminBookingQueryPlan): Promise<{ bookings: Booking[]; hasMore: boolean }> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+
+    let query: Query = adminDb.collection('bookings');
+    for (const clause of plan.where) {
+      query =
+        clause.op === 'in'
+          ? query.where(clause.field, 'in', clause.value as readonly string[])
+          : query.where(clause.field, '==', clause.value as string);
+    }
+    for (const order of plan.orderBy) {
+      query =
+        order.field === '__name__'
+          ? query.orderBy(FieldPath.documentId(), order.direction)
+          : query.orderBy(order.field, order.direction);
+    }
+    if (plan.startAfter) {
+      // Both cursor components, in the same order as `orderBy`: the timestamp
+      // positions the page and the document id breaks ties within a millisecond.
+      query = query.startAfter(Timestamp.fromMillis(plan.startAfter.createdAtMs), plan.startAfter.id);
+    }
+
+    const snapshot = await query.limit(plan.limit).get();
+    const docs = snapshot.docs.slice(0, plan.pageSize);
+    return {
+      bookings: docs.map((doc) => BookingMapper.toEntity(doc)),
+      hasMore: snapshot.docs.length > plan.pageSize,
+    };
+  }
+
+  /**
+   * Bookings matching one typed search term.
+   *
+   * Every branch is an exact match or a prefix range on a single field, so each
+   * is served by Firestore's automatic single-field indexes and stays fast no
+   * matter how large `bookings` grows. That is the whole point: the console this
+   * replaces searched by downloading the collection and filtering in JavaScript,
+   * which silently stopped finding anything past its 500-document ceiling.
+   */
+  async lookupForAdmin(lookup: BookingLookup, limitCount: number = 25): Promise<Booking[]> {
+    if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
+    const collection = adminDb.collection('bookings');
+
+    if (lookup.kind === 'bookingId') {
+      const found = await this.findById(lookup.values[0]);
+      return found ? [found] : [];
+    }
+
+    if (lookup.kind === 'namePrefix') {
+      const prefix = lookup.values[0];
+      // Firestore has no "starts with" operator, so the prefix becomes a bounded
+      // range: from the prefix itself up to the prefix followed by U+F8FF, a
+      // private-use code point that sorts above any character a stored name will
+      // contain. Built with an escape rather than pasted as a literal, which would
+      // leave an invisible character in the source.
+      const upperBound = `${prefix}\uf8ff`;
+      const snapshot = await collection
+        .where('name', '>=', prefix)
+        .where('name', '<=', upperBound)
+        .orderBy('name', 'asc')
+        .limit(limitCount)
+        .get();
+      return snapshot.docs.map((doc) => BookingMapper.toEntity(doc));
+    }
+
+    const field =
+      lookup.kind === 'orderId'
+        ? 'razorpayOrderId'
+        : lookup.kind === 'paymentId'
+          ? 'razorpayPaymentId'
+          : lookup.kind === 'email'
+            ? 'email'
+            : 'phone';
+
+    const snapshots = await Promise.all(
+      lookup.values.map((value) => collection.where(field, '==', value).limit(limitCount).get())
+    );
     const byId = new Map<string, Booking>();
     for (const snapshot of snapshots) {
       for (const doc of snapshot.docs) {
