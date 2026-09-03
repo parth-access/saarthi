@@ -94,13 +94,19 @@ export default function TherapistsPage() {
                 >
                   <Card className="h-full flex flex-col overflow-hidden border-2 border-primary/5 bg-white transition-all duration-500 hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 rounded-[3rem]">
                     <div className="relative h-80 overflow-hidden">
-                      <img
-                        src={therapist.image ? (therapist.image.startsWith('http') || therapist.image.startsWith('/') ? therapist.image : `/${therapist.image}`) : "/placeholder.png"}
-                        alt={therapist.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale group-hover:grayscale-0"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                      {therapist.image ? (
+                        <>
+                          <img
+                            src={therapist.image.startsWith('http') || therapist.image.startsWith('/') ? therapist.image : `/${therapist.image}`}
+                            alt={therapist.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale group-hover:grayscale-0"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                        </>
+                      ) : (
+                        <div aria-hidden="true" className="w-full h-full bg-gradient-to-br from-primary/10 to-accent/10" />
+                      )}
                     </div>
                     <CardHeader className="p-8">
                       <div className="space-y-2">

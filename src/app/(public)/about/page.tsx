@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'About Saarthi — Our Founders, Mission & Team',
     description: 'Learn about Saarthi, the safe online mental health space founded by professional psychologists. Meet our founders Dravina and Krishna.',
-    url: 'https://saarthilife.com/about',
+    url: 'https://www.saarthilife.com/about',
     images: [
       {
         url: aboutOgImageUrl,
@@ -42,7 +42,7 @@ export default function Page() {
     'mainEntity': {
       '@type': 'Organization',
       'name': 'Saarthi',
-      'url': 'https://saarthilife.com',
+      'url': 'https://www.saarthilife.com',
       'founder': [
         {
           '@type': 'Person',

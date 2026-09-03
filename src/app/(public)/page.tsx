@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Saarthi — Online Therapy & Mental Wellness Support',
     description: 'Book online sessions with certified, empathetic therapists. Start your emotional wellness journey in India.',
-    url: 'https://saarthilife.com',
+    url: 'https://www.saarthilife.com',
     images: [
       {
         url: ogImageUrl,
@@ -41,10 +41,10 @@ export default function Page() {
     '@graph': [
       {
         '@type': 'Organization',
-        '@id': 'https://saarthilife.com/#organization',
+        '@id': 'https://www.saarthilife.com/#organization',
         'name': 'Saarthi',
-        'url': 'https://saarthilife.com',
-        'logo': 'https://saarthilife.com/saarthi-logo-Photoroom.png',
+        'url': 'https://www.saarthilife.com',
+        'logo': 'https://www.saarthilife.com/saarthi-logo-Photoroom.png',
         'description': 'Online therapy and mental wellness support platform connecting people with verified, empathetic therapists in India.',
         'contactPoint': {
           '@type': 'ContactPoint',
@@ -55,11 +55,11 @@ export default function Page() {
       },
       {
         '@type': 'WebSite',
-        '@id': 'https://saarthilife.com/#website',
-        'url': 'https://saarthilife.com',
+        '@id': 'https://www.saarthilife.com/#website',
+        'url': 'https://www.saarthilife.com',
         'name': 'Saarthi — Mental Wellness & Therapy',
         'publisher': {
-          '@id': 'https://saarthilife.com/#organization'
+          '@id': 'https://www.saarthilife.com/#organization'
         }
       }
     ]

@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
               textTransform: 'uppercase',
             }}
           >
-            Guided Therapy & Emotional Support • saarthilife.com
+            Guided Therapy & Emotional Support • www.saarthilife.com
           </div>
         </div>
       ),

@@ -32,6 +32,20 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
     }
   }, [isOpen])
 
+  // Close the menu with the Escape key for keyboard users
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose])
+
   if (!mounted) return null;
 
   // Use Portal to render at the root of the document body
@@ -45,6 +59,9 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
           className="fixed inset-0 z-[9999] flex flex-col bg-background p-6 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
         >
           {/* Top Bar: Logo (Left) + Close (Right) */}
           <div className="flex items-center justify-between mb-12">

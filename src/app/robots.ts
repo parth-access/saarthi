@@ -12,11 +12,16 @@ export default function robots(): MetadataRoute.Robots {
         '/admin/*',
         '/secure',
         '/secure/*',
+        '/therapist',
+        '/therapist/*',
         '/manage-booking',
         '/manage-booking/*',
         '/api/*',
+        '/login',
+        '/auth-popup',
+        '/sentry-example-page',
       ],
     },
-    sitemap: 'https://saarthilife.com/sitemap.xml',
+    sitemap: 'https://www.saarthilife.com/sitemap.xml',
   };
 }
