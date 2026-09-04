@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
@@ -532,13 +533,11 @@ export function parseSessionTimeIST(dateStr: string, timeStr: string): { startIs
     const pad = (n: number) => n.toString().padStart(2, '0');
     const startStr = `${dateStr}T${pad(hours)}:${pad(minutes)}:00+05:30`;
 
-    // Session duration 50 mins
-    let endHours = hours;
-    let endMinutes = minutes + 50;
-    if (endMinutes >= 60) {
-      endHours += Math.floor(endMinutes / 60);
-      endMinutes = endMinutes % 60;
-    }
+    // Session duration — the shared SESSION_DURATION_MINUTES (45), so the
+    // calendar event length and every displayed "start–end" range stay in sync.
+    const endTotal = hours * 60 + minutes + SESSION_DURATION_MINUTES;
+    const endHours = Math.floor(endTotal / 60) % 24;
+    const endMinutes = endTotal % 60;
 
     const endStr = `${dateStr}T${pad(endHours)}:${pad(endMinutes)}:00+05:30`;
 
@@ -546,7 +545,7 @@ export function parseSessionTimeIST(dateStr: string, timeStr: string): { startIs
   } catch {
     return {
       startIso: `${dateStr}T10:00:00+05:30`,
-      endIso: `${dateStr}T10:50:00+05:30`,
+      endIso: `${dateStr}T10:45:00+05:30`,
     };
   }
 }

@@ -4,10 +4,12 @@ import { verifySession } from '@/lib/auth/verifySession';
 import { firestoreBookingRepository, Booking } from '@/domains/booking';
 
 /**
- * Regression tests for the reported reschedule bug: at 2026-09-01 19:15 IST the
- * grid for 2026-09-02 showed 09:45 .. 16:00 but silently dropped 09:00, because
- * the booking being rescheduled was listed among the therapist's active bookings
- * and therefore reported as `booked` *to itself*.
+ * Reschedule-availability regression tests. A booking being rescheduled (the
+ * `excludeBookingId` caller) must not see its own reservation as somebody
+ * else's `booked`/`locked` slot — but its own current date/time must NOT be
+ * offered as a destination either: a session cannot be rescheduled to where it
+ * already is. The booking here holds 2026-09-02 09:00, so on that day 09:00 is
+ * excluded for the owner while every other slot stays offerable.
  *
  * They also pin the two rules that used to live outside this route: the IST
  * temporal partition (a slot is `past` / `beyondWindow`, not simply missing) and
@@ -124,7 +126,7 @@ afterEach(() => {
 /** Exactly the grid the user reported seeing, plus the 09:00 that went missing. */
 const FULL_WED_GRID = ['09:00', '09:45', '10:30', '13:00', '13:45', '14:30', '15:15', '16:00'];
 
-describe('GET /api/availability — the missing-09:00 reschedule bug', () => {
+describe('GET /api/availability — reschedule targets exclude the booking\'s current slot', () => {
   beforeEach(() => {
     // Wednesday 09:00-17:00 with a 11:30-13:00 break.
     h.state.rules = [rule(3, '09:00', '17:00', [{ startTime: '11:30', endTime: '13:00' }])];
@@ -140,10 +142,11 @@ describe('GET /api/availability — the missing-09:00 reschedule bug', () => {
     expect(body.availableSlots).toEqual(FULL_WED_GRID.filter((t) => t !== '09:00'));
   });
 
-  it('does NOT report a booking as booked to itself (the reported bug)', async () => {
+  it("does not offer a booking's own current slot to itself as a reschedule target", async () => {
     // The booking being rescheduled holds 09:00 and pins it permanently, and is
     // returned by findActiveBookingsByTherapistAndDate because 'confirmed' is an
-    // active status. Both mechanisms must ignore it for its own reschedule.
+    // active status. For its own reschedule the booking must not count as a
+    // competing booked/locked slot — but 09:00 is also not a valid destination.
     const own = booking();
     vi.mocked(firestoreBookingRepository.findActiveBookingsByTherapistAndDate).mockResolvedValue([own]);
     vi.mocked(firestoreBookingRepository.findById).mockResolvedValue(own);
@@ -154,12 +157,26 @@ describe('GET /api/availability — the missing-09:00 reschedule bug', () => {
 
     const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02', excludeBookingId: 'bk_1' }));
 
-    expect(body.availableSlots).toContain('09:00');
-    expect(body.availableSlots).toEqual(FULL_WED_GRID);
+    expect(body.availableSlots).not.toContain('09:00');
+    expect(body.availableSlots).toEqual(FULL_WED_GRID.filter((t) => t !== '09:00'));
+    // Its own reservation is not mislabelled as somebody else's either.
     expect(body.bookedTimes).toEqual([]);
     expect(body.lockedTimes).toEqual([]);
     expect(body.pastTimes).toEqual([]);
     expect(body.beyondWindowTimes).toEqual([]);
+  });
+
+  it('offers 09:00 as a reschedule target on days the booking does not occupy', async () => {
+    // 2026-09-09 is the next Wednesday: the booking sits on 2026-09-02, so on
+    // 09-09 the same wall-clock time is a perfectly valid new destination.
+    const own = booking();
+    vi.mocked(firestoreBookingRepository.findById).mockResolvedValue(own);
+    vi.mocked(verifySession).mockResolvedValue({ uid: 'client_1', email: 'client@example.com', role: 'client' });
+
+    const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-09', excludeBookingId: 'bk_1' }));
+
+    expect(body.availableSlots).toContain('09:00');
+    expect(body.availableSlots).toEqual(FULL_WED_GRID);
   });
 
   it('still blocks a DIFFERENT booking while excluding this one', async () => {
@@ -174,7 +191,7 @@ describe('GET /api/availability — the missing-09:00 reschedule bug', () => {
     const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02', excludeBookingId: 'bk_1' }));
 
     expect(body.bookedTimes).toEqual(['13:00']);
-    expect(body.availableSlots).toContain('09:00');
+    expect(body.availableSlots).not.toContain('09:00');
     expect(body.availableSlots).not.toContain('13:00');
   });
 });

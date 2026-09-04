@@ -109,7 +109,7 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">3. Booking &amp; Scheduling</h2>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                <li><strong className="text-primary">Appointment Slots:</strong> Sessions are scheduled in fixed time increments (e.g. 50 minutes). Selected time slots are held temporarily during checkout and confirmed upon payment verification.</li>
+                <li><strong className="text-primary">Appointment Slots:</strong> Sessions are scheduled in fixed time increments (e.g. 45 minutes). Selected time slots are held temporarily during checkout and confirmed upon payment verification.</li>
                 <li><strong className="text-primary">Session Access:</strong> Confirmed sessions include a Google Meet video link provided via email confirmation and calendar invitation.</li>
                 <li><strong className="text-primary">Accuracy:</strong> You are responsible for ensuring your contact details (email and phone number) are accurate so session reminders and meeting links reach you.</li>
               </ul>
@@ -119,7 +119,7 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">4. Pricing &amp; Payment Processing</h2>
               <p>
-                Session pricing (e.g. ₹1,500 per 50-minute individual session) is displayed during booking. All payments are processed securely through Razorpay prior to session confirmation. Prices are subject to change, but existing confirmed bookings will not be retroactively modified.
+                Session pricing (e.g. ₹1,500 per 45-minute individual session) is displayed during booking. All payments are processed securely through Razorpay prior to session confirmation. Prices are subject to change, but existing confirmed bookings will not be retroactively modified.
               </p>
             </section>
 

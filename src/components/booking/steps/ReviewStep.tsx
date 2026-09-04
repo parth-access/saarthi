@@ -4,6 +4,7 @@ import { ChevronLeft, Loader2, AlertCircle, ShieldCheck, Clock, CheckCircle2, Ro
 import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
+import { SESSION_DURATION_MINUTES } from "@/shared/constants"
 
 export type BookingFlowState = 
   | 'IDLE'
@@ -169,7 +170,7 @@ export const ReviewStep = ({
             <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">Total Amount Payable</span>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-serif font-bold text-primary">₹1,500</span>
-              <span className="text-xs text-muted-foreground font-medium">· 50-minute session</span>
+              <span className="text-xs text-muted-foreground font-medium">· {SESSION_DURATION_MINUTES}-minute session</span>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-[#1F5E3B] font-semibold bg-[#1F5E3B]/5 px-3 py-1.5 rounded-full border border-[#1F5E3B]/10">

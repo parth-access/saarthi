@@ -216,14 +216,23 @@ export class Booking {
     if (!this.rescheduleHistory) {
       this.rescheduleHistory = [];
     }
-    this.rescheduleHistory.push({
+    const historyRecord: RescheduleRecord = {
       previousDate: this.date,
       previousTime: this.time,
       newDate,
       newTime,
       rescheduledAt: rescheduledAtSafe,
-      reason
-    });
+    };
+    // `reason` is optional in the domain model, so when no reason exists the key
+    // is omitted entirely — this project never enables `ignoreUndefinedProperties`,
+    // and a `reason: undefined` here made the Firestore client reject the whole
+    // write (`Cannot use "undefined" as a Firestore value (found in field
+    // "rescheduleHistory.`0`.reason")`), aborting the entire reschedule
+    // transaction on production `/api/bookings/reschedule-self`.
+    if (reason) {
+      historyRecord.reason = reason;
+    }
+    this.rescheduleHistory.push(historyRecord);
 
     this.date = newDate;
     this.time = newTime;

@@ -86,15 +86,15 @@ describe('GoogleCalendarService', () => {
   });
 
   describe('parseSessionTimeIST', () => {
-    it('formats 10:00 AM into Asia/Kolkata ISO (50-min session)', () => {
+    it('formats 10:00 AM into Asia/Kolkata ISO (45-min session)', () => {
       const { startIso, endIso } = parseSessionTimeIST('2026-09-15', '10:00 AM');
       expect(startIso).toBe('2026-09-15T10:00:00+05:30');
-      expect(endIso).toBe('2026-09-15T10:50:00+05:30');
+      expect(endIso).toBe('2026-09-15T10:45:00+05:30');
     });
     it('formats 02:30 PM into 14:30 Asia/Kolkata ISO', () => {
       const { startIso, endIso } = parseSessionTimeIST('2026-09-15', '02:30 PM');
       expect(startIso).toBe('2026-09-15T14:30:00+05:30');
-      expect(endIso).toBe('2026-09-15T15:20:00+05:30');
+      expect(endIso).toBe('2026-09-15T15:15:00+05:30');
     });
   });
 

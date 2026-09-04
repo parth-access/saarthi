@@ -1860,6 +1860,60 @@ describe('Command Handlers Suite', () => {
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
     });
+
+    it('P. The booking\'s own current slot is rejected as a destination', async () => {
+      // The UI no longer offers the current slot, but the server must refuse it
+      // independently: rescheduling 09:00 to 09:00 would re-pin the same slot
+      // and append a meaningless history entry.
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+
+      const mockTx = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+        create: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-10', '10:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Cannot reschedule to the current session time. Please choose a different slot.'
+      );
+      // Nothing was written — not even the audit log.
+      expect(mockTx.set).not.toHaveBeenCalled();
+      expect(mockTx.delete).not.toHaveBeenCalled();
+    });
+
+    it('Q. A slot outside the therapist\'s scheduled hours is rejected', async () => {
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(SlotReservationService, 'isSlotInTherapistAvailability').mockResolvedValueOnce(false);
+
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({ exists: false }),
+        set: vi.fn(),
+        delete: vi.fn(),
+        update: vi.fn(),
+        create: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => {
+        return callback(mockTx as any);
+      });
+
+      const command = new RescheduleBookingCommand('bk_reschedule_1', TARGET_DATE, '03:00', { isTokenFlow: true });
+      const handler = new RescheduleBookingCommandHandler();
+
+      await expect(handler.execute(command)).rejects.toThrow(
+        "The selected slot is outside the therapist's scheduled hours or overrides."
+      );
+      expect(mockTx.set).not.toHaveBeenCalled();
+    });
   });
 
   describe('AdminConfirmBookingCommand', () => {

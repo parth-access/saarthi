@@ -3,7 +3,7 @@ import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 /**
  * Client-safe helpers for presenting a booking's session time.
  *
- * Session length is the shared SESSION_DURATION_MINUTES (50 min) — the same
+ * Session length is the shared SESSION_DURATION_MINUTES (45 min) — the same
  * block the Google Calendar event uses. These helpers never touch I/O and are
  * safe in client components.
  */
@@ -32,7 +32,7 @@ export const SESSION_DURATION_LABEL = `${SESSION_DURATION_MINUTES} min`;
 
 /**
  * Build a "9:00 AM – 9:50 AM" range from the stored start time using the real
- * 50-minute session length. Falls back to the raw stored time when it can't be
+ * 45-minute session length. Falls back to the raw stored time when it can't be
  * parsed (never shows NaN/undefined).
  */
 export function formatSessionTimeRange(time: string | undefined | null): string {

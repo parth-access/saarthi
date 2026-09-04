@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { firestoreBookingRepository, BookingMapper } from './repository/FirestoreBookingRepository';
 import { adminDb } from '@/lib/firebase/admin';
 import { Booking } from './entities/Booking';
 import { Transaction, CollectionReference, DocumentData, Timestamp } from 'firebase-admin/firestore';
+import { FakeFirestore } from '@/shared/firestore/testing/fakeFirestore';
 
 // Mock the admin database
 vi.mock('@/lib/firebase/admin', () => {
@@ -78,6 +80,78 @@ describe('FirestoreBookingRepository', () => {
       expect(entity.name).toBe('Jane Doe');
       expect(entity.status).toBe('confirmed');
       expect(entity.paymentStatus).toBe('paid');
+    });
+
+    describe('rescheduleHistory — self-service reschedule regression (production 500)', () => {
+      const RESCHEDULED_AT = Timestamp.fromDate(new Date('2026-09-03T12:00:00.000Z'));
+
+      const rescheduledBookingWithoutReason = () => {
+        const booking = new Booking({
+          id: 'bk_1',
+          therapistId: 'th_1',
+          status: 'confirmed',
+          date: '2026-09-04',
+          time: '09:00',
+        });
+        // What `/api/bookings/reschedule-self` does today: no reason is ever
+        // supplied anywhere in the reschedule flow.
+        booking.reschedule('2026-09-04', '09:45', RESCHEDULED_AT);
+        return booking;
+      };
+
+      it('omits the optional reason key from the persisted entry', () => {
+        const booking = rescheduledBookingWithoutReason();
+        const persisted = BookingMapper.toPersistence(booking) as {
+          rescheduleHistory: Record<string, unknown>[];
+        };
+
+        const entry = persisted.rescheduleHistory[0];
+        // `toEqual` would ignore a `reason: undefined` property, so assert the
+        // key is *absent* — that is the data-contract fix.
+        expect('reason' in entry).toBe(false);
+        expect(entry).toEqual({
+          previousDate: '2026-09-04',
+          previousTime: '09:00',
+          newDate: '2026-09-04',
+          newTime: '09:45',
+          rescheduledAt: RESCHEDULED_AT,
+        });
+      });
+
+      it('keeps the reason key when a reason was provided', () => {
+        const booking = rescheduledBookingWithoutReason();
+        booking.reschedule('2026-09-05', '11:00', RESCHEDULED_AT, undefined, 'Client requested morning slot');
+
+        const persisted = BookingMapper.toPersistence(booking) as {
+          rescheduleHistory: Record<string, unknown>[];
+        };
+        expect(persisted.rescheduleHistory[1].reason).toBe('Client requested morning slot');
+      });
+
+      it('the serialized write passes Firestore validation with no undefined inside the array', async () => {
+        // The fake enforces the real client's serializer rule this project does
+        // not opt out of: before the fix, this write threw the exact production
+        // error — `Cannot use "undefined" as a Firestore value (found in field
+        // "rescheduleHistory.`0`.reason")` — aborting the whole transaction.
+        const db = new FakeFirestore();
+        const booking = rescheduledBookingWithoutReason();
+        const persisted = BookingMapper.toPersistence(booking);
+
+        await db.runTransaction(async (tx) => {
+          tx.create(db.collection('bookings').doc('bk_1'), persisted as Record<string, unknown>);
+        });
+
+        const stored = db.docs.get('bookings/bk_1') as {
+          rescheduleHistory: Record<string, unknown>[];
+        };
+        expect(stored.rescheduleHistory).toHaveLength(1);
+        expect('reason' in stored.rescheduleHistory[0]).toBe(false);
+        expect(stored.rescheduleHistory[0]).toMatchObject({
+          previousDate: '2026-09-04',
+          newDate: '2026-09-04',
+          newTime: '09:45',
+        });
+      });
     });
   });
 

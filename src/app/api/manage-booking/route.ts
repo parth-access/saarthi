@@ -119,6 +119,9 @@ export async function POST(request: Request) {
     if (rawMsg.includes('unavailable') || rawMsg.includes('already booked')) {
       return NextResponse.json({ error: rawMsg }, { status: 409 });
     }
+    if (rawMsg.includes('current session time')) {
+      return NextResponse.json({ error: rawMsg }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Failed to reschedule booking.' }, { status: 500 });
   }
 

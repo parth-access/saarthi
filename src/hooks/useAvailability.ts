@@ -9,11 +9,12 @@ export interface Slot {
 /**
  * Slot availability for a therapist on one IST calendar day.
  *
- * `excludeBookingId` is for the reschedule flows: without it the booking being
- * moved reports its own current time as `Booked`, so the client's existing slot
- * disappears from the grid. The server authorizes the exclusion against the
- * session, so passing a booking the caller does not own fails rather than
- * leaking anything.
+ * `excludeBookingId` is for the reschedule flows: the booking being moved must
+ * not count as a *competing* booking or lock to itself, and the server also
+ * excludes that booking's own current date/time from `availableSlots` — a
+ * session cannot be "rescheduled" to where it already is. The server
+ * authorizes the exclusion against the session, so passing a booking the
+ * caller does not own fails rather than leaking anything.
  *
  * Temporal filtering (past slots, beyond the booking window) is decided by the
  * server against IST — never by the browser clock — and arrives here as a

@@ -18,13 +18,14 @@ import { generateTimeSlots, slotTemporalReason } from '@/shared/scheduling/slots
  *   pastTimes          — start instant already passed (IST)
  *   beyondWindowTimes  — outside the rolling booking window
  *
- * `excludeBookingId` exists for the reschedule flows: a booking's own slot is
- * otherwise reported as `booked` *to itself*, which is why the dashboard
- * reschedule dialog silently dropped the client's current time from the grid.
- * Because that parameter changes what the caller can learn about a booking, it
- * is authorized: the caller must be an admin, the assigned therapist, or the
- * booking's owner. An unknown id and an unowned id both return the same 403, so
- * the endpoint cannot be used as a booking-existence oracle.
+ * `excludeBookingId` exists for the reschedule flows. A booking being moved must
+ * not count as a *competing* booking or lock to itself, but its own current
+ * date/time is never a valid reschedule destination either, so the endpoint
+ * drops that exact slot from `availableSlots`. Because that parameter changes
+ * what the caller can learn about a booking, it is authorized: the caller must
+ * be an admin, the assigned therapist, or the booking's owner. An unknown id
+ * and an unowned id both return the same 403, so the endpoint cannot be used as
+ * a booking-existence oracle.
  */
 
 interface AvailabilityResponse {
@@ -51,10 +52,24 @@ class AvailabilityAuthError extends Error {
 }
 
 /**
- * Resolves `excludeBookingId` to an authorized booking id, or throws. Returns
+ * The excluded booking's id plus its current date/time, so the availability
+ * computation can both stop it blocking itself and refuse its own slot as a
+ * reschedule destination. `null` when the caller did not ask for an exclusion.
+ */
+interface ExcludedBooking {
+  id: string;
+  date: string;
+  time: string;
+}
+
+/**
+ * Resolves `excludeBookingId` to an authorized booking, or throws. Returns
  * `null` when the caller did not ask for an exclusion.
  */
-async function resolveExcludedBookingId(request: Request, excludeBookingId: string | null): Promise<string | null> {
+async function resolveExcludedBookingId(
+  request: Request,
+  excludeBookingId: string | null
+): Promise<ExcludedBooking | null> {
   if (!excludeBookingId) return null;
 
   const session = await verifySession(request);
@@ -68,11 +83,13 @@ async function resolveExcludedBookingId(request: Request, excludeBookingId: stri
   const denied = new AvailabilityAuthError(403, 'You are not allowed to view availability for this session.');
   if (!booking) throw denied;
 
-  if (session.role === 'admin') return booking.id;
+  if (session.role === 'admin') return { id: booking.id, date: booking.date, time: booking.time };
 
   if (session.role === 'therapist') {
     const therapistDoc = await adminDb.collection('therapists').doc(booking.therapistId).get();
-    if (therapistDoc.exists && therapistDoc.data()?.authId === session.uid) return booking.id;
+    if (therapistDoc.exists && therapistDoc.data()?.authId === session.uid) {
+      return { id: booking.id, date: booking.date, time: booking.time };
+    }
     throw denied;
   }
 
@@ -82,7 +99,7 @@ async function resolveExcludedBookingId(request: Request, excludeBookingId: stri
   const ownsByEmail =
     !!session.email && !!booking.email && booking.email.toLowerCase() === session.email.toLowerCase();
 
-  if (ownsByUid || ownsByEmail) return booking.id;
+  if (ownsByUid || ownsByEmail) return { id: booking.id, date: booking.date, time: booking.time };
   throw denied;
 }
 
@@ -100,9 +117,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'date must be YYYY-MM-DD' }, { status: 400 });
     }
 
-    let excludedBookingId: string | null;
+    let excludedBooking: ExcludedBooking | null;
     try {
-      excludedBookingId = await resolveExcludedBookingId(request, searchParams.get('excludeBookingId'));
+      excludedBooking = await resolveExcludedBookingId(request, searchParams.get('excludeBookingId'));
     } catch (authError) {
       if (authError instanceof AvailabilityAuthError) {
         return NextResponse.json({ error: authError.message }, { status: authError.status });
@@ -145,11 +162,11 @@ export async function GET(request: Request) {
     const rules = rulesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TherapistAvailabilityRule[];
     const overrides = overridesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TherapistOverride[];
 
-    // A booking never blocks itself: during a reschedule the client's current
-    // time must stay selectable, otherwise the grid reports their own session as
-    // somebody else's booking.
+    // A booking never blocks itself: its own active-booking row and its own slot
+    // pin must not make its own session look like somebody else's reservation.
+    // (Whether that own slot is then *offerable* is decided below — it is not.)
     const bookedTimes = bookingsList
-      .filter((booking) => !excludedBookingId || booking.id !== excludedBookingId)
+      .filter((booking) => !excludedBooking || booking.id !== excludedBooking.id)
       .map((booking) => booking.time);
 
     const lockedTimes: string[] = [];
@@ -160,7 +177,7 @@ export async function GET(request: Request) {
 
       // The excluded booking's own pin — permanent (paid) or held (unpaid) — is
       // its own reservation, not a competing one.
-      if (excludedBookingId && data?.bookingId === excludedBookingId) {
+      if (excludedBooking && data?.bookingId === excludedBooking.id) {
         return;
       }
 
@@ -244,7 +261,11 @@ export async function GET(request: Request) {
         !bookedTimes.includes(time) &&
         !lockedTimes.includes(time) &&
         !pastTimes.includes(time) &&
-        !beyondWindowTimes.includes(time)
+        !beyondWindowTimes.includes(time) &&
+        // A booking's own current slot is never a valid reschedule destination.
+        // It was excluded from `bookedTimes` above so it would otherwise re-enter
+        // the offerable set; drop it here instead of offering it.
+        !(excludedBooking && excludedBooking.date === date && time === excludedBooking.time)
     );
 
     const response: AvailabilityResponse = {
