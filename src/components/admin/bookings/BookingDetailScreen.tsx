@@ -13,10 +13,11 @@
  *
  * Three things deliberately do not appear:
  *
- *  - **buttons that would perform an operation.** Actions are the next increment,
- *    wired to the existing command handlers. What is shown instead is what the
- *    server *would* accept for a booking in this state, refusals and reasons
- *    included — useful on its own, and impossible to mistake for a control.
+ *  - **an action whose consequences are not stated first.** The buttons are real
+ *    and run the shared command handlers, but each opens a dialog that says what
+ *    will happen — whether the client is emailed, what refund the policy allows,
+ *    whether the Meet link survives — because the operator's next task depends on
+ *    those answers and nothing else on the screen gives them.
  *  - **the manage-booking token and the client's note.** Neither leaves the server
  *    (`adminBookingDetail.ts`). Their existence is reported; their content is not.
  *  - **a "healthy" indicator.** Nothing here is green because the page loaded. The
@@ -29,8 +30,6 @@
 import {
   AlertTriangle,
   ArrowLeft,
-  Ban,
-  Check,
   ExternalLink,
   Info,
   RotateCcw,
@@ -40,12 +39,12 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useTherapists } from '@/hooks/useTherapists';
 import type { AdminBookingDetail } from '@/domains/booking/queries/adminBookingDetail';
+import { BookingActions } from './BookingActions';
 import { BookingTimeline } from './BookingTimeline';
 import { CopyableId } from './CopyableId';
 import { useAdminBookingDetail } from './useAdminBookingDetail';
 import {
   formatRefundAmount,
-  formatTimelineKind,
   formatTimelineMoment,
   holdSummary,
   manageLinkSummary,
@@ -65,15 +64,6 @@ import {
   toneClasses,
   type StatusBadge,
 } from './adminBookingPresentation';
-
-/** Verbs an operator recognises, for the ids the query layer uses. */
-const ACTION_LABELS: Record<string, string> = {
-  confirm: 'Confirm this booking',
-  cancel: 'Cancel this booking',
-  complete: 'Mark the session completed',
-  no_show: 'Mark the client a no-show',
-  reschedule: 'Reschedule the session',
-};
 
 export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
   const { data, loading, initialLoading, error, notFound, reload } =
@@ -195,6 +185,12 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
       </header>
 
       <Attention booking={booking} meet={meet} hold={holdIsLive ? hold : null} />
+
+      {/* Above the record rather than below it. An operator who has read the header
+          and the notices already knows what needs doing; making them scroll past
+          eight cards of detail to reach the button is how the wrong booking gets
+          acted on. The detail is still there for whoever needs to check first. */}
+      <BookingActions booking={booking} verdicts={data.actions} onApplied={reload} />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card title="Session">
@@ -399,36 +395,6 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
           </Panel>
         )}
 
-        <Panel
-          title="What the server would accept"
-          subtitle="This console cannot submit these yet. Each line is what the booking commands' own guards would allow for a booking in this state — nothing here authorizes anything."
-        >
-          {data.actions.length === 0 ? (
-            <p className="mt-3 text-xs text-muted-foreground">
-              No verdicts were returned for this booking.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-1.5">
-              {data.actions.map((verdict) => (
-                <li key={verdict.action} className="flex items-start gap-2 text-xs">
-                  {verdict.allowed ? (
-                    <Check aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-                  ) : (
-                    <Ban aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  )}
-                  <span className="min-w-0">
-                    <span className={verdict.allowed ? 'font-medium text-primary' : 'text-primary/70'}>
-                      {ACTION_LABELS[verdict.action] ?? formatTimelineKind(verdict.action)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {verdict.allowed ? ' — allowed' : ` — ${verdict.reason || 'not available'}`}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
       </div>
 
       <BookingTimeline timeline={data.timeline} />
