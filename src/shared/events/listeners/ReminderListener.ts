@@ -6,11 +6,11 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { auditService } from '@/domains/audit/AuditService';
 
 export function registerReminderListeners(eventBus: any) {
-  // When a booking is confirmed, schedule the 5-hour session reminder outbox event
+  // When a booking is confirmed, schedule the 30-minute session reminder outbox event
   eventBus.subscribe('BookingConfirmed', async (event: any) => {
     const { bookingId } = event.payload;
     try {
-      logger.info(`[ReminderListener] Scheduling 5-hour session reminder for booking ${bookingId}`);
+      logger.info(`[ReminderListener] Scheduling 30-minute session reminder for booking ${bookingId}`);
       await SessionReminderService.scheduleSessionReminder(bookingId);
     } catch (err) {
       logger.error(`[ReminderListener] Failed to schedule session reminder for booking ${bookingId}`, { error: String(err) });

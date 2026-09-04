@@ -137,7 +137,7 @@ Session Type: ${booking.sessionType || 'Individual'}`,
     booking.calendarError = undefined;
     await firestoreBookingRepository.save(booking);
 
-    // Schedule the 5-hour session reminder now that a real meeting URL exists.
+    // Schedule the 30-minute session reminder now that a real meeting URL exists.
     try {
       await SessionReminderService.scheduleSessionReminder(booking.id);
     } catch (remErr) {

@@ -30,22 +30,22 @@ export interface SendReminderResult {
 
 export class SessionReminderService {
   /**
-   * Precise calculation of the 5-hour reminder timestamp in Asia/Kolkata (+05:30).
+   * Precise calculation of the 30-minute reminder timestamp in Asia/Kolkata (+05:30).
    */
   static calculateReminderTimeIST(dateStr: string, timeStr: string): ReminderCalculation {
     const { startIso, endIso } = parseSessionTimeIST(dateStr, timeStr);
     const sessionStartTimeMillis = new Date(startIso).getTime();
     const sessionEndTimeMillis = new Date(endIso).getTime();
     
-    // Exactly 5 hours prior to session start
-    const reminderTimeMillis = sessionStartTimeMillis - (5 * 60 * 60 * 1000);
+    // Exactly 30 minutes prior to session start
+    const reminderTimeMillis = sessionStartTimeMillis - (30 * 60 * 1000);
     const reminderIso = new Date(reminderTimeMillis).toISOString();
 
     const now = Date.now();
     const isSessionPast = now >= sessionStartTimeMillis;
     const isReminderDue = now >= reminderTimeMillis;
-    // Considered late if we are more than 2 hours past the scheduled reminder time
-    const isLateForReminder = now > (reminderTimeMillis + (2 * 60 * 60 * 1000));
+    // Considered late if we are more than 15 minutes past the scheduled reminder time
+    const isLateForReminder = now > (reminderTimeMillis + (15 * 60 * 1000));
 
     return {
       sessionStartTimeMillis,
@@ -99,11 +99,11 @@ export class SessionReminderService {
         return { scheduled: false, reason: 'session_in_past' };
       }
 
-      // If confirmation occurred after the 5-hour mark (less than 5 hours before session)
+      // If confirmation occurred after the 30-minute mark (less than 30 minutes before session)
       if (now >= calculation.reminderTimeMillis) {
-        // If we are within a reasonable grace window (e.g. within 30 mins of the 5-hour mark) and session is still upcoming,
-        // we can enqueue immediately; otherwise, skip sending a stale "5 hours before" notification.
-        const isWithinGrace = now <= (calculation.reminderTimeMillis + (30 * 60 * 1000));
+        // If we are within a reasonable grace window (within 15 minutes of the 30-minute mark) and session is still upcoming,
+        // we can enqueue immediately; otherwise, skip sending a stale "30 minutes before" notification.
+        const isWithinGrace = now <= (calculation.reminderTimeMillis + (15 * 60 * 1000));
         
         if (!isWithinGrace) {
           await docRef.update({
@@ -111,12 +111,12 @@ export class SessionReminderService {
             updatedAt: FieldValue.serverTimestamp()
           });
           await auditService.logEvent('REMINDER_SKIPPED', { reason: 'late_confirmation_skipped', bookingId }, booking.userId || 'system', bookingId);
-          logger.info('REMINDER', `Booking ${bookingId} was confirmed late (less than 4.5h before session). Skipped 5h reminder.`);
+          logger.info('REMINDER', `Booking ${bookingId} was confirmed late (less than 15 minutes before session). Skipped 30-minute reminder.`);
           return { scheduled: false, reason: 'late_confirmation_skipped' };
         }
       }
 
-      // Enqueue durable outbox event with nextAttemptAt set to the 5-hour reminder timestamp
+      // Enqueue durable outbox event with nextAttemptAt set to the 30-minute reminder timestamp
       const nextAttemptDate = new Date(Math.max(Date.now(), calculation.reminderTimeMillis));
       const eventId = generateDeterministicEventId('booking', bookingId, 'session_reminder');
 
@@ -149,7 +149,7 @@ export class SessionReminderService {
         bookingId
       );
 
-      logger.info('REMINDER', `Scheduled 5-hour session reminder for booking ${bookingId} at ${calculation.reminderIso}`);
+      logger.info('REMINDER', `Scheduled 30-minute session reminder for booking ${bookingId} at ${calculation.reminderIso}`);
       return { scheduled: true, reminderTime: calculation.reminderIso };
     } catch (err) {
       logger.error('REMINDER', `Failed to schedule reminder for booking ${bookingId}`, err);
@@ -158,7 +158,7 @@ export class SessionReminderService {
   }
 
   /**
-   * Idempotently sends the 5-hour reminder email to student and psychologist.
+   * Idempotently sends the 30-minute reminder email to student and psychologist.
    */
   static async sendSessionReminder(bookingId: string, options?: { force?: boolean }): Promise<SendReminderResult> {
     if (!adminDb) {
@@ -222,11 +222,11 @@ export class SessionReminderService {
           updatedAt: FieldValue.serverTimestamp()
         });
         await auditService.logEvent('REMINDER_SKIPPED', { reason: 'reminder_window_passed', bookingId }, booking.userId || 'system', bookingId);
-        return { success: false, skippedReason: '5-hour reminder window has expired' };
+        return { success: false, skippedReason: '30-minute reminder window has expired' };
       }
 
       // 5. Dispatch reminder emails
-      logger.info('REMINDER', `Dispatching 5-hour reminder emails for booking ${bookingId} with meeting URL: ${booking.meetingUrl}`);
+      logger.info('REMINDER', `Dispatching 30-minute reminder emails for booking ${bookingId} with meeting URL: ${booking.meetingUrl}`);
 
       const emailResult = await sendEmailAction({
         type: 'session-reminder',
@@ -272,10 +272,10 @@ export class SessionReminderService {
       await subAuditRef.set({
         action: 'reminder_sent',
         timestamp: FieldValue.serverTimestamp(),
-        details: '5-hour session reminder email sent successfully to student and psychologist.'
+        details: '30-minute session reminder email sent successfully to student and psychologist.'
       });
 
-      logger.success('REMINDER', `Successfully dispatched 5-hour reminder for booking ${bookingId}`);
+      logger.success('REMINDER', `Successfully dispatched 30-minute reminder for booking ${bookingId}`);
       return {
         success: true,
         studentSent: true,
@@ -283,7 +283,7 @@ export class SessionReminderService {
       };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      logger.error('REMINDER', `Failed to send 5-hour session reminder for booking ${bookingId}`, err);
+      logger.error('REMINDER', `Failed to send 30-minute session reminder for booking ${bookingId}`, err);
 
       try {
         await docRef.update({
@@ -302,7 +302,7 @@ export class SessionReminderService {
   }
 
   /**
-   * Scans and processes all confirmed bookings that are currently due for their 5-hour reminder.
+   * Scans and processes all confirmed bookings that are currently due for their 30-minute reminder.
    */
   static async processDueReminders(limit: number = 20): Promise<{ processed: number; sent: number; skipped: number; failed: number }> {
     if (!adminDb) {

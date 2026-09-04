@@ -19,6 +19,9 @@ import { logger } from '../_lib/logger';
 import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { EventBus } from '@/shared/events/EventBus';
+import { buildReceipt } from '@/domains/payment/Receipt';
+import { renderReceiptPdf, receiptFileName } from '@/server/pdf/renderReceiptPdf';
+import type { Booking } from '@/domains/booking/entities/Booking';
 
 let resendClient: Resend | null = null;
 function getResendClient(): Resend {
@@ -246,6 +249,26 @@ export async function resendSavedEmailAction(emailId: string) {
   return sendEmailWithRetry(options, emailData.bookingId, emailData.type, emailId);
 }
 
+/**
+ * Builds the receipt PDF attachment for the payment-receipt email.
+ *
+ * Returns `null` (never a fabricated receipt) when the booking has no captured
+ * payment — e.g. the fallback `bookingDetails` payload, which carries no payment
+ * fields. The attachment filename matches the one users download in the dashboard.
+ */
+export function buildReceiptAttachment(
+  booking: unknown,
+  therapistName?: string | null
+): { filename: string; content: Buffer; contentType: string } | null {
+  const receipt = buildReceipt(booking as Booking, { therapistName });
+  if (!receipt) return null;
+  return {
+    filename: receiptFileName(receipt),
+    content: Buffer.from(renderReceiptPdf(receipt)),
+    contentType: 'application/pdf',
+  };
+}
+
 async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'failed', errorMsg?: string) {
   if (!bookingId) return;
   try {
@@ -425,6 +448,16 @@ export async function sendEmailAction(payload: EmailPayload) {
 
     const plainText = `Payment Receipt\nHi ${safePatientName},\nThank you for your payment of ₹${amount.toLocaleString('en-IN')} for your session with ${safeTherapistName}.\nPayment ID: ${paymentId}\nOrder ID: ${orderId}\nDate: ${safeDate} at ${safeTime} IST\n- The Saarthi Team`.trim();
 
+    let receiptAttachment: ReturnType<typeof buildReceiptAttachment> = null;
+    try {
+      receiptAttachment = buildReceiptAttachment(bookingData, therapistName);
+      if (!receiptAttachment) {
+        logger.warn('EMAIL', 'Booking is not receiptable; sending receipt email without PDF attachment', { bookingId });
+      }
+    } catch (attachErr) {
+      logger.warn('EMAIL', 'Failed to build receipt PDF attachment; sending receipt email without it', { bookingId, error: String(attachErr) });
+    }
+
     const data = await sendEmailWithRetry({
       from: 'Saarthi Accounts <contact@saarthilife.com>',
       to: patientEmail,
@@ -442,6 +475,7 @@ export async function sendEmailAction(payload: EmailPayload) {
         bookingToken: safeBookingToken,
       }),
       text: plainText,
+      attachments: receiptAttachment ? [receiptAttachment] : undefined,
     }, bookingId, 'payment-receipt');
 
     return { success: true, data };
@@ -533,7 +567,7 @@ export async function sendEmailAction(payload: EmailPayload) {
       subject: 'Update regarding your booking request',
       html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-        <h2 style="color: #6B4C1A; font-weight: normal;">Booking Request Update</h2>
+        <h2 style="margin: 0 0 16px 0; color: #1F5E3B; font-weight: 600; font-family: 'Playfair Display', Georgia, serif;">Booking Request Update</h2>
         <p>Hi ${safePatientName},</p>
         <p>Thank you for reaching out to us. Unfortunately, we are unable to proceed with your requested session at this time.</p>
         
@@ -576,23 +610,23 @@ export async function sendEmailAction(payload: EmailPayload) {
       phone: safePatientPhone !== 'Not provided' ? safePatientPhone : undefined,
     };
 
-    const studentPlainText = `Session Reminder: Your session with ${safeTherapistName} is in 5 hours at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
+    const studentPlainText = `Session Reminder: Your session with ${safeTherapistName} is in 30 minutes at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
 
     const studentPromise = sendEmailWithRetry({
       from: 'Saarthi Reminders <contact@saarthilife.com>',
       to: patientEmail,
-      subject: `Reminder: Your therapy session with ${safeTherapistName} is in 5 hours`,
+      subject: `Reminder: Your therapy session with ${safeTherapistName} is in 30 minutes`,
       html: generateSessionReminderStudentEmail(reminderData),
       text: studentPlainText,
     }, bookingId, 'session-reminder-student');
 
     let therapistPromise: Promise<unknown> | null = null;
     if (therapistEmail) {
-      const therapistPlainText = `Session Reminder: Upcoming session with ${safePatientName} in 5 hours at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
+      const therapistPlainText = `Session Reminder: Upcoming session with ${safePatientName} in 30 minutes at ${safeTime} IST.\nJoin link: ${meetingUrl}\n- The Saarthi Team`.trim();
       therapistPromise = sendEmailWithRetry({
         from: 'Saarthi Notifications <contact@saarthilife.com>',
         to: therapistEmail,
-        subject: `Session Reminder: Appointment with ${safePatientName} in 5 hours`,
+        subject: `Session Reminder: Appointment with ${safePatientName} in 30 minutes`,
         html: generateSessionReminderTherapistEmail(reminderData),
         text: therapistPlainText,
       }, bookingId, 'session-reminder-therapist');

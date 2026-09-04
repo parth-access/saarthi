@@ -17,9 +17,13 @@ const COLORS = {
   cardBackground: '#FFFFFF',
   text: '#2D3748',
   textMuted: '#718096',
-  accent: '#2F855A',
+  accent: '#1F5E3B',
+  gold: '#E6A520',
   border: '#E2E8F0'
 };
+
+/** Playfair Display is the site's heading font; falls back to Georgia in clients that block web fonts. */
+const SERIF_STACK = "'Playfair Display', Georgia, 'Times New Roman', serif";
 
 function generateEmailLayout(content: string, previewText: string = ''): string {
   return `
@@ -29,8 +33,11 @@ function generateEmailLayout(content: string, previewText: string = ''): string 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Saarthi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body style="margin: 0; padding: 0; background-color: ${COLORS.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${COLORS.text}; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;">
+  <body style="margin: 0; padding: 0; background-color: ${COLORS.background}; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${COLORS.text}; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased;">
     ${previewText ? `<div style="display:none;max-height:0;overflow:hidden;">${previewText}</div>` : ''}
     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${COLORS.background}; padding: 40px 20px;">
       <tr>
@@ -39,8 +46,13 @@ function generateEmailLayout(content: string, previewText: string = ''): string 
             <tr>
               <td style="padding: 40px;">
                 <div style="text-align: center; margin-bottom: 32px;">
-                  <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: ${COLORS.accent}; letter-spacing: -0.5px;">Saarthi</h1>
-                  <p style="margin: 4px 0 0 0; font-size: 14px; color: ${COLORS.textMuted}; font-style: italic;">A Path Forward</p>
+                  <img
+                    src="${process.env.APP_URL || 'https://www.saarthilife.com'}/saarthi-logo-Photoroom.png"
+                    alt="Saarthi"
+                    width="180"
+                    style="display: inline-block; max-width: 180px; height: auto; border: 0;"
+                  />
+                  <p style="margin: 8px 0 0 0; font-size: 14px; color: ${COLORS.textMuted}; font-family: ${SERIF_STACK}; font-style: italic;">A Path Forward</p>
                 </div>
 
                 ${content}
@@ -71,7 +83,7 @@ function generateEmailLayout(content: string, previewText: string = ''): string 
 
 export function generateBookingReceivedEmail(data: BookingEmailData): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 16px 0;">Thank you for taking this step. This email is to confirm that we have received your booking request for a session with <strong>${data.therapistName}</strong>.</p>
     
     <div style="margin: 0 0 32px 0;">
@@ -84,7 +96,7 @@ export function generateBookingReceivedEmail(data: BookingEmailData): string {
     </div>
     
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Session Details</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold};">Session Details</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -125,7 +137,7 @@ export function generateBookingReceivedEmail(data: BookingEmailData): string {
 
 export function generateBookingConfirmedEmail(data: BookingEmailData): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">We are pleased to let you know that your session with <strong>${data.therapistName}</strong> has been officially confirmed.</p>
     
     <div style="background-color: #F0FFF4; border: 1px solid #C6F6D5; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
@@ -185,11 +197,11 @@ export function generateBookingConfirmedEmail(data: BookingEmailData): string {
 
 export function generateBookingRescheduledEmail(data: BookingEmailData, originalDate: string, originalTime: string): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">Your session with <strong>${data.therapistName}</strong> has been successfully rescheduled.</p>
     
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Updated Session Details</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold};">Updated Session Details</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -257,11 +269,11 @@ export interface PaymentFailedEmailData {
 export function generatePaymentReceiptEmail(data: PaymentReceiptEmailData): string {
   const formattedAmount = `₹${data.amount.toLocaleString('en-IN')}`;
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">Thank you for your payment. Your session with <strong>${data.therapistName}</strong> has been paid in full and your receipt is below.</p>
     
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Payment Receipt</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold};">Payment Receipt</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -308,7 +320,7 @@ export function generatePaymentReceiptEmail(data: PaymentReceiptEmailData): stri
 
 export function generateBookingSlotReleasedEmail(data: BookingEmailData, reason?: string): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">We wanted to let you know that your tentative slot reservation with <strong>${data.therapistName}</strong> was not completed and the slot has been released.</p>
     
     <div style="background-color: #FFFBEB; border: 1px solid #FCD34D; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
@@ -351,13 +363,13 @@ export function generateBookingSlotReleasedEmail(data: BookingEmailData, reason?
 
 export function generateTherapistNotificationEmail(data: BookingEmailData, type: 'new' | 'rescheduled', originalDate?: string, originalTime?: string): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
     <p style="margin: 0 0 24px 0;">
       You have a <strong>${type === 'new' ? 'new booking request' : 'rescheduled session'}</strong> from ${data.patientName}.
     </p>
     
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Patient Details</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold};">Patient Details</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -407,7 +419,7 @@ export function generateTherapistNotificationEmail(data: BookingEmailData, type:
 
 export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?: string): string {
   const content = `
-    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     <p style="margin: 0 0 24px 0;">We noticed that your recent payment attempt for a session with <strong>${data.therapistName}</strong> could not be completed successfully.</p>
     
     <div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
@@ -475,11 +487,11 @@ export interface SessionReminderEmailData {
 
 export function generateSessionReminderStudentEmail(data: SessionReminderEmailData): string {
   const content = `
-    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
     
     <div style="background-color: #F0F9FF; border-left: 4px solid ${COLORS.accent}; border-radius: 4px 8px 8px 4px; padding: 16px 20px; margin-bottom: 24px;">
       <p style="margin: 0; font-size: 15px; color: #0C4A6E; line-height: 1.5;">
-        ⏰ <strong>Session in 5 Hours:</strong> Your session with <strong>${data.therapistName}</strong> begins today at <strong>${data.time} (IST)</strong>.
+        ⏰ <strong>Session in 30 Minutes:</strong> Your session with <strong>${data.therapistName}</strong> begins today at <strong>${data.time} (IST)</strong>.
       </p>
     </div>
 
@@ -488,7 +500,7 @@ export function generateSessionReminderStudentEmail(data: SessionReminderEmailDa
     </p>
 
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 28px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted}; font-weight: 600;">Session Details</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold}; font-weight: 600;">Session Details</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -551,21 +563,21 @@ export function generateSessionReminderStudentEmail(data: SessionReminderEmailDa
     <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
   `;
 
-  return generateEmailLayout(content, `Session Reminder: Your session with ${data.therapistName} is in 5 hours.`);
+  return generateEmailLayout(content, `Session Reminder: Your session with ${data.therapistName} is in 30 minutes.`);
 }
 
 export function generateSessionReminderTherapistEmail(data: SessionReminderEmailData): string {
   const content = `
-    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.therapistName},</h2>
     
     <div style="background-color: #F8FAFC; border-left: 4px solid ${COLORS.accent}; border-radius: 4px 8px 8px 4px; padding: 16px 20px; margin-bottom: 24px;">
       <p style="margin: 0; font-size: 15px; color: ${COLORS.text}; line-height: 1.5;">
-        ⏰ <strong>Upcoming Session in 5 Hours:</strong> You have a confirmed appointment with <strong>${data.patientName}</strong> today at <strong>${data.time} (IST)</strong>.
+        ⏰ <strong>Upcoming Session in 30 Minutes:</strong> You have a confirmed appointment with <strong>${data.patientName}</strong> today at <strong>${data.time} (IST)</strong>.
       </p>
     </div>
 
     <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 28px;">
-      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted}; font-weight: 600;">Session Details</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold}; font-weight: 600;">Session Details</h3>
       
       <table width="100%" border="0" cellspacing="0" cellpadding="0">
         <tr>
@@ -620,6 +632,6 @@ export function generateSessionReminderTherapistEmail(data: SessionReminderEmail
     <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
   `;
 
-  return generateEmailLayout(content, `Session Reminder: Upcoming session with ${data.patientName} in 5 hours.`);
+  return generateEmailLayout(content, `Session Reminder: Upcoming session with ${data.patientName} in 30 minutes.`);
 }
 

@@ -67,37 +67,49 @@ vi.mock('@/app/api/_lib/logger', () => ({
   }
 }));
 
+/** Builds a session start time in Asia/Kolkata format for `minutesFromNow` from now. */
+function istTimeInMinutes(minutesFromNow: number): { date: string; time: string } {
+  const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+  const target = new Date(Date.now() + istOffsetMs + minutesFromNow * 60 * 1000);
+  const date = target.toISOString().slice(0, 10);
+  const hours24 = target.getUTCHours();
+  const period = hours24 < 12 ? 'AM' : 'PM';
+  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  const time = `${String(hours12).padStart(2, '0')}:${String(target.getUTCMinutes()).padStart(2, '0')} ${period}`;
+  return { date, time };
+}
+
 describe('SessionReminderService (Phase 3A)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('calculateReminderTimeIST', () => {
-    it('should calculate exactly 5 hours before session start in Asia/Kolkata timezone', () => {
+    it('should calculate exactly 30 minutes before session start in Asia/Kolkata timezone', () => {
       // 03:00 PM session on 2026-09-15 is 15:00:00+05:30
-      // 5 hours prior should be 10:00:00+05:30 (04:30:00 UTC)
+      // 30 minutes prior should be 14:30:00+05:30 (09:00:00 UTC)
       const calculation = SessionReminderService.calculateReminderTimeIST('2026-09-15', '03:00 PM');
       
       expect(calculation.sessionStartIso).toBe('2026-09-15T15:00:00+05:30');
       expect(calculation.sessionEndIso).toBe('2026-09-15T15:45:00+05:30');
 
-      const expectedReminderTimeMillis = new Date('2026-09-15T15:00:00+05:30').getTime() - (5 * 3600 * 1000);
+      const expectedReminderTimeMillis = new Date('2026-09-15T15:00:00+05:30').getTime() - (30 * 60 * 1000);
       expect(calculation.reminderTimeMillis).toBe(expectedReminderTimeMillis);
-      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-15T04:30:00.000Z');
+      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-15T09:00:00.000Z');
     });
 
     it('should handle morning sessions crossing over midnight correctly', () => {
       // 02:00 AM session on 2026-09-15 is 02:00:00+05:30
-      // 5 hours prior should be 2026-09-14 21:00:00+05:30 (15:30:00 UTC)
+      // 30 minutes prior should be 2026-09-15 01:30:00+05:30 (20:00:00 UTC on 2026-09-14)
       const calculation = SessionReminderService.calculateReminderTimeIST('2026-09-15', '02:00 AM');
-      const expectedReminderMillis = new Date('2026-09-15T02:00:00+05:30').getTime() - (5 * 3600 * 1000);
+      const expectedReminderMillis = new Date('2026-09-15T02:00:00+05:30').getTime() - (30 * 60 * 1000);
       expect(calculation.reminderTimeMillis).toBe(expectedReminderMillis);
-      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-14T15:30:00.000Z');
+      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-14T20:00:00.000Z');
     });
   });
 
   describe('scheduleSessionReminder', () => {
-    it('should record an outbox event scheduled 5 hours before future session', async () => {
+    it('should record an outbox event scheduled 30 minutes before future session', async () => {
       const mockBooking = {
         id: 'bk_rem_1',
         name: 'Alex Smith',
@@ -151,6 +163,74 @@ describe('SessionReminderService (Phase 3A)', () => {
       const res = await SessionReminderService.scheduleSessionReminder('bk_unpaid');
       expect(res.scheduled).toBe(false);
       expect(OutboxService.recordEvent).not.toHaveBeenCalled();
+    });
+
+    it('should enqueue immediately when confirmed within the 30-minute grace window', async () => {
+      // Session starts 20 minutes from now, so the reminder time (T-30) is 10 minutes
+      // in the past — within the 15-minute grace window → enqueue right away.
+      const { date, time } = istTimeInMinutes(20);
+      const mockBooking = {
+        id: 'bk_grace',
+        name: 'Grace User',
+        email: 'grace@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_grace'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_grace');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_grace');
+
+      expect(res.scheduled).toBe(true);
+      expect(OutboxService.recordEvent).toHaveBeenCalled();
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'PENDING'
+        })
+      );
+    });
+
+    it('should skip the reminder when confirmed with less than 15 minutes before the session', async () => {
+      // Session starts 5 minutes from now, so the reminder time (T-30) is 25 minutes
+      // in the past — outside the 15-minute grace window → skip as stale.
+      const { date, time } = istTimeInMinutes(5);
+      const mockBooking = {
+        id: 'bk_late',
+        name: 'Late User',
+        email: 'late@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_late'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_late');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_late');
+
+      expect(res.scheduled).toBe(false);
+      expect(res.reason).toBe('late_confirmation_skipped');
+      expect(OutboxService.recordEvent).not.toHaveBeenCalled();
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'SKIPPED'
+        })
+      );
+      expect(auditService.logEvent).toHaveBeenCalledWith('REMINDER_SKIPPED', expect.anything(), 'usr_late', 'bk_late');
     });
   });
 

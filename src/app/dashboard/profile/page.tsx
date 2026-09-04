@@ -295,7 +295,7 @@ function Profile() {
                     },
                     {
                       title: "Session reminder",
-                      desc: "A nudge roughly 5 hours before your session starts, so it doesn't slip by.",
+                      desc: "A nudge 30 minutes before your session starts, so it doesn't slip by.",
                     },
                     {
                       title: "Calendar invite",

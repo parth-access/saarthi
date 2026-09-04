@@ -272,7 +272,7 @@ export function registerTimelineListeners(eventBus: any) {
       actor: { type: 'system' },
       event: 'SendSessionReminder',
       severity: 'info',
-      message: 'Triggering 5-hour session reminder dispatch.',
+      message: 'Triggering 30-minute session reminder dispatch.',
       metadata: { bookingId }
     });
   });
