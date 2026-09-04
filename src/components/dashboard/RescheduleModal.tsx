@@ -53,10 +53,10 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // `excludeBookingId` keeps this booking from blocking itself: its own slot is
-  // held by its own pin and listed among the therapist's active bookings, so
-  // without it the client's current time is reported as `Booked` and vanishes
-  // from the grid below (which renders available slots only).
+  // `excludeBookingId` stops this booking from counting as a competing booking
+  // or lock to itself. The server independently excludes the booking's own
+  // current date/time from `availableSlots`, so the grid below never offers
+  // "rescheduling" a session back to the slot it already occupies.
   const { slots, loading: slotsLoading, error: slotsError } = useAvailability(
     isOpen && selectedDate ? session?.therapistId ?? null : null,
     isOpen ? selectedDate || null : null,

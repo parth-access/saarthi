@@ -25,14 +25,14 @@
  * day, and every instant comparison goes through the same +05:30 conversion the
  * booking commands use.
  *
- * SESSION LENGTH vs CADENCE (documented, deliberately not changed):
- * `SESSION_DURATION_MINUTES` (50) is the *displayed* and *calendar* length of a
- * session. The cadence below comes from each therapist's Firestore rule
- * (`slotDuration` + `cooldownGap`). These are independent values, so a therapist
- * configured with `slotDuration: 45, cooldownGap: 0` yields starts every 45
- * minutes while each session occupies 50 — a real 5-minute overlap. That is a
- * data-configuration question (see the audit report), not a code bug, and is
- * left to a deliberate product decision rather than silently "fixed" here.
+ * SESSION LENGTH and CADENCE:
+ * Saarthi sessions are 45 minutes long and the therapist slot rules generate
+ * the matching 45-minute cadence (`slotDuration: 45, cooldownGap: 0`), so a
+ * session occupies exactly its start slot: 09:00–09:45, then 09:45–10:30, and
+ * so on. `SESSION_DURATION_MINUTES` (45, in `@/shared/constants`) is the
+ * *displayed* and *calendar* length; the cadence comes from each therapist's
+ * Firestore rule. Do not make one drift from the other: a session longer than
+ * the cadence would overlap the next booked start.
  */
 
 import { istToUtcIsoString } from '@/shared/utils/dateTime';

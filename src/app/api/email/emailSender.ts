@@ -16,6 +16,7 @@ import {
   type SessionReminderEmailData
 } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
+import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { EventBus } from '@/shared/events/EventBus';
 
@@ -569,7 +570,7 @@ export async function sendEmailAction(payload: EmailPayload) {
       sessionMode: safeSessionMode,
       date: safeDate,
       time: safeTime,
-      duration: '50 minutes',
+      duration: `${SESSION_DURATION_MINUTES} minutes`,
       meetingUrl: meetingUrl,
       bookingToken: safeBookingToken,
       phone: safePatientPhone !== 'Not provided' ? safePatientPhone : undefined,

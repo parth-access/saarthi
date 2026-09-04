@@ -2,7 +2,7 @@ import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { bookingFormSchema, BookingFormData as FormData } from "../../../core/validations/booking.schema"
-import { MAX_CLIENT_AGE, MIN_CLIENT_AGE } from "@/shared/constants"
+import { MAX_CLIENT_AGE, MIN_CLIENT_AGE, SESSION_DURATION_MINUTES } from "@/shared/constants"
 import { ChevronLeft, ChevronRight, ChevronDown, Lock, Sparkles } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../../ui/Button"
@@ -46,7 +46,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
             <span className="text-primary/30">·</span>
             <span className="font-bold">₹1,500</span>
             <span className="text-primary/30">·</span>
-            <span className="text-muted-foreground">50 Minutes</span>
+            <span className="text-muted-foreground">{SESSION_DURATION_MINUTES} Minutes</span>
           </div>
         </div>
       </div>

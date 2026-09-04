@@ -126,7 +126,15 @@ export class RescheduleBookingCommandHandler {
       throw new Error('Cannot reschedule a cancelled or rejected booking.');
     }
 
-    // 1. Validate booking window / past-time. Both rules come from the canonical
+    // 1. A reschedule must move the session somewhere else. Without this guard
+    // the swap would re-pin the booking's own slot and append a meaningless
+    // history entry; it also independently enforces (server-side) that the UI's
+    // reschedule grid never offers the current slot as a destination.
+    if (booking.date === command.newDate && booking.time === command.newTime) {
+      throw new Error('Cannot reschedule to the current session time. Please choose a different slot.');
+    }
+
+    // 2. Validate booking window / past-time. Both rules come from the canonical
     // IST helpers so the grid the client was shown by `/api/availability` and the
     // validation it hits here cannot disagree — this file used to re-derive them
     // from a `+05:30` string literal and a hardcoded 14-day constant.
@@ -145,7 +153,7 @@ export class RescheduleBookingCommandHandler {
       throw new Error(`Cannot reschedule further than ${BOOKING_WINDOW_DAYS} days in advance.`);
     }
 
-    // 2. Validate slot against therapist's actual availability rules and overrides
+    // 3. Validate slot against therapist's actual availability rules and overrides
     const isAvailable = await SlotReservationService.isSlotInTherapistAvailability(
       booking.therapistId,
       command.newDate,
@@ -161,7 +169,7 @@ export class RescheduleBookingCommandHandler {
     const isConfirmed = booking.status === 'confirmed' || booking.paymentStatus === 'paid';
     const freshHoldDate = isConfirmed ? null : new Date(Date.now() + 10 * 60 * 1000);
 
-    // 3. Resolve the pin swap. Reads the target slot AND the booking's current pin.
+    // 4. Resolve the pin swap. Reads the target slot AND the booking's current pin.
     //    The old single-call helper read the target, deleted a stale hold, then read
     //    the old pin — a read-after-write whenever the target carried an expired lock.
     const swap = await SlotReservationService.readSlotSwapPlan(

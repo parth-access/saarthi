@@ -1,3 +1,5 @@
+import { SESSION_DURATION_MINUTES } from '@/shared/constants';
+
 export interface BookingEmailData {
   patientName: string;
   therapistName: string;
@@ -507,7 +509,7 @@ export function generateSessionReminderStudentEmail(data: SessionReminderEmailDa
         </tr>
         <tr>
           <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Duration:</td>
-          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || '50 minutes'}</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || `${SESSION_DURATION_MINUTES} minutes`}</td>
         </tr>
         <tr>
           <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Mode:</td>
@@ -590,7 +592,7 @@ export function generateSessionReminderTherapistEmail(data: SessionReminderEmail
         </tr>
         <tr>
           <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Duration:</td>
-          <td style="font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || '50 minutes'}</td>
+          <td style="font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.duration || `${SESSION_DURATION_MINUTES} minutes`}</td>
         </tr>
       </table>
     </div>

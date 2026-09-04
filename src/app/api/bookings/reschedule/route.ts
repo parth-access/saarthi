@@ -49,6 +49,10 @@ export async function POST(req: Request) {
     if (rawMsg.includes('unavailable') || rawMsg.includes('already booked')) {
       return NextResponse.json({ success: false, error: rawMsg }, { status: 409 });
     }
+
+    if (rawMsg.includes('current session time')) {
+      return NextResponse.json({ success: false, error: rawMsg }, { status: 400 });
+    }
     
     if (rawMsg.includes('Unauthorized') || rawMsg.includes('not found')) {
       return NextResponse.json({ success: false, error: rawMsg }, { status: 403 });

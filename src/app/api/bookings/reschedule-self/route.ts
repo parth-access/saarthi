@@ -95,8 +95,10 @@ export async function POST(req: Request) {
     if (rawMsg.includes('not found')) {
       return NextResponse.json({ success: false, error: 'We could not find this session.' }, { status: 404 });
     }
-    // Policy / validation (past date, 14-day window, completed/cancelled, bad format).
+    // Policy / validation (same-slot target, past date, 14-day window,
+    // completed/cancelled, bad format).
     if (
+      rawMsg.includes('current session time') ||
       rawMsg.includes('past') ||
       rawMsg.includes('14 days') ||
       rawMsg.includes('completed') ||

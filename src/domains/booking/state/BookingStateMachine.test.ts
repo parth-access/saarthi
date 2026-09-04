@@ -132,6 +132,45 @@ describe('BookingStateMachine and Booking Entity', () => {
       expect(booking.rescheduleHistory?.[1].newDate).toBe('2026-09-05');
     });
 
+    it('omits the optional reason field entirely when no reason is provided', () => {
+      // Firestore rejects `reason: undefined` inside an array element
+      // (`Cannot use "undefined" as a Firestore value (found in field
+      // "rescheduleHistory.`0`.reason")`), so a reason-less reschedule must not
+      // carry the key at all.
+      const booking = new Booking({
+        id: 'bk_1',
+        status: 'confirmed',
+        date: '2026-09-04',
+        time: '09:00',
+      });
+
+      booking.reschedule('2026-09-04', '09:45', new Date('2026-09-03T12:00:00Z'));
+
+      expect(booking.rescheduleHistory).toHaveLength(1);
+      expect('reason' in booking.rescheduleHistory![0]).toBe(false);
+      expect(booking.rescheduleHistory![0]).toEqual({
+        previousDate: '2026-09-04',
+        previousTime: '09:00',
+        newDate: '2026-09-04',
+        newTime: '09:45',
+        rescheduledAt: new Date('2026-09-03T12:00:00Z'),
+      });
+    });
+
+    it('keeps the reason when one is provided', () => {
+      const booking = new Booking({
+        id: 'bk_1',
+        status: 'confirmed',
+        date: '2026-09-04',
+        time: '09:00',
+      });
+
+      booking.reschedule('2026-09-05', '11:00', new Date('2026-09-03T12:00:00Z'), undefined, 'Client requested morning slot');
+
+      expect(booking.rescheduleHistory?.[0].reason).toBe('Client requested morning slot');
+      expect(Object.keys(booking.rescheduleHistory![0])).toContain('reason');
+    });
+
     it('should prevent rescheduling cancelled, rejected, or completed bookings', () => {
       const cancelledBooking = new Booking({ id: 'bk_1', status: 'cancelled', date: '2026-09-01', time: '10:00' });
       expect(() => cancelledBooking.reschedule('2026-09-02', '11:00')).toThrow(/Cannot reschedule a cancelled booking/);

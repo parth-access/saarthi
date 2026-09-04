@@ -79,7 +79,7 @@ describe('SessionReminderService (Phase 3A)', () => {
       const calculation = SessionReminderService.calculateReminderTimeIST('2026-09-15', '03:00 PM');
       
       expect(calculation.sessionStartIso).toBe('2026-09-15T15:00:00+05:30');
-      expect(calculation.sessionEndIso).toBe('2026-09-15T15:50:00+05:30');
+      expect(calculation.sessionEndIso).toBe('2026-09-15T15:45:00+05:30');
 
       const expectedReminderTimeMillis = new Date('2026-09-15T15:00:00+05:30').getTime() - (5 * 3600 * 1000);
       expect(calculation.reminderTimeMillis).toBe(expectedReminderTimeMillis);

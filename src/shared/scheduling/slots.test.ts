@@ -28,12 +28,16 @@ describe('generateTimeSlots (canonical cadence)', () => {
     expect(generateTimeSlots('09:00', '11:15', 60, 15)).toEqual(['09:00', '10:15']);
   });
 
-  it('reproduces the production cadence that raised the 50-vs-45 question', () => {
-    // slotDuration 45 / cooldownGap 0 gives starts every 45 minutes, while a
-    // session is displayed and calendared as 50 minutes: 09:00-09:50 overlaps
-    // 09:45-10:35. Documented here so a change of cadence is a deliberate act.
+  it('produces the 45-minute cadence that matches the 45-minute session length', () => {
+    // slotDuration 45 / cooldownGap 0 gives starts every 45 minutes, and the
+    // session occupies exactly its slot (09:00-09:45, 09:45-10:30, ...), so the
+    // cadence and SESSION_DURATION_MINUTES (45) agree and nothing overlaps.
     expect(generateTimeSlots('09:00', '17:00', 45, 0)).toContain('09:00');
     expect(generateTimeSlots('09:00', '17:00', 45, 0)).toContain('09:45');
+    expect(generateTimeSlots('09:00', '17:00', 45, 0)).toEqual([
+      '09:00', '09:45', '10:30', '11:15', '12:00', '12:45', '13:30', '14:15',
+      '15:00', '15:45',
+    ]);
   });
 
   it('jumps past a break instead of emitting an overlapping start', () => {

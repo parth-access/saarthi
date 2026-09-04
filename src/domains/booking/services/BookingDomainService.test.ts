@@ -197,6 +197,11 @@ describe('BookingDomainService', () => {
     expect(booking.originalTime).toBe('10:00');
     expect(booking.utcDateTime).toBe('2026-07-21T11:00:00.000Z');
     expect(booking.rescheduledAt).toBe(rescheduledAt);
+    // The self-service path never supplies a reason; the history entry must omit
+    // the key rather than store `reason: undefined` (Firestore rejects that and
+    // aborted the whole `/api/bookings/reschedule-self` transaction).
+    expect(booking.rescheduleHistory).toHaveLength(1);
+    expect('reason' in booking.rescheduleHistory![0]).toBe(false);
     expect(mockRepository.save).toHaveBeenCalledWith(booking, undefined);
     // The target slot is part of the event id, so re-issuing the SAME reschedule is
     // idempotent while a genuinely different reschedule gets its own event.
