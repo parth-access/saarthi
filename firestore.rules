@@ -265,9 +265,15 @@ service cloud.firestore {
         allow read: if
           isSignedIn();
 
-        allow create, update, delete: if
-          isAdmin()
-          || isTherapistDocOwner(therapistId);
+        /*
+        Writes go through /api/therapist/availability/rule (the therapist's own
+        hours) or /api/admin/therapists/{id}/schedule (an admin's change). Both
+        verify the role live, reject an overlapping or empty window, and write an
+        audit entry. A direct client write did none of that, and this branch was
+        broader than the API it shadowed: it authorized any signed-in user whose
+        uid matched therapists/{id}.authId, without checking users/{uid}.role.
+        */
+        allow write: if false;
       }
 
       /*
@@ -281,9 +287,8 @@ service cloud.firestore {
         allow read: if
           isSignedIn();
 
-        allow create, update, delete: if
-          isAdmin()
-          || isTherapistDocOwner(therapistId);
+        /* Server-only, for the reasons given on recurringRules above. */
+        allow write: if false;
       }
     }
     /*

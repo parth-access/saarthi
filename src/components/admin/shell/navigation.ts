@@ -91,10 +91,15 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
       {
         href: '/admin/therapists',
         label: 'Therapists',
-        purpose: 'Roster, availability and active status.',
+        purpose: 'Who is bookable, and the working hours that decide their start times.',
         icon: Stethoscope,
-        status: 'planned',
-        backedBy: ['therapists', 'therapistAvailability', 'overrides'],
+        status: 'ready',
+        backedBy: [
+          'GET /api/admin/therapists',
+          'therapists',
+          'therapistAvailability/{id}/recurringRules',
+          'therapistAvailability/{id}/overrides',
+        ],
       },
       {
         href: '/admin/payments',

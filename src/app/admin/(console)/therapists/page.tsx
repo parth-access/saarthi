@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { TherapistsScreen } from '@/components/admin/therapists/TherapistsScreen';
 
 export default function AdminTherapistsPage() {
-  return <PlannedSection />;
+  return <TherapistsScreen />;
 }
