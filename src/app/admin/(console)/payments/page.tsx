@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { PaymentsScreen } from '@/components/admin/payments/PaymentsScreen';
 
 export default function AdminPaymentsPage() {
-  return <PlannedSection />;
+  return <PaymentsScreen />;
 }

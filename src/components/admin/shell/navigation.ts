@@ -101,8 +101,8 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         label: 'Payments',
         purpose: 'Trace a payment from order to receipt.',
         icon: CreditCard,
-        status: 'planned',
-        backedBy: ['bookings (payment fields)', 'payments', '/api/receipts'],
+        status: 'ready',
+        backedBy: ['GET /api/admin/payments', 'payments', 'bookings', '/api/receipts (number)'],
       },
       {
         href: '/admin/refunds',
