@@ -3,6 +3,8 @@ import { ChevronLeft, User, HeartHandshake, Users, Sparkles } from "lucide-react
 import { Button } from "../../ui/Button"
 import { SessionType } from "../../../types"
 import { cn } from "../../../lib/utils"
+import { SESSION_DURATION_MINUTES } from "@/shared/constants"
+import { SESSION_PRICE_DISPLAY } from "../bookingUi"
 
 // TODO: If differential pricing is introduced per session type or age-gating for Teen sessions,
 // ensure DetailsStep/ReviewStep re-validates the order amount and eligibility from the server.
@@ -52,6 +54,11 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
       <div className="text-center">
         <h3 className="text-3xl font-serif text-primary">Session Type</h3>
         <p className="text-muted-foreground mt-2">What kind of support are you looking for?</p>
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
+          <span>{SESSION_DURATION_MINUTES}-minute session</span>
+          <span className="text-primary/30">·</span>
+          <span className="font-bold">{SESSION_PRICE_DISPLAY}</span>
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {SESSION_TYPE_OPTIONS.map(({ type, title, description, icon: Icon }) => (
@@ -59,11 +66,12 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
             key={type}
             type="button"
             onClick={() => onSelect(type)}
+            aria-pressed={selected === type}
             className={cn(
-              "p-6 rounded-[2rem] border-2 text-left transition-all group flex flex-col gap-3",
-              selected === type 
-                ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5 ring-2 ring-primary/10" 
-                : "border-muted/30 bg-white hover:border-primary/20 hover:bg-[#FFFBE7]/40 text-muted-foreground"
+              "group flex flex-col gap-3 rounded-[2rem] border-2 p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              selected === type
+                ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5 ring-2 ring-primary/10"
+                : "border-muted/30 bg-white text-muted-foreground hover:border-primary/20 hover:bg-background/40"
             )}
           >
             <div className="flex items-center justify-between w-full">

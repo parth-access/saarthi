@@ -45,14 +45,18 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
   }, [])
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8">
       <div className="text-center">
         <h3 className="text-3xl font-serif text-primary tracking-tight">Preferred Date</h3>
         <p className="text-muted-foreground mt-2 text-sm italic">Choose a day that works for you</p>
       </div>
 
       <div className="relative">
-        <div className="flex overflow-x-auto gap-4 pb-6 pt-4 snap-x snap-mandatory no-scrollbar w-full px-4 sm:px-0 -mx-4 sm:mx-0 mask-edges">
+        <div
+          role="group"
+          aria-label="Choose a date within the next two weeks"
+          className="flex overflow-x-auto gap-4 pb-6 pt-4 snap-x snap-mandatory no-scrollbar w-full px-4 sm:px-0 -mx-4 sm:mx-0 mask-edges"
+        >
           {days.map(({ dateStr, label, dayNum, monthShort }) => {
             const isSelected = selectedDate === dateStr
 
@@ -61,11 +65,13 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 key={dateStr}
                 type="button"
                 onClick={() => onSelect(dateStr)}
+                aria-pressed={isSelected}
+                aria-label={`${label}, ${dayNum} ${monthShort}`}
                 className={cn(
-                  "snap-center shrink-0 w-28 py-5 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group",
-                  isSelected 
-                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105" 
-                    : "bg-white border-primary/5 hover:border-primary/20 hover:bg-[#FCFAF7] text-primary"
+                  "snap-center shrink-0 w-28 py-5 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  isSelected
+                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105"
+                    : "bg-white border-primary/5 hover:border-primary/20 hover:bg-background text-primary"
                 )}
               >
                 {/* Subtle highlight effect */}
@@ -90,16 +96,20 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
             )
           })}
         </div>
+        <p className="mt-1 text-center text-[11px] font-medium text-muted-foreground sm:text-right">
+          Scroll for more dates · next {BOOKING_WINDOW_DAYS} days
+        </p>
       </div>
 
       <div className="flex justify-between pt-4 border-t border-primary/5">
         <Button variant="ghost" className="rounded-full hover:bg-primary/5" onClick={onBack}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button 
-          disabled={!selectedDate} 
+        <Button
+          variant="accent"
+          disabled={!selectedDate}
           onClick={onNext}
-          className="rounded-full px-8 bg-[#E6A520] hover:bg-[#d49419] text-white border-none shadow-md shadow-[#E6A520]/20 transition-all font-bold tracking-wide"
+          className="rounded-full px-8 font-bold tracking-wide"
         >
           Find Slots <ChevronRight className="ml-2 h-4 w-4" />
         </Button>

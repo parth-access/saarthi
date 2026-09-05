@@ -22,7 +22,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
         </div>
         <div className="grid gap-6">
           {[1, 2].map((i) => (
-             <div key={i} className="p-6 rounded-[2.5rem] border-2 border-primary/5 bg-white flex flex-col sm:flex-row items-center gap-6">
+             <div key={i} className="p-6 rounded-[2rem] border-2 border-primary/5 bg-white flex flex-col sm:flex-row items-center gap-6">
                <Skeleton className="w-24 h-24 rounded-full shrink-0" />
                <div className="flex-1 space-y-3 w-full">
                   <Skeleton className="h-6 w-48 rounded-lg" />
@@ -42,18 +42,18 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
 
   if (error) {
     return (
-      <div className="py-16 text-center space-y-5 bg-white rounded-[2.5rem] border border-red-100 p-8 shadow-sm">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto opacity-75" />
+      <div className="mx-auto max-w-lg space-y-5 rounded-[2rem] border border-danger/20 bg-danger-surface p-8 py-12 text-center shadow-sm">
+        <AlertCircle className="mx-auto h-12 w-12 text-danger opacity-80" />
         <div className="space-y-1">
-          <h4 className="text-xl font-serif font-bold text-primary">Unable to Load Therapists</h4>
-          <p className="text-muted-foreground text-sm max-w-sm mx-auto">{error}</p>
+          <h4 className="font-serif text-xl font-bold text-primary">Unable to Load Therapists</h4>
+          <p className="mx-auto max-w-sm text-sm text-danger">{error}</p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => refetch()} 
-          className="rounded-full px-6 border-primary/20 hover:bg-primary hover:text-white transition-all gap-2"
+        <Button
+          variant="outline"
+          onClick={() => refetch()}
+          className="gap-2 rounded-full border-primary/20 px-6 transition-all hover:bg-primary hover:text-white"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="h-4 w-4" />
           <span>Try Again</span>
         </Button>
       </div>
@@ -62,9 +62,9 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
 
   if (therapists.length === 0) {
     return (
-      <div className="py-16 text-center space-y-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/10">
-        <ShieldCheck className="w-12 h-12 text-primary/20 mx-auto" />
-        <p className="text-xl font-serif text-primary/60">No specialists available right now.</p>
+      <div className="space-y-6 rounded-[2rem] border-2 border-dashed border-primary/10 bg-neutral-surface py-16 text-center">
+        <ShieldCheck className="mx-auto h-12 w-12 text-primary/20" />
+        <p className="font-serif text-xl text-primary/60">No specialists available right now.</p>
       </div>
     );
   }
@@ -79,28 +79,33 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
         {therapists.map(t => (
           <button
             key={t.id}
+            type="button"
             onClick={() => onSelect(t.id)}
+            aria-pressed={selectedId === t.id}
             className={cn(
-              "p-6 rounded-[2.5rem] border-2 text-left transition-all group flex flex-col sm:flex-row items-center gap-6",
-              selectedId === t.id 
-                ? "border-[#E6A520] bg-white ring-4 ring-[#E6A520]/10 shadow-sm" 
-                : "border-muted/30 bg-white hover:border-primary/20 hover:bg-[#FFFBE7]"
+              "group flex flex-col items-center gap-6 rounded-[2rem] border-2 p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:flex-row",
+              selectedId === t.id
+                ? "border-accent bg-white shadow-sm ring-4 ring-accent/10"
+                : "border-muted/30 bg-white hover:border-primary/20 hover:bg-background"
             )}
           >
-            <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 border-2 border-primary/10 bg-primary/5 flex items-center justify-center text-primary font-serif text-3xl">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/10 bg-primary/5 font-serif text-3xl text-primary">
               {t.image ? (
-                <img src={t.image} alt={t.name} referrerPolicy="no-referrer" className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" />
+                <img src={t.image} alt={t.name} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105" />
               ) : (
                 t.name.charAt(0)
               )}
             </div>
             <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h4 className="text-xl font-serif text-primary font-bold group-hover:text-[#E6A520] transition-colors">{t.name}</h4>
-              <p className="text-sm font-medium text-[#E6A520] uppercase tracking-wider">{t.specialization}</p>
-              <p className="text-xs text-primary/60 line-clamp-2 leading-relaxed">{t.bio}</p>
+              <h4 className="font-serif text-xl font-bold text-primary transition-colors group-hover:text-accent">{t.name}</h4>
+              <p className="text-sm font-medium uppercase tracking-wider text-accent">{t.specialization}</p>
+              <p className="line-clamp-2 text-xs leading-relaxed text-primary/60">{t.bio}</p>
             </div>
-            <div className={`hidden sm:flex w-10 h-10 items-center justify-center rounded-full transition-colors ${selectedId === t.id ? 'bg-[#E6A520] text-white' : 'bg-primary/5 text-primary group-hover:bg-[#E6A520]/20 group-hover:text-primary'}`}>
-              <ChevronRight className="w-5 h-5" />
+            <div className={cn(
+              "hidden h-10 w-10 items-center justify-center rounded-full transition-colors sm:flex",
+              selectedId === t.id ? "bg-accent text-white" : "bg-primary/5 text-primary group-hover:bg-accent/20 group-hover:text-primary"
+            )}>
+              <ChevronRight className="h-5 w-5" />
             </div>
           </button>
         ))}

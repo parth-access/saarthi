@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { CheckCircle2, Loader2, Mail } from "lucide-react"
 import NextLink from "next/link"
 import { Button } from "../ui/Button"
-import { cn } from "../../lib/utils"
 import { SessionType } from "../../types"
 
 // Step Components
@@ -15,6 +14,11 @@ import { DateStep } from "./steps/DateStep"
 import { SlotStep } from "./steps/SlotStep"
 import { DetailsStep } from "./steps/DetailsStep"
 import { ReviewStep, BookingFlowState } from "./steps/ReviewStep"
+
+// Presentational shell
+import { BookingStepper } from "./BookingStepper"
+import { BookingLayout } from "./BookingLayout"
+import { BookingSummary } from "./BookingSummary"
 
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
@@ -91,6 +95,11 @@ const BookingSystem = () => {
   const { currentUser } = useAuth()
   const isAuthenticated = Boolean(currentUser)
   const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
+
+  // Fade/rise transitions collapse to a plain cut when the user prefers reduced motion.
+  const prefersReducedMotion = useReducedMotion()
+  // Resolved specialist for the persistent Booking Summary (display only).
+  const selectedTherapist = therapists.find(t => t.id === bookingData.therapistId)
 
   // Clean up any pending setTimeout on unmount
   React.useEffect(() => {
@@ -370,9 +379,9 @@ const BookingSystem = () => {
         )
       case 7:
         return (
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16 px-4 space-y-8 max-w-lg mx-auto">
+          <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16 px-4 space-y-8 max-w-lg mx-auto">
             <div className="relative inline-flex items-center justify-center">
-              <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse" />
+              <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse motion-reduce:animate-none" />
               <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
                 <CheckCircle2 className="w-12 h-12" />
               </div>
@@ -433,39 +442,65 @@ const BookingSystem = () => {
   }, [step, bookingData.sessionType, bookingData.date]);
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6 overflow-hidden min-h-[700px]">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 min-h-[700px]">
       {step < 7 && (
-        <div className="mb-16">
-          <div className="flex justify-between items-center relative mb-4">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className={cn("w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black z-10 transition-all duration-500", step === i ? "bg-primary text-white scale-125 shadow-lg shadow-primary/20" : step > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground opacity-40")}>
-                {step > i ? <CheckCircle2 className="w-4 h-4" /> : i}
-              </div>
-            ))}
-            <div className="absolute top-1/2 left-0 w-full h-[1px] bg-muted -translate-y-1/2">
-              <div className="h-full bg-primary/30 transition-all duration-700 ease-out" style={{ width: `${(Math.min(step - 1, 5) / 5) * 100}%` }} />
-            </div>
-          </div>
+        <div className="mb-8 sm:mb-12">
+          <BookingStepper currentStep={step} />
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
+      {step === 7 ? (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="success"
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderCurrentStep()}
+          </motion.div>
+        </AnimatePresence>
+      ) : (
+        <BookingLayout
+          aside={
+            <BookingSummary
+              variant="sidebar"
+              therapist={selectedTherapist}
+              sessionType={bookingData.sessionType}
+              date={bookingData.date}
+              time={bookingData.time}
+            />
+          }
         >
-          {renderCurrentStep()}
-        </motion.div>
-      </AnimatePresence>
+          {step >= 2 && (
+            <BookingSummary
+              variant="mobile"
+              className="mb-6 lg:hidden"
+              therapist={selectedTherapist}
+              sessionType={bookingData.sessionType}
+              date={bookingData.date}
+              time={bookingData.time}
+            />
+          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+              transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
+            >
+              {renderCurrentStep()}
+            </motion.div>
+          </AnimatePresence>
+        </BookingLayout>
+      )}
 
       {bookingFlowState === 'VERIFYING_PAYMENT' && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-              <Loader2 className="w-8 h-8 animate-spin" />
+              <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
             </div>
             <h3 className="text-2xl font-serif font-bold text-primary">Confirming Your Booking</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
