@@ -142,7 +142,7 @@ export default function PrivacyPage() {
                 </div>
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/5 space-y-1">
                   <span className="font-semibold text-primary block">Safety &amp; Compliance</span>
-                  <p className="text-xs text-muted-foreground">To maintain platform security, prevent unauthorized access, and fulfill legal requirements.</p>
+                  <p className="text-xs text-muted-foreground">To maintain platform security, prevent unauthorized access, support user safety where necessary, and fulfill legal requirements.</p>
                 </div>
               </div>
             </section>

@@ -101,7 +101,7 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">2. Services Description</h2>
               <p>
-                Saarthi operates an online technology platform connecting clients with independent, verified, licensed therapists and psychologists. Through Saarthi, clients can schedule individual therapy sessions, receive video consultation links, and manage appointments.
+                Saarthi operates an online technology platform connecting clients with independent, verified therapists and psychologists. Through Saarthi, clients can schedule individual therapy sessions, receive video consultation links, and manage appointments.
               </p>
             </section>
 
@@ -143,7 +143,7 @@ export default function TermsPage() {
             <section className="space-y-3">
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">6. Therapist &amp; Client Relationship</h2>
               <p>
-                Therapists on Saarthi act as independent practitioners exercising professional clinical judgment. Saarthi provides the booking, scheduling, and payment technology infrastructure but does not dictate therapy methodologies or replace individual professional clinical care.
+                Therapists on Saarthi act as independent practitioners providing professional therapeutic services. Saarthi provides the booking, scheduling, and payment technology infrastructure but does not dictate therapy methodologies or replace individual professional clinical care.
               </p>
             </section>
 
