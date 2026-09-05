@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { RefundsScreen } from '@/components/admin/refunds/RefundsScreen';
 
 export default function AdminRefundsPage() {
-  return <PlannedSection />;
+  return <RefundsScreen />;
 }

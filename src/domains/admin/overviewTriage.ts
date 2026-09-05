@@ -265,17 +265,25 @@ export function describeHold(state: HoldState): string {
     case 'lapsed':
       return state.minutes < 1
         ? 'Hold just lapsed'
-        : `Hold lapsed ${formatDuration(state.minutes)} ago`;
+        : `Hold lapsed ${formatDurationMinutes(state.minutes)} ago`;
     case 'expiring':
-      return `Lapses in ${formatDuration(state.minutes)}`;
+      return `Lapses in ${formatDurationMinutes(state.minutes)}`;
     case 'holding':
-      return `${formatDuration(state.minutes)} left to pay`;
+      return `${formatDurationMinutes(state.minutes)} left to pay`;
     case 'unknown':
       return 'No hold deadline recorded';
   }
 }
 
-function formatDuration(minutes: number): string {
+/**
+ * A span of minutes as an operator would say it: `45 min`, `2 hr 10 min`, `3 days`.
+ *
+ * Exported because every admin screen that ages something — a lapsed hold, a
+ * stalled outbox, a refund nobody has paid — has to phrase it, and two screens
+ * rounding the same span differently is the kind of small inconsistency that
+ * makes an operator distrust both numbers.
+ */
+export function formatDurationMinutes(minutes: number): string {
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -475,10 +483,10 @@ export function readMachinery(observation: OutboxObservation, nowMs: number): Ma
   if (oldestOverdueMinutes !== null && oldestOverdueMinutes >= MACHINERY_STALL_MINUTES) {
     return {
       verdict: 'stalled',
-      headline: `Events have been due for ${formatDuration(oldestOverdueMinutes)} without being processed.`,
+      headline: `Events have been due for ${formatDurationMinutes(oldestOverdueMinutes)} without being processed.`,
       detail: [
         waitingLine,
-        `The oldest event whose retry backoff has elapsed has been waiting ${formatDuration(oldestOverdueMinutes)}. The process-outbox job runs every five minutes, so this suggests it is not running or is failing.`,
+        `The oldest event whose retry backoff has elapsed has been waiting ${formatDurationMinutes(oldestOverdueMinutes)}. The process-outbox job runs every five minutes, so this suggests it is not running or is failing.`,
         deadLine,
       ],
       caveat: MACHINERY_CAVEAT,
@@ -495,7 +503,7 @@ export function readMachinery(observation: OutboxObservation, nowMs: number): Ma
       waitingLine,
       oldestOverdueMinutes === null
         ? 'None of them are overdue — each is either fresh or inside its retry backoff.'
-        : `The oldest overdue event has been waiting ${formatDuration(oldestOverdueMinutes)}, within the ${MACHINERY_STALL_MINUTES}-minute tolerance for a five-minute schedule.`,
+        : `The oldest overdue event has been waiting ${formatDurationMinutes(oldestOverdueMinutes)}, within the ${MACHINERY_STALL_MINUTES}-minute tolerance for a five-minute schedule.`,
       deadLine,
     ],
     caveat: MACHINERY_CAVEAT,

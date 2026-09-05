@@ -111,7 +111,9 @@ describe('queueDestination', () => {
   });
 
   it('refuses to offer a link into a section that does not exist yet', () => {
-    for (const id of ['refunds_outstanding', 'events_abandoned', 'emails_failed'] as const) {
+    // Background jobs is still unbuilt, so both of its queues have nowhere to send
+    // an operator. Refunds has shipped and is covered by the test below instead.
+    for (const id of ['events_abandoned', 'emails_failed'] as const) {
       const destination = queueDestination(attentionQueue(id));
       expect(destination.href).toBeNull();
       expect(destination.cta).toContain('Handled in');
@@ -119,12 +121,15 @@ describe('queueDestination', () => {
     }
   });
 
-  it('starts linking on its own once the owning section ships', () => {
-    // The rule reads `status` from the navigation model, so shipping Refunds is
-    // the only edit needed for this queue to become clickable.
+  it('links on its own once the owning section ships', () => {
+    // The rule reads `status` from the navigation model, so flipping Refunds to
+    // 'ready' was the only edit that made this queue clickable — no change here.
     const refunds = ADMIN_NAV_ITEMS.find((item) => item.label === 'Refunds');
-    expect(refunds).toBeDefined();
-    expect(refunds?.status).toBe('planned');
-    expect(queueDestination(attentionQueue('refunds_outstanding')).href).toBeNull();
+    expect(refunds?.status).toBe('ready');
+
+    const destination = queueDestination(attentionQueue('refunds_outstanding'));
+    expect(destination.href).toBe(refunds?.href ?? null);
+    expect(destination.cta).toBe('Open in Refunds');
+    expect(destination.note).toBeNull();
   });
 });
