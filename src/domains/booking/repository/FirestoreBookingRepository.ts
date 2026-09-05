@@ -272,14 +272,36 @@ export class FirestoreBookingRepository implements BookingRepository {
    * query (no composite index) and filters status + missing meetingUrl in memory.
    */
   async findBookingsNeedingCalendarRetry(limitCount: number = 25): Promise<Booking[]> {
+    return (await this.scanBookingsNeedingCalendarRetry(limitCount)).bookings;
+  }
+
+  /**
+   * The same scan, plus whether it hit its limit.
+   *
+   * The admin overview reports this set as a count, and the in-memory
+   * `status`/`meetingUrl` filter above makes a returned length of 3 ambiguous:
+   * it could mean three bookings need a Meet link, or that the scan stopped at
+   * its limit and only three of the documents it happened to see qualified.
+   * `scanFilled` is the difference between "3" and "at least 3", which is the
+   * difference between a console an operator can trust and one they cannot.
+   *
+   * `findBookingsNeedingCalendarRetry` delegates here so the predicate — which
+   * `/api/cron/retry-calendar` acts on — is stated exactly once.
+   */
+  async scanBookingsNeedingCalendarRetry(
+    limitCount: number = 25
+  ): Promise<{ bookings: Booking[]; scanFilled: boolean }> {
     if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
     const snapshot = await adminDb.collection('bookings')
       .where('calendarStatus', 'in', ['RETRY_REQUIRED', 'FAILED', 'PENDING'])
       .limit(limitCount)
       .get();
-    return snapshot.docs
-      .map(doc => BookingMapper.toEntity(doc))
-      .filter(b => b.status === 'confirmed' && !b.meetingUrl);
+    return {
+      bookings: snapshot.docs
+        .map(doc => BookingMapper.toEntity(doc))
+        .filter(b => b.status === 'confirmed' && !b.meetingUrl),
+      scanFilled: snapshot.size >= limitCount,
+    };
   }
 
   /**
