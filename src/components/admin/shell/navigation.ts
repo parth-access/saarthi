@@ -65,8 +65,12 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         label: 'Overview',
         purpose: 'What needs attention right now, and what is happening today.',
         icon: LayoutDashboard,
-        status: 'planned',
-        backedBy: ['daily_metrics', 'timelines', 'bookings', 'emails', 'refunds'],
+        status: 'ready',
+        // Not `daily_metrics`: its day is keyed by the UTC date, so "today" would
+        // begin at 5:30 AM IST, and its `bookingsCreated` counts slot holds that
+        // are mostly abandoned. Every figure on the overview is read from the
+        // documents themselves instead.
+        backedBy: ['GET /api/admin/overview', 'bookings', 'refunds', 'outbox_events', 'emails'],
       },
       {
         href: '/admin/bookings',

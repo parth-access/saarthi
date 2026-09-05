@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { OverviewScreen } from '@/components/admin/overview/OverviewScreen';
 
 export default function AdminOverviewPage() {
-  return <PlannedSection />;
+  return <OverviewScreen />;
 }
