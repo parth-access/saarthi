@@ -85,8 +85,8 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         label: 'Clients',
         purpose: 'Who has booked, and their history with the practice.',
         icon: Users,
-        status: 'planned',
-        backedBy: ['bookings (derived)'],
+        status: 'ready',
+        backedBy: ['GET /api/admin/clients', 'bookings (grouped by email)'],
       },
       {
         href: '/admin/therapists',
