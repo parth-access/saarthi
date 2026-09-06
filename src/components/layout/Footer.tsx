@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Mail, MapPin, Phone, Instagram, Youtube, Facebook } from "lucide-react"
+import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin } from "lucide-react"
 
 export function Footer() {
   return (
@@ -25,18 +25,31 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://youtube.com/@saarthi_theguidanceforlife?si=OXIyS0lOMmObvgMq"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
                 aria-label="YouTube"
               >
                 <Youtube className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/share/1HszJAuHfi/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/saarthi-the-guidance-for-life/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-5 w-5" />
               </a>
             </div>
           </div>
