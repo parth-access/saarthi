@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { therapistService } from '@/services/therapistService';
 import { 
   User, 
-  CheckCircle2, 
   XCircle, 
   Loader2, 
   ChevronDown
@@ -164,51 +163,77 @@ export const AdminPage = () => {
 
   const adminTherapistsNode = currentUser?.role === 'admin' ? (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans">
-      <h2 className="text-3xl font-serif text-primary tracking-tight mb-8">Manage Therapists</h2>
-      {allTherapists.map(t => (
-        <div key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-[#FCFAF7] rounded-3xl border border-primary/5 gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] text-left">
-          <div className="flex items-center gap-4">
-            {t.image ? (
-              <img src={t.image} alt={t.name} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-primary/5 shadow-sm" referrerPolicy="no-referrer" />
-            ) : (
-              <div className="w-14 h-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary/40"><User className="w-6 h-6" /></div>
-            )}
-            <div>
-              <div className="font-bold text-lg text-primary font-serif">{t.name}</div>
-              <div className="text-sm text-primary/60 mt-0.5">{t.specialization}</div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-primary font-serif">Manage Therapists</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Active status controls whether a practitioner is listed and bookable by clients.
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {allTherapists.map(t => (
+          <div
+            key={t.id}
+            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-xl border border-hairline gap-4 shadow-sm text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              {t.image ? (
+                <img
+                  src={t.image}
+                  alt={t.name}
+                  className="w-12 h-12 rounded-lg object-cover border border-hairline shadow-xs"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-neutral-surface rounded-lg border border-hairline flex items-center justify-center text-primary/40">
+                  <User className="w-5 h-5" />
+                </div>
+              )}
+              <div>
+                <div className="font-semibold text-sm text-primary font-serif">{t.name}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t.specialization}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={cn(
+                  "px-2.5 py-1 rounded text-xs font-medium border",
+                  t.active
+                    ? "bg-success-surface text-success border-success/30"
+                    : "bg-danger-surface text-danger border-danger/30"
+                )}
+              >
+                {t.active ? "Active" : "Inactive"}
+              </span>
+              <Button
+                variant={t.active ? "outline" : "primary"}
+                size="sm"
+                disabled={processingTherapistId === t.id}
+                onClick={async () => {
+                  try {
+                    setProcessingTherapistId(t.id);
+                    await therapistService.updateTherapistStatus(t.id, !t.active);
+                    setAllTherapists(prev =>
+                      prev.map(item => (item.id === t.id ? { ...item, active: !item.active } : item))
+                    );
+                  } catch (e) {
+                    console.error("Update therapist status error:", e);
+                    setError(getErrorMessage(e, "Failed to update therapist status."));
+                  } finally {
+                    setProcessingTherapistId(null);
+                  }
+                }}
+              >
+                {processingTherapistId === t.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ) : null}
+                {t.active ? "Deactivate" : "Activate"}
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className={cn("px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border", t.active ? "bg-green-50 text-green-600 border-green-100" : "bg-red-50 text-red-600 border-red-100")}>
-              {t.active ? "Active" : "Inactive"}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={processingTherapistId === t.id}
-              className="rounded-xl h-10 px-5 border-primary/10 hover:bg-primary hover:text-white transition-all font-bold tracking-wide cursor-pointer disabled:opacity-50"
-              onClick={async () => {
-                try {
-                  setProcessingTherapistId(t.id);
-                  await therapistService.updateTherapistStatus(t.id, !t.active);
-                  setAllTherapists(prev => prev.map(item => item.id === t.id ? { ...item, active: !item.active } : item));
-                } catch (e) {
-                  console.error("Update therapist status error:", e);
-                  setError(getErrorMessage(e, "Failed to update therapist status."));
-                } finally {
-                  setProcessingTherapistId(null);
-                }
-              }}
-            >
-              {processingTherapistId === t.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                t.active ? "Deactivate" : "Activate"
-              )}
-            </Button>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   ) : null;
 
@@ -238,37 +263,41 @@ export const AdminPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-primary/20 backdrop-blur-sm"
+              className="absolute inset-0 bg-primary/20 backdrop-blur-xs"
               onClick={() => !isDeclining && setDeclineBookingDoc(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-primary/10 overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative w-full max-w-md bg-white rounded-xl shadow-xl border border-hairline overflow-hidden font-sans"
             >
-              <div className="p-6 md:p-8">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center shrink-0">
-                    <XCircle className="w-6 h-6" />
+              <div className="p-5 md:p-6">
+                <div className="flex items-start gap-3.5 mb-5">
+                  <div className="w-10 h-10 rounded-lg bg-danger-surface text-danger flex items-center justify-center shrink-0 border border-danger/20">
+                    <XCircle className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-xl font-serif text-primary">Decline Booking</h3>
-                    <p className="text-sm text-primary/60 mt-1 font-sans">
-                      For {declineBookingDoc.name}&apos;s session on {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""} at {declineBookingDoc.time}
+                    <h3 className="text-base font-semibold text-primary font-serif">Decline Session Request</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      For <span className="font-medium text-primary">{declineBookingDoc.name}</span> on{" "}
+                      {declineBookingDoc.date ? format(parseISO(declineBookingDoc.date), "MMM d") : ""}{" "}
+                      at <span className="tabular">{declineBookingDoc.time}</span>
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2 font-sans">Reason</label>
+                    <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-1.5">
+                      Reason
+                    </label>
                     <div className="relative group text-left">
                       <select
                         value={declineReason}
                         onChange={(e) => setDeclineReason(e.target.value)}
                         disabled={isDeclining}
-                        className="w-full h-12 rounded-xl bg-[#FCFAF7] border border-primary/5 px-4 pr-10 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 appearance-none transition-all outline-none cursor-pointer font-sans"
+                        className="w-full h-9 rounded-lg bg-neutral-surface/40 border border-hairline px-3 pr-8 text-xs font-medium text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary appearance-none transition-colors cursor-pointer"
                       >
                         <option value="Therapist unavailable">Therapist unavailable</option>
                         <option value="Requested slot unavailable">Requested slot unavailable</option>
@@ -277,38 +306,42 @@ export const AdminPage = () => {
                         <option value="Duplicate booking detected">Duplicate booking detected</option>
                         <option value="Other">Other</option>
                       </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/40 pointer-events-none" />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-primary/40 mb-2 font-sans">Custom Note (Optional)</label>
+                    <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-1.5">
+                      Custom Note to Client (Optional)
+                    </label>
                     <textarea
                       value={declineNote}
                       onChange={(e) => setDeclineNote(e.target.value)}
                       disabled={isDeclining}
-                      placeholder="Add a polite note to be included in the email..."
-                      className="w-full h-24 rounded-xl bg-[#FCFAF7] border border-primary/5 p-4 text-sm font-medium text-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none resize-none placeholder:font-normal placeholder:text-primary/30 font-sans text-left"
+                      placeholder="Add a polite explanation to be included in the email..."
+                      className="w-full h-20 rounded-lg bg-neutral-surface/40 border border-hairline p-3 text-xs font-normal text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors resize-none placeholder:text-muted-foreground text-left"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 mt-8 font-sans">
-                  <button
+                <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-hairline">
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     disabled={isDeclining}
                     onClick={() => setDeclineBookingDoc(null)}
-                    className="px-6 h-12 rounded-xl text-sm font-bold text-primary/60 hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     disabled={isDeclining}
                     onClick={handleDeclineConfirm}
-                    className="px-6 h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold tracking-wide transition-all shadow-lg shadow-red-500/20 hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:transform-none cursor-pointer"
                   >
-                    {isDeclining ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    {isDeclining ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
                     Confirm Decline
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
