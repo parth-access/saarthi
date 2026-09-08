@@ -51,9 +51,9 @@ const FloatingInput = ({
             y: isFocused ? -2 : 0, 
             boxShadow: isFocused ? "0 4px 20px rgba(230, 165, 32, 0.08)" : "0 0px 0px rgba(0,0,0,0)"
          }}
-         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-[#E6A520] bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
+         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-accent bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
       >
-         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-[#E6A520]' : 'text-primary/40'}`}>
+         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-accent' : 'text-primary/40'}`}>
             <Icon className="w-5 h-5" />
          </div>
          
@@ -66,7 +66,7 @@ const FloatingInput = ({
                 scale: isActive ? 0.75 : 1,
                 opacity: isActive ? 0.8 : 0.6
              }}
-             className={`absolute left-0 top-0 text-sm font-medium origin-left pointer-events-none transition-colors duration-300 ${isFocused ? "text-[#E6A520]" : "text-primary"}`}
+             className={`absolute left-0 top-0 text-sm font-medium origin-left pointer-events-none transition-colors duration-300 ${isFocused ? "text-accent" : "text-primary"}`}
            >
              {label}
            </motion.label>
@@ -255,7 +255,7 @@ export default function Login() {
 
   if (authLoading || currentUser) {
     return (
-      <div className="min-h-[100dvh] bg-[#FFFBE7] flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
           <motion.div
             animate={{ rotate: 360 }}
@@ -271,13 +271,13 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#FFFBE7] flex flex-col md:flex-row relative">
+    <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row relative">
       
       {/* Mobile Header Graphic (hidden on md) */}
       <div className="md:hidden h-[25dvh] flex items-center justify-center relative overflow-hidden bg-primary shrink-0">
          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-[#2a382f]" />
-         <div className="absolute -bottom-10 right-0 w-40 h-40 bg-[#E6A520] rounded-full blur-3xl opacity-20" />
-         <Heart className="w-10 h-10 text-[#E6A520] relative z-10 opacity-90" />
+         <div className="absolute -bottom-10 right-0 w-40 h-40 bg-accent rounded-full blur-3xl opacity-20" />
+         <Heart className="w-10 h-10 text-accent relative z-10 opacity-90" />
       </div>
 
       {/* Left side: Form */}
@@ -473,9 +473,9 @@ export default function Login() {
                 type="button"
               >
                 {isRegister ? (
-                  <>Already have an account? <span className="font-medium text-[#E6A520]">Sign In</span></>
+                  <>Already have an account? <span className="font-medium text-accent">Sign In</span></>
                 ) : (
-                  <>Don&apos;t have an account? <span className="font-medium text-[#E6A520]">Sign Up</span></>
+                  <>Don&apos;t have an account? <span className="font-medium text-accent">Sign Up</span></>
                 )}
               </button>
             </div>
@@ -483,7 +483,7 @@ export default function Login() {
           
           <div className="mt-8 flex justify-center text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-2 px-4 py-2 bg-primary/5 rounded-full backdrop-blur-sm border border-primary/10">
-              <Lock className="w-3.5 h-3.5 text-[#E6A520]" />
+              <Lock className="w-3.5 h-3.5 text-accent" />
               <p className="text-xs font-medium text-primary/60">Your data is securely encrypted and strictly private.</p>
             </div>
           </div>
@@ -496,12 +496,12 @@ export default function Login() {
         <motion.div 
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-[20%] -right-[10%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-[#E6A520]/20 to-transparent blur-[100px] mix-blend-screen pointer-events-none"
+          className="absolute -top-[20%] -right-[10%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-accent/20 to-transparent blur-[100px] mix-blend-screen pointer-events-none"
         />
         <motion.div 
           animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0] }} 
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] rounded-full bg-gradient-to-tr from-[#FFFBE7]/10 to-transparent blur-[80px] mix-blend-overlay pointer-events-none"
+          className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] rounded-full bg-gradient-to-tr from-background/10 to-transparent blur-[80px] mix-blend-overlay pointer-events-none"
         />
         
         {/* Decorative Grid */}
@@ -532,8 +532,8 @@ export default function Login() {
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5, opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
             className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl max-w-[220px]"
           >
-            <div className="w-10 h-10 rounded-full bg-[#E6A520]/20 flex items-center justify-center shrink-0">
-              <Shield className="w-5 h-5 text-[#E6A520]" />
+            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+              <Shield className="w-5 h-5 text-accent" />
             </div>
             <div>
               <p className="text-white font-medium text-sm">Bank-grade Security</p>
@@ -544,14 +544,14 @@ export default function Login() {
           <div className="max-w-xl">
              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-[#E6A520] animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                   <span className="text-xs font-medium text-white/80 uppercase tracking-widest">Wellness Redefined</span>
                </div>
              </motion.div>
              
              <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-4xl lg:text-5xl xl:text-6xl font-serif text-white mb-6 leading-[1.1]">
                A quiet space for<br />
-               <span className="text-[#E6A520] italic">your mind</span>
+               <span className="text-accent italic">your mind</span>
              </motion.h2>
              
              <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg text-white/70 max-w-md leading-relaxed mb-12">
@@ -572,8 +572,8 @@ export default function Login() {
                     transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
                     className="flex items-center gap-3 text-white/80"
                   >
-                    <div className="w-5 h-5 rounded-full bg-[#E6A520]/20 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#E6A520]" />
+                    <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
                     </div>
                     <span className="text-sm font-medium">{benefit}</span>
                   </motion.div>
@@ -581,7 +581,7 @@ export default function Login() {
              </div>
 
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="flex items-center gap-2 text-white/40 border-t border-white/10 pt-6 max-w-md">
-               <Shield className="w-4 h-4 text-[#E6A520]/50" />
+               <Shield className="w-4 h-4 text-accent/50" />
                <span className="text-xs">Trusted by students & professionals worldwide.</span>
              </motion.div>
           </div>
