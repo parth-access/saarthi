@@ -18,7 +18,8 @@ import { ReviewStep, BookingFlowState } from "./steps/ReviewStep"
 // Presentational shell
 import { BookingStepper } from "./BookingStepper"
 import { BookingLayout } from "./BookingLayout"
-import { BookingSummary } from "./BookingSummary"
+import { BookingSummary, CARD_SURFACE } from "./BookingSummary"
+import { cn } from "../../lib/utils"
 
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
@@ -394,41 +395,58 @@ const BookingSystem = () => {
         return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} />
       case 7:
         return (
-          <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16 px-4 space-y-8 max-w-lg mx-auto">
-            <div className="relative inline-flex items-center justify-center">
-              <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse motion-reduce:animate-none" />
-              <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
-                <CheckCircle2 className="w-12 h-12" />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary">Booking Confirmed</h2>
-              <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
-              
-              {isAuthenticated ? (
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Your payment was successful and your session is confirmed. We have sent the confirmation to <span className="font-semibold text-primary">{bookingData.email}</span>.
-                </p>
-              ) : (
-                <div className="space-y-3 pt-2">
-                  <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 text-left flex items-start gap-3.5">
-                    <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs text-primary/80">
-                      <p className="font-bold text-primary text-sm">Session Confirmation Sent</p>
-                      <p className="leading-relaxed">
-                        We have emailed your calendar invitation, video session link, and receipt to <span className="font-semibold text-primary underline">{bookingData.email}</span>.
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Need to reschedule or view booking details? You can use the secure management link sent to your email anytime.
-                  </p>
+          <div className="mx-auto max-w-lg">
+            {/* The Review card hands its layoutId to this confirmation card, so the
+             * card the user just reviewed morphs into the confirmation instead of
+             * being replaced by a new screen. */}
+            <motion.div
+              layoutId={prefersReducedMotion ? undefined : SHARED_SUMMARY_LAYOUT_ID}
+              initial={prefersReducedMotion ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={prefersReducedMotion ? { duration: 0.3 } : SHARED_CARD_TRANSITION}
+              style={{ borderRadius: "2rem" }}
+              className={cn(CARD_SURFACE, "p-6 sm:p-10 text-center space-y-6")}
+            >
+              <div className="relative inline-flex items-center justify-center">
+                <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse motion-reduce:animate-none" />
+                <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
+                  <CheckCircle2 className="w-12 h-12" />
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="pt-2">
+              <div className="space-y-4">
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary">Booking Confirmed</h2>
+                <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
+
+                {isAuthenticated ? (
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Your payment was successful and your session is confirmed. We have sent the confirmation to <span className="font-semibold text-primary">{bookingData.email}</span>.
+                  </p>
+                ) : (
+                  <div className="space-y-3 pt-2 text-left">
+                    <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 flex items-start gap-3.5">
+                      <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-xs text-primary/80">
+                        <p className="font-bold text-primary text-sm">Session Confirmation Sent</p>
+                        <p className="leading-relaxed">
+                          We have emailed your calendar invitation, video session link, and receipt to <span className="font-semibold text-primary underline">{bookingData.email}</span>.
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Need to reschedule or view booking details? You can use the secure management link sent to your email anytime.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.35, duration: 0.35, ease: "easeOut" }}
+              className="pt-8 text-center"
+            >
               {isAuthenticated ? (
                 <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500 shadow-sm">
                   <NextLink href="/dashboard">Go to Dashboard</NextLink>
@@ -438,8 +456,8 @@ const BookingSystem = () => {
                   <NextLink href="/">Return to Home</NextLink>
                 </Button>
               )}
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )
       default:
         return null
@@ -465,16 +483,7 @@ const BookingSystem = () => {
       )}
 
       {step === 7 ? (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="success"
-            initial={prefersReducedMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderCurrentStep()}
-          </motion.div>
-        </AnimatePresence>
+        renderCurrentStep()
       ) : (
         <BookingLayout
           aside={

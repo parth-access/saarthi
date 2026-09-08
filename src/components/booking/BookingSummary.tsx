@@ -152,7 +152,7 @@ function ReviewClientSection({ client }: { client?: ClientDetails }) {
  * keeps its visual identity while the shared-element transition moves it from
  * the right rail to the centre of the page.
  */
-const CARD_SURFACE = "rounded-[2rem] border border-primary/10 bg-white/85 p-6 shadow-soft backdrop-blur-sm";
+export const CARD_SURFACE = "rounded-[2rem] border border-primary/10 bg-white/85 p-6 shadow-soft backdrop-blur-sm";
 
 export function BookingSummary({ therapist, sessionType, date, time, variant = "sidebar", className, client }: Props) {
   const reduce = useReducedMotion();
