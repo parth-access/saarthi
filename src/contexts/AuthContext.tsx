@@ -27,6 +27,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
   
   const isMounted = useRef(true);
+  // The first auth callback restores the persisted Firebase session. It is not
+  // a user navigation event, so refreshing the current route here makes public
+  // pages (including the global 404) appear to reload after they render.
+  // Keep the previous uid so only a real signed-out -> signed-in transition
+  // refreshes server components after an explicit login.
+  const previousFirebaseUid = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     isMounted.current = true;
@@ -38,6 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // onAuthStateChanged automatically fires immediately with current state
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
+        const wasInitialAuthRestore = previousFirebaseUid.current === undefined;
+        const wasSignedOut = previousFirebaseUid.current === null;
+        previousFirebaseUid.current = firebaseUser?.uid ?? null;
+
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
@@ -94,7 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name: firebaseUser.displayName || undefined
               });
               setLoading(false);
-              router.refresh();
+              if (!wasInitialAuthRestore && wasSignedOut) {
+                router.refresh();
+              }
             }
           }
         } else {
