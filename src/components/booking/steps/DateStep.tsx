@@ -69,6 +69,11 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 aria-label={`${label}, ${dayNum} ${monthShort}`}
                 className={cn(
                   "snap-center shrink-0 w-28 py-5 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  // Transforms only on hover/press so pills never shift the scroller.
+                  "enabled:hover:-translate-y-px enabled:hover:shadow-md",
+                  "enabled:active:translate-y-0 enabled:active:scale-[0.98] enabled:active:duration-100",
+                  "motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:scale-100",
+                  "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
                   isSelected
                     ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105"
                     : "bg-white border-primary/5 hover:border-primary/20 hover:bg-background text-primary"

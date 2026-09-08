@@ -1,5 +1,6 @@
 import * as React from "react"
-import { ChevronLeft, User, HeartHandshake, Users, Sparkles } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { ChevronLeft, User, HeartHandshake, Users, Sparkles, Check } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { SessionType } from "../../../types"
 import { cn } from "../../../lib/utils"
@@ -49,6 +50,7 @@ interface Props {
 }
 
 export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
+  const reduce = useReducedMotion();
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -68,7 +70,12 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
             onClick={() => onSelect(type)}
             aria-pressed={selected === type}
             className={cn(
-              "group flex flex-col gap-3 rounded-[2rem] border-2 p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              // Transforms only on hover/press so cards never shift the grid layout.
+              "group flex flex-col gap-3 rounded-[2rem] border-2 p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-md",
+              "enabled:active:translate-y-0 enabled:active:scale-[0.99] enabled:active:duration-100",
+              "motion-reduce:transition-colors motion-reduce:duration-150",
+              "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
               selected === type
                 ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5 ring-2 ring-primary/10"
                 : "border-muted/30 bg-white text-muted-foreground hover:border-primary/20 hover:bg-background/40"
@@ -82,9 +89,18 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
                 <Icon className="w-5 h-5" />
               </div>
               <span className={cn(
-                "text-xs font-semibold px-3 py-1 rounded-full",
+                "inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-200",
                 selected === type ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground"
               )}>
+                {selected === type && (
+                  <motion.span
+                    initial={reduce ? false : { opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </motion.span>
+                )}
                 {type}
               </span>
             </div>

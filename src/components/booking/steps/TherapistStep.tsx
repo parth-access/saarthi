@@ -1,5 +1,6 @@
 import * as React from "react"
-import { ShieldCheck, AlertCircle, ChevronRight, RefreshCw } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { ShieldCheck, AlertCircle, ChevronRight, RefreshCw, Check } from "lucide-react"
 import { useTherapists } from "../../../hooks/useTherapists"
 import { cn } from "../../../lib/utils"
 import { Skeleton } from "../../ui/Skeleton"
@@ -12,6 +13,7 @@ interface Props {
 
 export const TherapistStep = ({ selectedId, onSelect }: Props) => {
   const { therapists, loading, error, refetch } = useTherapists();
+  const reduce = useReducedMotion();
 
   if (loading) {
     return (
@@ -83,7 +85,12 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
             onClick={() => onSelect(t.id)}
             aria-pressed={selectedId === t.id}
             className={cn(
-              "group flex flex-col items-center gap-6 rounded-[2rem] border-2 p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:flex-row",
+              // Transforms only on hover/press so cards never shift the list layout.
+              "group flex flex-col items-center gap-6 rounded-[2rem] border-2 p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:flex-row",
+              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-md",
+              "enabled:active:translate-y-0 enabled:active:scale-[0.99] enabled:active:duration-100",
+              "motion-reduce:transition-colors motion-reduce:duration-150",
+              "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
               selectedId === t.id
                 ? "border-accent bg-white shadow-sm ring-4 ring-accent/10"
                 : "border-muted/30 bg-white hover:border-primary/20 hover:bg-background"
@@ -102,10 +109,20 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
               <p className="line-clamp-2 text-xs leading-relaxed text-primary/60">{t.bio}</p>
             </div>
             <div className={cn(
-              "hidden h-10 w-10 items-center justify-center rounded-full transition-colors sm:flex",
+              "hidden h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 sm:flex",
               selectedId === t.id ? "bg-accent text-white" : "bg-primary/5 text-primary group-hover:bg-accent/20 group-hover:text-primary"
             )}>
-              <ChevronRight className="h-5 w-5" />
+              {selectedId === t.id ? (
+                <motion.span
+                  initial={reduce ? false : { opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
+                >
+                  <Check className="h-5 w-5" />
+                </motion.span>
+              ) : (
+                <ChevronRight className="h-5 w-5" />
+              )}
             </div>
           </button>
         ))}
