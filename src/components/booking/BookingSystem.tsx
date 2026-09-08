@@ -137,6 +137,22 @@ const BookingSystem = () => {
     setStep(s => s - 1)
   }
 
+  // Stepper jumps. Backwards only, and never while a payment is in flight.
+  // The slot-hold rule mirrors handleBack: the hold is only meaningful while the
+  // chosen time is still the destination, so any jump from step 4/5 — or from
+  // Review to step 4 or earlier — releases it and clears the picked time.
+  // Review → Details keeps the hold, exactly like the Go Back button there.
+  const handleStepClick = (target: number) => {
+    if (target >= step) return
+    if (submitting || (bookingFlowState !== 'IDLE' && bookingFlowState !== 'ERROR')) return
+    setSubmitError(null)
+    if (step >= 4 && target <= 4) {
+      releaseCurrentLock()
+      setBookingData(prev => ({ ...prev, time: "" }))
+    }
+    setStep(target)
+  }
+
   const handleTherapistSelect = (id: string) => {
     trackBookingStarted({ step: 1 })
     if (bookingData.therapistId !== id) {
@@ -433,7 +449,7 @@ const BookingSystem = () => {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 min-h-[700px]">
       {step < 7 && (
         <div className="mb-8 sm:mb-12">
-          <BookingStepper currentStep={step} />
+          <BookingStepper currentStep={step} onStepClick={handleStepClick} />
         </div>
       )}
 
