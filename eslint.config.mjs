@@ -10,6 +10,12 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Next generates JavaScript and route types under `.next` during development.
+  // They are build artifacts, not source code, and linting them produces thousands
+  // of false positives for webpack internals.
+  {
+    ignores: [".next/**", "node_modules/**", "coverage/**", "dist/**", "build/**"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
