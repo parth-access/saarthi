@@ -1,11 +1,11 @@
 import * as React from "react"
-import { format, parseISO } from "date-fns"
-import { ChevronLeft, Loader2, AlertCircle, ShieldCheck, Clock, CheckCircle2, RotateCcw } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { ChevronLeft, Loader2, AlertCircle, Clock, RotateCcw } from "lucide-react"
 import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
-import { SESSION_DURATION_MINUTES } from "@/shared/constants"
-import { formatTime12h, SESSION_PRICE_DISPLAY, CONFIRM_CTA_LABEL } from "../bookingUi"
+import { CONFIRM_CTA_LABEL, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_EASE } from "../bookingUi"
+import { BookingSummary } from "../BookingSummary"
 
 export type BookingFlowState = 
   | 'IDLE'
@@ -28,6 +28,7 @@ interface Props {
     gender: string;
     age: string;
     message?: string;
+    consent?: boolean;
   };
   therapists: Therapist[];
   onConfirm: () => void;
@@ -49,7 +50,7 @@ export const ReviewStep = ({
   error 
 }: Props) => {
   const selectedTherapist = therapists.find(t => t.id === data.therapistId)
-  const [imgError, setImgError] = React.useState(false)
+  const reduce = useReducedMotion()
 
   const isBusy = submitting || (bookingFlowState !== 'IDLE' && bookingFlowState !== 'ERROR');
 
@@ -88,95 +89,65 @@ export const ReviewStep = ({
     return CONFIRM_CTA_LABEL;
   };
 
-  const initials = selectedTherapist?.name 
-    ? selectedTherapist.name.split(' ').map(n => n[0]).join('').slice(0, 2)
-    : 'ST';
+  // The shared card carries itself via layoutId; everything around it (header,
+  // hold banner, actions) staggers in shortly after it settles. Disabled under
+  // reduced motion.
+  const stagger = (delay: number) =>
+    reduce
+      ? {}
+      : {
+          initial: { opacity: 0, y: 8 },
+          animate: { opacity: 1, y: 0 },
+          transition: { delay, duration: 0.35, ease: "easeOut" as const },
+        };
 
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-2">
-        <h3 className="text-3xl font-serif text-primary">Final Review</h3>
-        <p className="text-muted-foreground text-sm">Take a moment to check your session details before payment.</p>
-      </div>
+    <div className="space-y-6 sm:space-y-8">
+      <motion.div {...stagger(0.15)} className="text-center space-y-2">
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Final Review</h3>
+        <p className="text-sm text-muted-foreground">Take a moment to check your session details before payment.</p>
+      </motion.div>
 
       {/* Slot Hold Banner */}
-      <div className="flex items-center justify-between p-4 bg-warning-surface border border-warning/30 rounded-2xl text-xs text-warning max-w-xl mx-auto shadow-xs">
+      <motion.div
+        {...stagger(0.3)}
+        className="flex items-center justify-between gap-3 p-4 bg-warning-surface border border-warning/30 rounded-2xl text-xs text-warning max-w-xl mx-auto shadow-xs"
+      >
         <div className="flex items-center gap-2.5">
           <Clock className="w-4 h-4 shrink-0" />
           <span>Your selected slot is temporarily reserved for <strong>15 minutes</strong>.</span>
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-warning bg-warning/15 px-2 py-0.5 rounded-full shrink-0">Held</span>
-      </div>
+        <span className="text-[11px] font-semibold text-warning bg-warning/15 px-2 py-0.5 rounded-full shrink-0">Held</span>
+      </motion.div>
 
-      <div className="bg-background border-2 border-primary/5 rounded-[2rem] p-6 sm:p-10 space-y-8 shadow-sm max-w-2xl mx-auto">
-        {/* Specialist Info */}
-        <div className="flex items-center gap-5 pb-6 border-b border-primary/10">
-          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md bg-primary/5 shrink-0 flex items-center justify-center font-serif text-2xl font-bold text-primary">
-             {!imgError && selectedTherapist?.image ? (
-               <img
-                 src={selectedTherapist.image}
-                 alt={selectedTherapist.name || 'Therapist'}
-                 onError={() => setImgError(true)}
-                 className="w-full h-full object-cover"
-               />
-             ) : (
-               <span>{initials}</span>
-             )}
-          </div>
-          <div>
-             <p className="text-[10px] uppercase font-black tracking-[0.2em] text-accent mb-0.5">Your Specialist</p>
-             <h4 className="text-2xl font-serif font-bold text-primary">{selectedTherapist?.name || 'Saarthi Therapist'}</h4>
-             <p className="text-xs font-semibold text-primary/60">{selectedTherapist?.specialization || 'Licensed Counselor'}</p>
-          </div>
-        </div>
-
-        {/* Details Grid */}
-        <div className="grid sm:grid-cols-2 gap-6 text-sm text-primary">
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Session Type</p>
-            <p className="font-serif text-base font-bold">{data.sessionType || 'Individual'} Therapy</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Date & Time (IST)</p>
-            <p className="font-serif text-base font-bold">
-              {data.date && format(parseISO(data.date), "dd MMM, yyyy")} at {formatTime12h(data.time)} <span className="text-xs font-sans font-semibold text-primary/60">IST</span>
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Client Name</p>
-            <p className="font-serif text-base font-bold">{data.name}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Contact Details</p>
-            <p className="font-serif text-base font-bold truncate">{data.email}</p>
-            <p className="text-xs font-medium text-primary/70">{data.phone}</p>
-          </div>
-        </div>
-
-        {/* Pricing Commitment Line */}
-        <div className="p-4 rounded-2xl bg-white border border-primary/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">Total Amount Payable</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-serif font-bold text-primary">{SESSION_PRICE_DISPLAY}</span>
-              <span className="text-xs text-muted-foreground font-medium">· {SESSION_DURATION_MINUTES}-minute session</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-primary font-semibold bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Rescheduling flexibility included</span>
-          </div>
-        </div>
-
-        {/* Consent Echo */}
-        <div className="pt-2 border-t border-primary/5 flex items-center gap-2 text-xs text-muted-foreground">
-          <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-          <span>You have agreed to Saarthi&apos;s Privacy Policy &amp; confidential therapy terms.</span>
-        </div>
-      </div>
+      {/* The Booking Summary card itself, morphed from the sidebar into the
+       * centre via the shared layoutId (see BookingSystem). */}
+      <motion.div
+        layoutId={reduce ? undefined : SHARED_SUMMARY_LAYOUT_ID}
+        initial={reduce ? { opacity: 0 } : false}
+        animate={{ opacity: 1 }}
+        transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: SHARED_CARD_EASE }}
+        style={{ borderRadius: "2rem" }}
+        className="max-w-xl mx-auto"
+      >
+        <BookingSummary
+          variant="review"
+          therapist={selectedTherapist}
+          sessionType={data.sessionType}
+          date={data.date}
+          time={data.time}
+          client={{
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            message: data.message,
+            consent: data.consent,
+          }}
+        />
+      </motion.div>
 
       {error && (
-        <div className="p-4 bg-danger-surface text-danger rounded-2xl border border-danger/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm max-w-2xl mx-auto">
+        <motion.div {...stagger(0.3)} className="p-4 bg-danger-surface text-danger rounded-2xl border border-danger/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm max-w-xl mx-auto">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 text-danger" />
             <span>{error}</span>
@@ -186,27 +157,30 @@ export const ReviewStep = ({
               variant="outline"
               size="sm"
               onClick={onJumpToSlots}
-              className="rounded-full bg-white text-danger border-danger/30 hover:bg-danger-surface text-xs font-bold shrink-0 gap-1.5"
+              className="rounded-full bg-white text-danger border-danger/30 hover:bg-danger-surface text-xs font-semibold shrink-0 gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Pick Another Slot
             </Button>
           )}
-        </div>
+        </motion.div>
       )}
 
-      <div className="flex justify-between pt-4 max-w-2xl mx-auto">
-        <Button variant="ghost" className="rounded-full hover:bg-primary/5" onClick={onBack} disabled={isBusy}>
+      <motion.div
+        {...stagger(0.4)}
+        className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 sm:pt-4 max-w-xl mx-auto"
+      >
+        <Button variant="ghost" className="rounded-full w-full sm:w-auto hover:bg-primary/5" onClick={onBack} disabled={isBusy}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Go Back
         </Button>
         <Button
           variant="accent"
-          className="px-12 h-14 rounded-full text-base font-bold shadow-xl shadow-accent/20 active:scale-95"
+          className="px-12 h-14 rounded-full w-full sm:w-auto text-base font-semibold shadow-xl shadow-accent/20 active:scale-95"
           disabled={isBusy}
           onClick={onConfirm}
         >
           {getButtonContent()}
         </Button>
-      </div>
+      </motion.div>
     </div>
   );
 };

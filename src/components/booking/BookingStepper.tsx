@@ -27,8 +27,8 @@ export function BookingStepper({ currentStep }: Props) {
       {/* Compact bar on small screens — six labelled nodes don't fit legibly. */}
       <div className="sm:hidden">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="min-w-0 truncate font-serif text-lg font-bold text-primary">{STEP_LABELS[clamped - 1]}</p>
-          <p className="shrink-0 text-[11px] font-black uppercase tracking-widest text-muted-foreground">
+          <p className="min-w-0 truncate text-base font-semibold text-primary">{STEP_LABELS[clamped - 1]}</p>
+          <p className="shrink-0 text-xs font-medium text-muted-foreground">
             Step {clamped} <span className="text-primary/30">/ {total}</span>
           </p>
         </div>
@@ -63,7 +63,7 @@ export function BookingStepper({ currentStep }: Props) {
                 </div>
                 <span
                   className={cn(
-                    "text-center text-[11px] font-bold uppercase tracking-wider transition-colors",
+                    "text-center text-xs font-medium transition-colors",
                     isCurrent ? "text-primary" : isDone ? "text-primary/60" : "text-muted-foreground/60",
                   )}
                 >

@@ -26,7 +26,7 @@
     "googleapis": "^144.0.0",
     "jose": "^6.2.10",
     "lucide-react": "^0.475.0",
-    "motion": "^12.4.7",
+    "framer-motion": "^12.42.2",
     "next": "15.1.11",
     "razorpay": "^2.9.5",
     "react": "^19.0.0",

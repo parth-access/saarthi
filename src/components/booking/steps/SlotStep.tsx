@@ -38,7 +38,7 @@ function SlotLegend() {
   return (
     <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-2">
       {LEGEND_TONES.map((tone) => (
-        <span key={tone} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
+        <span key={tone} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <span className={cn("h-2 w-2 rounded-full", TONE_DOT[tone])} />
           {SLOT_TONE_LABEL[tone]}
         </span>
@@ -61,7 +61,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     return (
       <div className="flex flex-col items-center py-20">
         <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary motion-reduce:animate-none" />
-        <p className="font-serif italic text-primary/60">{"Checking the specialist's availability..."}</p>
+        <p className="text-sm text-primary/60">{"Checking the specialist's availability..."}</p>
       </div>
     );
   }
@@ -70,8 +70,8 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <h3 className="font-serif text-3xl text-primary">Available Slots</h3>
-          <p className="mt-2 flex items-center justify-center gap-2 text-muted-foreground">
+          <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+          <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" /> {date ? format(parseISO(date), "MMMM dd, yyyy") : ""}
           </p>
         </div>
@@ -79,7 +79,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
         <div className="mx-auto max-w-lg space-y-4 rounded-[2rem] border border-danger/20 bg-danger-surface p-8 text-center shadow-sm">
           <AlertCircle className="mx-auto h-10 w-10 text-danger opacity-80" />
           <div className="space-y-1">
-            <h4 className="font-serif text-lg font-bold text-primary">Unable to Check Slots</h4>
+            <h4 className="font-sans text-base font-semibold text-primary">Unable to Check Slots</h4>
             <p className="text-sm text-danger">{error}</p>
           </div>
           <div className="flex items-center justify-center gap-3 pt-2">
@@ -102,11 +102,11 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h3 className="font-serif text-3xl text-primary">Available Slots</h3>
-        <p className="flex items-center justify-center gap-2 text-muted-foreground">
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" /> {date ? format(parseISO(date), "MMMM dd, yyyy") : ""}
         </p>
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[11px] font-semibold text-primary/70">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary/70">
           <Globe className="h-3 w-3" />
           <span>All times in IST (Indian Standard Time · UTC+5:30)</span>
         </div>
@@ -116,13 +116,13 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
         <div className="space-y-4 rounded-[2rem] border border-primary/5 bg-neutral-surface py-16 text-center">
           <Clock className="mx-auto h-10 w-10 text-primary/20" />
           <div className="space-y-1">
-            <p className="font-serif text-xl tracking-tight text-primary/60">No availability on this day.</p>
+            <p className="text-base font-medium text-primary/60">No availability on this day.</p>
             <p className="text-xs text-muted-foreground">All slots are either booked or outside the specialist&apos;s working hours.</p>
           </div>
           <Button
             variant="outline"
             onClick={onBack}
-            className="mt-2 rounded-full border-primary/20 px-6 text-xs font-bold uppercase tracking-wider hover:bg-primary hover:text-white"
+            className="mt-2 rounded-full border-primary/20 px-6 text-xs font-semibold hover:bg-primary hover:text-white"
           >
             Choose Another Date
           </Button>
@@ -145,7 +145,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
                   onClick={() => onSelect(slot.time)}
                   aria-label={isAvailable ? `Select ${formatTime12h(slot.time)}` : `${formatTime12h(slot.time)} — ${SLOT_TONE_LABEL[tone]}`}
                   className={cn(
-                    "relative overflow-hidden rounded-full border px-6 py-3.5 text-sm font-bold transition-all active:scale-95",
+                    "relative overflow-hidden rounded-full border px-6 py-3.5 text-sm font-semibold transition-all active:scale-95",
                     isLoading ? "border-accent bg-accent text-white shadow-md shadow-accent/20" : TONE_PILL[tone],
                     !isAvailable && "cursor-not-allowed",
                     isAnyLoading && !isLoading && "opacity-50",
@@ -160,7 +160,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
                     <span>{formatTime12h(slot.time)}</span>
                   )}
                   {!isAvailable && !isLoading && (
-                    <span className="ml-2 text-[10px] font-black uppercase tracking-wider opacity-70">
+                    <span className="ml-2 text-[11px] font-medium opacity-70">
                       {SLOT_TONE_LABEL[tone]}
                     </span>
                   )}
@@ -172,7 +172,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
       )}
 
       <div className="flex justify-center pt-4">
-        <Button variant="ghost" className="rounded-full text-xs font-bold uppercase tracking-widest text-primary/60 hover:bg-primary/5" onClick={onBack}>
+        <Button variant="ghost" className="rounded-full text-xs font-medium text-primary/60 hover:bg-primary/5" onClick={onBack}>
           <ChevronLeft className="mr-2 h-3.5 w-3.5" /> Select Different Date
         </Button>
       </div>

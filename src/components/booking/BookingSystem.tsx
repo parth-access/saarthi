@@ -28,6 +28,7 @@ import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
 import { parseValidClientAge } from "@/shared/validation/age"
+import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_EASE } from "./bookingUi"
 
 import { BookingFormData } from "../../core/validations/booking.schema"
 
@@ -364,19 +365,6 @@ const BookingSystem = () => {
         )
       case 5:
         return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} />
-      case 6:
-        return (
-          <ReviewStep 
-            data={bookingData} 
-            therapists={therapists} 
-            onConfirm={handleConfirm} 
-            onBack={handleBack}
-            onJumpToSlots={() => setStep(4)}
-            submitting={submitting}
-            bookingFlowState={bookingFlowState}
-            error={submitError}
-          />
-        )
       case 7:
         return (
           <motion.div initial={prefersReducedMotion ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16 px-4 space-y-8 max-w-lg mx-auto">
@@ -388,8 +376,8 @@ const BookingSystem = () => {
             </div>
             
             <div className="space-y-4">
-              <h2 className="text-4xl font-serif text-primary">Booking Confirmed</h2>
-              <p className="text-lg text-muted-foreground italic font-serif">“Every journey begins with a single, intentional step.”</p>
+              <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary">Booking Confirmed</h2>
+              <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
               
               {isAuthenticated ? (
                 <p className="text-muted-foreground text-sm leading-relaxed">
@@ -463,16 +451,27 @@ const BookingSystem = () => {
       ) : (
         <BookingLayout
           aside={
-            <BookingSummary
-              variant="sidebar"
-              therapist={selectedTherapist}
-              sessionType={bookingData.sessionType}
-              date={bookingData.date}
-              time={bookingData.time}
-            />
+            /* The sidebar card carries the shared layoutId only while it is the
+             * live instance (steps 1–5). On Review it hands its identity to the
+             * centred card inside ReviewStep, which morphs from this position. */
+            step < 6 ? (
+              <motion.div
+                layoutId={prefersReducedMotion ? undefined : SHARED_SUMMARY_LAYOUT_ID}
+                style={{ borderRadius: "2rem" }}
+                transition={{ duration: 0.5, ease: SHARED_CARD_EASE }}
+              >
+                <BookingSummary
+                  variant="sidebar"
+                  therapist={selectedTherapist}
+                  sessionType={bookingData.sessionType}
+                  date={bookingData.date}
+                  time={bookingData.time}
+                />
+              </motion.div>
+            ) : undefined
           }
         >
-          {step >= 2 && (
+          {step >= 2 && step < 6 && (
             <BookingSummary
               variant="mobile"
               className="mb-6 lg:hidden"
@@ -483,30 +482,62 @@ const BookingSystem = () => {
             />
           )}
           <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-              transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
-            >
-              {renderCurrentStep()}
-            </motion.div>
+            {step < 6 && (
+              <motion.div
+                key={step}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
+              >
+                {renderCurrentStep()}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Review renders outside the step AnimatePresence so it mounts in the
+           * same commit the sidebar card unmounts — that pairing is what lets the
+           * shared layoutId morph run. No enter fade here: the card must appear
+           * at full opacity for the morph to read as the same card; the step
+           * header, banner and buttons stagger themselves in (see ReviewStep). */}
+          <AnimatePresence>
+            {step === 6 && (
+              <motion.div
+                key="review"
+                initial={false}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              >
+                <ReviewStep
+                  data={bookingData}
+                  therapists={therapists}
+                  onConfirm={handleConfirm}
+                  onBack={handleBack}
+                  onJumpToSlots={() => setStep(4)}
+                  submitting={submitting}
+                  bookingFlowState={bookingFlowState}
+                  error={submitError}
+                />
+              </motion.div>
+            )}
           </AnimatePresence>
         </BookingLayout>
       )}
 
       {bookingFlowState === 'VERIFYING_PAYMENT' && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl"
+          >
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
               <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
             </div>
-            <h3 className="text-2xl font-serif font-bold text-primary">Confirming Your Booking</h3>
+            <h3 className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
               Payment received! Confirming your appointment reservation and generating your session details. Please do not refresh or close this window...
             </p>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

@@ -19,6 +19,18 @@ export const SESSION_PRICE_DISPLAY = "₹1,500";
 /** Confirm CTA label, built from the one price source so the two never drift. */
 export const CONFIRM_CTA_LABEL = `Confirm & Pay ${SESSION_PRICE_DISPLAY}`;
 
+/**
+ * Shared-element identity for the Booking Summary card. The sidebar card
+ * (steps 1–5) and the centred Review card both carry this `layoutId`, so when
+ * the wizard moves Details → Review framer-motion FLIP-animates the same card
+ * from the right rail into the centre instead of unmounting one and mounting
+ * another. Omitted entirely under prefers-reduced-motion.
+ */
+export const SHARED_SUMMARY_LAYOUT_ID = "booking-summary-card";
+
+/** Gentle ease-out curve for the shared-card morph (fast start, soft landing). */
+export const SHARED_CARD_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 /** Labels for the six selection steps (step 7 is the success screen). */
 export const STEP_LABELS = [
   "Therapist",

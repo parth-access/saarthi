@@ -52,12 +52,12 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="text-3xl font-serif text-primary">Session Type</h3>
-        <p className="text-muted-foreground mt-2">What kind of support are you looking for?</p>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Session Type</h3>
+        <p className="mt-2 text-sm text-muted-foreground">What kind of support are you looking for?</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
           <span>{SESSION_DURATION_MINUTES}-minute session</span>
           <span className="text-primary/30">·</span>
-          <span className="font-bold">{SESSION_PRICE_DISPLAY}</span>
+          <span className="font-semibold tabular-nums">{SESSION_PRICE_DISPLAY}</span>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -82,14 +82,14 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
                 <Icon className="w-5 h-5" />
               </div>
               <span className={cn(
-                "text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full",
+                "text-xs font-semibold px-3 py-1 rounded-full",
                 selected === type ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground"
               )}>
                 {type}
               </span>
             </div>
             <div className="space-y-1">
-              <h4 className="text-lg font-serif font-bold text-primary">{title} Therapy</h4>
+              <h4 className="font-sans text-base font-semibold text-primary">{title} Therapy</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             </div>
           </button>

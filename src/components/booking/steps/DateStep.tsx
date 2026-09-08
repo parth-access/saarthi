@@ -47,8 +47,8 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="text-3xl font-serif text-primary tracking-tight">Preferred Date</h3>
-        <p className="text-muted-foreground mt-2 text-sm italic">Choose a day that works for you</p>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Preferred Date</h3>
+        <p className="mt-2 text-sm text-muted-foreground">Choose a day that works for you</p>
       </div>
 
       <div className="relative">
@@ -78,12 +78,12 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 
                 <span className={cn(
-                  "text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors",
+                  "text-xs font-medium mb-1 transition-colors",
                   isSelected ? "text-white/70" : "text-primary/40"
                 )}>
                   {label}
                 </span>
-                <span className="text-3xl font-serif font-medium tracking-tight mb-1">
+                <span className="text-2xl font-semibold tabular-nums tracking-tight mb-1">
                   {dayNum}
                 </span>
                 <span className={cn(
@@ -96,7 +96,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
             )
           })}
         </div>
-        <p className="mt-1 text-center text-[11px] font-medium text-muted-foreground sm:text-right">
+        <p className="mt-1 text-center text-xs font-medium text-muted-foreground sm:text-right">
           Scroll for more dates · next {BOOKING_WINDOW_DAYS} days
         </p>
       </div>
@@ -109,7 +109,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
           variant="accent"
           disabled={!selectedDate}
           onClick={onNext}
-          className="rounded-full px-8 font-bold tracking-wide"
+          className="rounded-full px-8"
         >
           Find Slots <ChevronRight className="ml-2 h-4 w-4" />
         </Button>

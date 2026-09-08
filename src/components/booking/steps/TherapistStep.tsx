@@ -45,7 +45,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
       <div className="mx-auto max-w-lg space-y-5 rounded-[2rem] border border-danger/20 bg-danger-surface p-8 py-12 text-center shadow-sm">
         <AlertCircle className="mx-auto h-12 w-12 text-danger opacity-80" />
         <div className="space-y-1">
-          <h4 className="font-serif text-xl font-bold text-primary">Unable to Load Therapists</h4>
+          <h4 className="font-sans text-base font-semibold text-primary">Unable to Load Therapists</h4>
           <p className="mx-auto max-w-sm text-sm text-danger">{error}</p>
         </div>
         <Button
@@ -64,7 +64,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
     return (
       <div className="space-y-6 rounded-[2rem] border-2 border-dashed border-primary/10 bg-neutral-surface py-16 text-center">
         <ShieldCheck className="mx-auto h-12 w-12 text-primary/20" />
-        <p className="font-serif text-xl text-primary/60">No specialists available right now.</p>
+        <p className="text-base text-primary/60">No specialists available right now.</p>
       </div>
     );
   }
@@ -72,8 +72,8 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="text-3xl font-serif text-primary">Choose your Therapist</h3>
-        <p className="text-muted-foreground mt-2">Select a specialist best suited for your journey</p>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Choose your Therapist</h3>
+        <p className="mt-2 text-sm text-muted-foreground">Select a specialist best suited for your journey</p>
       </div>
       <div className="grid gap-6">
         {therapists.map(t => (
@@ -89,7 +89,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
                 : "border-muted/30 bg-white hover:border-primary/20 hover:bg-background"
             )}
           >
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/10 bg-primary/5 font-serif text-3xl text-primary">
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/10 bg-primary/5 text-2xl font-semibold text-primary">
               {t.image ? (
                 <img src={t.image} alt={t.name} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105" />
               ) : (
@@ -97,8 +97,8 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
               )}
             </div>
             <div className="flex-1 space-y-2 text-center sm:text-left">
-              <h4 className="font-serif text-xl font-bold text-primary transition-colors group-hover:text-accent">{t.name}</h4>
-              <p className="text-sm font-medium uppercase tracking-wider text-accent">{t.specialization}</p>
+              <h4 className="font-sans text-lg font-semibold text-primary transition-colors group-hover:text-accent">{t.name}</h4>
+              <p className="text-xs font-medium text-accent">{t.specialization}</p>
               <p className="line-clamp-2 text-xs leading-relaxed text-primary/60">{t.bio}</p>
             </div>
             <div className={cn(
