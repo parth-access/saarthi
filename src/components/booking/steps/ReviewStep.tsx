@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2, AlertCircle, Clock, RotateCcw } from "lucide-reac
 import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
-import { CONFIRM_CTA_LABEL, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_EASE } from "../bookingUi"
+import { CONFIRM_CTA_LABEL, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "../bookingUi"
 import { BookingSummary } from "../BookingSummary"
 
 export type BookingFlowState = 
@@ -126,7 +126,7 @@ export const ReviewStep = ({
         layoutId={reduce ? undefined : SHARED_SUMMARY_LAYOUT_ID}
         initial={reduce ? { opacity: 0 } : false}
         animate={{ opacity: 1 }}
-        transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: SHARED_CARD_EASE }}
+        transition={reduce ? { duration: 0.2 } : SHARED_CARD_TRANSITION}
         style={{ borderRadius: "2rem" }}
         className="max-w-xl mx-auto"
       >

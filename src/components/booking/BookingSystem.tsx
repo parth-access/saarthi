@@ -28,7 +28,7 @@ import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
 import { parseValidClientAge } from "@/shared/validation/age"
-import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_EASE } from "./bookingUi"
+import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
 
 import { BookingFormData } from "../../core/validations/booking.schema"
 
@@ -126,6 +126,14 @@ const BookingSystem = () => {
   }, []);
 
   const handleNext = () => setStep(s => s + 1)
+
+  // Latest-step ref: an exiting step's captured onSubmit closure still holds the
+  // step value from when it mounted, so a rapid second submit (double-click or an
+  // Enter key while the exit animation plays) would otherwise advance the wizard
+  // a second time — e.g. 6 → 7, skipping Review. The ref always sees the real
+  // current step, so the stale submit is a no-op.
+  const stepRef = React.useRef(step)
+  stepRef.current = step
   
   const handleBack = () => {
     setSubmitError(null)
@@ -154,6 +162,7 @@ const BookingSystem = () => {
   }
 
   const handleTherapistSelect = (id: string) => {
+    if (stepRef.current !== 1) return
     trackBookingStarted({ step: 1 })
     if (bookingData.therapistId !== id) {
       releaseCurrentLock()
@@ -163,6 +172,7 @@ const BookingSystem = () => {
   }
 
   const handleSessionTypeSelect = (type: SessionType) => {
+    if (stepRef.current !== 2) return
     trackBookingStarted({ step: 2, session_type: type })
     setBookingData(prev => ({ ...prev, sessionType: type }))
     handleNext()
@@ -203,6 +213,7 @@ const BookingSystem = () => {
   }
 
   const handleDetailsSubmit = (details: BookingFormData) => {
+    if (stepRef.current !== 5) return
     trackBookingStarted({ step: 5 })
     setBookingData(prev => ({ ...prev, ...details }))
     handleNext()
@@ -474,7 +485,7 @@ const BookingSystem = () => {
               <motion.div
                 layoutId={prefersReducedMotion ? undefined : SHARED_SUMMARY_LAYOUT_ID}
                 style={{ borderRadius: "2rem" }}
-                transition={{ duration: 0.5, ease: SHARED_CARD_EASE }}
+                transition={SHARED_CARD_TRANSITION}
               >
                 <BookingSummary
                   variant="sidebar"

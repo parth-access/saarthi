@@ -31,6 +31,12 @@ export const SHARED_SUMMARY_LAYOUT_ID = "booking-summary-card";
 /** Gentle ease-out curve for the shared-card morph (fast start, soft landing). */
 export const SHARED_CARD_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+/** Timing for the shared-card morph, shared by both endpoints (sidebar ↔ review). */
+export const SHARED_CARD_TRANSITION: { duration: number; ease: [number, number, number, number] } = {
+  duration: 0.45,
+  ease: SHARED_CARD_EASE,
+};
+
 /** Labels for the six selection steps (step 7 is the success screen). */
 export const STEP_LABELS = [
   "Therapist",
