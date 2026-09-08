@@ -29,9 +29,9 @@ const Specializations = ({ items }: SpecializationsProps) => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
             >
-              <Card className="h-full border-none shadow-none hover:bg-white/50 bg-white/30 backdrop-blur-sm">
+              <Card className="group h-full border-none shadow-none transition-all duration-300 ease-out hover:bg-white/50 bg-white/30 backdrop-blur-sm hover:-translate-y-1 hover:shadow-md motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none">
                 <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-primary/10 motion-reduce:transition-colors motion-reduce:group-hover:scale-100">
                     {(() => {
                         const Icon = iconTypes[index % iconTypes.length];
                         return <Icon className="h-6 w-6 text-primary" />

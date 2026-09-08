@@ -71,13 +71,13 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
       onClick={onOpen}
       className="w-full text-left bg-white border border-primary/10 rounded-3xl p-5 hover:shadow-md hover:border-primary/20 transition-all duration-300 group flex items-center gap-4"
     >
-      <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-[#FFFBE7] border border-primary/5 shrink-0">
+      <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-background border border-primary/5 shrink-0">
         <span className="text-[10px] uppercase tracking-wider text-primary/50 font-sans">{weekday}</span>
         <span className="text-xl font-serif text-primary leading-none">{day}</span>
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] uppercase tracking-widest text-[#E6A520] font-bold font-sans truncate">
+          <span className="text-[10px] uppercase tracking-widest text-accent font-bold font-sans truncate">
             {session.sessionType || "1:1"} · {formatSessionTimeRange(session.time)}
           </span>
         </div>
@@ -106,12 +106,12 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
         <Link
           href="/book"
           onClick={(e) => e.stopPropagation()}
-          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-[#E6A520] hover:bg-[#c48b1a] text-white text-xs font-semibold rounded-xl transition-colors"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-accent hover:bg-accent/90 text-white text-xs font-semibold rounded-xl transition-colors"
         >
           Book again
         </Link>
       ) : (
-        <ChevronRight className="w-5 h-5 text-primary/30 group-hover:text-[#E6A520] group-hover:translate-x-1 transition-all shrink-0" />
+        <ChevronRight className="w-5 h-5 text-primary/30 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
       )}
     </button>
   );
@@ -243,10 +243,10 @@ function Dashboard() {
                 aria-label="Your next session"
                 className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm"
               >
-                <div className="absolute top-0 right-0 w-56 h-56 bg-[#E6A520]/5 rounded-bl-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-56 h-56 bg-accent/5 rounded-bl-full pointer-events-none" />
                 <div className="relative p-6 sm:p-8">
                   <div className="flex items-center gap-2 mb-5">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-[#E6A520] font-bold font-sans">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-accent font-bold font-sans">
                       <Sparkles className="w-3.5 h-3.5" /> Your next session
                     </span>
                     <span className={`px-2.5 py-0.5 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize ${getStatusClasses(heroSession.status)}`}>
@@ -261,12 +261,12 @@ function Dashboard() {
                         <Image src={normalizeImageUrl(heroTherapist.image)} alt={heroTherapist.name} fill className="object-cover" referrerPolicy="no-referrer" />
                       </div>
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-[#FFFBE7] flex items-center justify-center text-[#E6A520] font-serif text-2xl shrink-0 border border-primary/10">
+                      <div className="w-16 h-16 rounded-2xl bg-background flex items-center justify-center text-accent font-serif text-2xl shrink-0 border border-primary/10">
                         {heroTherapist?.name?.charAt(0) || "T"}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-widest text-[#E6A520] font-bold font-sans mb-0.5">
+                      <p className="text-[10px] uppercase tracking-widest text-accent font-bold font-sans mb-0.5">
                         {heroSession.sessionType || "1:1"} Session
                       </p>
                       <h2 className="text-xl font-serif text-primary truncate">{heroTherapist?.name || "Assigned Therapist"}</h2>
@@ -276,25 +276,25 @@ function Dashboard() {
 
                   {/* Meta grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                    <div className="rounded-2xl bg-[#FFFBE7]/50 border border-primary/5 p-4">
-                      <Calendar className="w-4 h-4 text-[#E6A520] mb-2" />
+                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                      <Calendar className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Date</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionDate(heroSession.date)}</p>
                     </div>
-                    <div className="rounded-2xl bg-[#FFFBE7]/50 border border-primary/5 p-4">
-                      <Clock className="w-4 h-4 text-[#E6A520] mb-2" />
+                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                      <Clock className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Time · {SESSION_DURATION_LABEL}</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionTimeRange(heroSession.time)}</p>
                     </div>
-                    <div className="rounded-2xl bg-[#FFFBE7]/50 border border-primary/5 p-4">
-                      <Video className="w-4 h-4 text-[#E6A520] mb-2" />
+                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                      <Video className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Mode</p>
                       <p className="text-sm font-medium text-primary font-sans capitalize">{heroSession.sessionMode || "Video Call"}</p>
                     </div>
-                    <div className="rounded-2xl bg-[#FFFBE7]/50 border border-primary/5 p-4">
-                      <CreditCard className="w-4 h-4 text-[#E6A520] mb-2" />
+                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                      <CreditCard className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Payment</p>
-                      <p className={`text-sm font-medium font-sans capitalize ${heroSession.paymentStatus === "paid" ? "text-emerald-600" : "text-[#E6A520]"}`}>
+                      <p className={`text-sm font-medium font-sans capitalize ${heroSession.paymentStatus === "paid" ? "text-emerald-600" : "text-accent"}`}>
                         {heroSession.paymentStatus || "unpaid"}
                       </p>
                     </div>
@@ -303,7 +303,7 @@ function Dashboard() {
                   <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-primary/5 bg-white px-4 py-3 text-xs font-sans">
                     {heroSession.status !== "confirmed" ? (
                       <>
-                        <Clock className="w-4 h-4 text-[#E6A520] shrink-0 mt-0.5" />
+                        <Clock className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span className="text-primary/60">
                           Your therapist is confirming this session. The meeting link appears here once it&apos;s confirmed.
                         </span>
@@ -315,7 +315,7 @@ function Dashboard() {
                       </>
                     ) : (
                       <>
-                        <Clock className="w-4 h-4 text-[#E6A520] shrink-0 mt-0.5" />
+                        <Clock className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                         <span className="text-primary/60">
                           Your meeting link is being prepared. Use Join session and we&apos;ll fetch it for you.
                         </span>
@@ -362,10 +362,10 @@ function Dashboard() {
                 aria-label="No upcoming session"
                 className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm p-8 sm:p-10 text-center"
               >
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#E6A520]/5 rounded-bl-full pointer-events-none" />
+                <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-bl-full pointer-events-none" />
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-[#FFFBE7] border border-primary/10 flex items-center justify-center mx-auto mb-5">
-                    <Calendar className="w-7 h-7 text-[#E6A520]" />
+                  <div className="w-14 h-14 rounded-2xl bg-background border border-primary/10 flex items-center justify-center mx-auto mb-5">
+                    <Calendar className="w-7 h-7 text-accent" />
                   </div>
                   <h2 className="text-2xl font-serif text-primary mb-2">No sessions scheduled yet</h2>
                   <p className="text-sm text-primary/60 font-sans max-w-md mx-auto mb-6">
@@ -433,16 +433,16 @@ function Dashboard() {
           <aside className="space-y-6">
             {/* Book a session */}
             <div className="rounded-[2rem] border border-primary/10 bg-primary text-white p-6 shadow-sm relative overflow-hidden">
-              <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-[#E6A520]/20 rounded-full pointer-events-none" />
+              <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-accent/20 rounded-full pointer-events-none" />
               <div className="relative">
-                <Sparkles className="w-5 h-5 text-[#E6A520] mb-3" />
+                <Sparkles className="w-5 h-5 text-accent mb-3" />
                 <h3 className="text-lg font-serif mb-1.5">Make space for yourself</h3>
                 <p className="text-sm text-white/70 font-sans mb-5">
                   Book a {SESSION_DURATION_LABEL.toLowerCase()} session with a therapist who fits you.
                 </p>
                 <Link
                   href="/book"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#E6A520] hover:bg-[#c48b1a] text-primary text-sm font-semibold rounded-full transition-colors font-sans"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent/90 text-primary text-sm font-semibold rounded-full transition-colors font-sans"
                 >
                   Book a session <ChevronRight className="w-4 h-4" />
                 </Link>
@@ -453,7 +453,7 @@ function Dashboard() {
             {myTherapists.length > 0 && (
               <div className="rounded-[2rem] border border-primary/10 bg-white p-6 shadow-sm">
                 <h3 className="text-sm font-semibold text-primary uppercase tracking-wider font-sans mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#E6A520]" /> Your therapists
+                  <User className="w-4 h-4 text-accent" /> Your therapists
                 </h3>
                 <ul className="space-y-3">
                   {myTherapists.map((t) => (
@@ -463,7 +463,7 @@ function Dashboard() {
                           <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#FFFBE7] border border-primary/10 flex items-center justify-center text-[#E6A520] font-serif shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-background border border-primary/10 flex items-center justify-center text-accent font-serif shrink-0">
                           {t.name?.charAt(0) || "T"}
                         </div>
                       )}
@@ -480,7 +480,7 @@ function Dashboard() {
             {/* Support */}
             <div className="rounded-[2rem] border border-primary/10 bg-white p-6 shadow-sm">
               <h3 className="text-sm font-semibold text-primary uppercase tracking-wider font-sans mb-2 flex items-center gap-2">
-                <UserCog className="w-4 h-4 text-[#E6A520]" /> Need a hand?
+                <UserCog className="w-4 h-4 text-accent" /> Need a hand?
               </h3>
               <p className="text-sm text-primary/60 font-sans mb-4">
                 Questions about a session, payment, or your account — our care team replies personally.

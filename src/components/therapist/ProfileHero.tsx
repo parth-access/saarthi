@@ -80,11 +80,11 @@ const ProfileHero = ({
             transition={{ duration: 1, delay: 0.2 }}
             className="relative"
           >
-            <div className="aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
+            <div className="group aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
               <img
                 src={image || "/placeholder.png"}
                 alt={name}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 referrerPolicy="no-referrer"
               />
             </div>
