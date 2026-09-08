@@ -3,6 +3,7 @@ import { DocumentReference, FieldValue, Timestamp } from 'firebase-admin/firesto
 import { logger } from '@/shared/logger';
 import type { TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
 import { generateTimeSlots } from '@/shared/scheduling/slots';
+import type { TherapistAvailabilityRule, TherapistOverride } from '@/types';
 import crypto from 'crypto';
 
 export interface LockResult {
@@ -145,12 +146,12 @@ export class SlotReservationService {
     const rules = (rulesSnapshot?.docs || []).map(doc => ({
       id: doc.id,
       ...doc.data()
-    })) as any[];
+    })) as unknown as TherapistAvailabilityRule[];
 
     const overrides = (overridesSnapshot?.docs || []).map(doc => ({
       id: doc.id,
       ...doc.data()
-    })) as any[];
+    })) as unknown as TherapistOverride[];
 
     // If no custom rules or overrides are configured for this therapist, default to available
     if (rules.length === 0 && overrides.length === 0) {

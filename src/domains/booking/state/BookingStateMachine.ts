@@ -107,7 +107,9 @@ export class BookingStateMachine {
           timestamp: new Date(),
           data: {
             ...eventPayload,
-            booking: booking as any, // Retain full instance reference for internal domain handlers
+            // The internal domain-event contract intentionally receives the full
+            // entity. The central EventBus below receives the redacted summary.
+            booking,
           },
         }).catch((err) => {
           console.error(`[BookingStateMachine] Async error in DomainEvents for ${eventName}:`, err);
@@ -130,4 +132,3 @@ export class BookingStateMachine {
     }
   }
 }
-

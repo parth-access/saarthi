@@ -953,7 +953,7 @@ interface ClinicalSessionCardProps {
   isTodaySession?: boolean;
 }
 
-const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
+export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
   booking,
   onUpdateStatus,
   onDeclineRequest,

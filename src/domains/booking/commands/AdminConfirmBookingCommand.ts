@@ -5,8 +5,6 @@ import { firestoreBookingRepository } from '../repository/FirestoreBookingReposi
 import { BookingRepository } from '../repository/BookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
 import { BookingStateMachine } from '../state/BookingStateMachine';
-import { Booking } from '../entities/Booking';
-import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxService, OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { SlotReservationService } from '../services/SlotReservationService';
 
@@ -45,8 +43,6 @@ export class AdminConfirmBookingCommandHandler
     }
 
     let shouldSendEmail = false;
-    let therapistId = '';
-    let bookingData: Booking | null = null;
     let alreadyConfirmed = false;
 
     await adminDb.runTransaction(async (t) => {
@@ -67,9 +63,6 @@ export class AdminConfirmBookingCommandHandler
       if (booking.status === 'cancelled' || booking.status === 'rejected') {
         throw new Error('Cannot confirm a cancelled or rejected booking');
       }
-
-      therapistId = booking.therapistId;
-      bookingData = booking;
 
       const slotId = SlotReservationService.getSlotId(booking.therapistId, booking.date, booking.time);
       const slotRef = adminDb.collection('locked_slots').doc(slotId);

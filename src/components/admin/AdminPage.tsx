@@ -18,6 +18,7 @@ import { BookingStatus, Booking, Therapist } from "@/types"
 import { bookingService } from "@/services/bookingService"
 import { useAuth } from "@/contexts/AuthContext"
 import { TherapistDashboard } from "@/components/dashboard/TherapistDashboard"
+import { TherapistWorkspace } from "@/components/dashboard/TherapistWorkspace"
 import { ScheduleBuilder } from "@/components/dashboard/ScheduleBuilder"
 import { ContactsPanel } from "@/components/admin/ContactsPanel"
 import { EmailLogsPanel } from "@/components/admin/EmailLogsPanel"
@@ -239,22 +240,37 @@ export const AdminPage = () => {
 
   return (
     <>
-      <TherapistDashboard 
-        therapist={myTherapistProfile}
-        bookings={bookings}
-        loading={loading}
-        error={error}
-        onRefresh={fetchData}
-        onLogout={handleLogout}
-        onUpdateStatus={handleUpdateStatus}
-        onDeclineRequest={setDeclineBookingDoc}
-        processingId={processingId}
-        scheduleBuilderNode={scheduleBuilderNode}
-        adminTherapistsNode={adminTherapistsNode}
-        contactsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><ContactsPanel /></div> : null}
-        emailLogsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><EmailLogsPanel /></div> : null}
-        isAdmin={currentUser?.role === 'admin'}
-      />
+      {currentUser?.role === 'therapist' ? (
+        <TherapistWorkspace
+          therapist={myTherapistProfile}
+          bookings={bookings}
+          loading={loading}
+          error={error}
+          onRefresh={fetchData}
+          onLogout={handleLogout}
+          onUpdateStatus={handleUpdateStatus}
+          onDeclineRequest={setDeclineBookingDoc}
+          processingId={processingId}
+          scheduleBuilderNode={scheduleBuilderNode}
+        />
+      ) : (
+        <TherapistDashboard 
+          therapist={myTherapistProfile}
+          bookings={bookings}
+          loading={loading}
+          error={error}
+          onRefresh={fetchData}
+          onLogout={handleLogout}
+          onUpdateStatus={handleUpdateStatus}
+          onDeclineRequest={setDeclineBookingDoc}
+          processingId={processingId}
+          scheduleBuilderNode={scheduleBuilderNode}
+          adminTherapistsNode={adminTherapistsNode}
+          contactsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><ContactsPanel /></div> : null}
+          emailLogsNode={currentUser?.role === 'admin' ? <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><EmailLogsPanel /></div> : null}
+          isAdmin={currentUser?.role === 'admin'}
+        />
+      )}
 
       <AnimatePresence>
         {declineBookingDoc && (
