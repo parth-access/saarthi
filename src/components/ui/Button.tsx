@@ -4,16 +4,16 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] motion-reduce:transition-colors motion-reduce:active:scale-100",
   {
     variants: {
       variant: {
         primary:
-          "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-primary/90",
+          "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:bg-primary/90 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none",
         outline:
-          "border border-primary/20 bg-transparent text-primary shadow-sm hover:bg-primary/5 hover:border-primary/40 hover:-translate-y-0.5",
+          "border border-primary/20 bg-transparent text-primary shadow-sm hover:bg-primary/5 hover:border-primary/40 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
         accent:
-          "bg-accent text-accent-foreground shadow-sm hover:shadow-md hover:bg-accent/90 hover:-translate-y-0.5",
+          "bg-accent text-accent-foreground shadow-sm hover:shadow-md hover:bg-accent/90 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none",
         destructive:
           "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100/80 hover:text-red-700 shadow-sm hover:-translate-y-0.5",
         ghost: "hover:bg-primary/5 text-primary hover:text-primary transition-colors",

@@ -16,10 +16,10 @@ export function Footer() {
             </p>
             <div className="flex items-center gap-4">
               <a
-                href="https://instagram.com/saarthi.safespace" 
-                target="_blank" 
+                href="https://instagram.com/saarthi.safespace"
+                target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
@@ -28,7 +28,7 @@ export function Footer() {
                 href="https://youtube.com/@saarthi_theguidanceforlife?si=OXIyS0lOMmObvgMq"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
                 aria-label="YouTube"
               >
                 <Youtube className="h-5 w-5" />
@@ -37,7 +37,7 @@ export function Footer() {
                 href="https://www.facebook.com/share/1HszJAuHfi/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
@@ -46,7 +46,7 @@ export function Footer() {
                 href="https://www.linkedin.com/company/saarthi-the-guidance-for-life/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded-full bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="h-5 w-5" />
@@ -58,15 +58,15 @@ export function Footer() {
             <div>
               <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link href="/therapists" className="hover:text-primary transition-colors">Therapists</Link></li>
-                <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
-                <li><Link href="/vision" className="hover:text-primary transition-colors">Our Vision</Link></li>
-                <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
-                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                <li><Link href="/therapists" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Therapists</Link></li>
+                <li><Link href="/about" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">About</Link></li>
+                <li><Link href="/vision" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Our Vision</Link></li>
+                <li><Link href="/contact" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Contact</Link></li>
+                <li><Link href="/privacy" className="inline-block transition-colors duration-200 hover:text-primary">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="inline-block transition-colors duration-200 hover:text-primary">Terms of Service</Link></li>
                 <li>
                   <Link href="/admin"
-                    className="hover:text-primary transition-colors block"
+                    className="hover:text-primary transition-colors duration-200 inline-block"
                   >
                     Admin Dashboard
                   </Link>

@@ -165,17 +165,23 @@ export function ContactForm() {
             </div>
 
             {status === 'error' && (
-              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl">
-                <AlertCircle className="h-5 w-5" />
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl"
+                role="alert"
+              >
+                <AlertCircle className="h-5 w-5 shrink-0" />
                 <p>{errorMessage || "Something went wrong while sending your message. Please try again in a moment."}</p>
-              </div>
+              </motion.div>
             )}
 
             <div className="space-y-6">
               <Button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full h-16 text-lg rounded-2xl hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-100 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed"
+                className="w-full h-16 text-lg rounded-2xl hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-100 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed motion-reduce:transition-colors motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none"
               >
                 {status === 'loading' ? (
                   <>

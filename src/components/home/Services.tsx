@@ -46,9 +46,9 @@ const Services = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className="h-full border-none shadow-none hover:bg-background/50">
+              <Card className="group h-full border-none shadow-none transition-all duration-300 ease-out hover:bg-background/50 hover:-translate-y-1 hover:shadow-md motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none">
                 <CardHeader>
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-primary/10 motion-reduce:transition-colors motion-reduce:group-hover:scale-100">
                     {service.icon}
                   </div>
                   <CardTitle className="text-xl font-serif">{service.title}</CardTitle>

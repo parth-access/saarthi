@@ -83,7 +83,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
               {navLinks.map((link) => (
                 <Link key={link.name}
                   href={link.href}
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                  className="relative text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-primary after:absolute after:-bottom-1.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-primary/60 after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 motion-reduce:after:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
                 >
                   {link.name}
                 </Link>
@@ -96,7 +96,7 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
             
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              <Link href={portalLink} className="text-sm font-medium text-primary hover:underline transition-all">
+              <Link href={portalLink} className="text-sm font-medium text-primary transition-colors duration-200 hover:text-accent">
                 {portalText}
               </Link>
               <Button asChild size="sm" variant="primary" onClick={handleBookClick}>

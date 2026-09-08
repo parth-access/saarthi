@@ -78,7 +78,7 @@ export default function TherapistsPage() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-8 h-8 text-[#E6A520] animate-spin" />
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
             <p className="text-sm font-sans font-medium text-primary/60">Connecting you with our clinical care network...</p>
           </div>
         ) : (
@@ -99,7 +99,7 @@ export default function TherapistsPage() {
                           <img
                             src={therapist.image.startsWith('http') || therapist.image.startsWith('/') ? therapist.image : `/${therapist.image}`}
                             alt={therapist.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale group-hover:grayscale-0"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale group-hover:grayscale-0 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                             referrerPolicy="no-referrer"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
