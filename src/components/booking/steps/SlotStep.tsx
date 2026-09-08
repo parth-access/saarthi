@@ -1,5 +1,6 @@
 import * as React from "react"
 import { format, parseISO } from "date-fns"
+import { motion, useReducedMotion } from "framer-motion"
 import { Calendar, Loader2, Clock, AlertCircle, ChevronLeft, RefreshCw, Globe } from "lucide-react"
 import { Button } from "../../ui/Button"
 import { useAvailability } from "../../../hooks/useAvailability"
@@ -49,6 +50,7 @@ function SlotLegend() {
 
 export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: Props) => {
   const { slots, loading, error, refetch } = useAvailability(therapistId, date);
+  const reduce = useReducedMotion();
 
   // Past-slot detection is decided by the server against IST (see
   // /api/availability + @/shared/scheduling/slots) and arrives as `slot.reason`.
@@ -145,19 +147,36 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
                   onClick={() => onSelect(slot.time)}
                   aria-label={isAvailable ? `Select ${formatTime12h(slot.time)}` : `${formatTime12h(slot.time)} — ${SLOT_TONE_LABEL[tone]}`}
                   className={cn(
-                    "relative overflow-hidden rounded-full border px-6 py-3.5 text-sm font-semibold transition-all active:scale-95",
+                    // Transforms only (translate/scale/shadow) so hover and press never
+                    // shift the surrounding grid; color states ride the same transition.
+                    "relative overflow-hidden rounded-full border px-6 py-3.5 text-sm font-semibold",
+                    "transition-all duration-200 ease-out",
+                    "enabled:hover:-translate-y-px enabled:hover:shadow-sm",
+                    "enabled:active:translate-y-0 enabled:active:scale-[0.98] enabled:active:duration-100",
+                    // Reduced motion: colour feedback only, no transforms.
+                    "motion-reduce:transition-colors motion-reduce:duration-150",
+                    "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none",
+                    "motion-reduce:enabled:active:scale-100",
                     isLoading ? "border-accent bg-accent text-white shadow-md shadow-accent/20" : TONE_PILL[tone],
                     !isAvailable && "cursor-not-allowed",
                     isAnyLoading && !isLoading && "opacity-50",
                   )}
                 >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center gap-2">
+                  {/* The reserving state overlays the pill instead of replacing its
+                      content, so the pill keeps its exact size while locking. */}
+                  <span className={cn("transition-opacity duration-150", isLoading && "opacity-0")}>
+                    {formatTime12h(slot.time)}
+                  </span>
+                  {isLoading && (
+                    <motion.span
+                      initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
+                      className="absolute inset-0 flex items-center justify-center gap-2"
+                    >
                       <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
                       <span>Reserving...</span>
-                    </span>
-                  ) : (
-                    <span>{formatTime12h(slot.time)}</span>
+                    </motion.span>
                   )}
                   {!isAvailable && !isLoading && (
                     <span className="ml-2 text-[11px] font-medium opacity-70">
