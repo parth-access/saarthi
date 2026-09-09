@@ -26,12 +26,15 @@ import {
   RefreshCw,
   Stethoscope,
   UsersRound,
+  Video,
   X,
 } from 'lucide-react';
 import type { Booking, BookingStatus, Therapist } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
-import { ClinicalSessionCard } from './TherapistDashboard';
+import { ClinicalSessionCard, JoinSessionButton } from './TherapistDashboard';
+import { formatTime12h } from '@/components/booking/bookingUi';
+import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 
 type WorkspaceTab = 'today' | 'sessions' | 'availability';
 
@@ -226,6 +229,7 @@ export function TherapistWorkspace({
               today={today}
               pending={pending}
               upcoming={upcoming}
+              loading={loading}
               processingId={processingId}
               onUpdateStatus={onUpdateStatus}
               onDeclineRequest={onDeclineRequest}
@@ -236,6 +240,8 @@ export function TherapistWorkspace({
           {tab === 'sessions' && (
             <SessionsView
               bookings={filtered}
+              total={bookings.length}
+              loading={loading}
               query={query}
               status={status}
               processingId={processingId}
@@ -312,17 +318,129 @@ function ProfileRail({ therapist }: { therapist: Therapist | null }) {
   );
 }
 
-function TodayView({ firstName, therapist, bookings, today, pending, upcoming, processingId, onUpdateStatus, onDeclineRequest, onOpenSessions, onOpenAvailability }: {
-  firstName: string; therapist: Therapist | null; bookings: readonly Booking[]; today: readonly Booking[]; pending: readonly Booking[]; upcoming: readonly Booking[]; processingId: string | null;
+function greetingFor(date: Date): string {
+  const hour = date.getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+/** Earliest active session: today's first, else the next future one. */
+function pickNextSession(bookings: readonly Booking[]): Booking | null {
+  const active = bookings.filter((b) => b.status === 'confirmed' || b.status === 'awaiting_payment');
+  const byStart = (a: Booking, b: Booking) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`);
+  const todayActive = active.filter(isTodaysBooking).sort(byStart);
+  if (todayActive.length > 0) return todayActive[0];
+  const startOfTomorrow = new Date();
+  startOfTomorrow.setHours(24, 0, 0, 0);
+  return (
+    active
+      .filter((b) => {
+        const d = sessionDate(b);
+        return d !== null && d.getTime() >= startOfTomorrow.getTime();
+      })
+      .sort(byStart)[0] ?? null
+  );
+}
+
+function NextSessionCard({ booking }: { booking: Booking }) {
+  const date = sessionDate(booking);
+  const isConfirmed = booking.status === 'confirmed';
+  return (
+    <section
+      aria-label="Next session"
+      className="rounded-xl border border-primary/25 bg-white p-4 shadow-sm ring-1 ring-primary/5 sm:p-5"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-accent">
+            <Video className="h-3.5 w-3.5" aria-hidden="true" />
+            {isTodaysBooking(booking) ? 'Next session · today' : 'Next session'}
+          </p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="font-mono text-3xl font-semibold tabular-nums text-primary">
+              {formatTime12h(booking.time)}
+            </span>
+            <span className="rounded-md border border-hairline bg-neutral-surface px-1.5 py-0.5 text-[0.6875rem] font-medium text-primary/70">
+              {SESSION_DURATION_MINUTES} min
+            </span>
+            <span className="text-xs text-muted-foreground">IST</span>
+            {date && !isTodaysBooking(booking) && (
+              <span className="text-xs text-muted-foreground">{format(date, 'EEE, MMM d')}</span>
+            )}
+          </div>
+          <p className="mt-2 text-sm font-semibold text-primary">{booking.name || 'Client'}</p>
+          <p className="text-xs text-muted-foreground">
+            {booking.sessionType || 'Individual'} therapy ·{' '}
+            {isConfirmed ? (
+              booking.meetingUrl ? (
+                'Meet room ready'
+              ) : (
+                'Meet room is created when you join'
+              )
+            ) : (
+              'Waiting for the client to complete payment'
+            )}
+          </p>
+        </div>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+          {isConfirmed ? (
+            <>
+              <JoinSessionButton booking={booking} className="h-10 w-full px-5 text-sm sm:w-auto" />
+              <span className="text-center text-[0.625rem] text-muted-foreground sm:text-right">
+                Opens Google Meet in a new tab
+              </span>
+            </>
+          ) : (
+            <span className="rounded-lg border border-warning/25 bg-warning-surface px-3 py-2 text-xs font-medium text-warning">
+              Awaiting payment
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TodayView({ firstName, therapist, bookings, today, pending, upcoming, loading, processingId, onUpdateStatus, onDeclineRequest, onOpenSessions, onOpenAvailability }: {
+  firstName: string; therapist: Therapist | null; bookings: readonly Booking[]; today: readonly Booking[]; pending: readonly Booking[]; upcoming: readonly Booking[]; loading: boolean; processingId: string | null;
   onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void; onOpenSessions: () => void; onOpenAvailability: () => void;
 }) {
+  const next = React.useMemo(() => pickNextSession(bookings), [bookings]);
+  const stillLoading = loading && bookings.length === 0;
+  const missingMeet = React.useMemo(
+    () =>
+      bookings.filter(
+        (b) => b.status === 'confirmed' && !b.meetingUrl && (isTodaysBooking(b) || upcoming.includes(b))
+      ).length,
+    [bookings, upcoming]
+  );
+
+  if (stillLoading) {
+    return (
+      <div className="space-y-5" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading your sessions…</span>
+        <div className="h-20 animate-pulse rounded-xl bg-white shadow-sm motion-reduce:animate-none" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-white shadow-sm motion-reduce:animate-none" />
+          ))}
+        </div>
+        <div className="h-36 animate-pulse rounded-xl bg-white shadow-sm motion-reduce:animate-none" />
+        <div className="h-28 animate-pulse rounded-xl bg-white shadow-sm motion-reduce:animate-none" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-hairline bg-white px-4 py-4 shadow-sm sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-accent">Clinical workspace</p>
-            <h2 className="mt-1 font-serif text-xl font-semibold text-primary">Good day, {firstName}.</h2>
+            <h2 className="mt-1 font-serif text-xl font-semibold text-primary">
+              {greetingFor(new Date())}, {firstName}.
+            </h2>
             <p className="mt-1 text-xs text-muted-foreground">{format(new Date(), 'EEEE, MMMM d')} · all session times are IST.</p>
           </div>
           <div className={cn('rounded-lg border px-2.5 py-1 text-xs font-medium', therapist ? (therapist.active ? 'border-success/20 bg-success-surface text-success' : 'border-danger/20 bg-danger-surface text-danger') : 'border-warning/20 bg-warning-surface text-warning')}>
@@ -330,6 +448,12 @@ function TodayView({ firstName, therapist, bookings, today, pending, upcoming, p
           </div>
         </div>
       </section>
+
+      {next ? (
+        <NextSessionCard booking={next} />
+      ) : (
+        <EmptyPanel title="No active sessions on the horizon" detail="When a session is confirmed it will appear here with its meeting controls." />
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat title="Today" value={today.length} detail={today.length === 1 ? 'session planned' : 'sessions planned'} icon={Clock3} />
@@ -345,6 +469,18 @@ function TodayView({ firstName, therapist, bookings, today, pending, upcoming, p
               <p className="text-xs leading-relaxed text-warning"><span className="font-semibold">{pending.length} request{pending.length === 1 ? '' : 's'} need your response.</span> Reviewing a request sends its payment link only when you choose to approve it.</p>
             </div>
             <Button variant="outline" size="sm" onClick={onOpenSessions} className="border-warning/30 bg-white text-warning hover:bg-white/80">Review requests</Button>
+          </div>
+        </section>
+      )}
+
+      {missingMeet > 0 && (
+        <section className="rounded-xl border border-info/25 bg-info-surface px-4 py-3 shadow-sm">
+          <div className="flex items-start gap-2.5">
+            <Video className="mt-0.5 h-4 w-4 text-info" aria-hidden="true" />
+            <p className="text-xs leading-relaxed text-info">
+              <span className="font-semibold">{missingMeet} confirmed session{missingMeet === 1 ? ' has' : 's have'} no Meet room yet.</span>{' '}
+              Nothing is broken — the room is created the first time you join, or automatically by the calendar retry.
+            </p>
           </div>
         </section>
       )}
@@ -367,7 +503,7 @@ function TodayView({ firstName, therapist, bookings, today, pending, upcoming, p
         <aside className="space-y-3 xl:sticky xl:top-20">
           <section className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2.5"><span className="rounded-lg bg-primary/5 p-2 text-primary"><Stethoscope className="h-4 w-4" aria-hidden="true" /></span><div><h3 className="text-sm font-semibold text-primary">Your practice</h3><p className="text-xs text-muted-foreground">Personal session workspace</p></div></div>
-            <dl className="mt-4 space-y-2 border-t border-hairline pt-3 text-xs"><Detail label="Standard session" value="45 minutes" /><Detail label="Session timezone" value="IST (UTC+5:30)" /><Detail label="Visible sessions" value={String(bookings.length)} /></dl>
+            <dl className="mt-4 space-y-2 border-t border-hairline pt-3 text-xs"><Detail label="Standard session" value={`${SESSION_DURATION_MINUTES} minutes`} /><Detail label="Session timezone" value="IST (UTC+5:30)" /><Detail label="Visible sessions" value={String(bookings.length)} /></dl>
           </section>
           <section className="rounded-xl border border-hairline bg-white p-4 shadow-sm"><h3 className="text-sm font-semibold text-primary">Keep availability current</h3><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Your saved hours determine which start times clients can request.</p><Button variant="outline" size="sm" onClick={onOpenAvailability} className="mt-3 w-full"><Clock3 className="mr-1.5 h-3.5 w-3.5" />Manage availability</Button></section>
         </aside>
@@ -376,8 +512,9 @@ function TodayView({ firstName, therapist, bookings, today, pending, upcoming, p
   );
 }
 
-function SessionsView({ bookings, query, status, processingId, onQuery, onStatus, onUpdateStatus, onDeclineRequest }: { bookings: readonly Booking[]; query: string; status: BookingStatus | 'all'; processingId: string | null; onQuery: (value: string) => void; onStatus: (value: BookingStatus | 'all') => void; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void }) {
-  return <section className="space-y-3"><SectionHeading title="Sessions" detail="Search and manage the sessions assigned to you." /><div className="rounded-xl border border-hairline bg-white p-3 shadow-sm sm:flex sm:items-center sm:gap-3"><label className="sr-only" htmlFor="session-search">Search sessions</label><input id="session-search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search client, email, phone or session type" className="h-10 w-full rounded-lg border border-hairline bg-neutral-surface/40 px-3 text-sm text-primary placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 sm:flex-1" /><label className="sr-only" htmlFor="session-status">Filter by status</label><select id="session-status" value={status} onChange={(event) => onStatus(event.target.value as BookingStatus | 'all')} className="mt-2 h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:mt-0 sm:w-52"><option value="all">All statuses</option><option value="pending_approval">Pending approval</option><option value="awaiting_payment">Awaiting payment</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="rejected">Rejected</option></select></div><div className="space-y-3">{bookings.length === 0 ? <EmptyPanel title="No matching sessions" detail="Try changing the search or status filter." /> : bookings.map((booking) => <ClinicalSessionCard key={booking.id} booking={booking} isProcessing={processingId === booking.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />)}</div></section>;
+function SessionsView({ bookings, total, loading, query, status, processingId, onQuery, onStatus, onUpdateStatus, onDeclineRequest }: { bookings: readonly Booking[]; total: number; loading: boolean; query: string; status: BookingStatus | 'all'; processingId: string | null; onQuery: (value: string) => void; onStatus: (value: BookingStatus | 'all') => void; onUpdateStatus: (id: string, status: BookingStatus) => Promise<void>; onDeclineRequest: (booking: Booking) => void }) {
+  const stillLoading = loading && total === 0;
+  return <section className="space-y-3"><SectionHeading title="Sessions" detail="Search and manage the sessions assigned to you." /><div className="rounded-xl border border-hairline bg-white p-3 shadow-sm sm:flex sm:items-center sm:gap-3"><label className="sr-only" htmlFor="session-search">Search sessions</label><input id="session-search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search client, email, phone or session type" className="h-10 w-full rounded-lg border border-hairline bg-neutral-surface/40 px-3 text-sm text-primary placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 sm:flex-1" /><label className="sr-only" htmlFor="session-status">Filter by status</label><select id="session-status" value={status} onChange={(event) => onStatus(event.target.value as BookingStatus | 'all')} className="mt-2 h-10 w-full rounded-lg border border-hairline bg-white px-3 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:mt-0 sm:w-52"><option value="all">All statuses</option><option value="pending_approval">Pending approval</option><option value="awaiting_payment">Awaiting payment</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="rejected">Rejected</option></select></div>{stillLoading ? <div className="space-y-3" aria-busy="true"><span className="sr-only">Loading your sessions…</span>{[0, 1, 2].map((i) => <div key={i} className="h-28 animate-pulse rounded-xl bg-white shadow-sm motion-reduce:animate-none" />)}</div> : <div className="space-y-3">{bookings.length === 0 ? <EmptyPanel title="No matching sessions" detail={query || status !== 'all' ? 'Try changing the search or status filter.' : 'When clients book with you, their sessions will appear here.'} /> : bookings.map((booking) => <ClinicalSessionCard key={booking.id} booking={booking} isProcessing={processingId === booking.id} onUpdateStatus={onUpdateStatus} onDeclineRequest={onDeclineRequest} />)}</div>}</section>;
 }
 
 function SectionHeading({ title, detail, actionLabel, onAction }: { title: string; detail: string; actionLabel?: string; onAction?: () => void }) { return <div className="flex flex-wrap items-end justify-between gap-2 border-b border-hairline pb-2.5"><div><h2 className="font-serif text-base font-semibold text-primary">{title}</h2><p className="mt-0.5 text-xs text-muted-foreground">{detail}</p></div>{actionLabel && onAction && <Button variant="ghost" size="sm" onClick={onAction} className="text-primary">{actionLabel}</Button>}</div>; }

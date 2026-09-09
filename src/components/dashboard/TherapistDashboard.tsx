@@ -32,6 +32,7 @@ import { OperationsPanel } from "../admin/OperationsPanel";
 import { isValidClientAge, parseAgeInput } from "@/shared/validation/age";
 import { Button } from "@/components/ui/Button";
 import { CopyableId } from "@/components/admin/bookings/CopyableId";
+import { useJoinSession } from "@/hooks/useJoinSession";
 import {
   statusBadge,
   paymentBadge,
@@ -953,6 +954,45 @@ interface ClinicalSessionCardProps {
   isTodaySession?: boolean;
 }
 
+/**
+ * The single real "join" action, shared by the therapist workspace, the admin
+ * console and the next-session hero. Uses the app's useJoinSession flow: opens
+ * the stored meetingUrl instantly, or asks /api/bookings/join-session to create
+ * the Google Meet room on demand (server verifies the caller is the assigned
+ * therapist). Never fabricates a link.
+ */
+export function JoinSessionButton({ booking, className }: { booking: Booking; className?: string }) {
+  const { join, joiningId } = useJoinSession();
+  const isJoining = joiningId === booking.id;
+  return (
+    <button
+      type="button"
+      disabled={isJoining}
+      onClick={() => join(booking)}
+      className={cn(
+        "flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold text-white transition-all duration-150",
+        booking.meetingUrl
+          ? "bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98]"
+          : "bg-emerald-700/85 hover:bg-emerald-700 active:scale-[0.98] border border-dashed border-white/50",
+        "disabled:cursor-wait disabled:opacity-80 motion-reduce:transition-colors motion-reduce:active:scale-100",
+        className
+      )}
+    >
+      {isJoining ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          Preparing room…
+        </>
+      ) : (
+        <>
+          <Video className="h-3.5 w-3.5" aria-hidden="true" />
+          {booking.meetingUrl ? "Join Google Meet" : "Join Session"}
+        </>
+      )}
+    </button>
+  );
+}
+
 export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
   booking,
   onUpdateStatus,
@@ -1158,21 +1198,12 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
             {/* Confirmed Sessions: Join Meet, Complete, Cancel */}
             {booking.status === "confirmed" && (
               <>
-                <a
-                  href={booking.meetingUrl || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (!booking.meetingUrl) {
-                      e.preventDefault();
-                      alert("Google Meet link is currently generating. Please sync database in a moment.");
-                    }
-                  }}
-                  className="w-full h-8 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <Video className="h-3.5 w-3.5" />
-                  Join Google Meet
-                </a>
+                <JoinSessionButton booking={booking} className="w-full h-8" />
+                {!booking.meetingUrl && (
+                  <p className="text-center text-[0.625rem] leading-snug text-muted-foreground">
+                    Your Meet room is created the first time you join (or when the calendar retry runs).
+                  </p>
+                )}
 
                 <Button
                   type="button"
