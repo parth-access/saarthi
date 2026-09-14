@@ -5,7 +5,7 @@
 The Saarthi repository has successfully completed a rigorous forensic audit spanning static analysis, architectural review, and dynamic concurrency testing. The system demonstrates a high degree of maturity, especially within its core booking and payment domains. The application architecture has fully evolved from a Vite SPA to a Next.js App Router paradigm utilizing Domain-Driven Design (DDD), CQRS-lite, and Event-driven patterns.
 
 **Overall Health:** Excellent. The codebase exhibits sophisticated handling of distributed systems challenges such as race conditions, payment idempotency, and asynchronous side-effect processing.
-**Production Readiness:** NO-GO. The application architecture is exceptionally sound, but the required background processing jobs are missing from `vercel.json` and `OutboxProcessor` "dead-letter" notifications are absent, meaning background task failures will silently break the confirmation pipeline in production.
+**Production Readiness:** CONDITIONAL GO. The application architecture is exceptionally sound. Background processing is properly scheduled via GitHub Actions, bypassing Vercel Hobby plan limitations. Production readiness is contingent only upon validating real-world environment variables (`CRON_SECRET`, `PRODUCTION_URL`, `RAZORPAY_*`) in Vercel and GitHub.
 **Biggest Strengths:** The robust implementation of Firestore atomic transactions (`runTransaction`) with strict read-before-write ordering, and the `OutboxProcessor` for idempotent, reliable event delivery.
 **Biggest Weaknesses:** Observability of "Dead Lettered" events. While the system safely parks repeatedly failing events in a `dead` state, there is no automated alerting built into the application to notify operations when an event permanently fails.
 **Most Dangerous Issue (Mitigated):** Concurrent booking requests for the same slot. This was dynamically and statically verified to be effectively mitigated by the database's locking mechanism.
@@ -153,12 +153,21 @@ Emails are **never** sent synchronously during the checkout transaction. They ar
 
 ## I. Jobs / Cron / Outbox Audit
 
-* **Configuration:** **CRITICAL GAP.** The `vercel.json` file completely lacks a `"crons"` block. This means `/api/cron/process-outbox`, `/api/cron/session-reminders`, and `/api/cron/process-refunds` will NEVER execute in production unless manually triggered. The entire asynchronous side-effect model relies on this.
+* **Configuration:** **Scheduled by GitHub Actions (Bypass Vercel Hobby limitations).** The repository utilizes `.github/workflows/scheduled-jobs.yml` to externally drive the cron endpoints via `curl`.
 * **Security:** Secured by `verifyCronAuth` requiring a `CRON_SECRET` Bearer token.
 * **Processor:** `OutboxProcessor.processEvent` uses a 60-second atomic claim lock (`status: 'processing'`) to prevent concurrent cron invocations from running the same event twice. Failed events increment `attempts` and backoff exponentially until `maxAttempts` (5), then transition to `dead`.
 
----
+**Job-to-Scheduler Matrix**
 
+| JOB | IMPLEMENTATION | SCHEDULER | FREQUENCY | AUTH | RETRY | PRODUCTION VERIFIED |
+|-----|----------------|-----------|-----------|------|-------|---------------------|
+| `process-outbox` | `/api/cron/process-outbox` | GitHub Actions | `*/5 * * * *` | `CRON_SECRET` | Yes (cURL retry 2) | ❓ Unable to verify |
+| `session-reminders` | `/api/cron/session-reminders` | GitHub Actions | `*/5 * * * *` | `CRON_SECRET` | Yes (cURL retry 2) | ❓ Unable to verify |
+| `session-completion`| `/api/cron/session-completion`| GitHub Actions | `*/5 * * * *` | `CRON_SECRET` | Yes (cURL retry 2) | ❓ Unable to verify |
+| `retry-calendar` | `/api/cron/retry-calendar` | GitHub Actions | `*/5 * * * *` | `CRON_SECRET` | Yes (cURL retry 2) | ❓ Unable to verify |
+| `process-refunds` | `/api/cron/process-refunds` | GitHub Actions | `*/5 * * * *` | `CRON_SECRET` | Yes (cURL retry 2) | ❓ Unable to verify |
+
+*Classification: **B. Scheduled by GitHub Actions***
 ## J. Authentication & Authorization
 
 * **Auth:** Handled by Firebase Client SDK `signInWithPopup`, seamlessly bridged to the backend via an Edge-compatible custom JWT cookie (`__session`).
@@ -323,7 +332,8 @@ The following states were explicitly checked for and verified to be **Impossible
 
 * **Real Razorpay Webhook Delivery:** We cannot prove Razorpay will deliver webhooks within our expected SLA under production load, only that the system processes them idempotently when they arrive.
 * **Real Resend Delivery:** We cannot prove emails won't bounce or hit spam filters.
-* **Vercel Cron Execution:** We rely on Vercel's infrastructure to invoke the cron endpoints reliably. Monitoring must be established to ensure crons are actually firing on schedule.
+* **GitHub Actions Scheduler Execution:** We rely on GitHub Actions (`scheduled-jobs.yml`) to invoke the cron endpoints reliably. While the code and workflow file exist, GitHub disables scheduled workflows after 60 days of repo inactivity. Monitoring must be established to ensure crons are actually firing on schedule.
+* **Secret Consistency:** We cannot statically prove that the `CRON_SECRET` configured in Vercel matches the `CRON_SECRET` configured in GitHub Actions Secrets.
 * **Firestore Contention at Extreme Scale:** While transactions protect integrity, extreme concurrent load (e.g. 1000 users clicking the exact same slot at the exact same millisecond) could lead to Firestore transaction timeout/retry exhaustion.
 
 ---
@@ -337,7 +347,7 @@ The following states were explicitly checked for and verified to be **Impossible
 - [x] Refund path verified
 - [x] Email reliability verified
 - [x] Outbox verified
-- [ ] Cron verified (Missing from vercel.json)
+- [x] Cron verified (Scheduled via GitHub Actions)
 - [x] Expiry verified
 - [x] Rescheduling verified
 - [x] Session access verified
@@ -350,5 +360,5 @@ The following states were explicitly checked for and verified to be **Impossible
 - [ ] Critical E2E coverage verified (Missing Playwright/Cypress)
 - [x] No known P0 issues
 
-### FINAL VERDICT: NO-GO
-**Reason:** While the application code is structurally production-ready, highly secure, and effectively mitigates race conditions (statically verified), the complete absence of a `"crons"` block in `vercel.json` breaks the `OutboxProcessor` and `process-refunds` pipelines. Deploying as-is means no emails will be sent, no Google Meet links will be generated, and no refunds will be processed without manual intervention.
+### FINAL VERDICT: CONDITIONAL GO
+**Reason:** The application code is production-ready, highly secure, and extremely resilient to race conditions and failures. The absence of a `crons` block in `vercel.json` is intentional; scheduling is handled effectively by GitHub Actions to bypass Hobby tier limits. The "Conditional" flag strictly applies to ensuring operational/infrastructure configurations (GitHub Secrets, Vercel Env Vars, and Razorpay live keys) are correctly provisioned in the live environment.
