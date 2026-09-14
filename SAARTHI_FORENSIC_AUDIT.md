@@ -5,7 +5,7 @@
 The Saarthi repository has successfully completed a rigorous forensic audit spanning static analysis, architectural review, and dynamic concurrency testing. The system demonstrates a high degree of maturity, especially within its core booking and payment domains. The application architecture has fully evolved from a Vite SPA to a Next.js App Router paradigm utilizing Domain-Driven Design (DDD), CQRS-lite, and Event-driven patterns.
 
 **Overall Health:** Excellent. The codebase exhibits sophisticated handling of distributed systems challenges such as race conditions, payment idempotency, and asynchronous side-effect processing.
-**Production Readiness:** CONDITIONAL GO. The system is structurally sound for production but requires final verification of external service configurations (Vercel crons, Razorpay live keys) in the real production environment.
+**Production Readiness:** NO-GO. The application architecture is exceptionally sound, but the required background processing jobs are missing from `vercel.json` and `OutboxProcessor` "dead-letter" notifications are absent, meaning background task failures will silently break the confirmation pipeline in production.
 **Biggest Strengths:** The robust implementation of Firestore atomic transactions (`runTransaction`) with strict read-before-write ordering, and the `OutboxProcessor` for idempotent, reliable event delivery.
 **Biggest Weaknesses:** Observability of "Dead Lettered" events. While the system safely parks repeatedly failing events in a `dead` state, there is no automated alerting built into the application to notify operations when an event permanently fails.
 **Most Dangerous Issue (Mitigated):** Concurrent booking requests for the same slot. This was dynamically and statically verified to be effectively mitigated by the database's locking mechanism.
@@ -153,7 +153,7 @@ Emails are **never** sent synchronously during the checkout transaction. They ar
 
 ## I. Jobs / Cron / Outbox Audit
 
-* **Configuration:** Vercel cron triggers `/api/cron/process-outbox`, `/api/cron/session-reminders`, etc.
+* **Configuration:** **CRITICAL GAP.** The `vercel.json` file completely lacks a `"crons"` block. This means `/api/cron/process-outbox`, `/api/cron/session-reminders`, and `/api/cron/process-refunds` will NEVER execute in production unless manually triggered. The entire asynchronous side-effect model relies on this.
 * **Security:** Secured by `verifyCronAuth` requiring a `CRON_SECRET` Bearer token.
 * **Processor:** `OutboxProcessor.processEvent` uses a 60-second atomic claim lock (`status: 'processing'`) to prevent concurrent cron invocations from running the same event twice. Failed events increment `attempts` and backoff exponentially until `maxAttempts` (5), then transition to `dead`.
 
@@ -202,7 +202,7 @@ Emails are **never** sent synchronously during the checkout transaction. They ar
 ## P. Testing
 
 * **Coverage:** 1,469 tests pass. Extensive coverage exists for domain logic, utilities, and React component formatting.
-* **Gaps:** True End-to-End (E2E) testing (e.g., Playwright/Cypress) simulating a real browser clicking through Razorpay and asserting the final UI state is missing.
+* **Gaps:** True End-to-End (E2E) testing (e.g., Playwright/Cypress) simulating a real browser clicking through Razorpay and asserting the final UI state is missing. UI state verifications were purely static Tailwind analyses.
 
 ---
 
@@ -249,6 +249,7 @@ The following states were explicitly checked for and verified to be **Impossible
    - *Behavior:* Only the first user's `CreateBookingCommand` transaction commits. The second user receives an HTTP 409 "Slot already booked" error before Razorpay is even initialized.
 3. **Resend is down during booking confirmation:**
    - *Behavior:* `OutboxProcessor` catches the error. Event status stays `pending`. `attempts` increments. Next cron run retries it automatically using exponential backoff.
+   - *Current Reality:* Because the `vercel.json` cron block is missing, this retry will **never happen** and the booking confirmation email will be lost until manual intervention.
 
 ---
 
@@ -336,7 +337,7 @@ The following states were explicitly checked for and verified to be **Impossible
 - [x] Refund path verified
 - [x] Email reliability verified
 - [x] Outbox verified
-- [x] Cron verified
+- [ ] Cron verified (Missing from vercel.json)
 - [x] Expiry verified
 - [x] Rescheduling verified
 - [x] Session access verified
@@ -349,5 +350,5 @@ The following states were explicitly checked for and verified to be **Impossible
 - [ ] Critical E2E coverage verified (Missing Playwright/Cypress)
 - [x] No known P0 issues
 
-### FINAL VERDICT: CONDITIONAL GO
-**Reason:** The application code is production-ready, highly secure, and extremely resilient to race conditions and failures. The "Conditional" flag strictly applies to ensuring operational/infrastructure configurations (Vercel Crons, Env Vars, and Webhook endpoints in the Razorpay dashboard) are correctly provisioned in the live environment prior to launch.
+### FINAL VERDICT: NO-GO
+**Reason:** While the application code is structurally production-ready, highly secure, and effectively mitigates race conditions (statically verified), the complete absence of a `"crons"` block in `vercel.json` breaks the `OutboxProcessor` and `process-refunds` pipelines. Deploying as-is means no emails will be sent, no Google Meet links will be generated, and no refunds will be processed without manual intervention.
