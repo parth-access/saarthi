@@ -2,17 +2,27 @@
 
 
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { authService } from '../services/authService';
 import { User as CustomUser } from '../types';
 import { auth, db } from '../lib/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { syncSessionCookie, invalidateSessionSync } from '@/services/sessionSyncService';
+import { perfMark, perfMeasure } from '@/lib/perfTracing';
 
 interface AuthContextType {
   currentUser: CustomUser | null;
   loading: boolean;
+  /**
+   * Resolves true when the server session cookie has been confirmed for the
+   * current user (or the user is signed out), so callers that immediately
+   * depend on server-side session state (e.g. the login page's redirect to
+   * middleware-protected routes) can wait for it without every consumer of
+   * the auth context having to.
+   */
+  sessionSyncComplete: Promise<boolean> | null;
   login: (email: string, pw: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   register: (email: string, pw: string, name: string) => Promise<void>;
@@ -24,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionSyncComplete, setSessionSyncComplete] = useState<Promise<boolean> | null>(null);
   const router = useRouter();
   
   const isMounted = useRef(true);
@@ -33,6 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Keep the previous uid so only a real signed-out -> signed-in transition
   // refreshes server components after an explicit login.
   const previousFirebaseUid = useRef<string | null | undefined>(undefined);
+  // Monotonic sequence guarding against stale/superseded auth-state events
+  // (duplicate events, Strict Mode double-invoke, rapid login->logout).
+  const authEventSeq = useRef(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -40,10 +54,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return;
     }
+
+    perfMark('AUTH_INIT');
     
     // onAuthStateChanged automatically fires immediately with current state
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      const eventSeq = ++authEventSeq.current;
+      const isStaleEvent = () =>
+        !isMounted.current || eventSeq !== authEventSeq.current;
+
       try {
+        perfMark('AUTH_STATE_RESTORED');
         const wasInitialAuthRestore = previousFirebaseUid.current === undefined;
         const wasSignedOut = previousFirebaseUid.current === null;
         previousFirebaseUid.current = firebaseUser?.uid ?? null;
@@ -51,9 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
+          perfMark('GET_USER_ROLE_START');
           let role = await authService.getUserRole(firebaseUser.uid);
+          perfMeasure('GET_USER_ROLE', 'GET_USER_ROLE_START', 'AUTH');
           
-          if (!isMounted.current) return;
+          if (isStaleEvent()) return;
           
           if (!role) {
             console.log('No user profile found in Firestore for UID:', firebaseUser.uid);
@@ -87,29 +110,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
               return;
             }
-          } else {
-            // Sync session cookie
-            const idToken = await firebaseUser.getIdToken();
-            await fetch('/api/auth/session', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ idToken }),
-            });
+          }
 
-            if (isMounted.current) {
-              setCurrentUser({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email || '',
-                role: role as 'admin' | 'therapist' | 'client',
-                name: firebaseUser.displayName || undefined
-              });
-              setLoading(false);
-              if (!wasInitialAuthRestore && wasSignedOut) {
-                router.refresh();
-              }
+          // The client gate only needs Firebase auth + the verified role.
+          // The server session cookie is synced in the background (below) so
+          // the user-facing spinner no longer waits for that round trip.
+          if (isMounted.current) {
+            setCurrentUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              role: role as 'admin' | 'therapist' | 'client',
+              name: firebaseUser.displayName || undefined
+            });
+            setLoading(false);
+            perfMark('AUTH_READY');
+            perfMeasure('AUTH_READY', 'AUTH_INIT', 'AUTH');
+            if (!wasInitialAuthRestore && wasSignedOut) {
+              router.refresh();
             }
           }
+
+          // Background session-cookie synchronization (never blocks the gate).
+          // The token itself is fetched inside the sync service and is never
+          // held by the context.
+          perfMark('SESSION_SYNC_START');
+          if (isStaleEvent()) {
+            // Identity changed while we awaited the role: drop this sync.
+            invalidateSessionSync();
+            return;
+          }
+          const syncPromise = syncSessionCookie(firebaseUser);
+          setSessionSyncComplete(syncPromise);
+          void syncPromise.then((ok) => {
+            perfMeasure('SESSION_SYNC_END', 'SESSION_SYNC_START', 'AUTH');
+            if (!ok) {
+              // The cookie could not be synced. Client state stays valid
+              // (Firebase auth governs it), but middleware/API calls will
+              // bounce until a later sync succeeds — e.g. the next auth
+              // event or an explicit re-login.
+              console.warn('Background session sync did not complete.');
+            }
+          });
         } else {
+          invalidateSessionSync();
+          setSessionSyncComplete(null);
           await fetch('/api/auth/session', { method: 'DELETE' });
           if (isMounted.current) {
             setCurrentUser(null);
@@ -118,6 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (err) {
         console.error('Auth state change error', err);
+        invalidateSessionSync();
         await fetch('/api/auth/session', { method: 'DELETE' });
         if (isMounted.current) {
           setCurrentUser(null);
@@ -163,8 +208,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setLoading(true);
+    // Invalidate any in-flight/retrying background sync immediately: no
+    // post-logout retry may re-establish a cookie for the signed-out user.
+    invalidateSessionSync();
+    setSessionSyncComplete(null);
     try {
       await authService.logout();
       await fetch('/api/auth/session', { method: 'DELETE' });
@@ -177,10 +226,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isMounted.current) setLoading(false);
       console.error('Logout error', error);
     }
-  };
+  }, [router]);
 
   return (
-    <AuthContext.Provider value={{ currentUser, loading, login, loginWithGoogle, register, logout }}>
+    <AuthContext.Provider value={{ currentUser, loading, sessionSyncComplete, login, loginWithGoogle, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

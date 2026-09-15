@@ -4,6 +4,7 @@ import { TherapistAvailabilityRule, TherapistOverride } from '@/types';
 import { firestoreBookingRepository } from '@/domains/booking';
 import { verifySession } from '@/lib/auth/verifySession';
 import { generateTimeSlots, slotTemporalReason } from '@/shared/scheduling/slots';
+import { logger } from '../_lib/logger';
 
 /**
  * Slot availability for one therapist on one IST calendar day.
@@ -117,6 +118,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'date must be YYYY-MM-DD' }, { status: 400 });
     }
 
+    const availabilityStartMs = Date.now();
+
     let excludedBooking: ExcludedBooking | null;
     try {
       excludedBooking = await resolveExcludedBookingId(request, searchParams.get('excludeBookingId'));
@@ -158,6 +161,11 @@ export async function GET(request: Request) {
       bookingsPromise,
       lockedSlotsPromise,
     ]);
+
+    // Dev-only stage timings (durations in ms — no ids, tokens or user data).
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('AVAILABILITY', `availability queries: ${Date.now() - availabilityStartMs}ms`);
+    }
 
     const rules = rulesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TherapistAvailabilityRule[];
     const overrides = overridesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TherapistOverride[];

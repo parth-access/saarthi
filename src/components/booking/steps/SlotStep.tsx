@@ -3,6 +3,7 @@ import { format, parseISO } from "date-fns"
 import { motion, useReducedMotion } from "framer-motion"
 import { Calendar, Loader2, Clock, AlertCircle, ChevronLeft, RefreshCw, Globe } from "lucide-react"
 import { Button } from "../../ui/Button"
+import { Skeleton } from "../../ui/Skeleton"
 import { useAvailability } from "../../../hooks/useAvailability"
 import { cn } from "../../../lib/utils"
 import { formatTime12h, slotTone, SLOT_TONE_LABEL, type SlotTone } from "../bookingUi"
@@ -35,6 +36,38 @@ const TONE_DOT: Record<SlotTone, string> = {
 
 const LEGEND_TONES: SlotTone[] = ["available", "booked", "locked", "past", "beyond"];
 
+/**
+ * Loading skeleton mirroring the real slot grid's geometry (header, date line,
+ * IST badge, pill rows) so showing it causes no layout shift when real slots
+ * arrive. The known date is rendered immediately — only the unknown content
+ * (slots) is placeholder. Purely presentational — it fetches nothing and
+ * decides nothing.
+ */
+function SlotGridSkeleton({ dateLabel }: { dateLabel: string }) {
+  return (
+    <div className="space-y-8" aria-hidden="true">
+      <div className="space-y-2 text-center">
+        <Skeleton className="h-9 w-64 mx-auto rounded-xl" />
+        <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" /> {dateLabel}
+        </p>
+        <Skeleton className="h-6 w-72 mx-auto rounded-full" />
+      </div>
+      <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-[54px] w-28 rounded-full"
+          />
+        ))}
+      </div>
+      <div className="flex justify-center pt-4">
+        <Skeleton className="h-6 w-44 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 function SlotLegend() {
   return (
     <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-2">
@@ -52,6 +85,9 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
   const { slots, loading, error, refetch } = useAvailability(therapistId, date);
   const reduce = useReducedMotion();
 
+  // Show the date line immediately, even before the request lands.
+  const formattedDate = date ? format(parseISO(date), "MMMM dd, yyyy") : "";
+
   // Past-slot detection is decided by the server against IST (see
   // /api/availability + @/shared/scheduling/slots) and arrives as `slot.reason`.
   // It deliberately does NOT re-derive "now" from the browser clock here: that
@@ -60,12 +96,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
   // disagreed with the validation the booking command then applied.
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center py-20">
-        <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary motion-reduce:animate-none" />
-        <p className="text-sm text-primary/60">{"Checking the specialist's availability..."}</p>
-      </div>
-    );
+    return <SlotGridSkeleton dateLabel={formattedDate} />;
   }
 
   if (error) {
@@ -74,7 +105,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
         <div className="text-center">
           <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" /> {date ? format(parseISO(date), "MMMM dd, yyyy") : ""}
+            <Calendar className="h-4 w-4" /> {formattedDate}
           </p>
         </div>
 
@@ -106,7 +137,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
       <div className="space-y-2 text-center">
         <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" /> {date ? format(parseISO(date), "MMMM dd, yyyy") : ""}
+          <Calendar className="h-4 w-4" /> {formattedDate}
         </p>
         <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary/70">
           <Globe className="h-3 w-3" />

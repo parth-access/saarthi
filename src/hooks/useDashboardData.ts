@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase/client';
 import { Booking, Therapist } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionStartMs } from '@/lib/sessionDisplay';
+import { perfMark, perfMeasure } from '@/lib/perfTracing';
 
 /**
  * Single source of truth for the client dashboard's booking data.
@@ -62,6 +63,9 @@ export function useDashboardData(): DashboardData {
 
   const fetchData = useCallback(async () => {
     if (!currentUser?.email) return;
+    if (!hasLoadedOnce.current) {
+      perfMark('DASHBOARD_START');
+    }
     setLoading(true);
     setError(null);
     try {
@@ -92,6 +96,10 @@ export function useDashboardData(): DashboardData {
     } finally {
       setLoading(false);
       setInitialLoading(false);
+      if (!hasLoadedOnce.current) {
+        perfMark('DASHBOARD_READY');
+        perfMeasure('DASHBOARD_READY', 'DASHBOARD_START', 'UI');
+      }
       hasLoadedOnce.current = true;
     }
   }, [currentUser?.email]);

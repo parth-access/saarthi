@@ -25,7 +25,8 @@ export interface LogEntry {
     | 'FOLLOWUP'
     | 'FOLLOW_UP_API'
     | 'SESSION_NOTES_API'
-    | 'SUMMARY_API';
+    | 'SUMMARY_API'
+    | 'AVAILABILITY';
 
   message: string;
   data?: unknown;

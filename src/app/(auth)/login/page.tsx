@@ -185,10 +185,19 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login, register, loginWithGoogle, currentUser, loading: authLoading } = useAuth();
+  const { login, register, loginWithGoogle, currentUser, loading: authLoading, sessionSyncComplete } = useAuth();
 
   useEffect(() => {
-    if (currentUser) {
+    if (!currentUser) return;
+
+    // The server session cookie is synced in the background (performance), but
+    // middleware protects /dashboard etc. with it — so wait for the sync to
+    // confirm before redirecting, or a fresh login would bounce straight back
+    // to /login. If the sync ultimately failed we still redirect: middleware
+    // will send the user back here rather than silently faking a login.
+    let cancelled = false;
+    const redirectByRole = () => {
+      if (cancelled) return;
       if (currentUser.role === 'admin') {
         router.replace("/admin");
       } else if (currentUser.role === 'therapist') {
@@ -196,8 +205,18 @@ export default function Login() {
       } else {
         router.replace("/dashboard");
       }
+    };
+
+    if (sessionSyncComplete) {
+      sessionSyncComplete.then(redirectByRole).catch(redirectByRole);
+    } else {
+      redirectByRole();
     }
-  }, [currentUser, router]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, sessionSyncComplete, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
