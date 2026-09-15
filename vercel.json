@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "_comment": "No rewrites: routing belongs to next.config.ts for Next.js projects. History and rationale: src/shared/config/vercelRouting.test.ts.",
   "headers": [
     {
       "source": "/(.*)",
