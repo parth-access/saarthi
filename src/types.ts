@@ -104,6 +104,8 @@ export interface Booking {
   reminderStatus?: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
   reminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   reminderScheduledFor?: FirebaseTimestamp | Date | string | null | unknown;
+  /** Slot key (`date_time`) the pending/sent reminder was scheduled against — used to detect reschedules. */
+  reminderSlotKey?: string;
   reminderError?: string;
   studentReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
   therapistReminderSentAt?: FirebaseTimestamp | Date | string | null | unknown;
@@ -111,6 +113,16 @@ export interface Booking {
   reviewComment?: string;
   reviewedAt?: FirebaseTimestamp | Date | string | null | unknown;
   reviewId?: string;
+  /** Therapist's post-session scheduling/continuity decision (not a clinical conclusion). */
+  followUpStatus?: 'recommended' | 'scheduled' | 'deferred' | 'none';
+  followUpStatusUpdatedAt?: FirebaseTimestamp | Date | string | null | unknown;
+  followUpStatusUpdatedBy?: string;
+  /** For follow-up bookings: the completed session this booking follows. */
+  previousBookingId?: string;
+  /** Booking-level pointer set by the therapist-notes service (no note content here). */
+  hasSessionNotes?: boolean;
+  /** Whether the therapist explicitly shared the client-facing summary. */
+  clientSummaryShared?: boolean;
 }
 
 export interface Review {

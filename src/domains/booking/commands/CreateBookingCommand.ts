@@ -191,6 +191,9 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         email,
         userId,
         utcDateTime,
+        // Follow-up linkage: validated + authorized upstream (therapist-owned,
+        // completed source session) before the command is constructed.
+        ...(data.previousBookingId ? { previousBookingId: data.previousBookingId } : {}),
         status: 'draft',
         paymentStatus: 'pending',
         paymentAmount: amount,

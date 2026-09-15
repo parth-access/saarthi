@@ -33,6 +33,7 @@ import { isValidClientAge, parseAgeInput } from "@/shared/validation/age";
 import { Button } from "@/components/ui/Button";
 import { CopyableId } from "@/components/admin/bookings/CopyableId";
 import { useJoinSession } from "@/hooks/useJoinSession";
+import { TherapistPostSessionPanel } from "@/components/dashboard/TherapistPostSessionPanel";
 import {
   statusBadge,
   paymentBadge,
@@ -1270,6 +1271,11 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Post-session actions for concluded sessions */}
+      {(booking.status === "completed" || booking.status === "no_show") && (
+        <TherapistPostSessionPanel booking={booking} />
+      )}
     </div>
   );
 };

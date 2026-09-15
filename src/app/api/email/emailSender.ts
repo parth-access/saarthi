@@ -12,8 +12,11 @@ import {
   generatePaymentFailedEmail,
   generateSessionReminderStudentEmail,
   generateSessionReminderTherapistEmail,
+  generateSessionCompletedStudentEmail,
+  generateSessionCompletedTherapistEmail,
   type BookingEmailData,
-  type SessionReminderEmailData
+  type SessionReminderEmailData,
+  type SessionCompletedEmailData
 } from '../_lib/emailTemplates';
 import { logger } from '../_lib/logger';
 import { SESSION_DURATION_MINUTES } from '@/shared/constants';
@@ -287,7 +290,7 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined' | 'session-reminder';
+  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined' | 'session-reminder' | 'session-completed';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
@@ -644,6 +647,52 @@ export async function sendEmailAction(payload: EmailPayload) {
       studentSent: true, 
       therapistSent: !!therapistEmail, 
       data: results 
+    };
+  }
+
+  if (type === 'session-completed') {
+    const appUrl = process.env.APP_URL || 'https://www.saarthilife.com';
+
+    const completedData: SessionCompletedEmailData = {
+      patientName: safePatientName,
+      therapistName: safeTherapistName,
+      date: safeDate,
+      time: safeTime,
+      feedbackUrl: `${appUrl}/dashboard`,
+    };
+
+    const studentPlainText = `Your session with ${safeTherapistName} is complete.\nThank you for using Saarthi. You can share feedback from your dashboard: ${appUrl}/dashboard\n- The Saarthi Team`.trim();
+
+    const studentPromise = sendEmailWithRetry({
+      from: 'Saarthi <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: `Your session with ${safeTherapistName} is complete`,
+      html: generateSessionCompletedStudentEmail(completedData),
+      text: studentPlainText,
+    }, bookingId, 'session-completed-student');
+
+    let therapistPromise: Promise<unknown> | null = null;
+    if (therapistEmail) {
+      const therapistPlainText = `Session completed: ${safePatientName}, ${safeDate} at ${safeTime} IST.\nAdd notes and plan follow-up from your dashboard: ${appUrl}/therapist/dashboard\n- The Saarthi Team`.trim();
+      therapistPromise = sendEmailWithRetry({
+        from: 'Saarthi Notifications <contact@saarthilife.com>',
+        to: therapistEmail,
+        subject: `Session with ${safePatientName} completed — add your notes`,
+        html: generateSessionCompletedTherapistEmail(completedData),
+        text: therapistPlainText,
+      }, bookingId, 'session-completed-therapist');
+    }
+
+    const results = await Promise.all([
+      studentPromise,
+      ...(therapistPromise ? [therapistPromise] : [])
+    ]);
+
+    return {
+      success: true,
+      studentSent: true,
+      therapistSent: !!therapistEmail,
+      data: results
     };
   }
 

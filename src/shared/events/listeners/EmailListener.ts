@@ -66,4 +66,27 @@ export function registerEmailListeners(eventBus: any) {
       throw err;
     }
   });
+
+  // Post-session emails when a session is completed (manually or via auto-completion cron).
+  // sendEmailAction → sendEmailWithRetry is idempotent (deterministic email_ id per booking+type),
+  // so duplicate BookingCompleted deliveries never double-send.
+  eventBus.subscribe('BookingCompleted', async (event: any) => {
+    const { bookingId } = event.payload;
+    try {
+      const booking = event.payload.booking;
+      if (!booking || booking.status !== 'completed') {
+        logger.warn(`[EmailListener] BookingCompleted payload missing completed booking for ${bookingId}; skipping post-session emails`);
+        return;
+      }
+      await sendEmailAction({
+        type: 'session-completed',
+        bookingId,
+        therapistId: booking.therapistId,
+      });
+      logger.info(`[EmailListener] Post-session emails sent for booking ${bookingId}`);
+    } catch (err) {
+      logger.error(`[EmailListener] Failed to send post-session emails for booking ${bookingId}`, { error: err, bookingId });
+      throw err;
+    }
+  });
 }

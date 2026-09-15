@@ -116,9 +116,17 @@ export class SessionReminderService {
         }
       }
 
-      // Enqueue durable outbox event with nextAttemptAt set to the 30-minute reminder timestamp
+      // Enqueue durable outbox event with nextAttemptAt set to the 30-minute reminder timestamp.
+      //
+      // The event id is SLOT-SCOPED (date+time suffix). recordEvent is insert-only, so a
+      // slot-independent id would keep the original nextAttemptAt after a reschedule:
+      // the reminder would fire ~30 min before the OLD start (too early / wrongly timed)
+      // or after the NEW start (marked SKIPPED, reminder lost). Scoping to the slot makes
+      // each reschedule schedule a fresh event for the new time; the stale event for the
+      // old slot is neutralized by the not-yet-due / session-past guards in sendSessionReminder.
+      const slotKey = `${booking.date}_${booking.time}`;
       const nextAttemptDate = new Date(Math.max(Date.now(), calculation.reminderTimeMillis));
-      const eventId = generateDeterministicEventId('booking', bookingId, 'session_reminder');
+      const eventId = generateDeterministicEventId('booking', bookingId, 'session_reminder', slotKey);
 
       await OutboxService.recordEvent({
         id: eventId,
@@ -128,14 +136,29 @@ export class SessionReminderService {
         nextAttemptAt: nextAttemptDate,
         payload: {
           bookingId,
+          slotKey,
           reminderTimeIso: calculation.reminderIso,
           sessionStartIso: calculation.sessionStartIso
         }
       });
 
+      // Reset SENT only when the previously-sent reminder was for a DIFFERENT slot —
+      // otherwise a same-slot calendar retry would re-arm an already-delivered reminder
+      // and cause a duplicate email. Legacy rows (sent before reminderSlotKey existed)
+      // are recognized by comparing the stored reminderScheduledFor to the current
+      // slot's reminder time.
+      const legacySentForThisSlot =
+        booking.reminderStatus === 'SENT' &&
+        !booking.reminderSlotKey &&
+        !!booking.reminderScheduledFor &&
+        Math.abs(this.getMillis(booking.reminderScheduledFor) - calculation.reminderTimeMillis) < 60_000;
+      const shouldResetSent = booking.reminderStatus === 'SENT' && booking.reminderSlotKey !== slotKey && !legacySentForThisSlot;
+      const nextReminderStatus = booking.reminderStatus === 'SENT' && !shouldResetSent ? 'SENT' : 'PENDING';
+
       await docRef.update({
-        reminderStatus: 'PENDING',
+        reminderStatus: nextReminderStatus,
         reminderScheduledFor: nextAttemptDate,
+        reminderSlotKey: slotKey,
         updatedAt: FieldValue.serverTimestamp()
       });
 
@@ -205,6 +228,14 @@ export class SessionReminderService {
       // 4. Validate Timing
       const calculation = this.calculateReminderTimeIST(booking.date, booking.time);
 
+      // Guard against stale slot-scoped events: after a reschedule, the event for the
+      // OLD slot can fire while the (new) session is still more than 30 minutes away.
+      // Skip without touching reminderStatus so the correct slot's event handles the send.
+      if (!options?.force && Date.now() < calculation.reminderTimeMillis) {
+        logger.info('REMINDER', `Reminder for booking ${bookingId} is not yet due (fires ${calculation.reminderIso}). Skipping early execution.`);
+        return { success: false, skippedReason: 'not_yet_due' };
+      }
+
       if (calculation.isSessionPast && !options?.force) {
         logger.warn('REMINDER', `Session for booking ${bookingId} has already started or passed. Skipping reminder.`);
         await docRef.update({
@@ -250,6 +281,7 @@ export class SessionReminderService {
       await docRef.update({
         reminderStatus: 'SENT',
         reminderSentAt: FieldValue.serverTimestamp(),
+        reminderSlotKey: `${booking.date}_${booking.time}`,
         studentReminderSentAt: FieldValue.serverTimestamp(),
         therapistReminderSentAt: emailResult?.therapistSent ? FieldValue.serverTimestamp() : null,
         reminderError: null,
@@ -299,6 +331,17 @@ export class SessionReminderService {
 
       return { success: false, error: errorMsg };
     }
+  }
+
+  private static getMillis(val: unknown): number {
+    if (!val) return 0;
+    const v = val as { toMillis?: () => number; toDate?: () => Date; seconds?: number; nanoseconds?: number };
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    if (typeof v.toDate === 'function') return v.toDate().getTime();
+    if (typeof v.seconds === 'number') return v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1_000_000);
+    if (val instanceof Date) return val.getTime();
+    const t = new Date(val as string);
+    return isNaN(t.getTime()) ? 0 : t.getTime();
   }
 
   /**

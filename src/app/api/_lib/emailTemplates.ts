@@ -635,3 +635,82 @@ export function generateSessionReminderTherapistEmail(data: SessionReminderEmail
   return generateEmailLayout(content, `Session Reminder: Upcoming session with ${data.patientName} in 30 minutes.`);
 }
 
+export interface SessionCompletedEmailData {
+  patientName: string;
+  therapistName: string;
+  date: string;
+  time: string;
+  /** Dashboard link where the user can submit feedback. No sensitive data in the URL. */
+  feedbackUrl?: string;
+}
+
+/**
+ * Post-session email to the client: calm, brief, no PHI, no session notes.
+ * Feedback link points at the authenticated dashboard, never a tokenized URL.
+ */
+export function generateSessionCompletedStudentEmail(data: SessionCompletedEmailData): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+
+    <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${COLORS.text};">
+      Your session with <strong>${data.therapistName}</strong> on <strong>${data.date}</strong> at <strong>${data.time} (IST)</strong> is now complete.
+      Thank you for showing up for yourself today — that matters.
+    </p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 28px; text-align: center;">
+      <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: ${COLORS.text};">How was your session?</h3>
+      <p style="margin: 0 0 18px 0; font-size: 14px; color: ${COLORS.textMuted};">Your honest reflection helps us support you better.</p>
+      <a href="${data.feedbackUrl || `${process.env.APP_URL || 'https://www.saarthilife.com'}/dashboard`}" style="display: inline-block; padding: 12px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none; border-radius: 8px;">
+        Share Your Feedback
+      </a>
+    </div>
+
+    <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.6; color: ${COLORS.text};">
+      If you and your therapist planned a next step, you can view it anytime from your dashboard. And whenever you need another session, we're here.
+    </p>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, `Your session with ${data.therapistName} is complete.`);
+}
+
+/**
+ * Post-session notification to the therapist. Links to the dashboard only —
+ * no session content, no client PHI beyond the booking name/date already known to them.
+ */
+export function generateSessionCompletedTherapistEmail(data: SessionCompletedEmailData): string {
+  const content = `
+    <h2 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Session completed</h2>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="120" style="padding-bottom: 8px; color: ${COLORS.textMuted}; font-size: 14px;">Client:</td>
+          <td style="padding-bottom: 8px; font-weight: 600; font-size: 14px; color: ${COLORS.text};">${data.patientName}</td>
+        </tr>
+        <tr>
+          <td width="120" style="color: ${COLORS.textMuted}; font-size: 14px;">Date & time:</td>
+          <td style="font-weight: 500; font-size: 14px; color: ${COLORS.text};">${data.date} at ${data.time} (IST)</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: ${COLORS.text};">
+      While it's fresh, you can add your private session notes and decide on follow-up from your dashboard.
+    </p>
+
+    <div style="text-align: center; margin-bottom: 16px;">
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/therapist/dashboard" style="display: inline-block; padding: 12px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none; border-radius: 8px;">
+        Open Therapist Dashboard
+      </a>
+    </div>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, `Session with ${data.patientName} completed — add your notes`);
+}
+

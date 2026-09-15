@@ -20,7 +20,12 @@ export interface LogEntry {
     | 'CRON'
     | 'REVIEWS_API'
     | 'REVIEW'
-    | 'LIFECYCLE';
+    | 'LIFECYCLE'
+    | 'NOTES'
+    | 'FOLLOWUP'
+    | 'FOLLOW_UP_API'
+    | 'SESSION_NOTES_API'
+    | 'SUMMARY_API';
 
   message: string;
   data?: unknown;

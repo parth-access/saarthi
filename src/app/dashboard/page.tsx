@@ -16,6 +16,7 @@ import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal"
 import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
 import { CancelModal } from "@/components/dashboard/CancelModal";
 import { SupportModal } from "@/components/dashboard/SupportModal";
+import { PostSessionCard } from "@/components/dashboard/PostSessionCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -161,6 +162,13 @@ function Dashboard() {
   const restUpcoming = useMemo(
     () => upcoming.filter((b) => b.id !== heroSession?.id),
     [upcoming, heroSession]
+  );
+
+  // Most recent completed session without feedback yet — shown as a calm
+  // post-session card (feedback + shared summary + follow-up state).
+  const postSession = useMemo(
+    () => past.find((b) => b.status === "completed" && !b.reviewRating) || null,
+    [past]
   );
 
   // Therapists the user has actually seen/booked (for the "My therapists" panel).
@@ -403,6 +411,15 @@ function Dashboard() {
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* ===== Post-session (feedback / summary / follow-up) ===== */}
+            {postSession && (
+              <PostSessionCard
+                session={postSession}
+                therapist={therapists[postSession.therapistId]}
+                onFeedbackSubmitted={() => refresh()}
+              />
             )}
 
             {/* ===== History ===== */}

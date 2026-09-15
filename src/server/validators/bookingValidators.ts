@@ -54,6 +54,8 @@ export const bookingSchema = z.object({
   gender: z.string().optional(),
   age: clientAge.optional(),
   email: z.string().email("Valid email address is required"),
+  /** For therapist-scheduled follow-ups: the completed session this booking follows. */
+  previousBookingId: z.string().min(1).optional(),
 }).strict();
 
 export const rescheduleBookingSchema = z.object({
