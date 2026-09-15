@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { perfMark, perfMeasure } from '@/lib/perfTracing';
 
 export interface Slot {
   time: string;
@@ -40,6 +41,7 @@ export function useAvailability(
 
     setLoading(true);
     setError(null);
+    perfMark('AVAILABILITY_START');
 
     try {
       const params = new URLSearchParams({ therapistId, date });
@@ -51,6 +53,7 @@ export function useAvailability(
         throw new Error('Unable to check slot availability. Please try again.');
       }
       const availabilityData = await res.json();
+      perfMeasure('AVAILABILITY_RESPONSE', 'AVAILABILITY_START', 'UI');
 
       const {
         availableSlots = [],
@@ -98,6 +101,15 @@ export function useAvailability(
   useEffect(() => {
     fetchAvailability();
   }, [fetchAvailability, refreshKey]);
+
+  // Proxies AVAILABILITY_RENDERED: fires after the state update that carries
+  // fresh slots has been committed.
+  useEffect(() => {
+    if (!loading) {
+      perfMeasure('AVAILABILITY_RENDERED', 'AVAILABILITY_START', 'UI');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slots]);
 
   // Re-validate availability on browser tab visibility change
   useEffect(() => {
