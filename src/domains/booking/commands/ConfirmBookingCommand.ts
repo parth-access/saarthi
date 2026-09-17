@@ -97,7 +97,14 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           return;
         }
 
-        if (data.paymentStatus !== 'pending' && data.status !== 'awaiting_payment') {
+        if (data.status === 'cancelled' || data.status === 'expired' || data.status === 'rejected') {
+          throw new SlotAlreadyBookedError(
+            `Booking is in terminal '${data.status}' state (lock expired or cancelled before payment completed)`,
+            { bookingId, status: data.status, slotId }
+          );
+        }
+
+        if (data.paymentStatus !== 'pending' && data.status !== 'awaiting_payment' && data.status !== 'slot_locked') {
           throw new Error('Booking is not in a payable state');
         }
 
@@ -105,21 +112,43 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         shouldSendEmail = true;
 
         // Double-booking guard: refuse to confirm onto a slot that is already
-        // permanently pinned to a DIFFERENT booking. This is the invariant that
-        // was previously lost at confirm time — the pin was written with an
-        // unconditional `set` and the slot was never read, so two bookings that
-        // both survived the hold window could both confirm on one slot.
+        // permanently pinned to a DIFFERENT booking or actively held by another user.
         const existingSlot = slotSnap?.exists ? (slotSnap.data() || {}) : null;
-        if (
-          existingSlot &&
-          (existingSlot.isPermanent === true || existingSlot.status === 'booked') &&
-          existingSlot.bookingId &&
-          existingSlot.bookingId !== bookingId
-        ) {
-          throw new SlotAlreadyBookedError(
-            'Slot already confirmed for another booking',
-            { bookingId, conflictingBookingId: existingSlot.bookingId, slotId }
-          );
+        if (existingSlot) {
+          const isBookedByOther =
+            (existingSlot.isPermanent === true || existingSlot.status === 'booked') &&
+            existingSlot.bookingId &&
+            existingSlot.bookingId !== bookingId;
+
+          let isActivelyHeldByOther = false;
+          if (!isBookedByOther) {
+            const expiresDate = existingSlot.expiresAt
+              ? (typeof existingSlot.expiresAt.toDate === 'function' ? existingSlot.expiresAt.toDate() : new Date(existingSlot.expiresAt))
+              : null;
+            const isHoldActive = Boolean(expiresDate && expiresDate > new Date());
+            const holdBelongsToOther =
+              Boolean((existingSlot.bookingId && existingSlot.bookingId !== bookingId) ||
+              (existingSlot.userId && data.userId && existingSlot.userId !== data.userId) ||
+              (existingSlot.userId && data.email && existingSlot.userId !== data.email));
+
+            if (isHoldActive && holdBelongsToOther) {
+              isActivelyHeldByOther = true;
+            }
+          }
+
+          if (isBookedByOther || isActivelyHeldByOther) {
+            throw new SlotAlreadyBookedError(
+              isBookedByOther
+                ? 'Slot already confirmed for another booking'
+                : 'Slot hold expired and was acquired by another user',
+              {
+                bookingId,
+                conflictingBookingId: existingSlot.bookingId,
+                slotId,
+                isActivelyHeldByOther,
+              }
+            );
+          }
         }
 
         const verifiedAt = FieldValue.serverTimestamp();

@@ -248,6 +248,7 @@ export class SessionLifecycleService {
       const snapshot = await adminDb
         .collection('bookings')
         .where('status', '==', 'confirmed')
+        .limit(50)
         .get();
 
       result.scanned = snapshot.size;
