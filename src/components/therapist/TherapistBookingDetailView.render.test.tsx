@@ -177,6 +177,13 @@ describe('TherapistBookingDetailView — booking states', () => {
     expect(markup).not.toContain('INTERNAL_EMAIL_ERROR_TEXT');
   });
 
+  it('offers deterministic contextual navigation back to the sessions list', () => {
+    const markup = render(BASE);
+    expect(markup).toContain('Back to Sessions');
+    expect(markup).toContain('href="/therapist/sessions"');
+    expect(markup).not.toContain('history.back');
+  });
+
   it('renders the skeleton, failure and not-found states', () => {
     expect(renderToStaticMarkup(createElement(DetailSkeleton))).toContain('Loading this booking');
     expect(

@@ -17,8 +17,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RotateCcw, Star, Video } from 'lucide-react';
+import { RotateCcw, Star, Video } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { BackLink } from '@/components/navigation/BackLink';
 import { CopyableId } from '@/components/admin/bookings/CopyableId';
 import { TherapistPostSessionPanel } from '@/components/dashboard/TherapistPostSessionPanel';
 import { useJoinSession } from '@/hooks/useJoinSession';
@@ -62,7 +63,7 @@ export function TherapistBookingDetailView({
 
   return (
     <div className="space-y-3">
-      <BackLink />
+      <BackLink href="/therapist/sessions" label="Back to Sessions" />
 
       <header className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
@@ -271,18 +272,6 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
   );
 }
 
-function BackLink() {
-  return (
-    <Link
-      href="/therapist"
-      className="inline-flex items-center gap-1.5 text-xs text-primary/70 underline-offset-2 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-      Your dashboard
-    </Link>
-  );
-}
-
 export function DetailSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true">
@@ -321,7 +310,7 @@ export function NotFoundCard() {
         We couldn&apos;t find this booking — it may not exist, or it may not be assigned to you.
       </p>
       <Button asChild variant="outline" size="sm" className="mt-4">
-        <Link href="/therapist">Back to your dashboard</Link>
+        <Link href="/therapist/sessions">Back to Sessions</Link>
       </Button>
     </div>
   );

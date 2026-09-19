@@ -12,8 +12,7 @@
 
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { BackLink } from '@/components/navigation/BackLink';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import {
   DetailSkeleton,
@@ -100,7 +99,7 @@ export function TherapistBookingDetailScreen({ bookingId }: { bookingId: string 
   if (notFound) {
     return (
       <div className="space-y-3">
-        <BackLink />
+        <BackLink href="/therapist/sessions" label="Back to Sessions" />
         <NotFoundCard />
       </div>
     );
@@ -109,23 +108,11 @@ export function TherapistBookingDetailScreen({ bookingId }: { bookingId: string 
   if (!data) {
     return (
       <div className="space-y-3">
-        <BackLink />
+        <BackLink href="/therapist/sessions" label="Back to Sessions" />
         {initialLoading ? <DetailSkeleton /> : <LoadFailed error={error} onRetry={reload} />}
       </div>
     );
   }
 
   return <TherapistBookingDetailView booking={data} onAfterSave={reload} />;
-}
-
-function BackLink() {
-  return (
-    <Link
-      href="/therapist"
-      className="inline-flex items-center gap-1.5 text-xs text-primary/70 underline-offset-2 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-      Your dashboard
-    </Link>
-  );
 }

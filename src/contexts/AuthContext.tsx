@@ -217,14 +217,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.logout();
       await fetch('/api/auth/session', { method: 'DELETE' });
+    } catch (error) {
+      console.error('Logout error', error);
+    } finally {
       if (isMounted.current) {
         setCurrentUser(null);
         setLoading(false);
-        router.refresh();
       }
-    } catch (error) {
-      if (isMounted.current) setLoading(false);
-      console.error('Logout error', error);
+      // Leave the protected route deliberately instead of leaving the user
+      // parked on it while the middleware/ProtectedRoute guards fight over
+      // where to send them. `replace` (not push) drops the now-unauthenticated
+      // URL from history, so Back never re-enters it — and because the
+      // destination is the public home, the history entry the user returns to
+      // is a real page rather than a redirect back into /login.
+      router.replace('/');
     }
   }, [router]);
 

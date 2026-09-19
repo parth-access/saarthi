@@ -4,6 +4,10 @@ import { z } from 'zod';
 import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import * as admin from 'firebase-admin';
+import {
+  generateContactConfirmationEmail,
+  generateContactConfirmationText,
+} from '../_lib/emailTemplates';
 
 // Initialize Resend
 let resend: Resend | null = null;
@@ -76,16 +80,24 @@ export async function POST(request: Request) {
         `,
       });
 
-      // Auto-Reply
+      // Auto-Reply — built from the shared Saarthi email layout so it matches
+      // the booking/reminder/post-session emails. The template escapes the
+      // visitor's own words; the admin notification above stays escaped here.
       await resend.emails.send({
         from: 'Saarthi <contact@saarthilife.com>',
-        to: safeEmail,
+        to: email.trim(),
         replyTo: 'healwithsaarthi@gmail.com',
-        subject: 'We received your message | Saarthi',
-        html: `
-          <p>Hi ${safeName},</p>
-          <p>Thank you for reaching out to Saarthi. We have received your message.</p>
-        `,
+        subject: 'We received your message — Saarthi',
+        html: generateContactConfirmationEmail({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        }),
+        text: generateContactConfirmationText({
+          name: name.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        }),
       });
     }
 

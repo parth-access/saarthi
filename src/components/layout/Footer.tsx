@@ -1,3 +1,4 @@
+import * as React from "react"
 import Link from "next/link"
 import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin } from "lucide-react"
 
@@ -64,13 +65,6 @@ export function Footer() {
                 <li><Link href="/contact" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Contact</Link></li>
                 <li><Link href="/privacy" className="inline-block transition-colors duration-200 hover:text-primary">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="inline-block transition-colors duration-200 hover:text-primary">Terms of Service</Link></li>
-                <li>
-                  <Link href="/admin"
-                    className="hover:text-primary transition-colors duration-200 inline-block"
-                  >
-                    Admin Dashboard
-                  </Link>
-                </li>
               </ul>
             </div>
           </div>

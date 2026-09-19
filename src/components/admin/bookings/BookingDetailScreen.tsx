@@ -29,14 +29,15 @@
  */
 import {
   AlertTriangle,
-  ArrowLeft,
   ExternalLink,
   Info,
   RotateCcw,
 } from 'lucide-react';
+import * as React from 'react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
+import { BackLink } from '@/components/navigation/BackLink';
 import { useTherapists } from '@/hooks/useTherapists';
 import type { AdminBookingDetail } from '@/domains/booking/queries/adminBookingDetail';
 import { BookingActions } from './BookingActions';
@@ -87,7 +88,7 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
   if (notFound) {
     return (
       <div className="space-y-3">
-        <BackLink />
+        <BackLink href="/admin/bookings" label="Back to Bookings" />
         <div className="rounded-xl border border-hairline bg-white px-4 py-10 text-center shadow-sm">
           <p className="font-medium text-primary">No booking with this id</p>
           <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
@@ -97,7 +98,7 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
             to find the booking you meant.
           </p>
           <Button asChild variant="outline" size="sm" className="mt-4">
-            <Link href="/admin/bookings">Back to bookings</Link>
+            <Link href="/admin/bookings">Back to Bookings</Link>
           </Button>
         </div>
       </div>
@@ -109,7 +110,7 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
   if (!data) {
     return (
       <div className="space-y-3">
-        <BackLink />
+        <BackLink href="/admin/bookings" label="Back to Bookings" />
         {initialLoading ? <DetailSkeleton /> : <LoadFailed error={error} onRetry={reload} />}
       </div>
     );
@@ -136,7 +137,7 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
 
   return (
     <div className="space-y-3">
-      <BackLink />
+      <BackLink href="/admin/bookings" label="Back to Bookings" />
 
       {error && (
         <Banner tone="danger" icon={<AlertTriangle aria-hidden="true" className="h-4 w-4" />}>
@@ -413,18 +414,6 @@ function hasOutcome(booking: AdminBookingDetail): boolean {
     outcome.declinedBy !== null ||
     outcome.reviewRating !== null ||
     outcome.reviewComment !== null
-  );
-}
-
-function BackLink() {
-  return (
-    <Link
-      href="/admin/bookings"
-      className="inline-flex items-center gap-1.5 text-xs text-primary/70 underline-offset-2 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-      All bookings
-    </Link>
   );
 }
 

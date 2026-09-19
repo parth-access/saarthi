@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User as UserIcon, Eye, EyeOff, Shield, ArrowRight, Heart, Mail, Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { BackLink } from "@/components/navigation/BackLink";
 
 interface FloatingInputProps {
   id?: string;
@@ -274,7 +275,7 @@ export default function Login() {
 
   if (authLoading || currentUser) {
     return (
-      <div className="min-h-[100dvh] bg-background flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
         <div className="flex flex-col items-center gap-3">
           <motion.div
             animate={{ rotate: 360 }}
@@ -285,6 +286,9 @@ export default function Login() {
             {currentUser ? "Redirecting..." : "Loading safe space..."}
           </p>
         </div>
+        {/* Present in every state, including this one: auth readiness must
+            never be the only thing standing between the user and a way out. */}
+        <BackLink href="/" label="Back to Saarthi" />
       </div>
     );
   }
@@ -309,6 +313,13 @@ export default function Login() {
         >
           {/* Glassmorphic Auth Card */}
           <div className="bg-white/[0.95] backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-white p-8 sm:p-10 md:p-14 hover:shadow-[0_16px_60px_rgb(0,0,0,0.08)] transition-shadow duration-500">
+            {/* Auth pages are reachable logged-out from anywhere; this is the
+                static way back into the public site, never browser history. */}
+            <BackLink
+              href="/"
+              label="Back to Saarthi"
+              className="mb-6 text-primary/60 hover:text-primary"
+            />
             <div className="mb-8 min-h-[96px]">
               <AnimatePresence mode="wait">
                   <motion.div

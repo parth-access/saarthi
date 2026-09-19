@@ -1,3 +1,4 @@
+import escapeString from 'escape-html';
 import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 
 export interface BookingEmailData {
@@ -712,5 +713,77 @@ export function generateSessionCompletedTherapistEmail(data: SessionCompletedEma
   `;
 
   return generateEmailLayout(content, `Session with ${data.patientName} completed — add your notes`);
+}
+
+export interface ContactConfirmationEmailData {
+  /** Raw (unescaped) values straight from the contact form. */
+  name: string;
+  email: string;
+  message: string;
+}
+
+/**
+ * Auto-reply to someone who used the Contact Us form.
+ *
+ * Uses the same shared layout as every other transactional email, so it carries
+ * the Saarthi logo, brand fonts, colours and the crisis note footer.
+ *
+ * Everything the visitor typed is escaped here, at the point of interpolation:
+ * the contact form is the one place a stranger can put text into a Saarthi
+ * email, so the template — not its caller — owns the escaping and no HTML from
+ * the form can become email markup.
+ */
+export function generateContactConfirmationEmail(data: ContactConfirmationEmailData): string {
+  const safeName = escapeString(data.name.trim());
+  const safeEmail = escapeString(data.email.trim());
+  const safeMessage = escapeString(data.message.trim());
+
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${safeName},</h2>
+
+    <p style="margin: 0 0 16px 0;">Thank you for reaching out to Saarthi.</p>
+    <p style="margin: 0 0 24px 0;">We've received your message and our team will review it.</p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <h3 style="margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.gold};">Your Message</h3>
+      <div style="margin: 0; font-size: 15px; line-height: 1.7; color: ${COLORS.text}; white-space: pre-wrap; word-break: break-word;">${safeMessage}</div>
+    </div>
+
+    <p style="margin: 0 0 8px 0; font-size: 15px; color: ${COLORS.textMuted};">We'll get back to you at:</p>
+    <p style="margin: 0 0 24px 0; font-size: 15px; font-weight: 500; color: ${COLORS.text}; word-break: break-all;">${safeEmail}</p>
+
+    <p style="margin: 0 0 24px 0;">We'll be in touch soon.</p>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, 'We received your message — Saarthi');
+}
+
+/**
+ * Plain-text twin of `generateContactConfirmationEmail`, for clients that block
+ * HTML. Kept adjacent so the two cannot drift apart.
+ */
+export function generateContactConfirmationText(data: ContactConfirmationEmailData): string {
+  return [
+    `Hi ${data.name.trim()},`,
+    '',
+    'Thank you for reaching out to Saarthi.',
+    "We've received your message and our team will review it.",
+    '',
+    'Your message:',
+    data.message.trim(),
+    '',
+    "We'll get back to you at:",
+    data.email.trim(),
+    '',
+    "We'll be in touch soon.",
+    '',
+    'Warmly,',
+    'The Saarthi Team',
+    '',
+    'Please note: Saarthi is not an emergency psychiatric service. If you are in immediate danger, distress, or experiencing a crisis, please contact your local emergency services or a crisis helpline immediately.',
+  ].join('\n');
 }
 

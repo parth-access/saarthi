@@ -178,3 +178,48 @@ describe('JWT Secret Security & Fail-Closed Behavior', () => {
     }
   });
 });
+
+/**
+ * Signed-out navigation safety.
+ *
+ * Pressing Back after logout must never reveal protected content, and /login
+ * must always be servable without a session — otherwise the guard that bounces
+ * a protected URL to /login would bounce /login to itself and the user could
+ * never get back to a public page.
+ */
+describe('middleware: signed-out navigation', () => {
+  const PROTECTED = [
+    '/dashboard',
+    '/dashboard/bookings',
+    '/admin/bookings/bk_20260915_3B221AE5',
+    '/therapist/bookings/bk_20260915_3B221AE5',
+  ];
+
+  it('F. redirects every signed-out protected URL to /login, so Back exposes nothing', async () => {
+    for (const path of PROTECTED) {
+      const res = await middleware(new NextRequest(`https://saarthilife.com${path}`));
+      expect(res.headers.get('location')).toContain('/login');
+      expect(res.status).toBeGreaterThanOrEqual(300);
+      expect(res.status).toBeLessThan(400);
+    }
+  });
+
+  it('G. serves /login without redirecting, so the escape route cannot loop', async () => {
+    const res = await middleware(new NextRequest('https://saarthilife.com/login'));
+
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('H. clears a stale session cookie on /login instead of bouncing the user', async () => {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+
+    const res = await middleware(
+      new NextRequest('https://saarthilife.com/login', {
+        headers: { cookie: '__session=not-a-valid-jwt' },
+      })
+    );
+
+    expect(res.headers.get('location')).toBeNull();
+    expect(res.headers.get('set-cookie') ?? '').toContain('__session=');
+  });
+});
