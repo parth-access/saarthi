@@ -28,39 +28,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors *; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://www.gstatic.com https://www.googleapis.com https://www.googletagmanager.com https://*.googletagmanager.com https://checkout.razorpay.com; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://*.googleapis.com wss://firestore.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.googletagmanager.com https://*.ingest.sentry.io https://*.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io https://api.razorpay.com https://lumberjack.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; frame-src 'self' https://accounts.google.com https://ihealwithsaarthi.firebaseapp.com https://ihealwithsaarthi.web.app https://api.razorpay.com; worker-src 'self' blob:;",
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
-          },
-        ],
-      },
-    ];
-  },
+  // Security headers (CSP, X-Frame-Options, HSTS, ...) are defined ONLY in
+  // vercel.json. Do not add a headers() block here: duplicate/conflicting
+  // CSP headers are intersected by browsers, so any drift between two copies
+  // can silently block resources.
 };
 
 // Wrap with Sentry config only if SENTRY_DSN or SENTRY_ORG is present, or export directly to keep dev server snappy and robust
