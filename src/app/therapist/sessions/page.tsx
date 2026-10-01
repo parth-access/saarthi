@@ -9,6 +9,7 @@
  */
 import * as React from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Search, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ClinicalSessionCard } from '@/components/dashboard/TherapistDashboard';
@@ -16,26 +17,30 @@ import { useTherapistData } from '../layout';
 import { isToday, parseISO } from 'date-fns';
 import type { Booking, BookingStatus } from '@/types';
 import { useBookingActions } from '@/hooks/useTherapistDashboard';
+import { parseSessionView, sessionsForView } from '@/components/therapist/dashboard/sessionView';
 
 function isTodaysBooking(b: Booking): boolean {
   if (!b.date) return false;
   try { return isToday(parseISO(b.date)); } catch { return false; }
 }
 
-export default function TherapistSessionsPage() {
+function TherapistSessionsContent() {
   const data = useTherapistData();
+  const searchParams = useSearchParams();
+  const view = parseSessionView(searchParams.get('view'));
   const [, setBookings] = React.useState(data.bookings);
   const { processingId, updateStatus, declineBooking } = useBookingActions(setBookings);
 
   const [query, setQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<BookingStatus | 'all'>('all');
+  const [statusChoice, setStatusChoice] = React.useState<{ view: string; status: BookingStatus | 'all' }>({ view, status: 'all' });
+  const statusFilter = statusChoice.view === view ? statusChoice.status : 'all';
 
   // Decline modal state
   const [declineTarget, setDeclineTarget] = React.useState<Booking | null>(null);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return data.bookings.filter((b) => {
+    return sessionsForView(data.bookings, view, data.upcomingSessions).filter((b) => {
       const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
       const matchesQuery =
         !needle ||
@@ -44,12 +49,18 @@ export default function TherapistSessionsPage() {
         );
       return matchesStatus && matchesQuery;
     });
-  }, [data.bookings, query, statusFilter]);
+  }, [data.bookings, data.upcomingSessions, view, query, statusFilter]);
 
   const stillLoading = data.loading && data.bookings.length === 0;
 
   return (
     <section className="space-y-3">
+      {view !== 'all' && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-primary">
+          <span>Showing {view === 'requests' ? 'requests awaiting review' : view === 'upcoming' ? 'upcoming sessions' : 'session history'}</span>
+          <Link href="/therapist/sessions" className="font-medium underline underline-offset-2">Show all sessions</Link>
+        </div>
+      )}
       {/* Filter bar */}
       <div className="rounded-xl border border-hairline bg-white p-3 shadow-sm sm:flex sm:items-center sm:gap-3">
         <label className="sr-only" htmlFor="session-search">Search sessions</label>
@@ -78,7 +89,7 @@ export default function TherapistSessionsPage() {
           <select
             id="session-status"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as BookingStatus | 'all')}
+             onChange={(e) => setStatusChoice({ view, status: e.target.value as BookingStatus | 'all' })}
             className="h-10 w-full rounded-lg border border-hairline bg-white px-3 pr-8 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none"
           >
             <option value="all">All statuses</option>
@@ -96,7 +107,7 @@ export default function TherapistSessionsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setQuery(''); setStatusFilter('all'); }}
+            onClick={() => { setQuery(''); setStatusChoice({ view, status: 'all' }); }}
             className="mt-2 text-xs text-muted-foreground sm:mt-0"
           >
             Clear filters
@@ -105,7 +116,7 @@ export default function TherapistSessionsPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Showing <strong className="text-primary">{filtered.length}</strong> of {data.bookings.length} sessions
+        Showing <strong className="text-primary">{filtered.length}</strong> of {sessionsForView(data.bookings, view, data.upcomingSessions).length} sessions in this view
       </p>
 
       {/* Sessions list */}
@@ -142,5 +153,13 @@ export default function TherapistSessionsPage() {
         </div>
       )}
     </section>
+  );
+}
+
+export default function TherapistSessionsPage() {
+  return (
+    <React.Suspense fallback={<p className="text-sm text-muted-foreground">Loading sessions…</p>}>
+      <TherapistSessionsContent />
+    </React.Suspense>
   );
 }

@@ -13,6 +13,7 @@ interface ProfileHeroProps {
   experience: string
   shortIntro: string
   image?: string
+  bookingHref: string
   onBookClick?: () => void
 }
 
@@ -24,6 +25,7 @@ const ProfileHero = ({
   experience,
   shortIntro,
   image,
+  bookingHref,
   onBookClick,
 }: ProfileHeroProps) => {
   const handleBookClick = (ctaText: string) => {
@@ -66,10 +68,7 @@ const ProfileHero = ({
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button asChild size="lg" variant="primary" onClick={() => handleBookClick('Book Session')}>
-                <Link href="/book">Book Session</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" onClick={() => handleBookClick('View Schedule')}>
-                <Link href="/book">View Schedule</Link>
+                <Link href={bookingHref}>Book Session</Link>
               </Button>
             </div>
           </motion.div>

@@ -6,9 +6,10 @@ import { trackEvent } from "@/lib/analytics"
 
 interface FinalCTAProps {
   onBookClick?: () => void;
+  bookingHref: string;
 }
 
-const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
+const FinalCTA = ({ onBookClick, bookingHref }: FinalCTAProps) => {
   const handleBookClick = () => {
     trackEvent('book_demo_click', {
       location: 'therapist_final_cta',
@@ -33,7 +34,7 @@ const FinalCTA = ({ onBookClick }: FinalCTAProps) => {
               Ready to address your concerns? Book a session to discuss your requirements and begin a structured approach to your mental well-being.
             </p>
             <Button asChild size="lg" variant="accent" className="text-primary font-bold" onClick={handleBookClick}>
-              <Link href="/book">Book a Session</Link>
+              <Link href={bookingHref}>Book a Session</Link>
             </Button>
           </motion.div>
         </div>

@@ -12,6 +12,21 @@ import { therapistService } from "@/services/therapistService"
 import { trackEvent } from "@/lib/analytics"
 import { DEFAULT_THERAPISTS, getTherapistCtaDetails } from "@/constants/therapists"
 
+export function JoinTeamCard() {
+  return (
+    <Card className="h-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-primary/10 rounded-[3rem] bg-primary/[0.02]">
+      <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
+        <ShieldCheck className="w-10 h-10 text-primary/20" />
+      </div>
+      <h3 className="text-2xl font-serif text-primary mb-2">Join our Team</h3>
+      <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a licensed psychologist? <br/>Help us redefine well-being.</p>
+      <Button asChild variant="outline" className="rounded-full px-8 hover:bg-primary hover:text-white transition-all">
+        <Link href="/contact">Enquire about joining</Link>
+      </Button>
+    </Card>
+  );
+}
+
 export default function TherapistsPage() {
   const [therapists, setTherapists] = React.useState<Therapist[]>(DEFAULT_THERAPISTS)
   const [loading, setLoading] = React.useState(true)
@@ -171,16 +186,7 @@ export default function TherapistsPage() {
                animate={{ opacity: 1, scale: 1 }}
                transition={{ delay: therapists.length * 0.1 }}
             >
-               <Card className="h-full flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-primary/10 rounded-[3rem] bg-primary/[0.02]">
-                  <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
-                    <ShieldCheck className="w-10 h-10 text-primary/20" />
-                  </div>
-                  <h3 className="text-2xl font-serif text-primary mb-2">Join our Team</h3>
-                  <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a licensed psychologist? <br/>Help us redefine well-being.</p>
-                  <Button asChild variant="outline" className="rounded-full px-8 hover:bg-primary hover:text-white transition-all">
-                    <Link href="/contact">Apply Now</Link>
-                  </Button>
-               </Card>
+                <JoinTeamCard />
             </motion.div>
           </div>
         )}

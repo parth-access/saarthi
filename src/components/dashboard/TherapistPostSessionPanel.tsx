@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { FileText, Loader2, Check, StickyNote, CalendarPlus, Users } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { FileText, Loader2, Check, StickyNote, Users } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
 import { Booking } from '@/types';
 
@@ -16,6 +16,8 @@ import { Booking } from '@/types';
 interface TherapistPostSessionPanelProps {
   booking: Booking;
   onSaved?: () => void;
+  /** Opens the panel and moves keyboard focus to the private-notes field. */
+  focusPrivateNotes?: boolean;
 }
 
 type FollowUpStatus = 'recommended' | 'scheduled' | 'deferred' | 'none';
@@ -27,8 +29,14 @@ const FOLLOW_UP_OPTIONS: { value: FollowUpStatus; label: string }[] = [
   { value: 'none', label: 'No follow-up needed' },
 ];
 
-export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps> = ({ booking, onSaved }) => {
-  const [open, setOpen] = useState(false);
+export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps> = ({
+  booking,
+  onSaved,
+  focusPrivateNotes = false,
+}) => {
+  const [open, setOpen] = useState(focusPrivateNotes);
+  const privateNotesRef = useRef<HTMLTextAreaElement>(null);
+  const focusRequestHandled = useRef(false);
 
   const [privateNotes, setPrivateNotes] = useState('');
   const [clientSummary, setClientSummary] = useState('');
@@ -40,6 +48,22 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
 
   const [followUp, setFollowUp] = useState<FollowUpStatus | ''>(booking.followUpStatus || '');
   const [savingFollowUp, setSavingFollowUp] = useState(false);
+
+  useEffect(() => {
+    if (!focusPrivateNotes) {
+      focusRequestHandled.current = false;
+      return;
+    }
+    if (focusRequestHandled.current) return;
+    if (!open) {
+      setOpen(true);
+      return;
+    }
+
+    focusRequestHandled.current = true;
+    privateNotesRef.current?.focus();
+    privateNotesRef.current?.scrollIntoView({ block: 'center' });
+  }, [focusPrivateNotes, open]);
 
   useEffect(() => {
     if (!open || notesLoaded) return;
@@ -151,6 +175,10 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
                 Private notes (never shared)
               </label>
               <textarea
+                ref={privateNotesRef}
+                id={`private-notes-${booking.id}`}
+                autoFocus={focusPrivateNotes}
+                aria-label="Private notes (never shared)"
                 value={privateNotes}
                 onChange={(e) => setPrivateNotes(e.target.value)}
                 rows={4}
@@ -219,12 +247,9 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
               ))}
             </div>
             {followUp === 'recommended' && (
-              <a
-                href="/therapist/book?followUp=1"
-                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-accent transition-colors"
-              >
-                <CalendarPlus className="h-3.5 w-3.5" /> Schedule the follow-up now
-              </a>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Follow-up recommended. Scheduling is unavailable until secure client payment is ready.
+              </p>
             )}
           </div>
         </div>

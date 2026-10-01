@@ -31,7 +31,8 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
     { name: "Contact", href: "/contact" },
   ]
   
-  if (currentUser) {
+  // The client wellness page explicitly excludes the therapist role.
+  if (currentUser && currentUser.role !== 'therapist') {
     navLinks.push({ name: "Resources", href: "/dashboard/resources" })
   }
 
@@ -128,4 +129,3 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
 }
 
 export default Navbar
-

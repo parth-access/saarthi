@@ -10,6 +10,7 @@ import Approach from "@/components/therapist/Approach"
 import TherapistProcess from "@/components/therapist/TherapistProcess"
 import SessionDetails from "@/components/therapist/SessionDetails"
 import FinalCTA from "@/components/therapist/FinalCTA"
+import { DRAVINA_THERAPIST, getTherapistBookingHref } from "@/constants/therapists"
 
 export default function DravinaProfilePage() {
   const dravinaData = {
@@ -59,6 +60,7 @@ export default function DravinaProfilePage() {
         experience={dravinaData.experience}
         shortIntro={dravinaData.shortIntro}
         image="/dravina.png"
+        bookingHref={getTherapistBookingHref(DRAVINA_THERAPIST)}
       />
       
       <AboutSection content={dravinaData.aboutContent} />
@@ -79,7 +81,7 @@ export default function DravinaProfilePage() {
       
       <SessionDetails mode="Online Sessions" clients={["Individual", "Couple", "Family", "Teen"]} />
       
-      <FinalCTA />
+       <FinalCTA bookingHref={getTherapistBookingHref(DRAVINA_THERAPIST)} />
     </main>
   )
 }

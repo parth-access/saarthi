@@ -6,6 +6,7 @@ import {
   LoadFailed,
   NotFoundCard,
   TherapistBookingDetailView,
+  isPostSessionNotesHash,
 } from './TherapistBookingDetailView';
 import type { Booking } from '@/types';
 
@@ -125,9 +126,16 @@ describe('TherapistBookingDetailView — booking states', () => {
       reviewComment: 'Very helpful session.',
     });
     expect(markup).toContain('Post-session');
+    expect(markup).toContain('id="post-session-notes"');
     expect(markup).toContain('post-session-panel');
     expect(markup).toContain('5 / 5');
     expect(markup).toContain('Very helpful session.');
+  });
+
+  it('recognizes only the private-notes deep-link hash', () => {
+    expect(isPostSessionNotesHash('#post-session-notes')).toBe(true);
+    expect(isPostSessionNotesHash('')).toBe(false);
+    expect(isPostSessionNotesHash('#client-summary')).toBe(false);
   });
 
   it('renders a no-show booking with post-session actions available', () => {

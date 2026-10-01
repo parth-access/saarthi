@@ -32,6 +32,8 @@ import {
 import { formatTimestamp, statusBadgeFor } from './bookingDetailPresentation';
 import type { Booking } from '@/types';
 
+export const isPostSessionNotesHash = (hash: string) => hash === '#post-session-notes';
+
 export function TherapistBookingDetailView({
   booking,
   onAfterSave,
@@ -42,6 +44,14 @@ export function TherapistBookingDetailView({
 }) {
   const { join, joiningId } = useJoinSession();
   const { therapists } = useTherapists();
+  const [focusPrivateNotes, setFocusPrivateNotes] = React.useState(false);
+
+  React.useEffect(() => {
+    const syncHash = () => setFocusPrivateNotes(isPostSessionNotesHash(window.location.hash));
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, [booking.id]);
 
   const therapistName = React.useMemo(() => {
     const byId = new Map(therapists.map((t) => [t.id, t.name]));
@@ -148,11 +158,16 @@ export function TherapistBookingDetailView({
         </Card>
 
         <Card
+          id="post-session-notes"
           title="Post-session"
           subtitle="Private to you — the client never sees your private notes."
         >
           {hasPostSession ? (
-            <TherapistPostSessionPanel booking={booking} onSaved={onAfterSave} />
+            <TherapistPostSessionPanel
+              booking={booking}
+              onSaved={onAfterSave}
+              focusPrivateNotes={focusPrivateNotes}
+            />
           ) : (
             <p className="mt-3 text-xs text-muted-foreground">
               Post-session actions appear here once the session is completed.
@@ -262,9 +277,19 @@ function Field({
   );
 }
 
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Card({
+  id,
+  title,
+  subtitle,
+  children,
+}: {
+  id?: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+    <section id={id} className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
       <h3 className="text-sm font-semibold text-primary">{title}</h3>
       {subtitle && <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>}
       {children}

@@ -18,6 +18,7 @@
  * 8. Recent sessions
  */
 import Link from 'next/link';
+import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   AlertTriangle,
@@ -252,7 +253,7 @@ export function TherapistDashboardView({
               asChild
               className="border-warning/30 bg-white text-warning hover:bg-white/80"
             >
-              <Link href="/therapist/sessions">Review requests</Link>
+              <Link href="/therapist/sessions?view=requests">Review requests</Link>
             </Button>
           </div>
         </section>
@@ -295,7 +296,7 @@ export function TherapistDashboardView({
           title="Upcoming"
           detail="Confirmed and awaiting-payment sessions after today."
           actionLabel="All sessions"
-          actionHref="/therapist/sessions"
+           actionHref="/therapist/sessions?view=upcoming"
         />
         {upcomingSessions.length === 0 ? (
           <EmptyPanel
@@ -316,7 +317,7 @@ export function TherapistDashboardView({
             ))}
             {upcomingSessions.length > 10 && (
               <Link
-                href="/therapist/sessions"
+                 href="/therapist/sessions?view=upcoming"
                 className="inline-flex items-center gap-1 text-xs font-medium text-primary/60 hover:text-primary"
               >
                 View all {upcomingSessions.length} upcoming
@@ -334,7 +335,7 @@ export function TherapistDashboardView({
             title="Recent sessions"
             detail="Your most recent completed and closed sessions."
             actionLabel="Session history"
-            actionHref="/therapist/sessions"
+             actionHref="/therapist/sessions?view=history"
           />
           <div className="space-y-2">
             {recentSessions.map((b) => (

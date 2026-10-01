@@ -35,6 +35,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
-  return <BookClient />;
+interface BookPageProps {
+  searchParams: Promise<{
+    therapist?: string | string[];
+  }>;
+}
+
+export default async function Page({ searchParams }: BookPageProps) {
+  const params = await searchParams;
+  const requestedTherapist = typeof params.therapist === 'string'
+    ? params.therapist
+    : null;
+
+  return <BookClient requestedTherapist={requestedTherapist} />;
 }

@@ -31,6 +31,7 @@ import { trackEvent } from "@/lib/analytics"
 import { useDialogA11y } from "@/hooks/useDialogA11y"
 import { parseValidClientAge } from "@/shared/validation/age"
 import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
+import { resolveBookTherapist } from "@/constants/therapists"
 
 import { BookingFormData } from "../../core/validations/booking.schema"
 
@@ -70,13 +71,18 @@ const loadRazorpay = (): Promise<boolean> => {
   });
 };
 
-const BookingSystem = () => {
+interface BookingSystemProps {
+  requestedTherapist?: string | null;
+}
+
+const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
   const [step, setStep] = React.useState(1)
   const [bookingFlowState, setBookingFlowState] = React.useState<BookingFlowState>('IDLE')
   const isProcessingRef = React.useRef<boolean>(false)
   const isVerifyingRef = React.useRef<boolean>(false)
   const hasTrackedStartedRef = React.useRef(false)
   const hasTrackedSubmittedRef = React.useRef(false)
+  const hasResolvedRequestedTherapistRef = React.useRef(false)
   const lockTimerRef = React.useRef<NodeJS.Timeout | null>(null)
 
   const [bookingData, setBookingData] = React.useState<BookingState>({
@@ -94,7 +100,7 @@ const BookingSystem = () => {
   const [activeLockId, setActiveLockId] = React.useState<string | null>(null)
   const [lockingTime, setLockingTime] = React.useState<string | null>(null)
   
-  const { therapists } = useTherapists()
+  const { therapists, loading: therapistsLoading, error: therapistsError } = useTherapists()
   const { currentUser } = useAuth()
   const isAuthenticated = Boolean(currentUser)
   const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
@@ -134,6 +140,31 @@ const BookingSystem = () => {
       trackEvent('booking_flow_started', context);
     }
   }, []);
+
+  React.useEffect(() => {
+    if (
+      hasResolvedRequestedTherapistRef.current ||
+      !requestedTherapist ||
+      therapistsLoading ||
+      therapistsError
+    ) {
+      return;
+    }
+
+    // Resolve only after the live therapist list has loaded. Unknown, inactive,
+    // or ambiguous values intentionally leave the ordinary step-one flow alone.
+    hasResolvedRequestedTherapistRef.current = true;
+    const therapist = resolveBookTherapist(therapists, requestedTherapist);
+    if (!therapist) return;
+
+    setBookingData((previous) => ({ ...previous, therapistId: therapist.id }));
+    setStep((currentStep) => currentStep === 1 ? 2 : currentStep);
+    trackBookingStarted({
+      step: 1,
+      therapist_id: therapist.id,
+      source: 'therapist_deep_link',
+    });
+  }, [requestedTherapist, therapists, therapistsError, therapistsLoading, trackBookingStarted]);
 
   const handleNext = () => setStep(s => s + 1)
 
@@ -596,4 +627,3 @@ const BookingSystem = () => {
 }
 
 export default BookingSystem
-

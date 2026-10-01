@@ -153,12 +153,12 @@ export default function ContactPage() {
               onClick={() => {
                 trackEvent('navigate_to_therapists', {
                   location: 'contact_page_bottom_cta',
-                  cta_text: 'Book a Session'
+                   cta_text: 'Browse therapists'
                 });
               }}
               className="inline-flex items-center gap-3 px-10 py-5 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full font-medium shadow-sm"
             >
-              Book a Session
+               Browse therapists
               <ArrowRight className="h-5 w-5" />
             </Link>
           </div>
@@ -167,4 +167,3 @@ export default function ContactPage() {
     </div>
   )
 }
-
