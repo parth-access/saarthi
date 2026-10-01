@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown, Loader2 } from 'lucide-react';
 import { Booking, Therapist } from '@/types';
@@ -6,6 +6,7 @@ import { normalizeImageUrl } from '@/lib/utils';
 import { useJoinSession } from '@/hooks/useJoinSession';
 import { formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming } from '@/lib/sessionDisplay';
 import Image from 'next/image';
+import { useDialogA11y } from '@/hooks/useDialogA11y';
 
 interface SessionDetailsModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ interface SessionDetailsModalProps {
 export function SessionDetailsModal({ isOpen, onClose, session, therapist, onReschedule, onCancel }: SessionDetailsModalProps) {
   const [showTimeline, setShowTimeline] = useState(false);
   const { join, joiningId } = useJoinSession();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef });
 
   if (!session) return null;
 
@@ -58,16 +61,21 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-primary/10 overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="session-details-title"
+            ref={panelRef}
+            tabIndex={-1}
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-primary/10 overflow-hidden outline-none"
           >
             <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 relative z-10">
-              <h3 className="text-xl font-serif text-primary">Your Journey</h3>
+              <h3 id="session-details-title" className="text-xl font-serif text-primary">Your Journey</h3>
               <button
                 onClick={onClose}
                 className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                 aria-label="Close details"
               >
-                <X className="w-5 h-5" />
+                <X aria-hidden="true" className="w-5 h-5" />
               </button>
             </div>
 

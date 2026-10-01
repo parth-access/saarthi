@@ -1,10 +1,11 @@
 "use client";
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, HelpCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { useDialogA11y } from '@/hooks/useDialogA11y';
 
 interface SupportModalProps {
   isOpen: boolean;
@@ -28,9 +29,11 @@ export function SupportModal({
   const [name, setName] = useState(userName);
   const [email, setEmail] = useState(userEmail);
   const [phone, setPhone] = useState(userPhone);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [category, setCategory] = useState(initialSubject);
   const [message, setMessage] = useState(initialMessage);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useDialogA11y({ isOpen, onClose, panelRef, dismissible: !isSubmitting });
 
   useEffect(() => {
     if (isOpen) {
@@ -95,7 +98,12 @@ export function SupportModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="support-title"
+            ref={panelRef}
+            tabIndex={-1}
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0 outline-none"
           >
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-primary/10">
               {/* Header */}
@@ -105,7 +113,7 @@ export function SupportModal({
                     <HelpCircle className="w-5 h-5 text-[#E6A520]" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-serif text-primary">Contact Support</h3>
+                    <h3 id="support-title" className="text-xl font-serif text-primary">Contact Support</h3>
                     <p className="text-xs text-primary/60 font-sans">We are here to hold space and assist you.</p>
                   </div>
                 </div>
@@ -114,7 +122,7 @@ export function SupportModal({
                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close support modal"
                 >
-                  <X className="w-5 h-5" />
+                  <X aria-hidden="true" className="w-5 h-5" />
                 </button>
               </div>
 

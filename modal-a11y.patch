@@ -1,0 +1,532 @@
+diff --git a/src/components/booking/BookingSystem.tsx b/src/components/booking/BookingSystem.tsx
+index 4828545..db4a550 100644
+--- a/src/components/booking/BookingSystem.tsx
++++ b/src/components/booking/BookingSystem.tsx
+@@ -28,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext"
+ import { bookingService } from "../../services/bookingService"
+ import { paymentService } from "../../services/paymentService"
+ import { trackEvent } from "@/lib/analytics"
++import { useDialogA11y } from "@/hooks/useDialogA11y"
+ import { parseValidClientAge } from "@/shared/validation/age"
+ import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
+ 
+@@ -100,6 +101,14 @@ const BookingSystem = () => {
+ 
+   // Fade/rise transitions collapse to a plain cut when the user prefers reduced motion.
+   const prefersReducedMotion = useReducedMotion()
++  const verifyingPanelRef = React.useRef<HTMLDivElement>(null)
++  // Non-dismissible: the overlay blocks the page while payment is confirmed.
++  useDialogA11y({
++    isOpen: bookingFlowState === 'VERIFYING_PAYMENT',
++    onClose: () => {},
++    panelRef: verifyingPanelRef,
++    dismissible: false,
++  })
+   // Resolved specialist for the persistent Booking Summary (display only).
+   const selectedTherapist = therapists.find(t => t.id === bookingData.therapistId)
+ 
+@@ -561,16 +570,22 @@ const BookingSystem = () => {
+       {bookingFlowState === 'VERIFYING_PAYMENT' && (
+         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+           <motion.div
++            role="alertdialog"
++            aria-modal="true"
++            aria-labelledby="verifying-payment-title"
++            aria-describedby="verifying-payment-desc"
++            ref={verifyingPanelRef}
++            tabIndex={-1}
+             initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+             animate={{ opacity: 1, scale: 1 }}
+             transition={{ duration: 0.2 }}
+-            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl"
++            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl outline-none"
+           >
+             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+               <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
+             </div>
+-            <h3 className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
+-            <p className="text-muted-foreground text-sm leading-relaxed">
++            <h3 id="verifying-payment-title" className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
++            <p id="verifying-payment-desc" className="text-muted-foreground text-sm leading-relaxed">
+               Payment received! Confirming your appointment reservation and generating your session details. Please do not refresh or close this window...
+             </p>
+           </motion.div>
+diff --git a/src/components/dashboard/CancelModal.tsx b/src/components/dashboard/CancelModal.tsx
+index 34b66fa..d51fbc3 100644
+--- a/src/components/dashboard/CancelModal.tsx
++++ b/src/components/dashboard/CancelModal.tsx
+@@ -1,10 +1,11 @@
+-import React, { useState, useEffect, useMemo } from 'react';
++import React, { useState, useEffect, useMemo, useRef } from 'react';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { X, Loader2, AlertCircle, ShieldCheck, Info } from 'lucide-react';
+ import { Booking } from '@/types';
+ import { computeRefundPercent } from '@/domains/payment/RefundPolicy';
+ import { sessionStartMs, formatSessionTimeRange } from '@/lib/sessionDisplay';
+ import { toast } from 'sonner';
++import { useDialogA11y } from '@/hooks/useDialogA11y';
+ 
+ interface CancelModalProps {
+   isOpen: boolean;
+@@ -28,6 +29,8 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
+   const [reason, setReason] = useState('');
+   const [submitting, setSubmitting] = useState(false);
+   const [error, setError] = useState('');
++  const panelRef = useRef<HTMLDivElement>(null);
++  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef, dismissible: !submitting });
+ 
+   useEffect(() => {
+     if (isOpen) {
+@@ -88,10 +91,12 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="cancel-title"
++            ref={panelRef}
++            tabIndex={-1}
+             initial={{ opacity: 0, scale: 0.96, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.96, y: 20 }}
+-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md"
++            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md outline-none"
+           >
+             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10">
+               <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50">
+@@ -106,7 +111,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
+                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                   aria-label="Close cancel dialog"
+                 >
+-                  <X className="w-5 h-5" />
++                  <X aria-hidden="true" className="w-5 h-5" />
+                 </button>
+               </div>
+ 
+diff --git a/src/components/dashboard/RescheduleModal.tsx b/src/components/dashboard/RescheduleModal.tsx
+index d6d00d8..62d9ccc 100644
+--- a/src/components/dashboard/RescheduleModal.tsx
++++ b/src/components/dashboard/RescheduleModal.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState, useMemo, useEffect } from 'react';
++import React, { useState, useMemo, useEffect, useRef } from 'react';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { X, Calendar as CalendarIcon, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+ import { Booking } from '@/types';
+@@ -7,6 +7,7 @@ import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
+ import { istDatePlusDays } from '@/shared/scheduling/slots';
+ import { formatSessionTimeRange, SESSION_DURATION_LABEL } from '@/lib/sessionDisplay';
+ import { toast } from 'sonner';
++import { useDialogA11y } from '@/hooks/useDialogA11y';
+ 
+ interface RescheduleModalProps {
+   isOpen: boolean;
+@@ -51,6 +52,8 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
+   const [selectedDate, setSelectedDate] = useState<string>('');
+   const [selectedTime, setSelectedTime] = useState<string>('');
+   const [submitting, setSubmitting] = useState(false);
++  const panelRef = useRef<HTMLDivElement>(null);
++  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef, dismissible: !submitting });
+   const [error, setError] = useState('');
+ 
+   // `excludeBookingId` stops this booking from counting as a competing booking
+@@ -118,10 +121,12 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="reschedule-title"
++            ref={panelRef}
++            tabIndex={-1}
+             initial={{ opacity: 0, scale: 0.96, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.96, y: 20 }}
+-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col"
++            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col outline-none"
+           >
+             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10 flex flex-col max-h-[88vh]">
+               <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 shrink-0">
+@@ -136,7 +141,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
+                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                   aria-label="Close reschedule dialog"
+                 >
+-                  <X className="w-5 h-5" />
++                  <X aria-hidden="true" className="w-5 h-5" />
+                 </button>
+               </div>
+ 
+diff --git a/src/components/dashboard/ReviewModal.tsx b/src/components/dashboard/ReviewModal.tsx
+index 55161a6..7f55c47 100644
+--- a/src/components/dashboard/ReviewModal.tsx
++++ b/src/components/dashboard/ReviewModal.tsx
+@@ -1,9 +1,10 @@
+ 'use client';
+ 
+-import React, { useState } from 'react';
++import React, { useState, useRef } from 'react';
+ import { Star, X, CheckCircle, Loader2 } from 'lucide-react';
+ import { auth } from '@/lib/firebase/client';
+ import { Booking, Review } from '@/types';
++import { useDialogA11y } from '@/hooks/useDialogA11y';
+ 
+ interface ReviewModalProps {
+   isOpen: boolean;
+@@ -34,6 +35,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
+   const [submitting, setSubmitting] = useState<boolean>(false);
+   const [error, setError] = useState<string | null>(null);
+   const [success, setSuccess] = useState<boolean>(false);
++  const panelRef = useRef<HTMLDivElement>(null);
++  useDialogA11y({ isOpen, onClose, panelRef, dismissible: !submitting });
+ 
+   if (!isOpen) return null;
+ 
+@@ -96,13 +99,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
+       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+     >
+       <div
+-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
++        role="dialog"
++        aria-modal="true"
++        aria-labelledby={`review-modal-title-${booking.id}`}
++        ref={panelRef}
++        tabIndex={-1}
++        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden outline-none"
+         onClick={(e) => e.stopPropagation()}
+       >
+         {/* Header */}
+         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+           <div>
+-            <h3 className="text-lg font-semibold text-slate-900">
++            <h3 id={`review-modal-title-${booking.id}`} className="text-lg font-semibold text-slate-900">
+               {existingReview || booking.reviewRating ? 'Update Session Review' : 'Rate Your Therapy Session'}
+             </h3>
+             <p className="text-xs text-slate-500 mt-0.5">
+@@ -116,7 +124,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
+             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"
+             aria-label="Close review dialog"
+           >
+-            <X className="w-5 h-5" />
++            <X aria-hidden="true" className="w-5 h-5" />
+           </button>
+         </div>
+ 
+diff --git a/src/components/dashboard/SessionDetailsModal.tsx b/src/components/dashboard/SessionDetailsModal.tsx
+index 811baf6..05c1fbe 100644
+--- a/src/components/dashboard/SessionDetailsModal.tsx
++++ b/src/components/dashboard/SessionDetailsModal.tsx
+@@ -1,4 +1,4 @@
+-import React, { useState } from 'react';
++import React, { useState, useRef } from 'react';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, ChevronDown, Loader2 } from 'lucide-react';
+ import { Booking, Therapist } from '@/types';
+@@ -6,6 +6,7 @@ import { normalizeImageUrl } from '@/lib/utils';
+ import { useJoinSession } from '@/hooks/useJoinSession';
+ import { formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming } from '@/lib/sessionDisplay';
+ import Image from 'next/image';
++import { useDialogA11y } from '@/hooks/useDialogA11y';
+ 
+ interface SessionDetailsModalProps {
+   isOpen: boolean;
+@@ -19,6 +20,8 @@ interface SessionDetailsModalProps {
+ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onReschedule, onCancel }: SessionDetailsModalProps) {
+   const [showTimeline, setShowTimeline] = useState(false);
+   const { join, joiningId } = useJoinSession();
++  const panelRef = useRef<HTMLDivElement>(null);
++  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef });
+ 
+   if (!session) return null;
+ 
+@@ -58,16 +61,21 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
+             animate={{ opacity: 1, x: 0 }}
+             exit={{ opacity: 0, x: '100%' }}
+             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-primary/10 overflow-hidden"
++            role="dialog"
++            aria-modal="true"
++            aria-labelledby="session-details-title"
++            ref={panelRef}
++            tabIndex={-1}
++            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-primary/10 overflow-hidden outline-none"
+           >
+             <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 relative z-10">
+-              <h3 className="text-xl font-serif text-primary">Your Journey</h3>
++              <h3 id="session-details-title" className="text-xl font-serif text-primary">Your Journey</h3>
+               <button
+                 onClick={onClose}
+                 className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                 aria-label="Close details"
+               >
+-                <X className="w-5 h-5" />
++                <X aria-hidden="true" className="w-5 h-5" />
+               </button>
+             </div>
+ 
+diff --git a/src/components/dashboard/SupportModal.tsx b/src/components/dashboard/SupportModal.tsx
+index b9dee69..82ce2d0 100644
+--- a/src/components/dashboard/SupportModal.tsx
++++ b/src/components/dashboard/SupportModal.tsx
+@@ -1,10 +1,11 @@
+ "use client";
+ 
+ 
+-import React, { useState, useEffect } from 'react';
++import React, { useState, useEffect, useRef } from 'react';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { X, Send, HelpCircle, Sparkles } from 'lucide-react';
+ import { toast } from 'sonner';
++import { useDialogA11y } from '@/hooks/useDialogA11y';
+ 
+ interface SupportModalProps {
+   isOpen: boolean;
+@@ -28,9 +29,11 @@ export function SupportModal({
+   const [name, setName] = useState(userName);
+   const [email, setEmail] = useState(userEmail);
+   const [phone, setPhone] = useState(userPhone);
++  const panelRef = useRef<HTMLDivElement>(null);
+   const [category, setCategory] = useState(initialSubject);
+   const [message, setMessage] = useState(initialMessage);
+   const [isSubmitting, setIsSubmitting] = useState(false);
++  useDialogA11y({ isOpen, onClose, panelRef, dismissible: !isSubmitting });
+ 
+   useEffect(() => {
+     if (isOpen) {
+@@ -95,7 +98,12 @@ export function SupportModal({
+             initial={{ opacity: 0, scale: 0.95, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0"
++            role="dialog"
++            aria-modal="true"
++            aria-labelledby="support-title"
++            ref={panelRef}
++            tabIndex={-1}
++            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0 outline-none"
+           >
+             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-primary/10">
+               {/* Header */}
+@@ -105,7 +113,7 @@ export function SupportModal({
+                     <HelpCircle className="w-5 h-5 text-[#E6A520]" />
+                   </div>
+                   <div>
+-                    <h3 className="text-xl font-serif text-primary">Contact Support</h3>
++                    <h3 id="support-title" className="text-xl font-serif text-primary">Contact Support</h3>
+                     <p className="text-xs text-primary/60 font-sans">We are here to hold space and assist you.</p>
+                   </div>
+                 </div>
+@@ -114,7 +122,7 @@ export function SupportModal({
+                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                   aria-label="Close support modal"
+                 >
+-                  <X className="w-5 h-5" />
++                  <X aria-hidden="true" className="w-5 h-5" />
+                 </button>
+               </div>
+ 
+diff --git a/src/components/ui/Modal.tsx b/src/components/ui/Modal.tsx
+index 71c1172..008576d 100644
+--- a/src/components/ui/Modal.tsx
++++ b/src/components/ui/Modal.tsx
+@@ -1,7 +1,10 @@
++"use client"
++
+ import * as React from "react"
+ import { motion, AnimatePresence } from "framer-motion"
+ import { X } from "lucide-react"
+ import { cn } from "../../lib/utils"
++import { useDialogA11y } from "../../hooks/useDialogA11y"
+ 
+ interface ModalProps {
+   isOpen: boolean;
+@@ -12,16 +15,9 @@ interface ModalProps {
+ }
+ 
+ export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
+-  React.useEffect(() => {
+-    if (isOpen) {
+-      document.body.style.overflow = 'hidden'
+-    } else {
+-      document.body.style.overflow = 'unset'
+-    }
+-    return () => {
+-      document.body.style.overflow = 'unset'
+-    }
+-  }, [isOpen])
++  const panelRef = React.useRef<HTMLDivElement>(null)
++  const titleId = React.useId()
++  useDialogA11y({ isOpen, onClose, panelRef })
+ 
+   return (
+     <AnimatePresence>
+@@ -32,21 +28,29 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             onClick={onClose}
++            aria-hidden="true"
+             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+           />
+           <motion.div
++            role="dialog"
++            aria-modal="true"
++            aria-labelledby={titleId}
++            ref={panelRef}
++            tabIndex={-1}
+             initial={{ opacity: 0, scale: 0.95, y: 20 }}
+             animate={{ opacity: 1, scale: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+-            className={cn("relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl", className)}
++            className={cn("relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl outline-none", className)}
+           >
+             <div className="flex items-center justify-between border-b border-muted p-6">
+-              <h3 className="text-xl font-heading font-bold text-text">{title}</h3>
++              <h2 id={titleId} className="text-xl font-heading font-bold text-text">{title}</h2>
+               <button
++                type="button"
+                 onClick={onClose}
+-                className="rounded-full p-2 text-muted-foreground hover:bg-muted transition-colors"
++                aria-label="Close dialog"
++                className="rounded-full p-2 text-muted-foreground hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+               >
+-                <X className="h-5 w-5" />
++                <X aria-hidden="true" className="h-5 w-5" />
+               </button>
+             </div>
+             <div className="p-6 max-h-[80vh] overflow-y-auto">
+diff --git a/src/hooks/useDialogA11y.ts b/src/hooks/useDialogA11y.ts
+new file mode 100644
+index 0000000..da70561
+--- /dev/null
++++ b/src/hooks/useDialogA11y.ts
+@@ -0,0 +1,137 @@
++"use client";
++
++/**
++ * Keyboard + screen-reader behaviour for hand-rolled modal dialogs.
++ *
++ * Mirrors what `admin/ConfirmDialog.tsx` already does, as a hook so the
++ * client-facing dialogs (cancel, reschedule, review, support, session details,
++ * payment-confirming overlay) get the same guarantees:
++ *
++ *  - Focus moves into the dialog on open: the first field if there is one,
++ *    otherwise the panel itself. Never a committing button, so a stray
++ *    Enter/Space cannot submit.
++ *  - Tab / Shift+Tab are contained inside the panel.
++ *  - Escape closes it, unless `dismissible` is false (a request is in flight).
++ *  - Focus returns to whatever opened the dialog when it closes.
++ *  - Page scroll is locked while open. Locks are reference-counted so two
++ *    overlays can't leave the page stuck or unlocked.
++ *  - When dialogs stack, only the topmost handles Escape and Tab.
++ *
++ * The caller still owns the markup: put `ref={panelRef}`, `tabIndex={-1}`,
++ * `role="dialog"` (or `"alertdialog"`), `aria-modal="true"` and
++ * `aria-labelledby` on the panel element.
++ */
++import { useEffect, useRef, type RefObject } from "react";
++
++const FOCUSABLE =
++  'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
++
++let scrollLocks = 0;
++let overflowBeforeLock = "";
++
++function lockScroll() {
++  if (scrollLocks === 0) {
++    overflowBeforeLock = document.body.style.overflow;
++    document.body.style.overflow = "hidden";
++  }
++  scrollLocks += 1;
++}
++
++function unlockScroll() {
++  scrollLocks = Math.max(0, scrollLocks - 1);
++  if (scrollLocks === 0) document.body.style.overflow = overflowBeforeLock;
++}
++
++// Open dialogs, oldest first. Only the last one reacts to the keyboard.
++const openDialogs: symbol[] = [];
++
++interface UseDialogA11yOptions {
++  /** True while the dialog's panel is actually rendered. */
++  isOpen: boolean;
++  onClose: () => void;
++  panelRef: RefObject<HTMLElement | null>;
++  /** Set false to block Escape while a request is in flight. Default true. */
++  dismissible?: boolean;
++}
++
++export function useDialogA11y({
++  isOpen,
++  onClose,
++  panelRef,
++  dismissible = true,
++}: UseDialogA11yOptions) {
++  // Latest values, read from the key handler without re-running the open effect
++  // (re-running it would steal focus back to the first field on every render).
++  const onCloseRef = useRef(onClose);
++  const dismissibleRef = useRef(dismissible);
++  onCloseRef.current = onClose;
++  dismissibleRef.current = dismissible;
++
++  useEffect(() => {
++    if (!isOpen) return;
++
++    const id = Symbol("dialog");
++    openDialogs.push(id);
++    // Captured now: by cleanup time the opener may be unmounted and
++    // document.activeElement would be <body>.
++    const returnFocusTo = document.activeElement as HTMLElement | null;
++    lockScroll();
++
++    const panel = panelRef.current;
++    const firstField = panel?.querySelector<HTMLElement>(
++      "input:not([disabled]),textarea:not([disabled]),select:not([disabled])"
++    );
++    (firstField ?? panel)?.focus();
++
++    function onKeyDown(event: KeyboardEvent) {
++      if (openDialogs[openDialogs.length - 1] !== id) return;
++
++      if (event.key === "Escape") {
++        if (!dismissibleRef.current) return;
++        event.preventDefault();
++        onCloseRef.current();
++        return;
++      }
++      if (event.key !== "Tab") return;
++
++      const current = panelRef.current;
++      if (!current) return;
++
++      const focusable = Array.from(
++        current.querySelectorAll<HTMLElement>(FOCUSABLE)
++      ).filter((node) => node.offsetParent !== null || node === document.activeElement);
++
++      if (focusable.length === 0) {
++        event.preventDefault();
++        current.focus();
++        return;
++      }
++
++      const first = focusable[0];
++      const last = focusable[focusable.length - 1];
++      const active = document.activeElement;
++
++      if (!current.contains(active)) {
++        event.preventDefault();
++        (event.shiftKey ? last : first).focus();
++      } else if (event.shiftKey && (active === first || active === current)) {
++        event.preventDefault();
++        last.focus();
++      } else if (!event.shiftKey && active === last) {
++        event.preventDefault();
++        first.focus();
++      }
++    }
++
++    // Capture phase so the trap sees Tab before any field handler does.
++    document.addEventListener("keydown", onKeyDown, true);
++
++    return () => {
++      document.removeEventListener("keydown", onKeyDown, true);
++      const index = openDialogs.indexOf(id);
++      if (index !== -1) openDialogs.splice(index, 1);
++      unlockScroll();
++      if (returnFocusTo && returnFocusTo.isConnected) returnFocusTo.focus?.();
++    };
++  }, [isOpen, panelRef]);
++}

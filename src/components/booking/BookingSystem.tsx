@@ -28,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext"
 import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
+import { useDialogA11y } from "@/hooks/useDialogA11y"
 import { parseValidClientAge } from "@/shared/validation/age"
 import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
 
@@ -100,6 +101,14 @@ const BookingSystem = () => {
 
   // Fade/rise transitions collapse to a plain cut when the user prefers reduced motion.
   const prefersReducedMotion = useReducedMotion()
+  const verifyingPanelRef = React.useRef<HTMLDivElement>(null)
+  // Non-dismissible: the overlay blocks the page while payment is confirmed.
+  useDialogA11y({
+    isOpen: bookingFlowState === 'VERIFYING_PAYMENT',
+    onClose: () => {},
+    panelRef: verifyingPanelRef,
+    dismissible: false,
+  })
   // Resolved specialist for the persistent Booking Summary (display only).
   const selectedTherapist = therapists.find(t => t.id === bookingData.therapistId)
 
@@ -561,16 +570,22 @@ const BookingSystem = () => {
       {bookingFlowState === 'VERIFYING_PAYMENT' && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <motion.div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="verifying-payment-title"
+            aria-describedby="verifying-payment-desc"
+            ref={verifyingPanelRef}
+            tabIndex={-1}
             initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl"
+            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl outline-none"
           >
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
               <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
             </div>
-            <h3 className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
+            <h3 id="verifying-payment-title" className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
+            <p id="verifying-payment-desc" className="text-muted-foreground text-sm leading-relaxed">
               Payment received! Confirming your appointment reservation and generating your session details. Please do not refresh or close this window...
             </p>
           </motion.div>

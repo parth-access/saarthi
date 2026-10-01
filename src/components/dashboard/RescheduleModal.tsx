@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar as CalendarIcon, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Booking } from '@/types';
@@ -7,6 +7,7 @@ import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
 import { istDatePlusDays } from '@/shared/scheduling/slots';
 import { formatSessionTimeRange, SESSION_DURATION_LABEL } from '@/lib/sessionDisplay';
 import { toast } from 'sonner';
+import { useDialogA11y } from '@/hooks/useDialogA11y';
 
 interface RescheduleModalProps {
   isOpen: boolean;
@@ -51,6 +52,8 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef, dismissible: !submitting });
   const [error, setError] = useState('');
 
   // `excludeBookingId` stops this booking from counting as a competing booking
@@ -118,10 +121,12 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
             role="dialog"
             aria-modal="true"
             aria-labelledby="reschedule-title"
+            ref={panelRef}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col outline-none"
           >
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10 flex flex-col max-h-[88vh]">
               <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 shrink-0">
@@ -136,7 +141,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close reschedule dialog"
                 >
-                  <X className="w-5 h-5" />
+                  <X aria-hidden="true" className="w-5 h-5" />
                 </button>
               </div>
 

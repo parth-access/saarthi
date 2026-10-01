@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, AlertCircle, ShieldCheck, Info } from 'lucide-react';
 import { Booking } from '@/types';
 import { computeRefundPercent } from '@/domains/payment/RefundPolicy';
 import { sessionStartMs, formatSessionTimeRange } from '@/lib/sessionDisplay';
 import { toast } from 'sonner';
+import { useDialogA11y } from '@/hooks/useDialogA11y';
 
 interface CancelModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y({ isOpen: isOpen && !!session, onClose, panelRef, dismissible: !submitting });
 
   useEffect(() => {
     if (isOpen) {
@@ -88,10 +91,12 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
             role="dialog"
             aria-modal="true"
             aria-labelledby="cancel-title"
+            ref={panelRef}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md outline-none"
           >
             <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10">
               <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50">
@@ -106,7 +111,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
                   className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close cancel dialog"
                 >
-                  <X className="w-5 h-5" />
+                  <X aria-hidden="true" className="w-5 h-5" />
                 </button>
               </div>
 

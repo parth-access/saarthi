@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Star, X, CheckCircle, Loader2 } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
 import { Booking, Review } from '@/types';
+import { useDialogA11y } from '@/hooks/useDialogA11y';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y({ isOpen, onClose, panelRef, dismissible: !submitting });
 
   if (!isOpen) return null;
 
@@ -96,13 +99,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`review-modal-title-${booking.id}`}
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 id={`review-modal-title-${booking.id}`} className="text-lg font-semibold text-slate-900">
               {existingReview || booking.reviewRating ? 'Update Session Review' : 'Rate Your Therapy Session'}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -116,7 +124,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"
             aria-label="Close review dialog"
           >
-            <X className="w-5 h-5" />
+            <X aria-hidden="true" className="w-5 h-5" />
           </button>
         </div>
 
