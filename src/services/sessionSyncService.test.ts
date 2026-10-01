@@ -58,23 +58,13 @@ describe('syncSessionCookie', () => {
     expect(r2).toBe(true);
   });
 
-  it('skips a duplicate POST for the same user inside the dedupe window', async () => {
+  it('reconfirms the cookie after a previous success, since middleware may have cleared it', async () => {
     const user = makeUser('u1');
 
     await syncSessionCookie(user);
     const second = await syncSessionCookie(user);
 
     expect(second).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not dedupe after the window elapses', async () => {
-    const user = makeUser('u1');
-
-    await syncSessionCookie(user);
-    vi.advanceTimersByTime(61_000);
-    await syncSessionCookie(user);
-
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

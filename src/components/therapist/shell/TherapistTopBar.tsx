@@ -5,7 +5,6 @@
  * console's `AdminTopBar`: section label, purpose subtitle, user info, sign-out.
  */
 import { LogOut, Menu, RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,14 +20,12 @@ interface TherapistTopBarProps {
 
 export function TherapistTopBar({ section, onOpenNav, onRefresh, loading }: TherapistTopBarProps) {
   const { currentUser, logout } = useAuth();
-  const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
       await logout();
-      router.replace('/login');
     } finally {
       setSigningOut(false);
     }

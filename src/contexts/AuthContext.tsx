@@ -72,6 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (firebaseUser) {
           // If already loading, we just keep it loading until we have the role
           setLoading(true);
+          // A previous user's confirmed cookie must never authorize this
+          // user's login-page redirect while their role/session are resolving.
+          setSessionSyncComplete(null);
           perfMark('GET_USER_ROLE_START');
           let role = await authService.getUserRole(firebaseUser.uid);
           perfMeasure('GET_USER_ROLE', 'GET_USER_ROLE_START', 'AUTH');

@@ -9,7 +9,6 @@
  * than no field at all — it wastes the one action an operator reaches for first.
  */
 import { LogOut, Menu } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,14 +21,12 @@ interface AdminTopBarProps {
 
 export function AdminTopBar({ section, onOpenNav }: AdminTopBarProps) {
   const { currentUser, logout } = useAuth();
-  const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
       await logout();
-      router.replace('/login');
     } finally {
       // Cleared either way: a failed sign-out must not leave a dead button.
       setSigningOut(false);

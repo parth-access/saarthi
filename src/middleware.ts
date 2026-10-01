@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { getLoginRedirectPath } from './lib/auth/returnPath';
 
 export async function middleware(request: NextRequest) {
   const session = request.cookies.get('__session')?.value;
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
   const isAdminPath = pathname.startsWith('/admin');
   const isTherapistPath = pathname.startsWith('/therapist');
@@ -14,7 +15,9 @@ export async function middleware(request: NextRequest) {
   const isAuthPath = pathname.startsWith('/login');
 
   if (isProtectedPath && !session) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(
+      new URL(getLoginRedirectPath(pathname, search), request.url)
+    );
   }
 
   let decodedRole: string | undefined;
@@ -35,7 +38,10 @@ export async function middleware(request: NextRequest) {
         response.cookies.delete('__session');
         return response;
       }
-      const response = NextResponse.redirect(new URL('/login', request.url));
+      const loginPath = isProtectedPath
+        ? getLoginRedirectPath(pathname, search)
+        : '/login';
+      const response = NextResponse.redirect(new URL(loginPath, request.url));
       response.cookies.delete('__session');
       return response;
     }

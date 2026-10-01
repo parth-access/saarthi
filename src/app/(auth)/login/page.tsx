@@ -1,13 +1,14 @@
 "use client";
 
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, User as UserIcon, Eye, EyeOff, Shield, ArrowRight, Heart, Mail, Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { BackLink } from "@/components/navigation/BackLink";
+import { getSafeReturnPath } from "@/lib/auth/returnPath";
 
 interface FloatingInputProps {
   id?: string;
@@ -175,8 +176,17 @@ function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): str
   return fallbackMessage;
 }
 
-export default function Login() {
+function getRoleRoot(role: string): string {
+  if (role === "admin") return "/admin";
+  if (role === "therapist") return "/therapist";
+  return "/dashboard";
+}
+
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextValues = searchParams.getAll("next");
+  const requestedNext = nextValues.length === 1 ? nextValues[0] : null;
 
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState("");
@@ -185,39 +195,48 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [failedSessionSync, setFailedSessionSync] = useState<Promise<boolean> | null>(null);
 
-  const { login, register, loginWithGoogle, currentUser, loading: authLoading, sessionSyncComplete } = useAuth();
+  const {
+    login,
+    register,
+    loginWithGoogle,
+    logout,
+    currentUser,
+    loading: authLoading,
+    sessionSyncComplete,
+  } = useAuth();
+  const sessionSyncFailed = Boolean(
+    sessionSyncComplete && failedSessionSync === sessionSyncComplete
+  );
 
   useEffect(() => {
-    if (!currentUser) return;
+    // `currentUser` is published just before the cookie-sync promise. Waiting
+    // when it is temporarily null prevents a fresh login from racing protected
+    // middleware and bouncing back here.
+    if (authLoading || !currentUser || !sessionSyncComplete) return;
 
-    // The server session cookie is synced in the background (performance), but
-    // middleware protects /dashboard etc. with it — so wait for the sync to
-    // confirm before redirecting, or a fresh login would bounce straight back
-    // to /login. If the sync ultimately failed we still redirect: middleware
-    // will send the user back here rather than silently faking a login.
     let cancelled = false;
-    const redirectByRole = () => {
-      if (cancelled) return;
-      if (currentUser.role === 'admin') {
-        router.replace("/admin");
-      } else if (currentUser.role === 'therapist') {
-        router.replace("/therapist");
-      } else {
-        router.replace("/dashboard");
-      }
-    };
+    void sessionSyncComplete.then(
+      (synced) => {
+        if (cancelled) return;
+        if (!synced) {
+          setFailedSessionSync(sessionSyncComplete);
+          return;
+        }
 
-    if (sessionSyncComplete) {
-      sessionSyncComplete.then(redirectByRole).catch(redirectByRole);
-    } else {
-      redirectByRole();
-    }
+        const returnPath = getSafeReturnPath(requestedNext, currentUser.role);
+        router.replace(returnPath ?? getRoleRoot(currentUser.role));
+      },
+      () => {
+        if (!cancelled) setFailedSessionSync(sessionSyncComplete);
+      }
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [currentUser, sessionSyncComplete, router]);
+  }, [authLoading, currentUser, requestedNext, sessionSyncComplete, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,16 +295,33 @@ export default function Login() {
   if (authLoading || currentUser) {
     return (
       <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
-        <div className="flex flex-col items-center gap-3">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-            className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full"
-          />
-          <p className="text-sm font-medium text-primary/60">
-            {currentUser ? "Redirecting..." : "Loading safe space..."}
-          </p>
-        </div>
+        {currentUser && sessionSyncFailed ? (
+          <div className="w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
+            <Shield className="mx-auto mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
+            <h1 className="font-serif text-xl text-primary">We couldn&apos;t finish signing you in</h1>
+            <p role="alert" className="mt-2 text-sm text-primary/60">
+              Your secure session could not be confirmed. Please sign out and try again.
+            </p>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Sign out and try again
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full"
+            />
+            <p className="text-sm font-medium text-primary/60">
+              {currentUser ? "Securing your session..." : "Loading safe space..."}
+            </p>
+          </div>
+        )}
         {/* Present in every state, including this one: auth readiness must
             never be the only thing standing between the user and a way out. */}
         <BackLink href="/" label="Back to Saarthi" />
@@ -621,3 +657,19 @@ export default function Login() {
   );
 }
 
+function LoginFallback() {
+  return (
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
+      <p className="text-sm font-medium text-primary/60">Loading safe space...</p>
+      <BackLink href="/" label="Back to Saarthi" />
+    </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginContent />
+    </Suspense>
+  );
+}

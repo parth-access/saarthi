@@ -7,8 +7,8 @@
  * that synchronization does not need to block the auth gate — so it runs here,
  * in the background, with explicit failure semantics:
  *
- * - Dedupe: one in-flight sync per uid; repeated auth-state events for the
- *   same recently-synced user do not re-POST.
+ * - Dedupe: one in-flight sync per uid. A completed POST is not cached:
+ *   middleware may subsequently clear an expired or invalid cookie.
  * - Retry: bounded (MAX_SYNC_RETRIES) with fixed backoff — no infinite loops.
  * - Invalidation: logout or a user switch bumps a generation counter, and any
  *   in-flight/retrying sync for the superseded identity stops silently.
@@ -28,8 +28,6 @@ export interface SyncableFirebaseUser {
 
 const MAX_SYNC_RETRIES = 2;
 const RETRY_DELAY_MS = [800, 2000];
-/** Repeated auth-state events for the same user within this window are no-ops. */
-const DEDUPE_WINDOW_MS = 60_000;
 
 interface InflightSync {
   uid: string;
@@ -39,9 +37,6 @@ interface InflightSync {
 let inflight: InflightSync | null = null;
 /** Monotonic generation; bumped whenever the synced identity becomes stale. */
 let generation = 0;
-/** Last successfully synced identity and when, for the dedupe window. */
-let lastSyncedUid: string | null = null;
-let lastSyncedAt = 0;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,13 +70,6 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
     invalidateSessionSync();
   }
 
-  // Recently synced for this same user: skip the duplicate POST. (Real
-  // re-authentication flows always pass through sign-out or a new uid first,
-  // which resets this bookkeeping via invalidateSessionSync or a new sync.)
-  if (lastSyncedUid === user.uid && Date.now() - lastSyncedAt < DEDUPE_WINDOW_MS) {
-    return Promise.resolve(true);
-  }
-
   const syncGeneration = ++generation;
   const promise = (async (): Promise<boolean> => {
     for (let attempt = 0; attempt <= MAX_SYNC_RETRIES; attempt++) {
@@ -94,8 +82,6 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
         if (generation !== syncGeneration) return false;
 
         if (result.ok) {
-          lastSyncedUid = user.uid;
-          lastSyncedAt = Date.now();
           return true;
         }
 
@@ -133,7 +119,7 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
 }
 
 /**
- * Invalidate any in-flight or recently-remembered sync state. Called on
+ * Invalidate any in-flight sync state. Called on
  * logout and (implicitly) on user switch. In-flight attempts stop silently at
  * their next generation check; the cookie itself is cleared by the caller
  * via DELETE /api/auth/session.
@@ -141,8 +127,6 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
 export function invalidateSessionSync(): void {
   generation++;
   inflight = null;
-  lastSyncedUid = null;
-  lastSyncedAt = 0;
 }
 
 /** Test-only: reset all module state. */
