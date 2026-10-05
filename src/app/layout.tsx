@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from './providers';
 import { Toaster } from "@/components/ui/Toaster";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { CookieConsent } from "@/components/analytics/CookieConsent";
 import { ogImage } from "@/lib/og";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -88,6 +89,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </Providers>
+        <CookieConsent />
       </body>
     </html>
   );

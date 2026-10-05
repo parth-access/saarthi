@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  const lastUpdated = "August 31, 2026";
+  const lastUpdated = "October 1, 2026";
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -106,7 +106,8 @@ export default function PrivacyPage() {
                 <li><strong className="text-primary">Intake &amp; Note Details:</strong> Voluntary notes or intake messages you submit for your assigned therapist regarding what brings you to therapy.</li>
                 <li><strong className="text-primary">Session Details:</strong> Appointment date, time, selected therapist, and therapy type (e.g. Individual Therapy).</li>
                 <li><strong className="text-primary">Payment Data:</strong> Transactions are handled by our third-party payment gateway, Razorpay. Saarthi does not store your raw credit card numbers, debit card details, CVV, or net banking passwords.</li>
-                <li><strong className="text-primary">Technical Logs:</strong> Standard web analytics and server logs (such as IP address, device type, and browser operating system) to ensure security and site functionality.</li>
+                <li><strong className="text-primary">Technical Logs:</strong> Standard server logs (such as IP address, device type, and browser operating system) to ensure security and site functionality.</li>
+                <li><strong className="text-primary">Website Analytics (optional):</strong> Only if you choose &quot;Accept analytics&quot;, we use Google Analytics to understand how the site is used. See Section 7.</li>
               </ul>
             </section>
 
@@ -163,9 +164,25 @@ export default function PrivacyPage() {
               </p>
             </section>
 
-            {/* 7. Third-Party Service Providers */}
+            {/* 7. Cookies & Analytics */}
+            <section id="cookies" className="space-y-3 scroll-mt-24">
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">7. Cookies &amp; Analytics</h2>
+              <p>We keep this to the minimum needed to run Saarthi. There are two kinds:</p>
+              <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                <li><strong className="text-primary">Essential (always on):</strong> a sign-in session cookie that keeps you logged in (set only when you sign in, and it expires after up to 5 days), the browser storage our sign-in provider needs to keep sign-in working, and a small note in your browser remembering your analytics choice. The site cannot work without these, so they do not need your consent.</li>
+                <li><strong className="text-primary">Analytics (only if you say yes):</strong> if you click &quot;Accept analytics&quot;, we load Google Analytics, which sets cookies (such as <code>_ga</code>) that Google typically keeps for up to two years. It tells us in general terms which pages are visited, roughly where visitors are located, and what kind of device they use. Google may process this data on servers outside India. We configure our analytics so that names, email addresses, phone numbers and anything you write to us or your therapist are not sent.</li>
+              </ul>
+              <p>
+                If you decline, Google Analytics is not loaded and does not set cookies. You can change your mind at any time using &quot;Cookie settings&quot; in the footer of any page; withdrawing your choice stops analytics and removes the Google Analytics cookies we can reach. Data Google has already collected is handled under Google&apos;s own policies.
+              </p>
+              <p>
+                When you pay, Razorpay&apos;s checkout may use its own cookies or browser storage under Razorpay&apos;s privacy policy. We do not use advertising or marketing tracking cookies.
+              </p>
+            </section>
+
+            {/* 8. Third-Party Service Providers */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">7. Third-Party Service Providers</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">8. Third-Party Service Providers</h2>
               <p>
                 We share data only with essential infrastructure providers required to operate our service:
               </p>
@@ -173,15 +190,16 @@ export default function PrivacyPage() {
                 <li><strong className="text-primary">Razorpay:</strong> Secure payment processing.</li>
                 <li><strong className="text-primary">Google Cloud / Workspace:</strong> Google Calendar &amp; Meet integration for video consultations.</li>
                 <li><strong className="text-primary">Firebase / Database Hosting:</strong> Secure cloud data storage and authentication infrastructure.</li>
+                <li><strong className="text-primary">Google Analytics:</strong> Website usage statistics, only if you accept analytics (see Section 7).</li>
               </ul>
               <p className="text-xs text-muted-foreground pt-1">
                 We do not sell, rent, or trade your personal or therapy data to third-party advertisers or data brokers.
               </p>
             </section>
 
-            {/* 8. Data Retention & Deletion */}
+            {/* 9. Data Retention & Deletion */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">8. Data Retention &amp; Your Rights</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">9. Data Retention &amp; Your Rights</h2>
               <p>
                 We retain booking records and contact information for as long as necessary to maintain your account history and comply with financial accounting obligations. You have the right to:
               </p>
@@ -192,17 +210,17 @@ export default function PrivacyPage() {
               </ul>
             </section>
 
-            {/* 9. Policy Updates */}
+            {/* 10. Policy Updates */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">9. Changes to This Privacy Policy</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-bold text-primary">10. Changes to This Privacy Policy</h2>
               <p>
                 We may update this Privacy Policy periodically to reflect technological updates, service enhancements, or legal requirements. Material changes will be noted on this page with an updated revision date.
               </p>
             </section>
 
-            {/* 10. Contact Us */}
+            {/* 11. Contact Us */}
             <section className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-3">
-              <h2 className="text-lg font-serif font-bold text-primary">10. Contact &amp; Privacy Inquiries</h2>
+              <h2 className="text-lg font-serif font-bold text-primary">11. Contact &amp; Privacy Inquiries</h2>
               <p className="text-xs text-muted-foreground">
                 For questions, data access requests, or privacy concerns, please contact our support team:
               </p>
