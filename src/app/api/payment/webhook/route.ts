@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
+import { timingSafeEqualStrings } from '@/shared/utils/timingSafeEqual';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreRefundRepository } from '@/domains/payment';
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       .update(payloadText)
       .digest('hex');
 
-    if (expectedSignature !== webhookSignature) {
+    if (!timingSafeEqualStrings(expectedSignature, webhookSignature)) {
       logger.error('PAYMENT', 'Invalid webhook signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
@@ -151,7 +152,35 @@ export async function POST(request: Request) {
             await reconcileBookingRefunded(refund.bookingId, gatewayRefundId, amountRefundedPaise);
             logger.success('PAYMENT', 'Refund reconciled via webhook', { bookingId: refund.bookingId, paymentId, refundId: gatewayRefundId });
           } else if (!refund) {
-            logger.warn('PAYMENT', 'refund.processed webhook: no tracked refund doc for payment', { paymentId, refundId: gatewayRefundId });
+            // Untracked payment — a refund issued directly in the Razorpay
+            // dashboard without a local refund doc. The HMAC-verified payload
+            // is authoritative, so create the deterministic record here (never
+            // reprocessed: status PROCESSED short-circuits processRefund) and
+            // reconcile the booking, instead of letting Firestore drift.
+            const bookingSnap = await adminDb
+              .collection('bookings')
+              .where('razorpayPaymentId', '==', paymentId)
+              .limit(1)
+              .get();
+
+            if (bookingSnap.empty) {
+              logger.warn('PAYMENT', 'refund.processed webhook: no tracked refund doc and no booking for payment', { paymentId, refundId: gatewayRefundId });
+            } else {
+              const bookingId = bookingSnap.docs[0].id;
+              await firestoreRefundRepository.save({
+                id: firestoreRefundRepository.refundIdForPayment(paymentId),
+                bookingId,
+                razorpayPaymentId: paymentId,
+                refundPercent: 0,
+                reason: 'manual',
+                status: 'PROCESSED',
+                attempts: 0,
+                refundId: gatewayRefundId,
+                amountRefundedPaise,
+              });
+              await reconcileBookingRefunded(bookingId, gatewayRefundId, amountRefundedPaise);
+              logger.success('PAYMENT', 'Dashboard refund reconciled via webhook', { bookingId, paymentId, refundId: gatewayRefundId, amountRefundedPaise });
+            }
           }
         } catch (reconcileErr) {
           logger.error('PAYMENT', 'Failed to reconcile refund from webhook', reconcileErr, { paymentId });
@@ -165,6 +194,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     logger.error('PAYMENT', 'Webhook processing failed', error);
-    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || 'Internal Server Error' }, { status: 500 });
+    // Opaque to the caller (Razorpay): failure details go to logs only.
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

@@ -4,11 +4,11 @@ import { logger } from '../../_lib/logger';
 import { GeneratePaymentLinkCommand, GeneratePaymentLinkCommandHandler, firestoreBookingRepository } from '@/domains/booking';
 import { verifySession } from '@/lib/auth/verifySession';
 import { adminDb } from '@/lib/firebase/admin';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(request);
     const rateCheck = checkRateLimit(clientIp, 'payment_create_order', 10, 60000);
     if (!rateCheck.success) {
       return NextResponse.json({ error: 'Too many order creation requests. Please wait a moment.' }, { status: 429 });

@@ -1,7 +1,8 @@
-import { Resend, CreateEmailOptions } from 'resend';
+import { CreateEmailOptions } from 'resend';
 import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { getResendClient } from '../_lib/resendClient';
 import { 
   generateBookingReceivedEmail, 
   generateBookingConfirmedEmail, 
@@ -25,17 +26,6 @@ import { EventBus } from '@/shared/events/EventBus';
 import { buildReceipt } from '@/domains/payment/Receipt';
 import { renderReceiptPdf, receiptFileName } from '@/server/pdf/renderReceiptPdf';
 import type { Booking } from '@/domains/booking/entities/Booking';
-
-let resendClient: Resend | null = null;
-function getResendClient(): Resend {
-  if (!resendClient) {
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is required to initialize Resend client');
-    }
-    resendClient = new Resend(process.env.RESEND_API_KEY);
-  }
-  return resendClient;
-}
 
 export async function sendEmailWithRetry(
   options: CreateEmailOptions, 
@@ -256,7 +246,7 @@ export async function resendSavedEmailAction(emailId: string) {
  * Builds the receipt PDF attachment for the payment-receipt email.
  *
  * Returns `null` (never a fabricated receipt) when the booking has no captured
- * payment — e.g. the fallback `bookingDetails` payload, which carries no payment
+ * payment — e.g. a booking with no captured payment, which carries no payment
  * fields. The attachment filename matches the one users download in the dashboard.
  */
 export function buildReceiptAttachment(
@@ -290,7 +280,7 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'therapist-notification' | 'booking-declined' | 'session-reminder' | 'session-completed';
+  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'booking-declined' | 'session-reminder' | 'session-completed';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
@@ -304,54 +294,56 @@ export interface EmailPayload {
     paidAt?: string;
     failureReason?: string;
   };
-  bookingDetails?: {
-    name: string;
-    email: string;
-    phone?: string;
-    date: string;
-    time: string;
-    originalDate?: string;
-    originalTime?: string;
-    sessionMode?: string;
-    bookingToken?: string;
-    meetingUrl?: string;
-    sessionType?: string;
-  };
 }
 
+/**
+ * Sends a transactional booking email.
+ *
+ * SECURITY CONTRACT: the booking is ALWAYS resolved from Firestore and every
+ * recipient/detail (name, email, phone, dates, manage-booking token, meeting
+ * URL on file) is derived from that stored record. There is deliberately NO
+ * caller-supplied fallback: trusting client-provided details would allow an
+ * arbitrary-recipient, Saarthi-branded email relay. A missing booking (or an
+ * unresolvable lookup) is an error — callers that need retry semantics already
+ * have them via the outbox / sendEmailWithRetry pipeline.
+ */
 export async function sendEmailAction(payload: EmailPayload) {
-  const { type, bookingId, therapistId, bookingDetails, declineReason, declineCustomNote, paymentDetails } = payload;
+  const { type, bookingId, declineReason, declineCustomNote, paymentDetails } = payload;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let bookingData: any;
+  let bookingData: Booking;
   try {
     const booking = await firestoreBookingRepository.findById(bookingId);
-    if (booking) {
-      bookingData = booking;
-    } else {
-      logger.warn("EMAIL", "Booking not found in database, proceeding with fallback metadata", { bookingId });
-      bookingData = bookingDetails;
+    if (!booking) {
+      logger.warn("EMAIL", "Booking not found in database; refusing to send", { bookingId, type });
+      throw new Error(`Booking ${bookingId} not found; transactional email refused`);
     }
-    
-    if (type === 'booking-received') {
-      const createdAt = bookingData?.createdAt?.toDate();
-      if (createdAt && (Date.now() - createdAt.getTime() > 1000 * 60 * 15)) {
-        logger.warn("EMAIL", "Booking is too old for initial receipt email", { bookingId, createdAt });
-        return { success: false, error: 'Booking is too old for initial receipt email' };
-      }
+    bookingData = booking;
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('transactional email refused')) {
+      throw err;
     }
-  } catch(err) {
-    logger.warn("EMAIL", "Could not verify booking via admin DB, proceeding with payload if provided", { error: err });
-    bookingData = bookingDetails;
+    logger.warn("EMAIL", "Could not verify booking via admin DB; refusing to send", { bookingId, type, error: String(err) });
+    throw new Error(`Booking ${bookingId} could not be verified; transactional email refused`);
   }
 
-  if (!bookingData) {
-    throw new Error('Missing booking details');
+  // The therapist always resolves from the booking's own assignment; the
+  // payload's therapistId is only a fallback for records predating it.
+  const effectiveTherapistId = bookingData.therapistId || payload.therapistId;
+
+  if (type === 'booking-received') {
+    const rawCreatedAt = bookingData.createdAt;
+    const createdAt = rawCreatedAt && typeof (rawCreatedAt as { toDate?: unknown }).toDate === 'function'
+      ? (rawCreatedAt as { toDate: () => Date }).toDate()
+      : null;
+    if (createdAt && (Date.now() - createdAt.getTime() > 1000 * 60 * 15)) {
+      logger.warn("EMAIL", "Booking is too old for initial receipt email", { bookingId, createdAt });
+      return { success: false, error: 'Booking is too old for initial receipt email' };
+    }
   }
 
   let therapistData;
   try {
-    const therapistSnap = await adminDb.collection('therapists').doc(therapistId).get();
+    const therapistSnap = await adminDb.collection('therapists').doc(effectiveTherapistId).get();
     if (therapistSnap.exists) therapistData = therapistSnap.data();
   } catch(err) {
     logger.warn("EMAIL", "Could not fetch therapist via admin DB", { error: err });
@@ -359,11 +351,11 @@ export async function sendEmailAction(payload: EmailPayload) {
 
   const therapistName = therapistData?.name || 'our therapist';
   const therapistEmail = therapistData?.email;
-  const patientName = bookingData.name || bookingDetails?.name;
-  const patientEmail = bookingData.email || bookingDetails?.email;
-  const patientPhone = bookingData.phone || bookingDetails?.phone;
-  const bookingDate = bookingData.date || bookingDetails?.date;
-  const bookingTime = bookingData.time || bookingDetails?.time;
+  const patientName = bookingData.name;
+  const patientEmail = bookingData.email;
+  const patientPhone = bookingData.phone;
+  const bookingDate = bookingData.date;
+  const bookingTime = bookingData.time;
 
   if (!patientEmail || !patientName || !bookingDate || !bookingTime) {
     throw new Error('Booking missing required fields for email');
@@ -380,11 +372,11 @@ export async function sendEmailAction(payload: EmailPayload) {
   const safeTherapistSpecialization = therapistData?.specialization ? escapeString(therapistData.specialization) : undefined;
   const safeDate = escapeString(bookingDate);
   const safeTime = escapeString(bookingTime);
-  const safeOriginalDate = bookingData.originalDate || bookingDetails?.originalDate ? escapeString(bookingData.originalDate || bookingDetails?.originalDate || '') : undefined;
-  const safeOriginalTime = bookingData.originalTime || bookingDetails?.originalTime ? escapeString(bookingData.originalTime || bookingDetails?.originalTime || '') : undefined;
-  const safeSessionMode = bookingData.sessionMode || bookingDetails?.sessionMode ? escapeString(bookingData.sessionMode || bookingDetails?.sessionMode || '') : undefined;
-  const safeBookingToken = bookingData.bookingToken || bookingDetails?.bookingToken;
-  const meetingUrl = payload.meetingUrl || bookingData.meetingUrl || bookingDetails?.meetingUrl;
+  const safeOriginalDate = bookingData.originalDate ? escapeString(bookingData.originalDate) : undefined;
+  const safeOriginalTime = bookingData.originalTime ? escapeString(bookingData.originalTime) : undefined;
+  const safeSessionMode = bookingData.sessionMode ? escapeString(bookingData.sessionMode) : undefined;
+  const safeBookingToken = bookingData.bookingToken;
+  const meetingUrl = payload.meetingUrl || bookingData.meetingUrl;
 
   const emailData: BookingEmailData = {
     patientName: safePatientName,
@@ -595,7 +587,7 @@ export async function sendEmailAction(payload: EmailPayload) {
   }
 
   if (type === 'session-reminder') {
-    const meetingUrl = payload.meetingUrl || bookingData.meetingUrl || bookingDetails?.meetingUrl;
+    const meetingUrl = payload.meetingUrl || bookingData.meetingUrl;
     if (!meetingUrl) {
       throw new Error('Cannot send session reminder without a valid meeting URL');
     }
@@ -603,7 +595,7 @@ export async function sendEmailAction(payload: EmailPayload) {
     const reminderData: SessionReminderEmailData = {
       patientName: safePatientName,
       therapistName: safeTherapistName,
-      sessionType: bookingData.sessionType || bookingDetails?.sessionType || 'Individual Therapy Session',
+      sessionType: bookingData.sessionType || 'Individual Therapy Session',
       sessionMode: safeSessionMode,
       date: safeDate,
       time: safeTime,
@@ -634,7 +626,7 @@ export async function sendEmailAction(payload: EmailPayload) {
         text: therapistPlainText,
       }, bookingId, 'session-reminder-therapist');
     } else {
-      logger.warn('REMINDER', `Therapist ${therapistId} has no email configured. Skipping therapist reminder email.`, { bookingId });
+      logger.warn('REMINDER', `Therapist ${effectiveTherapistId} has no email configured. Skipping therapist reminder email.`, { bookingId });
     }
 
     const results = await Promise.all([
@@ -673,7 +665,7 @@ export async function sendEmailAction(payload: EmailPayload) {
 
     let therapistPromise: Promise<unknown> | null = null;
     if (therapistEmail) {
-      const therapistPlainText = `Session completed: ${safePatientName}, ${safeDate} at ${safeTime} IST.\nAdd notes and plan follow-up from your dashboard: ${appUrl}/therapist/dashboard\n- The Saarthi Team`.trim();
+      const therapistPlainText = `Session completed: ${safePatientName}, ${safeDate} at ${safeTime} IST.\nAdd notes and plan follow-up from your dashboard: ${appUrl}/therapist\n- The Saarthi Team`.trim();
       therapistPromise = sendEmailWithRetry({
         from: 'Saarthi Notifications <contact@saarthilife.com>',
         to: therapistEmail,

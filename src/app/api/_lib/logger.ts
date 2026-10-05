@@ -1,3 +1,5 @@
+import { sanitizeData } from '@/shared/sentry/sanitize';
+
 export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
 
@@ -26,7 +28,10 @@ export interface LogEntry {
     | 'FOLLOW_UP_API'
     | 'SESSION_NOTES_API'
     | 'SUMMARY_API'
-    | 'AVAILABILITY';
+    | 'AVAILABILITY'
+    | 'OPERATIONS'
+    | 'RECONNECT'
+    | 'RESCHEDULE';
 
   message: string;
   data?: unknown;
@@ -90,6 +95,13 @@ function serializeError(err: unknown, seen = new WeakSet()): unknown {
 function formatLog(entry: LogEntry) {
   const isDev = process.env.NODE_ENV !== 'production';
 
+  // PII redaction boundary: every structured payload passes through the
+  // canonical sanitizer (shared/sentry/sanitize) BEFORE it reaches any
+  // transport — console in dev, JSON logs in production, Sentry extras.
+  // Tokens, emails, phones and other sensitive keys never reach log storage.
+  const safeData = entry.data ? sanitizeData(entry.data) : undefined;
+  const safeError = entry.error ? sanitizeData(serializeError(entry.error)) : undefined;
+
   if (isDev) {
     const colors = {
       info: '\x1b[36m', // cyan
@@ -101,16 +113,13 @@ function formatLog(entry: LogEntry) {
 
     let msg = `${colors[entry.level]}[${entry.category}] ${entry.message}${colors.reset}`;
 
-    if (entry.data) {
-      msg += ` \n  Data: ${JSON.stringify(entry.data, null, 2)}`;
+    if (safeData !== undefined) {
+      msg += ` \n  Data: ${JSON.stringify(safeData, null, 2)}`;
     }
 
-    if (entry.error) {
-      msg += ` \n  Error: ${
-        entry.error instanceof Error
-          ? entry.error.stack || entry.error.message
-          : JSON.stringify(entry.error)
-      }`;
+    if (safeError !== undefined) {
+      const errObj = safeError as { stack?: string; message?: string };
+      msg += ` \n  Error: ${errObj.stack || errObj.message || JSON.stringify(safeError)}`;
     }
 
     return msg;
@@ -119,7 +128,8 @@ function formatLog(entry: LogEntry) {
   // Production: JSON log
   return JSON.stringify({
     ...entry,
-    error: entry.error ? serializeError(entry.error) : undefined,
+    data: safeData,
+    error: safeError,
   });
 }
 

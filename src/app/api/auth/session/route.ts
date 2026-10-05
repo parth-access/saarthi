@@ -1,8 +1,16 @@
+import { getClientIp } from '../../_lib/rateLimit';
+import { checkDistributedRateLimit } from '../../_lib/distributedRateLimit';
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { SignJWT } from 'jose';
 
 export async function POST(request: Request) {
+  const clientIp = getClientIp(request);
+  // Shared across serverless instances (authentication-sensitive path).
+  if (!(await checkDistributedRateLimit(clientIp, 'auth_session', 20, 60000)).success) {
+    return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
+  }
+
   try {
     const { idToken } = await request.json();
     
@@ -48,6 +56,10 @@ export async function POST(request: Request) {
       maxAge: expiresInSeconds,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      // Explicit rather than relying on the framework default: Lax keeps the
+      // cookie on top-level navigations while withholding it from cross-site
+      // subrequests (CSRF surface stays closed for POSTs).
+      sameSite: 'lax',
       path: '/',
     });
 

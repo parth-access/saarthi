@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '../../_lib/logger';
 import { adminDb } from '@/lib/firebase/admin';
 import { requireAdmin } from '@/lib/auth/requireRole';
 
@@ -24,13 +25,17 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // 3. Fetch background queue size
-    const queuedEmailsSnap = await adminDb.collection('emails').where('status', '==', 'queued').get();
-    const failedEmailsSnap = await adminDb.collection('emails').where('status', '==', 'failed').get();
-    
+    // 3. Background queue size — exact counts via the count() aggregation so
+    //    a large failed-email backlog costs one index read per query, not one
+    //    read per queued document.
+    const [queuedCountSnap, failedCountSnap] = await Promise.all([
+      adminDb.collection('emails').where('status', '==', 'queued').count().get(),
+      adminDb.collection('emails').where('status', '==', 'failed').count().get(),
+    ]);
+
     const workerStatus = {
-      queuedCount: queuedEmailsSnap.size,
-      failedCount: failedEmailsSnap.size,
+      queuedCount: queuedCountSnap.data().count,
+      failedCount: failedCountSnap.data().count,
       lastPoll: new Date().toISOString(),
       status: 'active'
     };
@@ -54,6 +59,7 @@ export async function GET(req: NextRequest) {
       diagnostics
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error('OPERATIONS', 'Ops dashboard failed', error);
+    return NextResponse.json({ error: 'Dashboard unavailable' }, { status: 500 });
   }
 }

@@ -18,12 +18,6 @@ export function registerEmailListeners(eventBus: any) {
         therapistId: booking.therapistId,
         declineReason: booking.declineReason,
         declineCustomNote: booking.declineCustomNote || '',
-        bookingDetails: {
-          name: booking.name,
-          email: booking.email,
-          date: booking.date,
-          time: booking.time,
-        }
       });
       logger.info(`[EmailListener] Decline email triggered successfully for booking ${bookingId}`);
     } catch (err) {

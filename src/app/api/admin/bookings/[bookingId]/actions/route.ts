@@ -10,7 +10,7 @@ import {
 } from '@/domains/booking';
 import { SessionLifecycleService } from '@/services/sessionLifecycleService';
 import { logger } from '../../../../_lib/logger';
-import { checkRateLimit } from '../../../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../../../_lib/rateLimit';
 import { isReadableBookingId } from '../bookingIdGuard';
 import {
   ActionSummary,
@@ -68,7 +68,7 @@ export async function POST(
   if (authorized instanceof NextResponse) return authorized;
   const session = authorized;
 
-  const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp = getClientIp(req);
   // Higher than the client-facing routes' 10: an operator working through a
   // morning's queue legitimately performs many actions in a minute. It is a
   // guard against a stuck retry loop, not against an admin doing their job.

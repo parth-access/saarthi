@@ -2,6 +2,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { PaymentGateway, CreateOrderParams, OrderDetails, RazorpayOrderInfo, PaymentRefundState, RefundResult } from './PaymentGateway';
 import { config } from '@/shared/config';
+import { timingSafeEqualStrings } from '@/shared/utils/timingSafeEqual';
 
 export class RazorpayGateway implements PaymentGateway {
   private getClient(): Razorpay {
@@ -25,6 +26,35 @@ export class RazorpayGateway implements PaymentGateway {
       return payment as unknown as { id: string; order_id: string; status: string; amount: number; currency: string };
     } catch (error) {
       console.error('[Razorpay] Failed to fetch payment details', error);
+      return null;
+    }
+  }
+
+  /** True when Razorpay keys are usable; false means dev/mock mode (no external calls possible). */
+  isConfigured(): boolean {
+    const key_id = config.razorpay.keyId;
+    const key_secret = config.razorpay.keySecret;
+    return Boolean(key_id && key_secret && key_id !== 'rzp_test_placeholder' && key_secret !== 'placeholder');
+  }
+
+  /**
+   * Authoritative "has money moved on this order?" check used by the
+   * client-reported payment-failure path: a failure report must never cancel a
+   * checkout that actually captured/authorized funds. Returns:
+   *   true/false — Razorpay's answer for the order's payments;
+   *   null       — Razorpay IS configured but the check failed (caller must
+   *                fail closed); not-configured dev mode also yields null only
+   *                via the caller's isConfigured() guard, never through here.
+   */
+  async fetchOrderHasSuccessfulPayment(orderId: string): Promise<boolean | null> {
+    try {
+      const rzp = this.getClient();
+      type OrdersFetchPayments = { fetchPayments: (id: string) => Promise<{ items?: Array<{ status?: string }> }> };
+      const response = await (rzp.orders as unknown as OrdersFetchPayments).fetchPayments(orderId);
+      const items = response?.items ?? [];
+      return items.some((p) => p.status === 'captured' || p.status === 'authorized');
+    } catch (error) {
+      console.error('[Razorpay] Failed to fetch order payments', error);
       return null;
     }
   }
@@ -131,13 +161,13 @@ export class RazorpayGateway implements PaymentGateway {
     if (!secret || secret === 'placeholder') {
       throw new Error('Razorpay keySecret is missing or invalid.');
     }
-    
+
     const generated_signature = crypto
       .createHmac('sha256', secret)
       .update(orderId + '|' + paymentId)
       .digest('hex');
 
-    return generated_signature === signature;
+    return timingSafeEqualStrings(generated_signature, signature);
   }
 }
 

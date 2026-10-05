@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth/verifySession';
 import { receiptService } from '@/server/services/ReceiptService';
 import { renderReceiptPdf, receiptFileName } from '@/server/pdf/renderReceiptPdf';
 import { logger } from '../../../_lib/logger';
-import { checkRateLimit } from '../../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../../_lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 /** Node runtime: the generator writes bytes with `Buffer`. */
@@ -26,7 +26,7 @@ export const runtime = 'nodejs';
  */
 export async function GET(req: Request, context: { params: Promise<{ bookingId: string }> }) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'receipt_pdf', 30, 60000);
     if (!rateCheck.success) {
       return NextResponse.json(

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { verifySession } from '@/lib/auth/verifySession';
 import { TherapistPostSessionService } from '@/services/therapistPostSessionService';
 import { logger } from '../../_lib/logger';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ const saveSchema = z
  */
 export async function POST(req: Request) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'session_notes_save', 30, 60_000);
     if (!rateCheck.success) {
       return NextResponse.json(

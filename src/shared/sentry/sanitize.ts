@@ -80,6 +80,10 @@ export function sanitizeData(data: unknown, depth = 0): unknown {
       result[key] = '[FILTERED]';
     } else if (typeof value === 'object' && value !== null) {
       result[key] = sanitizeData(value, depth + 1);
+    } else if (typeof value === 'string') {
+      // Non-sensitive keys still get the string scrub, so a bearer/JWT token
+      // embedded in free-form text (message, note, url, …) is filtered too.
+      result[key] = sanitizeData(value, depth + 1);
     } else {
       result[key] = value;
     }

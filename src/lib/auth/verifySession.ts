@@ -46,6 +46,15 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
         role = userData?.role || 'client';
       }
 
+      // Per-user session kill-switch: setting users/{uid}.sessionRevokeBefore
+      // (epoch SECONDS) invalidates every session issued before that instant,
+      // so a stolen cookie can be killed immediately instead of surviving its
+      // 5-day expiry. The check rides the users-doc read this function already
+      // performs — no extra I/O.
+      if (userDoc.exists && isSessionRevoked(userDoc.data(), (payload as { iat?: number }).iat)) {
+        return null;
+      }
+
       return {
         uid,
         email,
@@ -63,6 +72,11 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
           role = userData?.role || 'client';
        }
 
+       // Same kill-switch for raw Firebase ID tokens (token iat vs. revoke mark)
+       if (userDoc.exists && isSessionRevoked(userDoc.data(), (decodedToken as { iat?: number }).iat)) {
+         return null;
+       }
+
        return {
          uid: decodedToken.uid,
          email: decodedToken.email,
@@ -73,4 +87,23 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
     console.warn("Session verification failed:", error);
     return null;
   }
+}
+
+/**
+ * Session kill-switch check: a user doc may carry `sessionRevokeBefore` (epoch
+ * SECONDS). Any session whose `iat` predates it is rejected outright — set it
+ * (e.g. from an admin console or incident response) to revoke every existing
+ * session for that user at once. Absent field or absent `iat` = not revoked.
+ */
+function isSessionRevoked(
+  userData: Record<string, unknown> | undefined,
+  issuedAtSeconds?: number
+): boolean {
+  const revokedBefore = Number(userData?.sessionRevokeBefore);
+  if (!Number.isFinite(revokedBefore) || revokedBefore <= 0) return false;
+  if (!Number.isFinite(issuedAtSeconds) || (issuedAtSeconds ?? 0) <= 0) {
+    // A token without any issued-at claim cannot prove it postdates the mark.
+    return true;
+  }
+  return (issuedAtSeconds as number) < revokedBefore;
 }

@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
+import { getClientIp } from '../_lib/rateLimit';
 import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 import { firestoreBookingRepository, RescheduleBookingCommand, RescheduleBookingCommandHandler } from "@/domains/booking";
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
+
+/** Short, non-reversible correlation marker for a booking token — never log the token itself. */
+function fingerprintToken(token: string): string {
+  return `${token.slice(0, 6)}…(len ${token.length})`;
+}
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -19,7 +25,7 @@ function isRateLimited(ip: string): boolean {
 }
 
 export async function GET(request: Request) {
-  const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp = getClientIp(request);
   
   if (isRateLimited(clientIp)) {
     logger.warn('MANAGE_BOOKING', 'Rate limit exceeded', { ip: clientIp });
@@ -34,12 +40,14 @@ export async function GET(request: Request) {
     const booking = await firestoreBookingRepository.findByToken(token);
       
     if (!booking) {
-      logger.warn('MANAGE_BOOKING', 'Invalid token attempt', { token, ip: clientIp });
+      // Never log the raw token: it is a long-lived bearer credential. The
+      // fingerprint is enough to correlate repeated abuse of one link.
+      logger.warn('MANAGE_BOOKING', 'Invalid token attempt', { tokenFingerprint: fingerprintToken(token), ip: clientIp });
       return NextResponse.json({ error: "Booking not found or link expired." }, { status: 404 });
     }
 
     if (booking.invalidToken) {
-       logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { token, bookingId: booking.id });
+       logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { tokenFingerprint: fingerprintToken(token), bookingId: booking.id });
        return NextResponse.json({ error: "This booking link is no longer valid." }, { status: 400 });
     }
 
@@ -79,7 +87,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp = getClientIp(request);
   
   if (isRateLimited(clientIp)) {
     logger.warn('MANAGE_BOOKING', 'Rate limit exceeded', { ip: clientIp });

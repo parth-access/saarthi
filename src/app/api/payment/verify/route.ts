@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { logger } from '../../_lib/logger';
 import crypto from 'crypto';
 import { config } from '@/shared/config';
+import { timingSafeEqualStrings } from '@/shared/utils/timingSafeEqual';
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler, SlotAlreadyBookedError } from '@/domains/booking';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(request);
     const rateCheck = checkRateLimit(clientIp, 'payment_verify', 10, 60000);
     if (!rateCheck.success) {
       return NextResponse.json({ error: 'Too many verification attempts. Please wait a moment.' }, { status: 429 });
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (generated_signature !== razorpay_signature) {
+    if (!timingSafeEqualStrings(generated_signature, razorpay_signature)) {
        logger.error('PAYMENT', 'Signature mismatch', null, { bookingId });
        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }

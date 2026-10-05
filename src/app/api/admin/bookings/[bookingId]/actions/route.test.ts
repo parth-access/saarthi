@@ -78,7 +78,7 @@ vi.mock('@/services/sessionLifecycleService', () => ({
   SessionLifecycleService: { completeSession: vi.fn(), markNoShow: vi.fn() },
 }));
 
-vi.mock('../../../../_lib/rateLimit', () => ({ checkRateLimit: vi.fn() }));
+vi.mock('../../../../_lib/rateLimit', () => ({ checkRateLimit: vi.fn().mockReturnValue({ success: true }), getClientIp: vi.fn().mockReturnValue('test-client-ip') }));
 
 vi.mock('../../../../_lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), success: vi.fn() },
@@ -177,7 +177,9 @@ describe('rate limiting', () => {
     // A morning's queue is many actions in a minute; the limiter exists to catch a
     // stuck retry loop, not to throttle someone doing their job.
     await post({ action: 'confirm' });
-    expect(checkRateLimit).toHaveBeenCalledWith('203.0.113.9', 'admin_booking_action', 30, 60000);
+    // The client ip itself is resolved by the canonical getClientIp (covered in
+    // _lib/rateLimit.test.ts); the route passes through the mocked value here.
+    expect(checkRateLimit).toHaveBeenCalledWith('test-client-ip', 'admin_booking_action', 30, 60000);
   });
 });
 

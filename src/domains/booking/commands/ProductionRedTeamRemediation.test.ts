@@ -111,7 +111,7 @@ describe('Production Red-Team Validations', () => {
 
       const slotSetSpy = vi.fn();
       const mockTx = {
-        get: vi.fn().mockImplementation(async (ref: any) => {
+        get: vi.fn().mockImplementation(async () => {
           // Client B holds the slot now
           return {
             exists: true,
@@ -349,7 +349,7 @@ describe('Production Red-Team Validations', () => {
       vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
 
       let refundEnqueueCalls = 0;
-      vi.spyOn(firestoreRefundRepository, 'readEnqueuePlan').mockImplementation(async (req, reader) => {
+      vi.spyOn(firestoreRefundRepository, 'readEnqueuePlan').mockImplementation(async (req) => {
         return {
           ref: { id: req.id } as any,
           payload: req as any,

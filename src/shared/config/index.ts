@@ -5,15 +5,9 @@ export const config = {
     keySecret: process.env.RAZORPAY_KEY_SECRET || '',
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   },
-  resend: {
-    apiKey: process.env.RESEND_API_KEY || '',
-    fromEmail: process.env.RESEND_FROM_EMAIL || 'support@saarthilife.com',
-  },
   firebase: {
     adminKeyBase64: process.env.FIREBASE_ADMIN_KEY_BASE64 || '',
   },
-  baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-
   // Helpers
   isDevelopment: () => config.env === 'development',
   isProduction: () => config.env === 'production',

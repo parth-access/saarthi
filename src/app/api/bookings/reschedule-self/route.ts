@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { verifySession } from '@/lib/auth/verifySession';
 import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from '@/domains/booking';
 import { logger } from '../../_lib/logger';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,7 @@ const schema = z
  */
 export async function POST(req: Request) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'reschedule_self', 10, 60000);
     if (!rateCheck.success) {
       return NextResponse.json(

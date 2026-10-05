@@ -153,13 +153,6 @@ Session Type: ${booking.sessionType || 'Individual'}`,
         bookingId: booking.id,
         therapistId: booking.therapistId,
         meetingUrl,
-        bookingDetails: {
-          name: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          date: booking.date,
-          time: booking.time,
-        },
       });
     } catch (emailErr) {
       // Email failure must not fail the calendar operation; the email has its own retry pipeline.
@@ -405,15 +398,6 @@ Session Type: ${booking.sessionType || 'Individual'}`,
           bookingId,
           therapistId: booking.therapistId,
           meetingUrl: meetingUrl || undefined,
-          bookingDetails: {
-            name: booking.name,
-            email: booking.email,
-            phone: booking.phone,
-            date: booking.date,
-            time: booking.time,
-            originalDate: booking.originalDate,
-            originalTime: booking.originalTime,
-          },
         });
       } catch (emailErr) {
         logger.warn('CALENDAR', `Failed to send reschedule email for ${bookingId}`, { error: String(emailErr) });

@@ -3,9 +3,17 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { logger } from '@/app/api/_lib/logger';
+import { checkRateLimit, getClientIp } from '../../_lib/rateLimit';
 
 export async function GET(req: NextRequest) {
   try {
+    // join-session can trigger on-demand Google Calendar/Meet creation — an
+    // expensive operation — so it is throttled per client.
+    const clientIp = getClientIp(req);
+    if (!checkRateLimit(clientIp, 'join_session', 10, 60_000).success) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
+    }
+
     const { searchParams } = new URL(req.url);
     const bookingId = searchParams.get('bookingId');
 
@@ -30,6 +38,19 @@ export async function GET(req: NextRequest) {
     const userId = decodedToken.uid;
     const userEmail = decodedToken.email;
 
+    // Role comes from the CANONICAL source of truth (the `users` collection,
+    // re-read live) — not from Firebase custom claims, which are a second
+    // authority that can go stale or never be provisioned.
+    let userRole = 'client';
+    try {
+      const userSnap = await adminDb.collection('users').doc(userId).get();
+      if (userSnap.exists) {
+        userRole = (userSnap.data()?.role as string) || 'client';
+      }
+    } catch (roleErr) {
+      logger.warn('JOIN_SESSION', 'Could not read user role; defaulting to client', { error: String(roleErr) });
+    }
+
     // 2. Retrieve Booking
     const booking = await firestoreBookingRepository.findById(bookingId);
     if (!booking) {
@@ -40,7 +61,7 @@ export async function GET(req: NextRequest) {
     // Allowed if:
     // a) User is the student (userId === booking.userId || userEmail === booking.email)
     // b) User is assigned therapist (therapist authId === userId || booking.therapistId === userId)
-    // c) User is admin (decodedToken.role === 'admin' or custom admin claim)
+    // c) User is admin per the users collection
 
     let isAuthorized = false;
 
@@ -48,7 +69,7 @@ export async function GET(req: NextRequest) {
       isAuthorized = true;
     }
 
-    if (!isAuthorized && decodedToken.role === 'admin') {
+    if (!isAuthorized && userRole === 'admin') {
       isAuthorized = true;
     }
 

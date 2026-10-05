@@ -1,28 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
 import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { auditService } from '@/domains/audit/AuditService';
 import { logger } from '@/app/api/_lib/logger';
+import { requireAdmin } from '@/lib/auth/requireRole';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify Admin Authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: missing token' }, { status: 401 });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json({ error: 'Unauthorized: invalid token' }, { status: 401 });
-    }
-
-    if (decodedToken.role !== 'admin' && !decodedToken.admin) {
-      return NextResponse.json({ error: 'Forbidden: admin access required' }, { status: 403 });
-    }
+    // Admin authorization flows through the CANONICAL source of truth: the
+    // `users` collection role, re-read live on every request (via
+    // verifySession). The previous Firebase custom-claims check here was a
+    // second admin authority that could disagree with the users collection —
+    // locking out provisioned admins when claims were absent, or keeping
+    // stale claims alive after a role change.
+    const authResult = await requireAdmin(req as unknown as Request);
+    if (authResult instanceof NextResponse) return authResult;
+    const session = authResult;
 
     const body = await req.json();
     const { bookingId } = body;
@@ -33,8 +25,8 @@ export async function POST(req: NextRequest) {
 
     await auditService.logEvent(
       'CALENDAR_CREATION_RETRY',
-      { bookingId, triggeredBy: decodedToken.uid },
-      decodedToken.uid,
+      { bookingId, triggeredBy: session.uid },
+      session.uid,
       bookingId
     );
 

@@ -1,4 +1,4 @@
-export type RefundStatus = 'PENDING' | 'PROCESSED' | 'FAILED';export type RefundReason = 'double_booking' | 'cancellation';
+export type RefundStatus = 'PENDING' | 'PROCESSED' | 'FAILED';export type RefundReason = 'double_booking' | 'cancellation' | 'manual';
 
 export interface RefundRequest {
   /** Deterministic id: `refund_<razorpayPaymentId>` — one refund per payment. */

@@ -22,6 +22,7 @@ vi.mock('firebase-admin', () => ({
 
 vi.mock('../_lib/rateLimit', () => ({
   checkRateLimit: () => ({ success: true }),
+  getClientIp: () => 'test-client-ip',
 }));
 
 import { POST } from './route';

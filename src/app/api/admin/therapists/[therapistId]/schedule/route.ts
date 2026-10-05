@@ -12,7 +12,7 @@ import {
 import type { AdminScheduleOverride, AdminScheduleRule } from '@/domains/admin/therapistSchedule';
 import { getIstNow } from '@/shared/scheduling/slots';
 import { logger } from '../../../../_lib/logger';
-import { checkRateLimit } from '../../../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../../../_lib/rateLimit';
 import { isReadableTherapistId } from '../../therapistIdGuard';
 import {
   adminScheduleWriteSchema,
@@ -70,7 +70,7 @@ export async function POST(req: Request, context: { params: Promise<{ therapistI
   if (authorized instanceof NextResponse) return authorized;
   const session = authorized;
 
-  const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+  const clientIp = getClientIp(req);
   const rateCheck = checkRateLimit(clientIp, 'admin_schedule_write', 30, 60000);
   if (!rateCheck.success) {
     return NextResponse.json(

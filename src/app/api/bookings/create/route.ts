@@ -3,11 +3,11 @@ import { CreateBookingCommand, CreateBookingCommandHandler } from '@/domains/boo
 import { bookingSchema } from '@/server/validators/bookingValidators';
 import { logger } from '../../_lib/logger';
 import { adminAuth } from '@/lib/firebase/admin';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 export async function POST(request: Request) {
   try {
-    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(request);
     const rateCheck = checkRateLimit(clientIp, 'bookings_create', 5, 60000);
     if (!rateCheck.success) {
       logger.warn('BOOKING', 'Rate limit exceeded for booking creation', { ip: clientIp });

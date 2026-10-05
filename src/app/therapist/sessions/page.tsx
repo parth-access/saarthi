@@ -29,14 +29,14 @@ function TherapistSessionsContent() {
   const searchParams = useSearchParams();
   const view = parseSessionView(searchParams.get('view'));
   const [, setBookings] = React.useState(data.bookings);
-  const { processingId, updateStatus, declineBooking } = useBookingActions(setBookings);
+  const { processingId, updateStatus } = useBookingActions(setBookings);
 
   const [query, setQuery] = React.useState('');
   const [statusChoice, setStatusChoice] = React.useState<{ view: string; status: BookingStatus | 'all' }>({ view, status: 'all' });
   const statusFilter = statusChoice.view === view ? statusChoice.status : 'all';
 
   // Decline modal state
-  const [declineTarget, setDeclineTarget] = React.useState<Booking | null>(null);
+  const [, setDeclineTarget] = React.useState<Booking | null>(null);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();

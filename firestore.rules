@@ -177,13 +177,10 @@ service cloud.firestore {
     */
 
     match /payments/{paymentId} {
-
-      allow read: if
-        isAdmin()
-        || (
-          isSignedIn()
-          && resource.data.userId == request.auth.uid
-        );
+      // Payment documents carry no userId field, so a per-user read clause
+      // could never match and only misled. All client access goes through
+      // server routes (Admin SDK bypasses rules); admins may read directly.
+      allow read: if isAdmin();
 
       allow write: if false;
     }

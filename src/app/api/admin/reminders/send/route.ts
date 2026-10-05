@@ -1,27 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
 import { SessionReminderService } from '@/services/sessionReminderService';
 import { logger } from '@/app/api/_lib/logger';
+import { requireAdmin } from '@/lib/auth/requireRole';
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify Admin Authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: missing token' }, { status: 401 });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json({ error: 'Unauthorized: invalid token' }, { status: 401 });
-    }
-
-    if (decodedToken.role !== 'admin' && !decodedToken.admin) {
-      return NextResponse.json({ error: 'Forbidden: admin access required' }, { status: 403 });
-    }
+    // Admin authorization flows through the CANONICAL source of truth: the
+    // `users` collection role, re-read live on every request (via
+    // verifySession). The previous Firebase custom-claims check here was a
+    // second admin authority that could disagree with the users collection —
+    // locking out provisioned admins when claims were absent, or keeping
+    // stale claims alive after a role change.
+    const authResult = await requireAdmin(req as unknown as Request);
+    if (authResult instanceof NextResponse) return authResult;
 
     const body = await req.json();
     const { bookingId, force } = body;
@@ -40,8 +31,8 @@ export async function POST(req: NextRequest) {
         alreadySent: result.alreadySent,
         studentSent: result.studentSent,
         therapistSent: result.therapistSent,
-        message: result.alreadySent 
-          ? 'Reminder was already previously sent for this booking.' 
+        message: result.alreadySent
+          ? 'Reminder was already previously sent for this booking.'
           : 'Session reminder email dispatched successfully.'
       });
     } else {

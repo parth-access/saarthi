@@ -223,3 +223,78 @@ describe('middleware: signed-out navigation', () => {
     expect(res.headers.get('set-cookie') ?? '').toContain('__session=');
   });
 });
+
+describe('Session kill-switch (sessionRevokeBefore)', () => {
+  const originalEnv = process.env.JWT_SECRET;
+
+  beforeEach(() => {
+    vi.resetModules();
+    mockGetUserDoc.mockReset();
+  });
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.JWT_SECRET = originalEnv;
+    } else {
+      delete process.env.JWT_SECRET;
+    }
+  });
+
+  async function makeToken() {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    return new SignJWT({ uid: 'user_123', email: 'user@example.com', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
+  }
+
+  const requestWith = (token: string) =>
+    new Request('https://saarthilife.com/api/test', { headers: { cookie: `__session=${token}` } });
+
+  it('rejects a session issued BEFORE the revocation mark (stolen cookie kill-switch)', async () => {
+    const token = await makeToken();
+    // Epoch seconds far in the future: every token issued now predates it.
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin', sessionRevokeBefore: 4_102_444_800 }), // 2100-01-01
+    });
+
+    expect(await verifySession(requestWith(token))).toBeNull();
+  });
+
+  it('accepts a session issued AFTER the revocation mark (user can sign back in)', async () => {
+    const token = await makeToken();
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin', sessionRevokeBefore: 1_000 }), // epoch of 1970: already passed
+    });
+
+    const session = await verifySession(requestWith(token));
+    expect(session).not.toBeNull();
+    expect(session?.role).toBe('admin');
+  });
+
+  it('does not revoke when no revocation mark is set', async () => {
+    const token = await makeToken();
+    mockGetUserDoc.mockResolvedValue({ exists: true, data: () => ({ role: 'admin' }) });
+
+    expect(await verifySession(requestWith(token))).not.toBeNull();
+  });
+
+  it('fails closed for tokens without an iat claim when a mark is set', async () => {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const token = await new SignJWT({ uid: 'user_123', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('5d')
+      .sign(secret);
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin', sessionRevokeBefore: 4_102_444_800 }),
+    });
+
+    expect(await verifySession(requestWith(token))).toBeNull();
+  });
+});

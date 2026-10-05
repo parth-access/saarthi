@@ -34,7 +34,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/auth/requireRole', () => ({ requireAdmin: vi.fn() }));
-vi.mock('../../../../_lib/rateLimit', () => ({ checkRateLimit: vi.fn() }));
+vi.mock('../../../../_lib/rateLimit', () => ({ checkRateLimit: vi.fn().mockReturnValue({ success: true }), getClientIp: vi.fn().mockReturnValue('test-client-ip') }));
 vi.mock('../../../../_lib/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));

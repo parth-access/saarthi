@@ -5,7 +5,7 @@ import { verifySession } from '../../../../lib/auth/verifySession';
 import crypto from 'crypto';
 import { LockSlotCommand, LockSlotCommandHandler, SlotReservationService } from '@/domains/booking';
 import { logger } from '../../_lib/logger';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   let userId = '';
   let slotId = '';
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'lock_slot', 10, 60000);
     if (!rateCheck.success) {
       logger.warn('BOOKING', 'Rate limit exceeded for lock-slot', { ip: clientIp });
@@ -73,7 +73,7 @@ const releaseSchema = z.object({
 
 export async function DELETE(req: Request) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'release_slot', 20, 60000);
     if (!rateCheck.success) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });

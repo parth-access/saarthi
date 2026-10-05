@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireRole';
 import { resendSavedEmailAction } from '@/app/api/email/emailSender';
 import { firestoreBookingRepository } from '@/domains/booking';
+import { logger } from '../../_lib/logger';
 import { EventBus } from '@/shared/events/EventBus';
 
 export async function POST(req: NextRequest) {
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error('OPERATIONS', 'Operations replay failed', error);
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 }

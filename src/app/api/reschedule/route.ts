@@ -1,15 +1,28 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-import { Resend } from "resend";
 import { FieldValue } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/verifySession";
+import { getResendClient } from "../_lib/resendClient";
+import escapeString from "escape-html";
+import { checkRateLimit, getClientIp } from "../_lib/rateLimit";
+import { logger } from '../_lib/logger';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const ADMIN_EMAIL = 'admin@saarthilife.com';
 const FROM_EMAIL = 'Saarthi <noreply@saarthilife.com>';
 
+/** Subject lines are plain text: strip control chars/markup rather than HTML-escape. */
+function safeSubject(value: string): string {
+  return value.replace(/[\r\n<>]/g, "").slice(0, 120);
+}
+
 export async function POST(req: Request) {
   try {
+    // This route emails the admin inbox; throttle so an authenticated account
+    // cannot flood it.
+    if (!checkRateLimit(getClientIp(req), 'reschedule_request', 5, 60_000).success) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
+    }
+
     const decodedClaims = await verifySession(req);
     if (!decodedClaims) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -33,17 +46,19 @@ export async function POST(req: Request) {
       createdAt: FieldValue.serverTimestamp()
     });
 
-    // Send email to admin
-    await resend.emails.send({
+    // Send email to admin — every client-supplied value is HTML-escaped (this
+    // HTML is rendered in the admin's mail client; an escaped value displays
+    // as text, a raw one executes as markup).
+    await getResendClient().emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       replyTo: 'healwithsaarthi@gmail.com',
-      subject: `Reschedule Request: ${userName}`,
+      subject: `Reschedule Request: ${safeSubject(String(userName || ''))}`,
       html: `
         <div style="font-family: sans-serif; line-height: 1.5; color: #333;">
           <h2 style="color: #E6A520;">New Reschedule Request</h2>
-          <p><strong>${userName}</strong> (${userEmail}) wants to reschedule booking <strong>${bookingId}</strong>.</p>
-          <p><strong>Reason:</strong> ${reason || "No reason provided"}</p>
+          <p><strong>${escapeString(String(userName || ''))}</strong> (${escapeString(String(userEmail || ''))}) wants to reschedule booking <strong>${escapeString(String(bookingId || ''))}</strong>.</p>
+          <p><strong>Reason:</strong> ${escapeString(String(reason || "No reason provided"))}</p>
           <p>Please log in to the admin dashboard to coordinate further.</p>
         </div>
       `,
@@ -51,7 +66,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, id: docRef.id });
   } catch (error) {
-    console.error("Error creating reschedule request:", error);
-    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 500 });
+    logger.error('RESCHEDULE', 'Error creating reschedule request', error);
+    // Opaque to the client; failure details go to logs only.
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

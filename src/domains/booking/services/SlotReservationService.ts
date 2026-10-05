@@ -153,9 +153,15 @@ export class SlotReservationService {
       ...doc.data()
     })) as unknown as TherapistOverride[];
 
-    // If no custom rules or overrides are configured for this therapist, default to available
+    // SINGLE INTERPRETATION of "no availability rules exist": the therapist has
+    // no bookable cadence, same as the lister (`/api/availability`), which
+    // emits no slots without rules/overrides. A therapist who needs an
+    // exceptional slot creates an `available` override for that day — the UI
+    // then offers exactly what this validator accepts. The previous default
+    // here (OPEN) let create/reschedule land on slots the booking UI never
+    // displays (phantom slots).
     if (rules.length === 0 && overrides.length === 0) {
-      return true;
+      return false;
     }
 
     // Check overrides first

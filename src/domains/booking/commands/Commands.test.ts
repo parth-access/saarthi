@@ -64,10 +64,6 @@ vi.mock('@/lib/firebase/admin', () => {
         delete: vi.fn(),
         update: vi.fn(),
       })),
-      // `isSlotInTherapistAvailability` reads
-      // therapistAvailability/{id}/recurringRules and /overrides. An empty result
-      // means "no rules configured", which the service treats as available — the
-      // right default for tests that are about transactions, not about schedules.
       get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
     })),
   }));
@@ -103,6 +99,11 @@ describe('Command Handlers Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(razorpayGateway, "createOrder").mockResolvedValue({ orderId: "order_123", amount: 1500, currency: "INR" });
+    // These tests are about transaction ordering, not schedules. The validator's
+    // real "no rules configured" answer is now CLOSED (matching the availability
+    // lister), so stub it permissive here; tests that need a refusal override
+    // with mockResolvedValueOnce(false).
+    vi.spyOn(SlotReservationService, 'isSlotInTherapistAvailability').mockResolvedValue(true);
     EventBus.clear();
     registerListeners(EventBus);
   });

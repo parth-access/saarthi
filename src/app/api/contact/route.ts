@@ -22,10 +22,10 @@ const ContactPayloadSchema = z.object({
   honeypot: z.string().max(0).optional().or(z.literal('')), // Must be empty
 });
 
-import { checkRateLimit } from '../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../_lib/rateLimit';
 
 export async function POST(request: Request) {
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const ip = getClientIp(request);
   const rateCheck = checkRateLimit(ip, 'contact_submit', 5, 15 * 60000);
   if (!rateCheck.success) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });

@@ -19,7 +19,7 @@
  */
 import Link from 'next/link';
 import * as React from 'react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import {
   AlertTriangle,
   CalendarDays,
@@ -29,8 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { statusBadge, toneClasses, formatSessionDay } from '@/components/admin/bookings/adminBookingPresentation';
-import { formatTime12h } from '@/components/booking/bookingUi';
+import { formatSessionDay } from '@/components/admin/bookings/adminBookingPresentation';
 import { NextSessionHero, NoUpcomingSession } from './NextSessionHero';
 import { PostSessionAttention, PostSessionAllClear } from './PostSessionAttention';
 import { TherapistSessionRow } from './TherapistSessionRow';

@@ -8,6 +8,7 @@ import { registerListeners } from '@/shared/events/listeners';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { Booking } from '../entities/Booking';
+import { SlotReservationService } from '../services/SlotReservationService';
 import { istDatePlusDays } from '@/shared/scheduling/slots';
 
 /**
@@ -56,6 +57,10 @@ vi.mock('@/app/api/email/emailSender', () => ({
 describe('Regression Tests: Firestore Transactions, EventBus & Idempotency', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // These tests are about transaction ordering and event plumbing, not
+    // schedules. The validator's real "no rules configured" answer is now
+    // CLOSED (matching the availability lister), so stub it permissive here.
+    vi.spyOn(SlotReservationService, 'isSlotInTherapistAvailability').mockResolvedValue(true);
     EventBus.clear();
   });
 

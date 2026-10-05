@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { requireTherapist } from '@/lib/auth/requireRole';
 import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from '@/domains/booking';
 import { logger } from '../../_lib/logger';
-import { checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
 const schema = z.object({
   bookingId: z.string().min(1),
@@ -13,7 +13,7 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for') || 'unknown';
+    const clientIp = getClientIp(req);
     const rateCheck = checkRateLimit(clientIp, 'reschedule_therapist', 10, 60000);
     if (!rateCheck.success) {
       return NextResponse.json({ error: 'Too many reschedule attempts. Please wait.' }, { status: 429 });

@@ -6,11 +6,36 @@ interface RateLimitRecord {
 const store = new Map<string, RateLimitRecord>();
 
 /**
+ * Derives the rate-limiting identity from the request.
+ *
+ * `x-forwarded-for` may contain client-appended entries; the RIGHTMOST value is
+ * the one added by the trusted edge (Vercel's platform proxy), so it is used as
+ * the bucket key. Leftmost values are client-spoofable and would let an
+ * attacker rotate buckets per request.
+ */
+export function getClientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const entries = forwarded.split(',').map((s) => s.trim()).filter(Boolean);
+    if (entries.length > 0) {
+      return entries[entries.length - 1];
+    }
+  }
+  return request.headers.get('x-real-ip') || 'unknown';
+}
+
+/**
  * In-memory sliding window rate limiter for API routes.
  * @param ip Client IP address
  * @param route Identifier for the rate-limited endpoint
  * @param limit Maximum allowed requests within the window
  * @param windowMs Time window in milliseconds (default: 60,000ms / 1 min)
+ *
+ * NOTE: this is a per-serverless-instance throttle, not a distributed control —
+ * Vercel fans requests across instances and cold starts reset counters, so the
+ * effective ceiling is `limit × instance_count`. It blunts obvious abuse; it is
+ * not a security boundary. See the post-audit remediation notes for the
+ * distributed (shared-store) option if stronger limiting is ever required.
  */
 export function checkRateLimit(
   ip: string,

@@ -264,17 +264,6 @@ export class SessionReminderService {
         bookingId,
         therapistId: booking.therapistId,
         meetingUrl: booking.meetingUrl,
-        bookingDetails: {
-          name: booking.name,
-          email: booking.email,
-          phone: booking.phone,
-          date: booking.date,
-          time: booking.time,
-          sessionMode: booking.sessionMode,
-          bookingToken: booking.bookingToken,
-          meetingUrl: booking.meetingUrl,
-          sessionType: booking.sessionType,
-        }
       });
 
       // 6. Update database state idempotently

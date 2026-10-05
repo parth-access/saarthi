@@ -343,7 +343,7 @@ export function generateBookingSlotReleasedEmail(data: BookingEmailData, reason?
         ${reason ? `
         <tr>
           <td width="140" style="color: #92400E; font-size: 15px;">Reason:</td>
-          <td style="font-weight: 500; font-size: 15px; color: #78350F;">${reason}</td>
+          <td style="font-weight: 500; font-size: 15px; color: #78350F;">${escapeString(reason)}</td>
         </tr>
         ` : ''}
       </table>
@@ -448,7 +448,7 @@ export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?
         ${reason || data.failureReason ? `
         <tr>
           <td width="140" style="padding-top: 12px; color: #991B1B; font-size: 15px;">Notice:</td>
-          <td style="padding-top: 12px; font-weight: 500; font-size: 15px; color: #7F1D1D;">${reason || data.failureReason}</td>
+          <td style="padding-top: 12px; font-weight: 500; font-size: 15px; color: #7F1D1D;">${escapeString(String(reason || data.failureReason || ""))}</td>
         </tr>
         ` : ''}
       </table>
@@ -703,7 +703,7 @@ export function generateSessionCompletedTherapistEmail(data: SessionCompletedEma
     </p>
 
     <div style="text-align: center; margin-bottom: 16px;">
-      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/therapist/dashboard" style="display: inline-block; padding: 12px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none; border-radius: 8px;">
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/therapist" style="display: inline-block; padding: 12px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 600; font-size: 15px; text-decoration: none; border-radius: 8px;">
         Open Therapist Dashboard
       </a>
     </div>

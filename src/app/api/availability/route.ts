@@ -5,6 +5,7 @@ import { firestoreBookingRepository } from '@/domains/booking';
 import { verifySession } from '@/lib/auth/verifySession';
 import { generateTimeSlots, slotTemporalReason } from '@/shared/scheduling/slots';
 import { logger } from '../_lib/logger';
+import { checkRateLimit, getClientIp } from '../_lib/rateLimit';
 
 /**
  * Slot availability for one therapist on one IST calendar day.
@@ -106,6 +107,13 @@ async function resolveExcludedBookingId(
 
 export async function GET(request: Request) {
   try {
+    // Public read endpoint that also drives opportunistic lock cleanup —
+    // throttled to blunt scraping/DoS against Firestore reads.
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(clientIp, 'availability', 60, 60_000).success) {
+      return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
+    }
+
     const { searchParams } = new URL(request.url);
     const therapistId = searchParams.get('therapistId');
     const date = searchParams.get('date');
