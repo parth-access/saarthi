@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { trackEvent } from './analytics';
+import { trackEvent, sanitizePageLocation } from './analytics';
 
 describe('GA4 trackEvent Utility', () => {
   const originalEnv = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -83,5 +83,84 @@ describe('GA4 trackEvent Utility', () => {
     expect(() => {
       trackEvent('book_demo_click', { location: 'ssr' });
     }).not.toThrow();
+  });
+});
+
+describe('Booking-token privacy (analytics boundary)', () => {
+  const originalEnv = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = 'G-6R1CSK4D3H';
+    (globalThis as unknown as { window: { gtag?: ReturnType<typeof vi.fn> } }).window = {
+      gtag: vi.fn(),
+    };
+  });
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = originalEnv;
+    delete (globalThis as unknown as { window?: unknown }).window;
+    vi.restoreAllMocks();
+  });
+
+  it('scrubs a token-bearing URL passed as an event parameter value', () => {
+    trackEvent('booking_flow_started', {
+      page: '/manage-booking?token=TEST_SECRET_TOKEN',
+    });
+
+    expect(window.gtag).toHaveBeenCalledWith('event', 'booking_flow_started', {
+      page: '/manage-booking',
+    });
+  });
+
+  it('drops parameters keyed "token" entirely, whatever the value', () => {
+    trackEvent('booking_flow_started', { token: 'TEST_SECRET_TOKEN' });
+
+    expect(window.gtag).toHaveBeenCalledWith('event', 'booking_flow_started', {});
+  });
+
+  it('leaves ordinary string values untouched', () => {
+    trackEvent('book_demo_click', { location: 'hero_section' });
+
+    expect(window.gtag).toHaveBeenCalledWith('event', 'book_demo_click', {
+      location: 'hero_section',
+    });
+  });
+});
+
+describe('sanitizePageLocation', () => {
+  it('strips the booking token from a manage-booking URL and keeps the path', () => {
+    expect(
+      sanitizePageLocation('https://www.saarthilife.com/manage-booking?token=TEST_SECRET_TOKEN')
+    ).toBe('https://www.saarthilife.com/manage-booking');
+  });
+
+  it('keeps harmless query parameters', () => {
+    expect(
+      sanitizePageLocation('https://www.saarthilife.com/therapists?src=homepage')
+    ).toBe('https://www.saarthilife.com/therapists?src=homepage');
+  });
+
+  it('strips only the sensitive parameters and keeps the rest', () => {
+    expect(
+      sanitizePageLocation('https://www.saarthilife.com/manage-booking?src=email&token=TEST_SECRET_TOKEN')
+    ).toBe('https://www.saarthilife.com/manage-booking?src=email');
+  });
+
+  it('strips other credential-bearing parameters (session, key, email, signature)', () => {
+    expect(
+      sanitizePageLocation('https://www.saarthilife.com/x?session=abc&key=k2&email=a@b.c&sig=ff&ok=1')
+    ).toBe('https://www.saarthilife.com/x?ok=1');
+  });
+
+  it('removes the fragment', () => {
+    expect(sanitizePageLocation('https://www.saarthilife.com/privacy#cookies')).toBe(
+      'https://www.saarthilife.com/privacy'
+    );
+  });
+
+  it('handles bare paths and returns unparseable input unchanged', () => {
+    expect(sanitizePageLocation('/manage-booking?token=TEST_SECRET_TOKEN')).toBe('/manage-booking');
+    // A space in the host cannot be parsed as absolute or relative — unchanged.
+    expect(sanitizePageLocation('https://exa mple.com/?token=x')).toBe('https://exa mple.com/?token=x');
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
 import {
@@ -33,7 +33,17 @@ interface ManageState {
 
 function ManageBookingPage() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const pathname = usePathname();
+
+  // The booking token is a sensitive credential (it grants full control of the
+  // booking). It is consumed EXACTLY ONCE from the URL into React state, and
+  // the query string is immediately scrubbed from the address bar and history
+  // entry. After that, `document.location` no longer contains the token, so no
+  // analytics hit (GA config page_view, enhanced-measurement history events,
+  // engagement pings) and no outbound Referer can ever leak it. All further
+  // booking calls use this state copy — never the URL.
+  const [token, setToken] = React.useState<string | null>(null);
+  const [consumed, setConsumed] = React.useState(false);
 
   const [booking, setBooking] = React.useState<EnrichedBooking | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -48,7 +58,27 @@ function ManageBookingPage() {
   });
 
   React.useEffect(() => {
+    if (consumed) return;
+    const fromUrl = searchParams.get("token");
+    if (fromUrl) {
+      setToken(fromUrl);
+      try {
+        // Keep the router state object (Next.js App Router) — only drop the
+        // sensitive query string.
+        window.history.replaceState(window.history.state, "", pathname);
+      } catch {
+        // If the browser refuses, the analytics-side page_location
+        // sanitization still prevents the token from reaching GA.
+      }
+    }
+    setConsumed(true);
+  }, [searchParams, pathname, consumed]);
+
+  React.useEffect(() => {
     let ignore = false;
+
+    // Wait until the URL has been consumed exactly once.
+    if (!consumed) return;
 
     if (!token) {
       setLoadError("No booking token provided.");
@@ -82,7 +112,7 @@ function ManageBookingPage() {
     return () => {
       ignore = true;
     };
-  }, [token]);
+  }, [token, consumed]);
 
   const handleDateSelect = (date: string) => {
     setState((prev) => ({ ...prev, newDate: date, newTime: "" }));
