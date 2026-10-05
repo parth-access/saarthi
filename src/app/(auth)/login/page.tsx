@@ -1,0 +1,675 @@
+"use client";
+
+
+import React, { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, User as UserIcon, Eye, EyeOff, Shield, ArrowRight, Heart, Mail, Users, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { BackLink } from "@/components/navigation/BackLink";
+import { getSafeReturnPath } from "@/lib/auth/returnPath";
+
+interface FloatingInputProps {
+  id?: string;
+  name?: string;
+  autoComplete?: string;
+  icon: React.ElementType;
+  label: string;
+  type: string;
+  required?: boolean;
+  isPassword?: boolean;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  showPassword?: boolean;
+  togglePassword?: () => void;
+  helperText?: string;
+}
+
+const FloatingInput = ({
+  id,
+  name,
+  autoComplete,
+  icon: Icon,
+  label,
+  type,
+  required = false,
+  isPassword = false,
+  value,
+  onChange,
+  showPassword,
+  togglePassword,
+  helperText,
+}: FloatingInputProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const isActive = isFocused || value.length > 0;
+  const inputId = id || name || `input-${label.replace(/\s+/g, '-').toLowerCase()}`;
+
+  return (
+    <div className="space-y-1">
+      <motion.div 
+         initial={false}
+         animate={{ 
+            y: isFocused ? -2 : 0, 
+            boxShadow: isFocused ? "0 4px 20px rgba(230, 165, 32, 0.08)" : "0 0px 0px rgba(0,0,0,0)"
+         }}
+         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-accent bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
+      >
+         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-accent' : 'text-primary/40'}`}>
+            <Icon className="w-5 h-5" />
+         </div>
+         
+         <div className="relative flex-1">
+           <motion.label
+             htmlFor={inputId}
+             initial={false}
+             animate={{
+                y: isActive ? 8 : 16,
+                scale: isActive ? 0.75 : 1,
+                opacity: isActive ? 0.8 : 0.6
+             }}
+             className={`absolute left-0 top-0 text-sm font-medium origin-left pointer-events-none transition-colors duration-300 ${isFocused ? "text-accent" : "text-primary"}`}
+           >
+             {label}
+           </motion.label>
+    
+           <input
+             id={inputId}
+             name={name}
+             autoComplete={autoComplete}
+             type={isPassword ? (showPassword ? "text" : "password") : type}
+             value={value}
+             onChange={onChange}
+             onFocus={() => setIsFocused(true)}
+             onBlur={() => setIsFocused(false)}
+             required={required}
+             className="w-full h-14 bg-transparent text-primary text-sm font-medium focus:outline-none pt-5 pb-1 pr-4"
+           />
+         </div>
+
+         {isPassword && (
+            <button 
+               type="button"
+               onClick={togglePassword}
+               className="w-12 flex items-center justify-center shrink-0 text-primary/40 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-r-2xl select-none"
+               aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+               <AnimatePresence mode="wait">
+                 {showPassword ? (
+                   <motion.div key="eye-off" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
+                      <EyeOff className="w-4 h-4" />
+                   </motion.div>
+                 ) : (
+                   <motion.div key="eye" initial={{ opacity: 0, scale: 0.5, rotate: -45 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} exit={{ opacity: 0, scale: 0.5, rotate: 45 }} transition={{ duration: 0.15 }}>
+                      <Eye className="w-4 h-4" />
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+            </button>
+         )}
+      </motion.div>
+      {helperText && (
+        <p className="text-xs text-primary/50 pl-3 pt-0.5">{helperText}</p>
+      )}
+    </div>
+  );
+};
+
+function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): string {
+  if (!err) return fallbackMessage;
+
+  const code = (err as { code?: string })?.code || "";
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (
+    code === "auth/invalid-credential" ||
+    code === "auth/wrong-password" ||
+    code === "auth/user-not-found" ||
+    code === "auth/invalid-email-or-password" ||
+    message.includes("auth/invalid-credential") ||
+    message.includes("auth/wrong-password") ||
+    message.includes("auth/user-not-found")
+  ) {
+    return "Invalid email or password";
+  }
+
+  if (code === "auth/email-already-in-use" || message.includes("auth/email-already-in-use")) {
+    return "An account with this email address already exists";
+  }
+
+  if (code === "auth/weak-password" || message.includes("auth/weak-password")) {
+    return "Password is too weak. Please use at least 8 characters";
+  }
+
+  if (code === "auth/invalid-email" || message.includes("auth/invalid-email")) {
+    return "Please enter a valid email address";
+  }
+
+  if (code === "auth/too-many-requests" || message.includes("auth/too-many-requests")) {
+    return "Too many failed attempts. Please try again later";
+  }
+
+  if (code === "auth/network-request-failed" || message.includes("auth/network-request-failed")) {
+    return "Network error. Please check your internet connection and try again";
+  }
+
+  if (code === "auth/user-disabled" || message.includes("auth/user-disabled")) {
+    return "This account has been disabled. Please contact support";
+  }
+
+  if (code === "auth/popup-blocked" || message.includes("auth/popup-blocked")) {
+    return "Pop-up was blocked by your browser. Please allow pop-ups and try again";
+  }
+
+  if (code === "auth/operation-not-allowed" || message.includes("auth/operation-not-allowed")) {
+    return "Sign-in method is currently unavailable";
+  }
+
+  if (code === "auth/popup-closed-by-user" || message.includes("auth/popup-closed-by-user") || message.includes("closed before completion")) {
+    return "Sign-in window was closed before completion";
+  }
+
+  if (err instanceof Error && message && !message.startsWith("Firebase:") && !message.includes("auth/")) {
+    return message;
+  }
+
+  return fallbackMessage;
+}
+
+function getRoleRoot(role: string): string {
+  if (role === "admin") return "/admin";
+  if (role === "therapist") return "/therapist";
+  return "/dashboard";
+}
+
+function LoginContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextValues = searchParams.getAll("next");
+  const requestedNext = nextValues.length === 1 ? nextValues[0] : null;
+
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [failedSessionSync, setFailedSessionSync] = useState<Promise<boolean> | null>(null);
+
+  const {
+    login,
+    register,
+    loginWithGoogle,
+    logout,
+    currentUser,
+    loading: authLoading,
+    sessionSyncComplete,
+  } = useAuth();
+  const sessionSyncFailed = Boolean(
+    sessionSyncComplete && failedSessionSync === sessionSyncComplete
+  );
+
+  useEffect(() => {
+    // `currentUser` is published just before the cookie-sync promise. Waiting
+    // when it is temporarily null prevents a fresh login from racing protected
+    // middleware and bouncing back here.
+    if (authLoading || !currentUser || !sessionSyncComplete) return;
+
+    let cancelled = false;
+    void sessionSyncComplete.then(
+      (synced) => {
+        if (cancelled) return;
+        if (!synced) {
+          setFailedSessionSync(sessionSyncComplete);
+          return;
+        }
+
+        const returnPath = getSafeReturnPath(requestedNext, currentUser.role);
+        router.replace(returnPath ?? getRoleRoot(currentUser.role));
+      },
+      () => {
+        if (!cancelled) setFailedSessionSync(sessionSyncComplete);
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, currentUser, requestedNext, sessionSyncComplete, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (isRegister) {
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        setError("Name is required");
+        return;
+      }
+      if (!password) {
+        setError("Password is required");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters");
+        return;
+      }
+      
+      setLoading(true);
+      setError("");
+      try {
+        await register(trimmedEmail, password, trimmedName);
+        toast.success("Welcome to Saarthi");
+      } catch (err: unknown) {
+        setError(getFriendlyAuthErrorMessage(err, "Registration failed"));
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!password) {
+        setError("Password is required");
+        return;
+      }
+
+      setLoading(true);
+      setError("");
+      try {
+        await login(trimmedEmail, password);
+        toast.success("Welcome back");
+      } catch (err: unknown) {
+        setError(getFriendlyAuthErrorMessage(err, "Login failed"));
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  if (authLoading || currentUser) {
+    return (
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
+        {currentUser && sessionSyncFailed ? (
+          <div className="w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
+            <Shield className="mx-auto mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
+            <h1 className="font-serif text-xl text-primary">We couldn&apos;t finish signing you in</h1>
+            <p role="alert" className="mt-2 text-sm text-primary/60">
+              Your secure session could not be confirmed. Please sign out and try again.
+            </p>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="mt-5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Sign out and try again
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full"
+            />
+            <p className="text-sm font-medium text-primary/60">
+              {currentUser ? "Securing your session..." : "Loading safe space..."}
+            </p>
+          </div>
+        )}
+        {/* Present in every state, including this one: auth readiness must
+            never be the only thing standing between the user and a way out. */}
+        <BackLink href="/" label="Back to Saarthi" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[100dvh] bg-background flex flex-col md:flex-row relative">
+      
+      {/* Mobile Header Graphic (hidden on md) */}
+      <div className="md:hidden h-[25dvh] flex items-center justify-center relative overflow-hidden bg-primary shrink-0">
+         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-[#2a382f]" />
+         <div className="absolute -bottom-10 right-0 w-40 h-40 bg-accent rounded-full blur-3xl opacity-20" />
+         <Heart className="w-10 h-10 text-accent relative z-10 opacity-90" />
+      </div>
+
+      {/* Left side: Form */}
+      <div className="w-full md:w-1/2 flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12 relative z-20 -mt-8 md:mt-0">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[520px] relative"
+        >
+          {/* Glassmorphic Auth Card */}
+          <div className="bg-white/[0.95] backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-white p-8 sm:p-10 md:p-14 hover:shadow-[0_16px_60px_rgb(0,0,0,0.08)] transition-shadow duration-500">
+            {/* Auth pages are reachable logged-out from anywhere; this is the
+                static way back into the public site, never browser history. */}
+            <BackLink
+              href="/"
+              label="Back to Saarthi"
+              className="mb-6 text-primary/60 hover:text-primary"
+            />
+            <div className="mb-8 min-h-[96px]">
+              <AnimatePresence mode="wait">
+                  <motion.div
+                    key={isRegister ? "register" : "login"}
+                    initial={{ opacity: 0, filter: "blur(4px)", y: 10 }}
+                    animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}
+                    exit={{ opacity: 0, filter: "blur(4px)", y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h1 className="text-3xl sm:text-4xl font-serif text-primary tracking-tight mb-3">
+                      {isRegister ? "Begin your journey" : "Welcome back"}
+                    </h1>
+                    <p className="text-primary/60 text-sm sm:text-base leading-relaxed">
+                      {isRegister 
+                        ? "Create a safe space to track your progress and find the right support." 
+                        : "Step into your secure, private space for emotional well-being."}
+                    </p>
+                  </motion.div>
+              </AnimatePresence>
+            </div>
+
+            <AnimatePresence mode="popLayout">
+              {error && (
+                <motion.div 
+                   initial={{ opacity: 0, y: -10, scale: 0.98 }} 
+                   animate={{ opacity: 1, y: 0, scale: 1 }} 
+                   exit={{ opacity: 0, scale: 0.98, height: 0 }}
+                   role="alert"
+                   aria-live="polite"
+                   className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm mb-6 border border-red-100 flex items-start gap-3 shadow-sm"
+                >
+                  <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <form onSubmit={handleSubmit} className="space-y-4" aria-busy={loading}>
+              <AnimatePresence mode="popLayout">
+                {isRegister && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
+                    exit={{ opacity: 0, height: 0, filter: "blur(4px)" }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <FloatingInput 
+                      id="register-name"
+                      name="name"
+                      autoComplete="name"
+                      icon={UserIcon}
+                      label="Full Name"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setName(e.target.value);
+                        if (error) setError("");
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <FloatingInput 
+                id="auth-email"
+                name="email"
+                autoComplete="email"
+                icon={Mail}
+                label="Email address"
+                type="email"
+                required
+                value={email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
+              />
+
+              <FloatingInput 
+                id="auth-password"
+                name="password"
+                autoComplete={isRegister ? "new-password" : "current-password"}
+                icon={Lock}
+                label="Password"
+                type="password"
+                required
+                isPassword
+                value={password}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
+                showPassword={showPassword}
+                togglePassword={() => setShowPassword(!showPassword)}
+                helperText={isRegister ? "Must be at least 8 characters" : undefined}
+              />
+
+              <div className="pt-2">
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileHover={loading ? {} : { scale: 1.01, y: -2 }}
+                  whileTap={loading ? {} : { scale: 0.98 }}
+                  className="w-full h-14 bg-primary text-white rounded-2xl font-medium tracking-wide relative overflow-hidden flex items-center justify-center group shadow-[0_4px_20px_rgba(31,94,59,0.2)] hover:shadow-[0_8px_30px_rgba(31,94,59,0.3)] transition-shadow border border-primary/20 disabled:opacity-50 select-none touch-manipulation"
+                >
+                  {!loading && (
+                    <motion.div
+                      initial={{ x: "-100%" }}
+                      whileHover={{ x: "200%" }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                      className="absolute inset-0 w-[150%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 pointer-events-none"
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                        {isRegister ? "Preparing your space..." : "Signing in..."}
+                      </span>
+                    ) : (
+                      <>
+                        {isRegister ? "Create Account" : "Sign In"}
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </span>
+                </motion.button>
+              </div>
+            </form>
+
+            <div className="mt-8 relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-primary/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-primary/50 text-xs uppercase tracking-widest font-medium">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-8">
+               <motion.button
+                  type="button"
+                  whileHover={loading ? {} : { scale: 1.01, y: -2 }}
+                  whileTap={loading ? {} : { scale: 0.98 }}
+                  onClick={async () => {
+                    if (loading) return;
+                    setLoading(true);
+                    setError("");
+                    try {
+                      await loginWithGoogle();
+                      toast.success("Signed in successfully");
+                    } catch (err: unknown) {
+                      setError(getFriendlyAuthErrorMessage(err, "Google authentication failed"));
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                  className="w-full h-14 bg-white border border-primary/20 text-primary rounded-2xl font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/30 transition-all shadow-sm hover:shadow-md disabled:opacity-50 select-none touch-manipulation"
+               >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                  </svg>
+                  Google
+               </motion.button>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-primary/10 flex flex-col items-center">
+              <button
+                onClick={() => {
+                  if (loading) return;
+                  setIsRegister(!isRegister);
+                  setError("");
+                }}
+                disabled={loading}
+                className="text-sm text-primary/60 hover:text-primary transition-colors inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded-md p-1 disabled:opacity-50 select-none touch-manipulation"
+                type="button"
+              >
+                {isRegister ? (
+                  <>Already have an account? <span className="font-medium text-accent">Sign In</span></>
+                ) : (
+                  <>Don&apos;t have an account? <span className="font-medium text-accent">Sign Up</span></>
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <div className="mt-8 flex justify-center text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 px-4 py-2 bg-primary/5 rounded-full backdrop-blur-sm border border-primary/10">
+              <Lock className="w-3.5 h-3.5 text-accent" />
+              <p className="text-xs font-medium text-primary/60">Your data is securely encrypted and strictly private.</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Right side: Visuals / Reassurance (Hidden on mobile) */}
+      <div className="hidden md:flex w-1/2 min-h-[100dvh] bg-primary relative overflow-hidden flex-col items-center justify-center">
+        {/* Ambient Glowing Blobs */}
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }} 
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[20%] -right-[10%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-accent/20 to-transparent blur-[100px] mix-blend-screen pointer-events-none"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], rotate: [0, -90, 0] }} 
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[80%] rounded-full bg-gradient-to-tr from-background/10 to-transparent blur-[80px] mix-blend-overlay pointer-events-none"
+        />
+        
+        {/* Decorative Grid */}
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+
+        <div className="w-full h-full flex flex-col justify-center p-12 lg:p-24 relative z-10">
+          
+          {/* Floating Stat Chip */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0, y: [0, -10, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
+            className="absolute top-[15%] right-[15%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
+          >
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-white font-medium text-sm whitespace-nowrap">10k+ Members</p>
+              <p className="text-white/60 text-xs">Finding peace daily</p>
+            </div>
+          </motion.div>
+
+          {/* Floating Trust Card */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0, y: [0, 10, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5, opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
+            className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl max-w-[220px]"
+          >
+            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+              <Shield className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-white font-medium text-sm">Bank-grade Security</p>
+              <p className="text-white/60 text-xs line-clamp-2">Your privacy and data are absolutely secure.</p>
+            </div>
+          </motion.div>
+
+          <div className="max-w-xl">
+             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  <span className="text-xs font-medium text-white/80 uppercase tracking-widest">Wellness Redefined</span>
+               </div>
+             </motion.div>
+             
+             <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-4xl lg:text-5xl xl:text-6xl font-serif text-white mb-6 leading-[1.1]">
+               A quiet space for<br />
+               <span className="text-accent italic">your mind</span>
+             </motion.h2>
+             
+             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg text-white/70 max-w-md leading-relaxed mb-12">
+               Join a community built on trust, privacy, and emotional safety. Move forward at your own pace alongside dedicated professionals.
+             </motion.p>
+             
+             <div className="flex flex-col gap-3 mb-10">
+                {[
+                  "Private & encrypted",
+                  "Licensed professionals",
+                  "Flexible scheduling",
+                  "Personalized support journey"
+                ].map((benefit, i) => (
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, x: -10 }} 
+                    animate={{ opacity: 1, x: 0 }} 
+                    transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
+                    className="flex items-center gap-3 text-white/80"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
+                    </div>
+                    <span className="text-sm font-medium">{benefit}</span>
+                  </motion.div>
+                ))}
+             </div>
+
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }} className="flex items-center gap-2 text-white/40 border-t border-white/10 pt-6 max-w-md">
+               <Shield className="w-4 h-4 text-accent/50" />
+               <span className="text-xs">Trusted by students & professionals worldwide.</span>
+             </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
+      <p className="text-sm font-medium text-primary/60">Loading safe space...</p>
+      <BackLink href="/" label="Back to Saarthi" />
+    </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginContent />
+    </Suspense>
+  );
+}

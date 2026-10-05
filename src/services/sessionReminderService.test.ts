@@ -1,0 +1,459 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { SessionReminderService } from './sessionReminderService';
+import { adminDb } from '@/lib/firebase/admin';
+import { sendEmailAction } from '@/app/api/email/emailSender';
+import { auditService } from '@/domains/audit/AuditService';
+import { OutboxService } from '@/shared/events/outbox';
+
+vi.mock('@/lib/firebase/admin', () => {
+  const getMock = vi.fn();
+  const updateMock = vi.fn().mockResolvedValue(undefined);
+  const setMock = vi.fn().mockResolvedValue(undefined);
+  const docMock = vi.fn(() => ({
+    get: getMock,
+    update: updateMock,
+    collection: vi.fn(() => ({
+      doc: vi.fn(() => ({ set: setMock }))
+    }))
+  }));
+  const whereMock = vi.fn().mockReturnThis();
+  const limitMock = vi.fn().mockReturnThis();
+  const getDocsMock = vi.fn();
+
+  return {
+    adminDb: {
+      collection: vi.fn((colName: string) => {
+        if (colName === 'bookings') {
+          return {
+            doc: docMock,
+            where: whereMock,
+            limit: limitMock,
+            get: getDocsMock
+          };
+        }
+        return { doc: docMock };
+      })
+    },
+    FieldValue: {
+      serverTimestamp: vi.fn(() => 'MOCK_SERVER_TIMESTAMP')
+    }
+  };
+});
+
+vi.mock('@/app/api/email/emailSender', () => ({
+  sendEmailAction: vi.fn().mockResolvedValue({ success: true, studentSent: true, therapistSent: true })
+}));
+
+vi.mock('@/domains/audit/AuditService', () => ({
+  auditService: {
+    logEvent: vi.fn().mockResolvedValue('evt_audit_mock')
+  }
+}));
+
+vi.mock('@/shared/events/outbox', () => ({
+  OutboxService: {
+    recordEvent: vi.fn().mockResolvedValue(undefined)
+  },
+  generateDeterministicEventId: vi.fn((agg, id, name, suffix) => `${agg}_${id}_${name}${suffix ? `_${suffix}` : ''}`)
+}));
+
+vi.mock('@/app/api/_lib/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    success: vi.fn()
+  }
+}));
+
+/** Builds a session start time in Asia/Kolkata format for `minutesFromNow` from now. */
+function istTimeInMinutes(minutesFromNow: number): { date: string; time: string } {
+  const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+  const target = new Date(Date.now() + istOffsetMs + minutesFromNow * 60 * 1000);
+  const date = target.toISOString().slice(0, 10);
+  const hours24 = target.getUTCHours();
+  const period = hours24 < 12 ? 'AM' : 'PM';
+  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  const time = `${String(hours12).padStart(2, '0')}:${String(target.getUTCMinutes()).padStart(2, '0')} ${period}`;
+  return { date, time };
+}
+
+describe('SessionReminderService (Phase 3A)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('calculateReminderTimeIST', () => {
+    it('should calculate exactly 30 minutes before session start in Asia/Kolkata timezone', () => {
+      // 03:00 PM session on 2026-09-15 is 15:00:00+05:30
+      // 30 minutes prior should be 14:30:00+05:30 (09:00:00 UTC)
+      const calculation = SessionReminderService.calculateReminderTimeIST('2026-09-15', '03:00 PM');
+      
+      expect(calculation.sessionStartIso).toBe('2026-09-15T15:00:00+05:30');
+      expect(calculation.sessionEndIso).toBe('2026-09-15T15:45:00+05:30');
+
+      const expectedReminderTimeMillis = new Date('2026-09-15T15:00:00+05:30').getTime() - (30 * 60 * 1000);
+      expect(calculation.reminderTimeMillis).toBe(expectedReminderTimeMillis);
+      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-15T09:00:00.000Z');
+    });
+
+    it('should handle morning sessions crossing over midnight correctly', () => {
+      // 02:00 AM session on 2026-09-15 is 02:00:00+05:30
+      // 30 minutes prior should be 2026-09-15 01:30:00+05:30 (20:00:00 UTC on 2026-09-14)
+      const calculation = SessionReminderService.calculateReminderTimeIST('2026-09-15', '02:00 AM');
+      const expectedReminderMillis = new Date('2026-09-15T02:00:00+05:30').getTime() - (30 * 60 * 1000);
+      expect(calculation.reminderTimeMillis).toBe(expectedReminderMillis);
+      expect(new Date(calculation.reminderTimeMillis).toISOString()).toBe('2026-09-14T20:00:00.000Z');
+    });
+  });
+
+  describe('scheduleSessionReminder', () => {
+    it('should record an outbox event scheduled 30 minutes before future session', async () => {
+      const mockBooking = {
+        id: 'bk_rem_1',
+        name: 'Alex Smith',
+        email: 'alex@example.com',
+        phone: '9876543210',
+        date: '2028-10-10',
+        time: '04:00 PM',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_123',
+        userId: 'usr_1'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_rem_1');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_rem_1');
+
+      expect(res.scheduled).toBe(true);
+      expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'SendSessionReminder',
+          aggregateType: 'booking',
+          aggregateId: 'bk_rem_1',
+        })
+      );
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'PENDING'
+        })
+      );
+      expect(auditService.logEvent).toHaveBeenCalledWith('REMINDER_SCHEDULED', expect.anything(), 'usr_1', 'bk_rem_1');
+    });
+
+    it('should skip scheduling for non-confirmed or non-paid bookings', async () => {
+      const mockBooking = {
+        id: 'bk_unpaid',
+        status: 'pending_payment',
+        paymentStatus: 'unpaid'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_unpaid');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_unpaid');
+      expect(res.scheduled).toBe(false);
+      expect(OutboxService.recordEvent).not.toHaveBeenCalled();
+    });
+
+    it('should enqueue immediately when confirmed within the 30-minute grace window', async () => {
+      // Session starts 20 minutes from now, so the reminder time (T-30) is 10 minutes
+      // in the past — within the 15-minute grace window → enqueue right away.
+      const { date, time } = istTimeInMinutes(20);
+      const mockBooking = {
+        id: 'bk_grace',
+        name: 'Grace User',
+        email: 'grace@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_grace'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_grace');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_grace');
+
+      expect(res.scheduled).toBe(true);
+      expect(OutboxService.recordEvent).toHaveBeenCalled();
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'PENDING'
+        })
+      );
+    });
+
+    it('should scope the outbox event id to the slot so reschedules get a fresh reminder', async () => {
+      const { date, time } = istTimeInMinutes(120);
+      const mockBooking = {
+        id: 'bk_resched',
+        name: 'Reschedule User',
+        email: 'resched@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_resched'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_resched');
+      docMock.get.mockResolvedValue({ exists: true, data: () => mockBooking });
+
+      await SessionReminderService.scheduleSessionReminder('bk_resched');
+
+      expect(OutboxService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringContaining(date),
+        })
+      );
+      // Booking is stamped with the slot key the reminder is pinned to.
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderSlotKey: `${date}_${time}`,
+          reminderStatus: 'PENDING'
+        })
+      );
+    });
+
+    it('should reset SENT status when the reminder was sent for a different slot', async () => {
+      const { date, time } = istTimeInMinutes(120);
+      const mockBooking = {
+        id: 'bk_sent_old_slot',
+        name: 'Moved User',
+        email: 'moved@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_moved',
+        reminderStatus: 'SENT',
+        reminderSlotKey: '2020-01-01_10:00',
+        reminderSentAt: new Date()
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_sent_old_slot');
+      docMock.get.mockResolvedValue({ exists: true, data: () => mockBooking });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_sent_old_slot');
+
+      expect(res.scheduled).toBe(true);
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'PENDING',
+          reminderSlotKey: `${date}_${time}`
+        })
+      );
+    });
+
+    it('should NOT reset SENT status for a same-slot calendar retry', async () => {
+      const { date, time } = istTimeInMinutes(120);
+      const mockBooking = {
+        id: 'bk_same_slot',
+        name: 'Same Slot User',
+        email: 'same@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_same',
+        reminderStatus: 'SENT',
+        reminderSlotKey: `${date}_${time}`,
+        reminderSentAt: new Date()
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_same_slot');
+      docMock.get.mockResolvedValue({ exists: true, data: () => mockBooking });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_same_slot');
+
+      expect(res.scheduled).toBe(true);
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'SENT'
+        })
+      );
+    });
+
+    it('should skip the reminder when confirmed with less than 15 minutes before the session', async () => {
+      // Session starts 5 minutes from now, so the reminder time (T-30) is 25 minutes
+      // in the past — outside the 15-minute grace window → skip as stale.
+      const { date, time } = istTimeInMinutes(5);
+      const mockBooking = {
+        id: 'bk_late',
+        name: 'Late User',
+        email: 'late@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        therapistId: 'th_1',
+        userId: 'usr_late'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_late');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.scheduleSessionReminder('bk_late');
+
+      expect(res.scheduled).toBe(false);
+      expect(res.reason).toBe('late_confirmation_skipped');
+      expect(OutboxService.recordEvent).not.toHaveBeenCalled();
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'SKIPPED'
+        })
+      );
+      expect(auditService.logEvent).toHaveBeenCalledWith('REMINDER_SKIPPED', expect.anything(), 'usr_late', 'bk_late');
+    });
+  });
+
+  describe('sendSessionReminder - Idempotency & Eligibility', () => {
+    it('should send email and mark status as SENT for valid confirmed booking with meetingUrl', async () => {
+      // Session starts 20 minutes from now: the reminder (T-30) is due, so the
+      // send path proceeds. (A far-future session is correctly skipped as not_yet_due.)
+      const { date, time } = istTimeInMinutes(20);
+      const mockBooking = {
+        id: 'bk_eligible',
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '9998887776',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        meetingUrl: 'https://meet.google.com/saa-rthi-9999',
+        therapistId: 'th_777',
+        userId: 'usr_john'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_eligible');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.sendSessionReminder('bk_eligible');
+
+      expect(res.success).toBe(true);
+      expect(res.studentSent).toBe(true);
+      expect(sendEmailAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'session-reminder',
+          bookingId: 'bk_eligible',
+          meetingUrl: 'https://meet.google.com/saa-rthi-9999'
+        })
+      );
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'SENT',
+          reminderError: null
+        })
+      );
+      expect(auditService.logEvent).toHaveBeenCalledWith('REMINDER_SENT', expect.anything(), 'usr_john', 'bk_eligible');
+    });
+
+    it('should be idempotent and skip duplicate email if reminderStatus is already SENT', async () => {
+      const mockBooking = {
+        id: 'bk_already_sent',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        reminderStatus: 'SENT',
+        reminderSentAt: new Date(),
+        meetingUrl: 'https://meet.google.com/saa-rthi-1111'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_already_sent');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.sendSessionReminder('bk_already_sent');
+
+      expect(res.success).toBe(true);
+      expect(res.alreadySent).toBe(true);
+      expect(sendEmailAction).not.toHaveBeenCalled();
+      expect(docMock.update).not.toHaveBeenCalled();
+    });
+
+    it('should skip as not_yet_due when a stale slot event fires before the new reminder window', async () => {
+      // Session starts 2 hours from now: reminder fires at T-30, so a stale event
+      // (from the old slot) invoking send now must be skipped, not sent.
+      const { date, time } = istTimeInMinutes(120);
+      const mockBooking = {
+        id: 'bk_stale_event',
+        name: 'Stale User',
+        email: 'stale@example.com',
+        date,
+        time,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        meetingUrl: 'https://meet.google.com/saa-rthi-stale',
+        therapistId: 'th_1',
+        userId: 'usr_stale'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_stale_event');
+      docMock.get.mockResolvedValue({ exists: true, data: () => mockBooking });
+
+      const res = await SessionReminderService.sendSessionReminder('bk_stale_event');
+
+      expect(res.success).toBe(false);
+      expect(res.skippedReason).toBe('not_yet_due');
+      expect(sendEmailAction).not.toHaveBeenCalled();
+      // Not-yet-due is a benign skip: it must not clobber reminderStatus.
+      expect(docMock.update).not.toHaveBeenCalled();
+    });
+
+    it('should fail gracefully and record REMINDER_FAILED if meetingUrl is missing', async () => {
+      const mockBooking = {
+        id: 'bk_no_meet',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        meetingUrl: null, // Missing meeting URL
+        date: '2028-10-10',
+        time: '02:00 PM'
+      };
+
+      const docMock = (adminDb.collection('bookings').doc as any)('bk_no_meet');
+      docMock.get.mockResolvedValue({
+        exists: true,
+        data: () => mockBooking
+      });
+
+      const res = await SessionReminderService.sendSessionReminder('bk_no_meet');
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('Meeting URL is not available');
+      expect(sendEmailAction).not.toHaveBeenCalled();
+      expect(docMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderStatus: 'FAILED',
+          reminderError: 'Missing meeting URL'
+        })
+      );
+      expect(auditService.logEvent).toHaveBeenCalledWith('REMINDER_FAILED', expect.anything(), 'system', 'bk_no_meet');
+    });
+  });
+});

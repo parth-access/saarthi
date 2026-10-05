@@ -1,0 +1,629 @@
+"use client";
+
+import * as React from "react"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { CheckCircle2, Loader2, Mail } from "lucide-react"
+import NextLink from "next/link"
+import { Button } from "../ui/Button"
+import { SessionType } from "../../types"
+
+// Step Components
+import { TherapistStep } from "./steps/TherapistStep"
+import { SessionTypeStep } from "./steps/SessionTypeStep"
+import { DateStep } from "./steps/DateStep"
+import { SlotStep } from "./steps/SlotStep"
+import { DetailsStep } from "./steps/DetailsStep"
+import { ReviewStep, BookingFlowState } from "./steps/ReviewStep"
+
+// Presentational shell
+import { BookingStepper } from "./BookingStepper"
+import { BookingLayout } from "./BookingLayout"
+import { BookingSummary, CARD_SURFACE } from "./BookingSummary"
+import { cn } from "../../lib/utils"
+
+// Hooks
+import { useTherapists } from "../../hooks/useTherapists"
+import { useBooking } from "../../hooks/useBooking"
+import { useAuth } from "../../contexts/AuthContext"
+import { bookingService } from "../../services/bookingService"
+import { paymentService } from "../../services/paymentService"
+import { trackEvent } from "@/lib/analytics"
+import { useDialogA11y } from "@/hooks/useDialogA11y"
+import { parseValidClientAge } from "@/shared/validation/age"
+import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
+import { resolveBookTherapist } from "@/constants/therapists"
+
+import { BookingFormData } from "../../core/validations/booking.schema"
+
+interface BookingState {
+  therapistId: string;
+  sessionType: SessionType | "";
+  date: string;
+  time: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: string;
+  age: string;
+  message: string;
+  consent?: boolean;
+}
+
+const loadRazorpay = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as unknown as { Razorpay?: unknown }).Razorpay) return resolve(true);
+
+    const existing = document.getElementById('razorpay-script') as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'razorpay-script';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
+interface BookingSystemProps {
+  requestedTherapist?: string | null;
+}
+
+const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
+  const [step, setStep] = React.useState(1)
+  const [bookingFlowState, setBookingFlowState] = React.useState<BookingFlowState>('IDLE')
+  const isProcessingRef = React.useRef<boolean>(false)
+  const isVerifyingRef = React.useRef<boolean>(false)
+  const hasTrackedStartedRef = React.useRef(false)
+  const hasTrackedSubmittedRef = React.useRef(false)
+  const hasResolvedRequestedTherapistRef = React.useRef(false)
+  const lockTimerRef = React.useRef<NodeJS.Timeout | null>(null)
+
+  const [bookingData, setBookingData] = React.useState<BookingState>({
+    therapistId: "",
+    sessionType: "",
+    date: "",
+    time: "",
+    name: "",
+    email: "",
+    phone: "",
+    gender: "",
+    age: "",
+    message: ""
+  })
+  const [activeLockId, setActiveLockId] = React.useState<string | null>(null)
+  const [lockingTime, setLockingTime] = React.useState<string | null>(null)
+  
+  const { therapists, loading: therapistsLoading, error: therapistsError } = useTherapists()
+  const { currentUser } = useAuth()
+  const isAuthenticated = Boolean(currentUser)
+  const { createBooking, lockSlot, submitting, error: submitError, setError: setSubmitError } = useBooking()
+
+  // Fade/rise transitions collapse to a plain cut when the user prefers reduced motion.
+  const prefersReducedMotion = useReducedMotion()
+  const verifyingPanelRef = React.useRef<HTMLDivElement>(null)
+  // Non-dismissible: the overlay blocks the page while payment is confirmed.
+  useDialogA11y({
+    isOpen: bookingFlowState === 'VERIFYING_PAYMENT',
+    onClose: () => {},
+    panelRef: verifyingPanelRef,
+    dismissible: false,
+  })
+  // Resolved specialist for the persistent Booking Summary (display only).
+  const selectedTherapist = therapists.find(t => t.id === bookingData.therapistId)
+
+  // Clean up any pending setTimeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (lockTimerRef.current) {
+        clearTimeout(lockTimerRef.current);
+      }
+    };
+  }, []);
+
+  const releaseCurrentLock = React.useCallback(() => {
+    if (activeLockId && bookingData.therapistId && bookingData.date && bookingData.time) {
+      bookingService.releaseLock(bookingData.therapistId, bookingData.date, bookingData.time, activeLockId);
+    }
+    setActiveLockId(null);
+  }, [activeLockId, bookingData.therapistId, bookingData.date, bookingData.time]);
+
+  const trackBookingStarted = React.useCallback((context?: Record<string, unknown>) => {
+    if (!hasTrackedStartedRef.current) {
+      hasTrackedStartedRef.current = true;
+      trackEvent('booking_flow_started', context);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (
+      hasResolvedRequestedTherapistRef.current ||
+      !requestedTherapist ||
+      therapistsLoading ||
+      therapistsError
+    ) {
+      return;
+    }
+
+    // Resolve only after the live therapist list has loaded. Unknown, inactive,
+    // or ambiguous values intentionally leave the ordinary step-one flow alone.
+    hasResolvedRequestedTherapistRef.current = true;
+    const therapist = resolveBookTherapist(therapists, requestedTherapist);
+    if (!therapist) return;
+
+    setBookingData((previous) => ({ ...previous, therapistId: therapist.id }));
+    setStep((currentStep) => currentStep === 1 ? 2 : currentStep);
+    trackBookingStarted({
+      step: 1,
+      therapist_id: therapist.id,
+      source: 'therapist_deep_link',
+    });
+  }, [requestedTherapist, therapists, therapistsError, therapistsLoading, trackBookingStarted]);
+
+  const handleNext = () => setStep(s => s + 1)
+
+  // Latest-step ref: an exiting step's captured onSubmit closure still holds the
+  // step value from when it mounted, so a rapid second submit (double-click or an
+  // Enter key while the exit animation plays) would otherwise advance the wizard
+  // a second time — e.g. 6 → 7, skipping Review. The ref always sees the real
+  // current step, so the stale submit is a no-op.
+  const stepRef = React.useRef(step)
+  stepRef.current = step
+  
+  const handleBack = () => {
+    setSubmitError(null)
+    // If stepping back out of slot or details, release the pending slot lock to prevent abandoned holds
+    if (step === 5 || step === 4) {
+      releaseCurrentLock()
+      setBookingData(prev => ({ ...prev, time: "" }))
+    }
+    setStep(s => s - 1)
+  }
+
+  // Stepper jumps. Backwards only, and never while a payment is in flight.
+  // The slot-hold rule mirrors handleBack: the hold is only meaningful while the
+  // chosen time is still the destination, so any jump from step 4/5 — or from
+  // Review to step 4 or earlier — releases it and clears the picked time.
+  // Review → Details keeps the hold, exactly like the Go Back button there.
+  const handleStepClick = (target: number) => {
+    if (target >= step) return
+    if (submitting || (bookingFlowState !== 'IDLE' && bookingFlowState !== 'ERROR')) return
+    setSubmitError(null)
+    if (step >= 4 && target <= 4) {
+      releaseCurrentLock()
+      setBookingData(prev => ({ ...prev, time: "" }))
+    }
+    setStep(target)
+  }
+
+  const handleTherapistSelect = (id: string) => {
+    if (stepRef.current !== 1) return
+    trackBookingStarted({ step: 1 })
+    if (bookingData.therapistId !== id) {
+      releaseCurrentLock()
+    }
+    setBookingData(prev => ({ ...prev, therapistId: id }))
+    handleNext()
+  }
+
+  const handleSessionTypeSelect = (type: SessionType) => {
+    if (stepRef.current !== 2) return
+    trackBookingStarted({ step: 2, session_type: type })
+    setBookingData(prev => ({ ...prev, sessionType: type }))
+    handleNext()
+  }
+
+  const handleDateSelect = (date: string) => {
+    trackBookingStarted({ step: 3 })
+    releaseCurrentLock()
+    setBookingData(prev => ({ ...prev, date, time: "" }))
+  }
+
+  const handleSlotSelect = async (time: string) => {
+    trackBookingStarted({ step: 4 })
+    setLockingTime(time)
+    setSubmitError(null)
+    
+    const result = await lockSlot({
+      therapistId: bookingData.therapistId,
+      date: bookingData.date,
+      time
+    })
+
+    if (result.success) {
+      setBookingData(prev => ({ ...prev, time }))
+      setActiveLockId((result as { data?: { lockId?: string }, lockId?: string, error?: string }).data?.lockId || (result as { data?: { lockId?: string }, lockId?: string, error?: string }).lockId || null)
+      
+      if (lockTimerRef.current) {
+        clearTimeout(lockTimerRef.current);
+      }
+      lockTimerRef.current = setTimeout(() => {
+        handleNext()
+        setLockingTime(null)
+      }, 300)
+    } else {
+      setLockingTime(null)
+      setSubmitError((result as { data?: { lockId?: string }, lockId?: string, error?: string }).error || "Slot is no longer available")
+    }
+  }
+
+  const handleDetailsSubmit = (details: BookingFormData) => {
+    if (stepRef.current !== 5) return
+    trackBookingStarted({ step: 5 })
+    setBookingData(prev => ({ ...prev, ...details }))
+    handleNext()
+  }
+
+  const handleConfirm = async () => {
+    // Synchronous mutex guard: reject any duplicate calls immediately
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setBookingFlowState('SUBMITTING_BOOKING');
+    setSubmitError(null);
+
+    try {
+      const isScriptLoaded = await loadRazorpay();
+      if (!isScriptLoaded || typeof window === 'undefined' || !(window as unknown as { Razorpay?: unknown }).Razorpay) {
+        isProcessingRef.current = false;
+        setBookingFlowState('ERROR');
+        setSubmitError('Unable to load payment gateway. Please check your internet connection and click to try again.');
+        return;
+      }
+
+      // The payload is built field by field, deliberately, because the backend
+      // `bookingSchema` is `.strict()`: any extra key is a 400, which is exactly how
+      // `consent` (a client-only field) once broke booking creation. Spreading form
+      // state here would re-introduce that class of bug the next time the wizard
+      // gains a field.
+      //
+      // `age` is the other trap. It lives in form state as the raw
+      // `<input type="number">` string while the wire contract is a number, and this
+      // call used to send `parseInt(bookingData.age, 10) || 25` — inventing 25
+      // whenever the field was empty or unparseable, so the booking was stored and
+      // shown to the therapist carrying an age nobody had typed. It is now sent only
+      // when it genuinely parses; `bookingFormSchema` already refuses to leave step 5
+      // with an invalid age and `bookingSchema` re-validates server-side, so an
+      // omitted key means "genuinely absent" rather than "unknown, guess something".
+      const parsedAge = parseValidClientAge(bookingData.age);
+
+      const result = await createBooking({
+        therapistId: bookingData.therapistId,
+        sessionType: bookingData.sessionType,
+        date: bookingData.date,
+        time: bookingData.time,
+        name: bookingData.name,
+        email: bookingData.email,
+        phone: bookingData.phone,
+        gender: bookingData.gender,
+        message: bookingData.message,
+        lockId: activeLockId || undefined,
+        ...(parsedAge !== null ? { age: parsedAge } : {})
+      });
+
+      if (!result.success || !result.data?.orderId) {
+        isProcessingRef.current = false;
+        setBookingFlowState('ERROR');
+        setSubmitError(result.error || 'Failed to initiate booking order.');
+        return;
+      }
+
+      setBookingFlowState('PAYMENT_OPEN');
+
+      const selectedTherapistName = therapists.find(t => t.id === bookingData.therapistId)?.name ?? 'Saarthi Specialist';
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        currency: result.data.currency || 'INR',
+        name: 'Saarthi',
+        description: `Therapy Session with ${selectedTherapistName}`,
+        image: '/favicon.ico',
+        order_id: result.data.orderId,
+        handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }) {
+          if (isVerifyingRef.current) return;
+          isVerifyingRef.current = true;
+          setBookingFlowState('VERIFYING_PAYMENT');
+
+          try {
+            const verifyRes = await paymentService.verifyPayment({
+              bookingId: result.data.bookingId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            if (verifyRes.success) {
+              if (!hasTrackedSubmittedRef.current) {
+                hasTrackedSubmittedRef.current = true;
+                trackEvent('booking_confirmed', {
+                  session_type: bookingData.sessionType,
+                  date_selected: bookingData.date,
+                });
+              }
+              setBookingFlowState('CONFIRMED');
+              setStep(7);
+            } else {
+              throw new Error('Payment verification failed');
+            }
+          } catch (err) {
+            isProcessingRef.current = false;
+            isVerifyingRef.current = false;
+            setBookingFlowState('ERROR');
+            setSubmitError((err instanceof Error ? err.message : String(err)) || 'Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          name: bookingData.name,
+          email: bookingData.email,
+          contact: bookingData.phone || '',
+        },
+        theme: {
+          color: '#E6A520'
+        }
+      };
+
+      interface RazorpayFailResponse {
+        error?: {
+          description?: string;
+          reason?: string;
+        };
+      }
+
+      const rzpOptions = {
+        ...options,
+        modal: {
+          ondismiss: function () {
+            if (!isVerifyingRef.current) {
+              paymentService.reportPaymentFailure({
+                bookingId: result.data.bookingId,
+                orderId: result.data.orderId,
+                reason: 'Payment dismissed by user'
+              });
+              isProcessingRef.current = false;
+              setBookingFlowState('ERROR');
+              setSubmitError('Payment was not completed. Your slot hold will expire shortly.');
+            }
+          }
+        }
+      };
+
+      const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(rzpOptions);
+      rzp.on('payment.failed', function (response: RazorpayFailResponse) {
+        if (!isVerifyingRef.current) {
+          const failReason = response?.error?.description || response?.error?.reason || 'Payment failed';
+          paymentService.reportPaymentFailure({
+            bookingId: result.data.bookingId,
+            orderId: result.data.orderId,
+            reason: failReason
+          });
+          isProcessingRef.current = false;
+          setBookingFlowState('ERROR');
+          setSubmitError(`Payment Failed: ${failReason}. If any money was debited, it will be refunded within 5-7 business days.`);
+        }
+      });
+      rzp.open();
+    } catch (err) {
+      isProcessingRef.current = false;
+      setBookingFlowState('ERROR');
+      setSubmitError((err instanceof Error ? err.message : String(err)) || 'An unexpected error occurred.');
+    }
+  }
+
+  const renderCurrentStep = () => {
+    switch (step) {
+      case 1:
+        return <TherapistStep selectedId={bookingData.therapistId} onSelect={handleTherapistSelect} />
+      case 2:
+        return <SessionTypeStep selected={bookingData.sessionType} onSelect={handleSessionTypeSelect} onBack={handleBack} />
+      case 3:
+        return <DateStep selectedDate={bookingData.date} onSelect={handleDateSelect} onNext={handleNext} onBack={handleBack} />
+      case 4:
+        return (
+          <SlotStep 
+            therapistId={bookingData.therapistId} 
+            date={bookingData.date} 
+            onSelect={handleSlotSelect} 
+            onBack={handleBack}
+            lockingTime={lockingTime}
+          />
+        )
+      case 5:
+        return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} />
+      case 7:
+        return (
+          <div className="mx-auto max-w-lg">
+            {/* The Review card hands its layoutId to this confirmation card, so the
+             * card the user just reviewed morphs into the confirmation instead of
+             * being replaced by a new screen. */}
+            <motion.div
+              layoutId={prefersReducedMotion ? undefined : SHARED_SUMMARY_LAYOUT_ID}
+              initial={prefersReducedMotion ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={prefersReducedMotion ? { duration: 0.3 } : SHARED_CARD_TRANSITION}
+              style={{ borderRadius: "2rem" }}
+              className={cn(CARD_SURFACE, "p-6 sm:p-10 text-center space-y-6")}
+            >
+              <div className="relative inline-flex items-center justify-center">
+                <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse motion-reduce:animate-none" />
+                <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/30">
+                  <CheckCircle2 className="w-12 h-12" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary">Booking Confirmed</h2>
+                <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
+
+                {isAuthenticated ? (
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    Your payment was successful and your session is confirmed. We have sent the confirmation to <span className="font-semibold text-primary">{bookingData.email}</span>.
+                  </p>
+                ) : (
+                  <div className="space-y-3 pt-2 text-left">
+                    <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10 flex items-start gap-3.5">
+                      <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-xs text-primary/80">
+                        <p className="font-bold text-primary text-sm">Session Confirmation Sent</p>
+                        <p className="leading-relaxed">
+                          We have emailed your calendar invitation, video session link, and receipt to <span className="font-semibold text-primary underline">{bookingData.email}</span>.
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Need to reschedule or view booking details? You can use the secure management link sent to your email anytime.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: prefersReducedMotion ? 0 : 0.35, duration: 0.35, ease: "easeOut" }}
+              className="pt-8 text-center"
+            >
+              {isAuthenticated ? (
+                <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500 shadow-sm">
+                  <NextLink href="/dashboard">Go to Dashboard</NextLink>
+                </Button>
+              ) : (
+                <Button asChild variant="outline" className="h-14 rounded-full px-12 border-2 hover:bg-primary hover:text-white transition-all duration-500 shadow-sm">
+                  <NextLink href="/">Return to Home</NextLink>
+                </Button>
+              )}
+            </motion.div>
+          </div>
+        )
+      default:
+        return null
+    }
+  }
+
+  React.useEffect(() => {
+    if (step === 7 && !hasTrackedSubmittedRef.current) {
+      hasTrackedSubmittedRef.current = true;
+      trackEvent('booking_confirmed', {
+        session_type: bookingData.sessionType,
+        date_selected: bookingData.date,
+      });
+    }
+  }, [step, bookingData.sessionType, bookingData.date]);
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 min-h-[700px]">
+      {step < 7 && (
+        <div className="mb-8 sm:mb-12">
+          <BookingStepper currentStep={step} onStepClick={handleStepClick} />
+        </div>
+      )}
+
+      {step === 7 ? (
+        renderCurrentStep()
+      ) : (
+        <BookingLayout
+          aside={
+            /* The sidebar card carries the shared layoutId only while it is the
+             * live instance (steps 1–5). On Review it hands its identity to the
+             * centred card inside ReviewStep, which morphs from this position. */
+            step < 6 ? (
+              <motion.div
+                layoutId={prefersReducedMotion ? undefined : SHARED_SUMMARY_LAYOUT_ID}
+                style={{ borderRadius: "2rem" }}
+                transition={SHARED_CARD_TRANSITION}
+              >
+                <BookingSummary
+                  variant="sidebar"
+                  therapist={selectedTherapist}
+                  sessionType={bookingData.sessionType}
+                  date={bookingData.date}
+                  time={bookingData.time}
+                />
+              </motion.div>
+            ) : undefined
+          }
+        >
+          {step >= 2 && step < 6 && (
+            <BookingSummary
+              variant="mobile"
+              className="mb-6 lg:hidden"
+              therapist={selectedTherapist}
+              sessionType={bookingData.sessionType}
+              date={bookingData.date}
+              time={bookingData.time}
+            />
+          )}
+          <AnimatePresence mode="wait">
+            {step < 6 && (
+              <motion.div
+                key={step}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
+              >
+                {renderCurrentStep()}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Review renders outside the step AnimatePresence so it mounts in the
+           * same commit the sidebar card unmounts — that pairing is what lets the
+           * shared layoutId morph run. No enter fade here: the card must appear
+           * at full opacity for the morph to read as the same card; the step
+           * header, banner and buttons stagger themselves in (see ReviewStep). */}
+          <AnimatePresence>
+            {step === 6 && (
+              <motion.div
+                key="review"
+                initial={false}
+                exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              >
+                <ReviewStep
+                  data={bookingData}
+                  therapists={therapists}
+                  onConfirm={handleConfirm}
+                  onBack={handleBack}
+                  onJumpToSlots={() => setStep(4)}
+                  submitting={submitting}
+                  bookingFlowState={bookingFlowState}
+                  error={submitError}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </BookingLayout>
+      )}
+
+      {bookingFlowState === 'VERIFYING_PAYMENT' && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="verifying-payment-title"
+            aria-describedby="verifying-payment-desc"
+            ref={verifyingPanelRef}
+            tabIndex={-1}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl outline-none"
+          >
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+              <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
+            </div>
+            <h3 id="verifying-payment-title" className="text-xl font-sans font-semibold text-primary">Confirming Your Booking</h3>
+            <p id="verifying-payment-desc" className="text-muted-foreground text-sm leading-relaxed">
+              Payment received! Confirming your appointment reservation and generating your session details. Please do not refresh or close this window...
+            </p>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default BookingSystem

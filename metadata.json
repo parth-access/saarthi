@@ -1,0 +1,8 @@
+{
+  "name": "Saarthi - Mental Health & Therapy Platform",
+  "description": "Comprehensive therapy booking and management platform with calendar sync, payment gateways, and automated session reminders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

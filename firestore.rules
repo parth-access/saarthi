@@ -1,0 +1,304 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /*
+    =========================================
+    HELPERS
+    =========================================
+    */
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isTherapistDocOwner(therapistId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/therapists/$(therapistId))
+        && get(/databases/$(database)/documents/therapists/$(therapistId)).data.authId == request.auth.uid;
+    }
+
+    /*
+    =========================================
+    USERS
+    =========================================
+    */
+
+    match /users/{userId} {
+
+      allow read: if
+        isSignedIn()
+        && (
+          request.auth.uid == userId ||
+          isAdmin()
+        );
+
+      allow create: if
+        isSignedIn()
+        && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'client');
+
+      allow update: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name',
+            'phone',
+            'bio',
+            'notifications',
+            'email',
+            'updatedAt'
+          ])
+          && (!('email' in request.resource.data) || request.resource.data.email == request.auth.token.email)
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    /*
+    =========================================
+    THERAPISTS
+    =========================================
+    */
+
+    match /therapists/{therapistId} {
+
+      allow read: if true;
+
+      allow create: if isAdmin();
+
+      allow update: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && resource.data.authId == request.auth.uid
+          && request.resource.data.authId == resource.data.authId
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    /*
+    =========================================
+    AVAILABILITY RULES
+    =========================================
+    */
+
+    match /availability_rules/{ruleId} {
+
+      allow read: if true;
+
+      allow create: if
+        isAdmin()
+        || isTherapistDocOwner(request.resource.data.therapistId);
+
+      allow update, delete: if
+        isAdmin()
+        || isTherapistDocOwner(resource.data.therapistId);
+    }
+
+    /*
+    =========================================
+    BOOKINGS
+    =========================================
+    */
+
+    match /bookings/{bookingId} {
+
+      allow read, list: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && resource.data.therapistId != null
+          && isTherapistDocOwner(resource.data.therapistId)
+        )
+        || (
+          isSignedIn()
+          && (
+            (resource.data.email != null && resource.data.email == request.auth.token.email) ||
+            (resource.data.userId != null && resource.data.userId == request.auth.uid)
+          )
+        );
+
+      allow write: if false;
+
+      /*
+      =========================================
+      BOOKING AUDIT LOGS
+      =========================================
+      */
+
+      match /audit_logs/{auditId} {
+
+        allow read: if
+          isAdmin()
+          || (
+            isSignedIn()
+            && get(/databases/$(database)/documents/bookings/$(bookingId)).data.therapistId != null
+            && isTherapistDocOwner(
+              get(/databases/$(database)/documents/bookings/$(bookingId)).data.therapistId
+            )
+          )
+          || (
+            isSignedIn()
+            && get(/databases/$(database)/documents/bookings/$(bookingId)).data.email == request.auth.token.email
+          );
+
+        allow write: if false;
+      }
+    }
+
+    /*
+    =========================================
+    LOCKED SLOTS
+    =========================================
+    */
+
+    match /locked_slots/{slotId} {
+
+      allow read: if true;
+
+      allow write: if false;
+    }
+
+    /*
+    =========================================
+    PAYMENTS
+    =========================================
+    */
+
+    match /payments/{paymentId} {
+
+      allow read: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && resource.data.userId == request.auth.uid
+        );
+
+      allow write: if false;
+    }
+
+    /*
+    =========================================
+    CONTACTS
+    =========================================
+    */
+
+    match /contacts/{contactId} {
+
+      allow create: if false;
+
+      allow read, update, delete: if isAdmin();
+    }
+
+    /*
+    =========================================
+    RESCHEDULE REQUESTS
+    =========================================
+    */
+
+    match /reschedule_requests/{reqId} {
+
+      allow create: if false;
+
+      allow read: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && isTherapistDocOwner(resource.data.therapistId)
+        )
+        || (
+          isSignedIn()
+          && resource.data.userId == request.auth.uid
+        );
+
+      allow update, delete: if
+        isAdmin()
+        || (
+          isSignedIn()
+          && isTherapistDocOwner(resource.data.therapistId)
+        );
+    }
+
+    /*
+    =========================================
+    THERAPIST RECONNECT REQUESTS
+    =========================================
+    */
+
+    match /therapist_reconnect_requests/{reqId} {
+
+      allow create: if false;
+
+      allow read, update, delete: if isAdmin();
+    }
+
+		    /*
+    =========================================
+    THERAPIST AVAILABILITY
+    =========================================
+    */
+
+    match /therapistAvailability/{therapistId} {
+
+      allow read: if
+        isSignedIn();
+
+      /*
+      =========================================
+      RECURRING RULES
+      =========================================
+      */
+
+      match /recurringRules/{ruleId} {
+
+        allow read: if
+          isSignedIn();
+
+        /*
+        Writes go through /api/therapist/availability/rule (the therapist's own
+        hours) or /api/admin/therapists/{id}/schedule (an admin's change). Both
+        verify the role live, reject an overlapping or empty window, and write an
+        audit entry. A direct client write did none of that, and this branch was
+        broader than the API it shadowed: it authorized any signed-in user whose
+        uid matched therapists/{id}.authId, without checking users/{uid}.role.
+        */
+        allow write: if false;
+      }
+
+      /*
+      =========================================
+      OVERRIDES
+      =========================================
+      */
+
+      match /overrides/{overrideId} {
+
+        allow read: if
+          isSignedIn();
+
+        /* Server-only, for the reasons given on recurringRules above. */
+        allow write: if false;
+      }
+    }
+    /*
+    =========================================
+    DEFAULT DENY
+    =========================================
+    */
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

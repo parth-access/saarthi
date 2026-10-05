@@ -1,0 +1,108 @@
+import * as React from "react"
+import Link from "next/link"
+import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin } from "lucide-react"
+import { CookieSettingsButton } from "@/components/analytics/CookieSettingsButton"
+
+export function Footer() {
+  return (
+    <footer className="bg-white border-t border-muted pt-16 pb-8">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div className="md:col-span-1">
+            <Link href="/" className="flex items-center gap-3 text-primary mb-4">
+              <img src="/saarthi-logo-Photoroom.png" alt="Saarthi Logo" className="h-10 w-auto object-contain" referrerPolicy="no-referrer" />
+              <span className="font-heading text-2xl font-bold tracking-tight text-text">Saarthi</span>
+            </Link>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+              A mental wellness platform helping you find clarity, balance, and emotional well-being with the right support.
+            </p>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://instagram.com/saarthi.safespace"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+              <a
+                href="https://youtube.com/@saarthi_theguidanceforlife?si=OXIyS0lOMmObvgMq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
+                aria-label="YouTube"
+              >
+                <Youtube className="h-5 w-5" />
+              </a>
+              <a
+                href="https://www.facebook.com/share/1HszJAuHfi/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-5 w-5" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/saarthi-the-guidance-for-life/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-full bg-primary/5 text-primary transition-all duration-200 ease-out hover:bg-primary/10 hover:-translate-y-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="h-5 w-5" />
+              </a>
+            </div>
+          </div>
+          
+          <div className="md:flex md:justify-center">
+            <div>
+              <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link href="/therapists" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Therapists</Link></li>
+                <li><Link href="/about" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">About</Link></li>
+                <li><Link href="/vision" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Our Vision</Link></li>
+                <li><Link href="/contact" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Contact</Link></li>
+                <li><Link href="/privacy" className="inline-block transition-colors duration-200 hover:text-primary">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="inline-block transition-colors duration-200 hover:text-primary">Terms of Service</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="md:flex md:justify-end">
+            <div>
+              <h4 className="font-heading font-semibold mb-4">Contact</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Mail className="h-5 w-5 text-primary shrink-0" />
+                  <a href="mailto:contact@saarthilife.com" className="hover:text-primary transition-colors">
+                    contact@saarthilife.com
+                  </a>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Phone className="h-5 w-5 text-primary shrink-0" />
+                  <span>+91 8920229024</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <MapPin className="h-5 w-5 text-primary shrink-0" />
+                  <span>New Delhi, India</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div className="border-t border-muted pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+            <CookieSettingsButton className="hover:text-primary transition-colors" />
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
+

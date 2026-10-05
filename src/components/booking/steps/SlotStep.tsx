@@ -1,0 +1,231 @@
+import * as React from "react"
+import { format, parseISO } from "date-fns"
+import { motion, useReducedMotion } from "framer-motion"
+import { Calendar, Loader2, Clock, AlertCircle, ChevronLeft, RefreshCw, Globe } from "lucide-react"
+import { Button } from "../../ui/Button"
+import { Skeleton } from "../../ui/Skeleton"
+import { useAvailability } from "../../../hooks/useAvailability"
+import { cn } from "../../../lib/utils"
+import { formatTime12h, slotTone, SLOT_TONE_LABEL, type SlotTone } from "../bookingUi"
+
+interface Props {
+  therapistId: string;
+  date: string;
+  onSelect: (time: string) => void;
+  onBack: () => void;
+  lockingTime: string | null;
+}
+
+/** Pill styling per availability tone. Disabled state is driven by isAvailable, not by tone. */
+const TONE_PILL: Record<SlotTone, string> = {
+  available: "bg-white border-primary/10 text-primary hover:border-accent/40 hover:text-accent hover:bg-background",
+  booked: "bg-danger-surface border-transparent text-danger/70",
+  locked: "bg-warning-surface border-transparent text-warning",
+  past: "bg-muted/20 border-transparent text-primary/30 line-through decoration-primary/20",
+  beyond: "bg-muted/20 border-transparent text-primary/40",
+};
+
+/** Legend swatch colour per tone. */
+const TONE_DOT: Record<SlotTone, string> = {
+  available: "bg-success",
+  booked: "bg-danger/60",
+  locked: "bg-warning",
+  past: "bg-muted-foreground/40",
+  beyond: "bg-info/60",
+};
+
+const LEGEND_TONES: SlotTone[] = ["available", "booked", "locked", "past", "beyond"];
+
+/**
+ * Loading skeleton mirroring the real slot grid's geometry (header, date line,
+ * IST badge, pill rows) so showing it causes no layout shift when real slots
+ * arrive. The known date is rendered immediately — only the unknown content
+ * (slots) is placeholder. Purely presentational — it fetches nothing and
+ * decides nothing.
+ */
+function SlotGridSkeleton({ dateLabel }: { dateLabel: string }) {
+  return (
+    <div className="space-y-8" aria-hidden="true">
+      <div className="space-y-2 text-center">
+        <Skeleton className="h-9 w-64 mx-auto rounded-xl" />
+        <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" /> {dateLabel}
+        </p>
+        <Skeleton className="h-6 w-72 mx-auto rounded-full" />
+      </div>
+      <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-[54px] w-28 rounded-full"
+          />
+        ))}
+      </div>
+      <div className="flex justify-center pt-4">
+        <Skeleton className="h-6 w-44 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function SlotLegend() {
+  return (
+    <div className="mx-auto flex max-w-2xl flex-wrap items-center justify-center gap-x-4 gap-y-2">
+      {LEGEND_TONES.map((tone) => (
+        <span key={tone} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <span className={cn("h-2 w-2 rounded-full", TONE_DOT[tone])} />
+          {SLOT_TONE_LABEL[tone]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: Props) => {
+  const { slots, loading, error, refetch } = useAvailability(therapistId, date);
+  const reduce = useReducedMotion();
+
+  // Show the date line immediately, even before the request lands.
+  const formattedDate = date ? format(parseISO(date), "MMMM dd, yyyy") : "";
+
+  // Past-slot detection is decided by the server against IST (see
+  // /api/availability + @/shared/scheduling/slots) and arrives as `slot.reason`.
+  // It deliberately does NOT re-derive "now" from the browser clock here: that
+  // copy of the rule lived only in this component, so every other consumer of
+  // useAvailability silently lacked it, and a skewed or non-IST device clock
+  // disagreed with the validation the booking command then applied.
+
+  if (loading) {
+    return <SlotGridSkeleton dateLabel={formattedDate} />;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center">
+          <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+          <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" /> {formattedDate}
+          </p>
+        </div>
+
+        <div className="mx-auto max-w-lg space-y-4 rounded-[2rem] border border-danger/20 bg-danger-surface p-8 text-center shadow-sm">
+          <AlertCircle className="mx-auto h-10 w-10 text-danger opacity-80" />
+          <div className="space-y-1">
+            <h4 className="font-sans text-base font-semibold text-primary">Unable to Check Slots</h4>
+            <p className="text-sm text-danger">{error}</p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              className="gap-2 rounded-full border-primary/20 px-6 hover:bg-primary hover:text-white"
+            >
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </Button>
+            <Button variant="ghost" onClick={onBack} className="rounded-full px-5 text-primary/70 hover:bg-primary/5">
+              Pick Another Date
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="space-y-2 text-center">
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+        <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="h-4 w-4" /> {formattedDate}
+        </p>
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary/70">
+          <Globe className="h-3 w-3" />
+          <span>All times in IST (Indian Standard Time · UTC+5:30)</span>
+        </div>
+      </div>
+
+      {slots.length === 0 ? (
+        <div className="space-y-4 rounded-[2rem] border border-primary/5 bg-neutral-surface py-16 text-center">
+          <Clock className="mx-auto h-10 w-10 text-primary/20" />
+          <div className="space-y-1">
+            <p className="text-base font-medium text-primary/60">No availability on this day.</p>
+            <p className="text-xs text-muted-foreground">All slots are either booked or outside the specialist&apos;s working hours.</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="mt-2 rounded-full border-primary/20 px-6 text-xs font-semibold hover:bg-primary hover:text-white"
+          >
+            Choose Another Date
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <SlotLegend />
+          <div className="mx-auto flex max-w-2xl flex-wrap justify-center gap-3">
+            {slots.map(slot => {
+              const isLoading = lockingTime === slot.time
+              const isAnyLoading = !!lockingTime
+              const isAvailable = slot.isAvailable
+              const tone = slotTone(slot.reason, isAvailable)
+
+              return (
+                <button
+                  key={slot.time}
+                  type="button"
+                  disabled={!isAvailable || isAnyLoading}
+                  onClick={() => onSelect(slot.time)}
+                  aria-label={isAvailable ? `Select ${formatTime12h(slot.time)}` : `${formatTime12h(slot.time)} — ${SLOT_TONE_LABEL[tone]}`}
+                  className={cn(
+                    // Transforms only (translate/scale/shadow) so hover and press never
+                    // shift the surrounding grid; color states ride the same transition.
+                    "relative overflow-hidden rounded-full border px-6 py-3.5 text-sm font-semibold",
+                    "transition-all duration-200 ease-out",
+                    "enabled:hover:-translate-y-px enabled:hover:shadow-sm",
+                    "enabled:active:translate-y-0 enabled:active:scale-[0.98] enabled:active:duration-100",
+                    // Reduced motion: colour feedback only, no transforms.
+                    "motion-reduce:transition-colors motion-reduce:duration-150",
+                    "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none",
+                    "motion-reduce:enabled:active:scale-100",
+                    isLoading ? "border-accent bg-accent text-white shadow-md shadow-accent/20" : TONE_PILL[tone],
+                    !isAvailable && "cursor-not-allowed",
+                    isAnyLoading && !isLoading && "opacity-50",
+                  )}
+                >
+                  {/* The reserving state overlays the pill instead of replacing its
+                      content, so the pill keeps its exact size while locking. */}
+                  <span className={cn("transition-opacity duration-150", isLoading && "opacity-0")}>
+                    {formatTime12h(slot.time)}
+                  </span>
+                  {isLoading && (
+                    <motion.span
+                      initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
+                      className="absolute inset-0 flex items-center justify-center gap-2"
+                    >
+                      <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" />
+                      <span>Reserving...</span>
+                    </motion.span>
+                  )}
+                  {!isAvailable && !isLoading && (
+                    <span className="ml-2 text-[11px] font-medium opacity-70">
+                      {SLOT_TONE_LABEL[tone]}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-center pt-4">
+        <Button variant="ghost" className="rounded-full text-xs font-medium text-primary/60 hover:bg-primary/5" onClick={onBack}>
+          <ChevronLeft className="mr-2 h-3.5 w-3.5" /> Select Different Date
+        </Button>
+      </div>
+    </div>
+  );
+};

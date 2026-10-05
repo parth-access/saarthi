@@ -1,0 +1,28 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.env.local
+.env.example
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+firebase-applet-config.json
+firebase-blueprint.json
+node_modules
+.next
+.vercel
+dist
+.next
+# TypeScript incremental build cache: machine-local, never shared.
+# Committing it makes `tsc` skip re-checking files it believes unchanged,
+# which can both invent stale errors and hide real ones.
+tsconfig.tsbuildinfo
+*.tsbuildinfo
