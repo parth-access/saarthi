@@ -43,6 +43,7 @@ import type { AdminBookingDetail } from '@/domains/booking/queries/adminBookingD
 import { BookingActions } from './BookingActions';
 import { BookingTimeline } from './BookingTimeline';
 import { CopyableId } from './CopyableId';
+import { ReminderSend } from './ReminderSend';
 import { useAdminBookingDetail } from './useAdminBookingDetail';
 import {
   formatRefundAmount,
@@ -330,6 +331,16 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
           <Field label="Reminder sent" value={formatCreatedAt(booking.notifications.reminderSentAtIso)} />
           <Field label="Last email error" value={booking.notifications.lastEmailError} wide />
           <Field label="Reminder error" value={booking.notifications.reminderError} wide />
+          <ReminderSend
+            facts={{
+              bookingId: booking.id,
+              confirmed: booking.statusGroup === 'confirmed',
+              reminderStatus: booking.notifications.reminderStatus,
+              hasMeetingLink: booking.meeting.url !== null,
+              clientName: booking.client.name,
+            }}
+            onApplied={reload}
+          />
         </Card>
 
         <Card

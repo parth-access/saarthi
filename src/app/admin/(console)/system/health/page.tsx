@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { SystemHealthScreen } from '@/components/admin/system/health/SystemHealthScreen';
 
 export default function AdminSystemHealthPage() {
-  return <PlannedSection />;
+  return <SystemHealthScreen />;
 }

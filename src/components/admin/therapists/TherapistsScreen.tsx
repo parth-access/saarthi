@@ -78,9 +78,9 @@ function Reading({
 }
 
 /**
- * What this section is and is not, said once. The active-status toggle lives in the
- * existing console for now and is shown here read-only, so an operator is told
- * where to change it rather than given a control that does nothing.
+ * What this section is and is not, said once. The bookability switch itself
+ * lives on each therapist's detail page, where its consequences can be read
+ * before it is flipped; the roster states the state and the schedule gap.
  */
 function DrivenBy() {
   return (
@@ -88,7 +88,7 @@ function DrivenBy() {
       <span className="font-medium text-primary">Every therapist is listed, active or not.</span>{' '}
       &ldquo;Working days&rdquo; counts only days whose rules are switched on and actually produce
       bookable start times — so a therapist who is accepting bookings can still show none. Open a
-      therapist to see and edit their schedule.
+      therapist to edit their schedule or change whether clients can book them at all.
     </p>
   );
 }

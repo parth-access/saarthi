@@ -143,6 +143,15 @@ export async function GET(request: Request) {
     const [year, month, day] = date.split('-').map(Number);
     const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay(); // 0 = Sunday
 
+    // Bookability, checked before any schedule work: a deactivated therapist
+    // offers no slots at all, whatever their stored rules say. The flag rides
+    // along so the wizard can say why the day is empty instead of implying the
+    // therapist simply does not work.
+    const therapistSnap = await adminDb.collection('therapists').doc(therapistId).get();
+    if (therapistSnap.exists && therapistSnap.data()?.active === false) {
+      return NextResponse.json({ ...EMPTY_DAY(), notBookable: true });
+    }
+
     const rulesPromise = adminDb
       .collection('therapistAvailability')
       .doc(therapistId)

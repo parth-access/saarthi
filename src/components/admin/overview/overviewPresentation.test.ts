@@ -100,25 +100,38 @@ describe('queueDestination', () => {
     expect(destination.note).toBeNull();
   });
 
-  it('links Meet-less sessions to bookings while saying where they are actually fixed', () => {
+  it('links Meet-less sessions to bookings while naming where they are actually fixed', () => {
     const destination = queueDestination(attentionQueue('missing_meet_link'));
 
-    // The link is useful — those sessions can be seen — but retrying is not there.
+    // The link shows the sessions with full context; Calendar & Meet is now
+    // built, so the note points at the retry instead of saying it does not exist.
     expect(destination.href).toBe('/admin/bookings?status=confirmed');
     expect(destination.cta).toBe('Open in Bookings');
     expect(destination.note).toContain('Calendar & Meet');
-    expect(destination.note).toContain('not built yet');
+    expect(destination.note).toContain('Retrying');
   });
 
-  it('refuses to offer a link into a section that does not exist yet', () => {
-    // Background jobs is still unbuilt, so both of its queues have nowhere to send
-    // an operator. Refunds has shipped and is covered by the test below instead.
+  it('links abandoned events and failed emails to Background jobs once it ships', () => {
+    // Both queues are handled in Background jobs; the day that section flipped to
+    // 'ready' these links appeared by themselves — the point of reading status
+    // from the navigation model.
     for (const id of ['events_abandoned', 'emails_failed'] as const) {
       const destination = queueDestination(attentionQueue(id));
-      expect(destination.href).toBeNull();
-      expect(destination.cta).toContain('Handled in');
-      expect(destination.note).toContain('not built yet');
+      expect(destination.href).toBe('/admin/system/jobs');
+      expect(destination.cta).toBe('Open in Background jobs');
+      expect(destination.note).toBeNull();
     }
+  });
+
+  it('still refuses to offer a link into a section that does not exist', () => {
+    const synthetic = {
+      ...attentionQueue('events_abandoned'),
+      handledIn: 'A section that was never built',
+    };
+    const destination = queueDestination(synthetic);
+    expect(destination.href).toBeNull();
+    expect(destination.cta).toContain('Handled in');
+    expect(destination.note).toContain('not built yet');
   });
 
   it('links on its own once the owning section ships', () => {

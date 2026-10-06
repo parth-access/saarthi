@@ -117,9 +117,11 @@ function sectionNamed(label: string) {
  * itself the moment that section ships, and cannot appear before.
  *
  * A queue that carries its own `href` uses it — `missing_meet_link` points at the
- * bookings list because that is where the affected sessions can be seen today,
- * even though retrying them belongs to Calendar & Meet. The note is what keeps
- * that from being misleading.
+ * bookings list because that is where the affected sessions can be seen with the
+ * most context, even though retrying them belongs to Calendar & Meet. The note
+ * keeps that from being misleading in both directions: before the owning section
+ * ships it says the work is not possible yet, and after it ships it names the
+ * place that actually fixes these, which is not the place the button lands.
  */
 export function queueDestination(definition: AttentionQueueDefinition): QueueDestination {
   const owner = sectionNamed(definition.handledIn);
@@ -127,13 +129,18 @@ export function queueDestination(definition: AttentionQueueDefinition): QueueDes
   if (definition.href) {
     const landing = sectionFor(definition.href);
     const landsWhereItIsHandled = landing?.label === definition.handledIn;
+    if (landsWhereItIsHandled) return { href: definition.href, cta: `Open in ${landing?.label ?? definition.handledIn}`, note: null };
+    if (owner?.status === 'ready') {
+      return {
+        href: definition.href,
+        cta: `Open in ${landing?.label ?? definition.handledIn}`,
+        note: `Retrying these belongs to ${definition.handledIn}.`,
+      };
+    }
     return {
       href: definition.href,
       cta: `Open in ${landing?.label ?? definition.handledIn}`,
-      note:
-        landsWhereItIsHandled || owner?.status === 'ready'
-          ? null
-          : `Resolving these belongs to ${definition.handledIn}, which is not built yet.`,
+      note: `Resolving these belongs to ${definition.handledIn}, which is not built yet.`,
     };
   }
 

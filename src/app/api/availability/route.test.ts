@@ -241,6 +241,26 @@ describe('IST temporal partition (server-side, not per-component)', () => {
   });
 });
 
+describe('bookability — a deactivated therapist offers no slots', () => {
+  it('returns an empty day flagged notBookable, whatever the stored rules say', async () => {
+    h.state.rules = [rule(3, '09:00', '17:00')];
+    h.state.therapistDoc = { exists: true, data: () => ({ id: THERAPIST, active: false }) };
+
+    const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02' }));
+    expect(body.availableSlots).toEqual([]);
+    expect(body.notBookable).toBe(true);
+  });
+
+  it('serves the normal grid when the flag is absent (missing means bookable)', async () => {
+    h.state.rules = [rule(3, '09:00', '17:00')];
+    h.state.therapistDoc = { exists: true, data: () => ({ id: THERAPIST }) };
+
+    const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02' }));
+    expect(body.availableSlots.length).toBeGreaterThan(0);
+    expect(body.notBookable).toBeUndefined();
+  });
+});
+
 describe('excludeBookingId authorization', () => {
   const DENIED = 'You are not allowed to view availability for this session.';
 

@@ -13,10 +13,10 @@
  *
  * Three honesty rules shape the layout:
  *
- *  1. **Active status is shown, not toggled.** Flipping it is a write this console
- *     does not own yet (the only existing endpoint also authorizes therapists to
- *     write it, which is not an admin operation), so the status is stated with
- *     where to change it — never as a switch that silently does nothing.
+ *  1. **Bookability is an explicit, admin-only state.** The switch lives in the
+ *     Identity panel, backed by this console's own endpoint (the only previous
+ *     write path also authorized the therapist themselves). The dialog states
+ *     the asymmetry — new bookings refused, existing bookings untouched.
  *  2. **The two halves of the schedule fail independently.** Weekly rules and date
  *     overrides are separate reads; if one fails the other still renders and the
  *     page says which half is missing. A schedule that half-loaded must never read
@@ -62,6 +62,7 @@ import type {
   RuleScan,
 } from './adminTherapistsResponse';
 import { ScheduleEditor, type ScheduleEditIntent } from './ScheduleEditor';
+import { BookabilityControl } from './BookabilityControl';
 import { useAdminTherapistDetail } from './useAdminTherapists';
 
 export function TherapistDetailScreen({ therapistId }: { therapistId: string }) {
@@ -98,7 +99,7 @@ export function TherapistDetailScreen({ therapistId }: { therapistId: string }) 
         onApplied={reload}
       />
 
-      <Identity therapist={data.therapist} />
+      <Identity therapist={data.therapist} onApplied={reload} />
       <WeeklySchedule rules={data.rules} onEdit={setIntent} />
       <Overrides overrides={data.overrides} onEdit={setIntent} />
     </div>
@@ -146,13 +147,20 @@ function Reading({
 /**
  * Who this therapist is, and whether clients can book them.
  *
- * The status is deliberately a statement, not a control. The one endpoint that
- * writes `active` today also authorizes a therapist to write it for themselves,
- * which is not an admin-only operation; wiring this console to it would either
- * weaken that route's authorization or present a button that fails. So the state is
- * shown, its consequence is spelled out, and the place it can be changed is named.
+ * The bookability switch now lives here, backed by this console's own
+ * admin-only endpoint — the old note ("the switch lives in the current console")
+ * described a real authorization hole in the only write path that existed: it
+ * also authorized the therapist themselves. The dialog spells out the
+ * asymmetry — new bookings refused, existing bookings untouched — before the
+ * change is offered.
  */
-function Identity({ therapist }: { therapist: AdminTherapistIdentity }) {
+function Identity({
+  therapist,
+  onApplied,
+}: {
+  therapist: AdminTherapistIdentity;
+  onApplied: () => void;
+}) {
   const status = describeActiveStatus(therapist.active);
 
   return (
@@ -176,10 +184,16 @@ function Identity({ therapist }: { therapist: AdminTherapistIdentity }) {
       </div>
 
       <p className="mt-2 rounded-lg bg-neutral-surface px-3 py-2 text-[0.6875rem] leading-relaxed text-primary/70">
-        {status.detail} This console shows the status but does not change it — that switch lives in the
-        current console, under Therapists. Changing it does not touch the schedule below, and changing
-        the schedule does not touch it.
+        {status.detail} This is an explicit bookability state, separate from the schedule below:
+        changing it never adds or removes hours, and changing the schedule never flips it.
       </p>
+
+      <BookabilityControl
+        therapistId={therapist.id}
+        name={therapist.name}
+        active={therapist.active}
+        onApplied={onApplied}
+      />
 
       {therapist.bio && (
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{therapist.bio}</p>

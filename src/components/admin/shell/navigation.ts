@@ -19,10 +19,14 @@ import {
   Gauge,
   HeartPulse,
   History,
+  Inbox,
   LayoutDashboard,
+  Mail,
+  Radar,
   Radio,
   ReceiptText,
   Stethoscope,
+  UserCog,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -42,7 +46,7 @@ export interface AdminNavItem {
 }
 
 export interface AdminNavGroup {
-  readonly id: 'operations' | 'system' | 'transitional';
+  readonly id: 'operations' | 'system' | 'administration' | 'transitional';
   readonly label: string;
   /** Shown as the group's subtitle in wide sidebars. */
   readonly hint: string;
@@ -117,6 +121,14 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         status: 'ready',
         backedBy: ['GET /api/admin/refunds', 'refunds', 'bookings'],
       },
+      {
+        href: '/admin/contacts',
+        label: 'Contacts',
+        purpose: 'Inquiries from the website form, triaged and answered from your mail client.',
+        icon: Inbox,
+        status: 'ready',
+        backedBy: ['GET /api/admin/contacts', 'PATCH/DELETE /api/admin/contacts/[id]', 'contacts'],
+      },
     ],
   },
   {
@@ -129,32 +141,70 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         label: 'Calendar & Meet',
         purpose: 'Sessions missing a Meet link, and retrying them.',
         icon: HeartPulse,
-        status: 'planned',
-        backedBy: ['bookings (calendarStatus)', 'POST /api/admin/calendar/retry'],
+        status: 'ready',
+        backedBy: ['GET /api/admin/calendar', 'POST /api/admin/calendar/retry', 'bookings (calendarStatus)'],
       },
       {
         href: '/admin/system/jobs',
         label: 'Background jobs',
         purpose: 'Outbox events, email queue, and replaying what failed.',
         icon: Radio,
-        status: 'planned',
-        backedBy: ['outbox_events', 'emails', 'POST /api/operations/replay'],
+        status: 'ready',
+        backedBy: ['GET /api/admin/jobs', 'POST /api/operations/replay', 'outbox_events', 'emails'],
       },
       {
-        href: '/admin/system/health',
-        label: 'System health',
-        purpose: 'Scheduled jobs, integrations and configuration checks.',
-        icon: Gauge,
-        status: 'planned',
-        backedBy: ['/api/operations/dashboard', 'daily_metrics'],
+        href: '/admin/system/email',
+        label: 'Email operations',
+        purpose: 'The dispatch log: what went out, what failed, and resending one.',
+        icon: Mail,
+        status: 'ready',
+        backedBy: ['GET /api/admin/emails', 'POST /api/email/resend', 'emails'],
+      },
+      {
+        href: '/admin/system/operations',
+        label: 'Operations',
+        purpose: 'Queue health, correlation search, the recent timeline, and re-drives.',
+        icon: Radar,
+        status: 'ready',
+        backedBy: ['GET /api/operations/dashboard', 'GET /api/operations/search', 'POST /api/operations/replay', 'timelines', 'daily_metrics'],
       },
       {
         href: '/admin/system/activity',
         label: 'Activity log',
         purpose: 'Who did what, and what the system did in response.',
         icon: Activity,
+        status: 'ready',
+        backedBy: ['GET /api/admin/activity', 'timelines'],
+      },
+      {
+        href: '/admin/system/health',
+        label: 'System health',
+        purpose: 'Queue levels, configuration checks and the machinery counters.',
+        icon: Gauge,
+        status: 'ready',
+        backedBy: ['GET /api/admin/overview', 'GET /api/operations/dashboard', 'daily_metrics'],
+      },
+    ],
+  },
+  {
+    id: 'administration',
+    label: 'Administration',
+    hint: 'Who holds the keys',
+    items: [
+      {
+        href: '/admin/settings/users',
+        label: 'Users & roles',
+        purpose: 'Accounts, their roles, and access revocation — planned, not built.',
+        icon: UserCog,
+        // Deliberately 'planned'. Role mutation is the highest-risk surface in
+        // the platform (self-escalation, session revocation interplay), it has
+        // no legacy capability to reach parity with — role changes have only
+        // ever happened by direct database edit — and building it in the same
+        // pass as the migration would rush the one piece of the console whose
+        // failure mode is granting authority. It stays visible here, as an
+        // honest placeholder, until it is designed properly.
         status: 'planned',
-        backedBy: ['audit_logs', 'timelines'],
+        backedBy: ['users (role, sessionRevokeBefore)'],
       },
     ],
   },

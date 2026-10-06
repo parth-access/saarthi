@@ -75,6 +75,11 @@ export async function POST(request: Request) {
     if (rawMsg.includes('already booked') || rawMsg.includes('reserved by another user') || rawMsg.includes('unavailable')) {
       clientMsg = rawMsg;
       status = 409;
+    } else if (rawMsg.includes('not currently bookable')) {
+      // A deactivated therapist: a state conflict with what the client asked
+      // for, not a validation failure and not a server error.
+      clientMsg = rawMsg;
+      status = 409;
     } else if (rawMsg.includes('Therapist not found') || rawMsg.includes('Validation')) {
       clientMsg = rawMsg;
       status = 400;

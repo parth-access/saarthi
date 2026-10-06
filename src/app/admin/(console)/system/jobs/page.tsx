@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { JobsScreen } from '@/components/admin/system/jobs/JobsScreen';
 
 export default function AdminBackgroundJobsPage() {
-  return <PlannedSection />;
+  return <JobsScreen />;
 }

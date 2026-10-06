@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { CalendarScreen } from '@/components/admin/system/calendar/CalendarScreen';
 
-export default function AdminCalendarHealthPage() {
-  return <PlannedSection />;
+export default function AdminCalendarPage() {
+  return <CalendarScreen />;
 }

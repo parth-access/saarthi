@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Search, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { ClinicalSessionCard } from '@/components/dashboard/TherapistDashboard';
+import { ClinicalSessionCard } from '@/components/therapist/ClinicalSessionCard';
 import { useTherapistData } from '../layout';
 import { isToday, parseISO } from 'date-fns';
 import type { Booking, BookingStatus } from '@/types';

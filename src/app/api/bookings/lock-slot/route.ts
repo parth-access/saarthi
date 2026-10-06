@@ -41,6 +41,14 @@ export async function POST(req: Request) {
        logger.warn('BOOKING', 'lock-slot therapist not found', { therapistId });
        return NextResponse.json({ error: 'Therapist not found' }, { status: 404 });
     }
+    // Bookability is enforced here as well as at booking creation: a pin on a
+    // deactivated therapist's slot would be a meaningless hold that the create
+    // command would only refuse later. `active === false` means not bookable;
+    // a missing field means bookable (the mapper's default everywhere).
+    if (therapistDoc.data()?.active === false) {
+       logger.warn('BOOKING', 'lock-slot refused: therapist not bookable', { therapistId });
+       return NextResponse.json({ error: 'This therapist is not currently bookable.' }, { status: 409 });
+    }
     
     slotId = SlotReservationService.getSlotId(therapistId, date, time);
 

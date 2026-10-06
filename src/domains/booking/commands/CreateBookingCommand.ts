@@ -36,6 +36,13 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     if (!therapistDoc.exists) {
       throw new Error('Therapist not found');
     }
+    // Bookability is explicit and server-enforced: `active: false` refuses NEW
+    // bookings here, at the door. Existing bookings are untouched — reschedule,
+    // confirm and every other management path never reads this field. A missing
+    // field means bookable, matching the mapper's default everywhere else.
+    if (therapistDoc.data()?.active === false) {
+      throw new Error('This therapist is not currently bookable.');
+    }
 
     const utcDateTime = istToUtcIsoString(data.date, data.time);
 

@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Clock3, FileText, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { JoinSessionButton } from '@/components/dashboard/TherapistDashboard';
+import { JoinSessionButton } from '@/components/therapist/ClinicalSessionCard';
 import { formatTime12h } from '@/components/booking/bookingUi';
 import { statusBadge, toneClasses } from '@/components/admin/bookings/adminBookingPresentation';
 import { sessionStartMs } from '@/lib/sessionDisplay';
