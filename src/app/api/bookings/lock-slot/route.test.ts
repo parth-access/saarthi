@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextResponse } from 'next/server';
-
 vi.mock('../../../../lib/auth/verifySession', () => ({
   verifySession: vi.fn(),
 }));

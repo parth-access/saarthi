@@ -19,7 +19,8 @@
  */
 import * as React from 'react';
 import { useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronRight, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, RotateCcw, Trash2 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { Button } from '@/components/ui/Button';
 import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import {
@@ -51,7 +52,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 export function ContactsScreen() {
-  const { rows, loading, initialLoading, loadingMore, hasMore, error, stale, generatedAtIso, failed, failedReason, reload, loadMore } =
+  const { rows, loading, initialLoading, loadingMore, hasMore, error, generatedAtIso, failed, failedReason, reload, loadMore } =
     useAdminContacts();
   const [statusFilter, setStatusFilter] = useState('all');
   const [term, setTerm] = useState('');

@@ -9,6 +9,8 @@ import type {
   JobScan,
 } from '@/domains/admin/jobsTriage';
 
+export type { JobScan };
+
 export interface AdminJobsPayload {
   readonly generatedAtIso: string;
   readonly outbox: {

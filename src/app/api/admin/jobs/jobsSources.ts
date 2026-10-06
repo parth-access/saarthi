@@ -1,4 +1,5 @@
 import { adminDb } from '@/lib/firebase/admin';
+import type { Query } from 'firebase-admin/firestore';
 import {
   type JobEmailRow,
   type JobEventRow,
@@ -89,7 +90,7 @@ async function scanByStatus<Row>(
   project: (doc: { id: string; data: () => Record<string, unknown> }) => Row
 ): Promise<JobScan<Row>> {
   try {
-    let query = requireDb().collection(collection);
+    let query: Query = requireDb().collection(collection);
     query = Array.isArray(status)
       ? query.where('status', 'in', status)
       : query.where('status', '==', status);

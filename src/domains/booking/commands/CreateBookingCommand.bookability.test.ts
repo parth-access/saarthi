@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateBookingCommand, CreateBookingCommandHandler } from './CreateBookingCommand';
 import { SlotReservationService } from '../services/SlotReservationService';

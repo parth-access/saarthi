@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/auth/verifySession', () => ({ verifySession: vi.fn() }));
 vi.mock('@/server/services/BookingService', () => ({
-  BookingService: { getBookings: vi.fn(), getBookingsByTherapist: vi.fn() },
+  BookingService: { getBookingsByTherapist: vi.fn() },
 }));
 vi.mock('@/lib/firebase/admin', () => ({
   adminDb: {
@@ -58,7 +58,18 @@ describe('GET /api/bookings', () => {
 
     expect(response.status).toBe(401);
     expect(BookingService.getBookingsByTherapist).not.toHaveBeenCalled();
-    expect(BookingService.getBookings).not.toHaveBeenCalled();
+  });
+
+  it('refuses an admin session — the whole-ledger read lives in /api/admin/bookings', async () => {
+    // The legacy console's 500-document unpaginated scan used to live behind
+    // the admin branch of this route; the migration removed it. An admin gets
+    // the same refusal as any non-therapist, and the paginated admin list is
+    // the only way to read everything.
+    vi.mocked(verifySession).mockResolvedValue({ uid: 'admin_1', role: 'admin' });
+    const response = await GET(new Request('http://localhost/api/bookings'));
+
+    expect(response.status).toBe(403);
+    expect(BookingService.getBookingsByTherapist).not.toHaveBeenCalled();
   });
 
   it('marks personal booking lists as private and non-cacheable', async () => {

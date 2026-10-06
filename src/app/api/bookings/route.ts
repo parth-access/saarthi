@@ -13,11 +13,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Check if therapist or admin
-    if (session.role === 'admin') {
-      const bookings = await BookingService.getBookings();
-      return NextResponse.json(bookings, { headers: PRIVATE_NO_STORE });
-    } else if (session.role === 'therapist') {
+    // This endpoint serves therapist workspaces. The admin's whole-ledger read
+    // that used to live here was the legacy console's 500-document unpaginated
+    // scan; the admin console reads the paginated /api/admin/bookings instead,
+    // so an admin session gets the same refusal a client's does.
+    if (session.role === 'therapist') {
       // Bookings reference the therapist *document* id, not the Firebase Auth uid.
       // Looking them up by `session.uid` silently returns an empty dashboard for
       // every therapist whose profile id differs from their auth id.

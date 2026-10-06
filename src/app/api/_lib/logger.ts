@@ -31,7 +31,9 @@ export interface LogEntry {
     | 'AVAILABILITY'
     | 'OPERATIONS'
     | 'RECONNECT'
-    | 'RESCHEDULE';
+    | 'RESCHEDULE'
+    | 'CONTACTS'
+    | 'THERAPISTS';
 
   message: string;
   data?: unknown;

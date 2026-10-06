@@ -5,7 +5,7 @@
  *
  * Fetches the therapist profile and their bookings, then computes the memos
  * the dashboard, sessions and availability pages need. Uses the same services
- * the existing TherapistWorkspace/AdminPage did — no new API endpoints, no new
+ * the original combined workspace did — no new API endpoints, no new
  * Firestore reads.
  *
  * Designed to be called once in the layout and passed down through context or
@@ -188,7 +188,7 @@ export function useTherapistDashboard(): TherapistDashboardData {
   };
 }
 
-// --- Status update helpers (same as AdminPage) ---
+// --- Status update helpers ---
 
 export function useBookingActions(
   setBookings: React.Dispatch<React.SetStateAction<Booking[]>>

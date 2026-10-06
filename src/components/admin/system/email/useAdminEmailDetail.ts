@@ -5,7 +5,7 @@
  * a row is expanded. The expanded id is the hook's identity; collapsing to null
  * drops the request.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import {
   createLatestRequestGuard,
@@ -23,8 +23,6 @@ export type AdminEmailDetailState =
 export function useAdminEmailDetail(emailId: string | null): AdminEmailDetailState {
   const [state, setState] = useState<AdminEmailDetailState>({ kind: 'idle' });
   const guard = useRef(createLatestRequestGuard());
-
-  const reset = useCallback(() => setState({ kind: 'idle' }), []);
 
   useEffect(() => {
     if (!emailId) {

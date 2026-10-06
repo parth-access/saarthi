@@ -18,7 +18,6 @@ function parseAttempts(value: unknown): EmailAttemptRow[] {
   if (!Array.isArray(value)) return [];
   return value.map((attempt, index) => {
     const record = (typeof attempt === 'object' && attempt !== null ? attempt : {}) as Record<string, unknown>;
-    const response = (typeof record.response === 'object' && record.response !== null ? record.response : {}) as Record<string, unknown>;
     return {
       attemptNumber: typeof record.attemptNumber === 'number' ? record.attemptNumber : index + 1,
       attemptedAtIso: typeof record.attemptedAtIso === 'string' ? record.attemptedAtIso : null,

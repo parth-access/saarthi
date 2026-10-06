@@ -6,13 +6,10 @@
  * The rule this enforces: an unbuilt section must not be indistinguishable from
  * a built one that happens to have no rows. So instead of an empty table or a
  * zeroed stat card — both of which read as real answers — it states plainly that
- * nothing has been queried, names the collections that will back it, and points
- * at the console that can still do the work today.
+ * nothing has been queried, and names the collections that will back it.
  */
-import { Construction, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Construction } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
 import { resolveAdminNavItem, type AdminNavItem } from './navigation';
 
 /**
@@ -67,15 +64,6 @@ export function SectionPlaceholder({ section }: { section: AdminNavItem }) {
             </li>
           ))}
         </ul>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin/legacy">
-            Use the current admin console
-            <ExternalLink aria-hidden="true" className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
-        </Button>
       </div>
     </div>
   );

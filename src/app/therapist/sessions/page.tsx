@@ -4,7 +4,7 @@
  * All Sessions page — the "master ledger" for the therapist.
  *
  * Reuses ClinicalSessionCard for full inline detail (the same component the
- * existing TherapistWorkspace used). This is where search/filter makes sense;
+ * original combined workspace used). This is where search/filter makes sense;
  * the dashboard is the overview.
  */
 import * as React from 'react';

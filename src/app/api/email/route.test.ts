@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NextResponse } from 'next/server';
 
 /**
  * Security contract of the email dispatch API (post-P1-2 remediation):
@@ -27,7 +26,8 @@ vi.mock('@/lib/firebase/admin', () => ({
   },
 }));
 
-import { POST, GET } from './route';
+import * as route from './route';
+import { POST } from './route';
 import { sendEmailAction } from './emailSender';
 import { verifySession } from '@/lib/auth/verifySession';
 import { requireAdmin } from '@/lib/auth/requireRole';
@@ -137,15 +137,11 @@ describe('POST /api/email — rate limiting', () => {
   });
 });
 
-describe('GET /api/email — admin-only logs', () => {
-  it('refuses non-admin callers', async () => {
-    vi.mocked(requireAdmin).mockResolvedValue(NextResponse.json({ error: 'Forbidden' }, { status: 403 }));
-    const res = await GET(new Request('http://localhost/api/email'));
-    expect(res.status).toBe(403);
-  });
-
-  it('returns email logs for an admin', async () => {
-    const res = await GET(new Request('http://localhost/api/email'));
-    expect(res.status).toBe(200);
+describe('GET /api/email — removed with the legacy console', () => {
+  it('no longer exposes a raw log listing on this route', () => {
+    // The admin log listing moved to GET /api/admin/emails, which projects rows
+    // instead of shipping raw documents with their rendered HTML bodies. The
+    // absence is the contract: nothing may quietly grow back here.
+    expect('GET' in route).toBe(false);
   });
 });

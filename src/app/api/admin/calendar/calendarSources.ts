@@ -1,4 +1,3 @@
-import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { toAdminBookingRow } from '@/domains/booking/queries/adminBookingQuery';
 import {

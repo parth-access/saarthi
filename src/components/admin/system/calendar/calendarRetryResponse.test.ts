@@ -40,7 +40,7 @@ describe('interpretCalendarRetryResponse', () => {
       error: 'The calendar retry did not succeed just now. The booking records what happened — reload the list to read it.',
     });
     expect(result.ok).toBe(false);
-    expect(result.indeterminate).toBe(false);
+    if (!result.ok) expect(result.indeterminate).toBe(false);
   });
 
   it('treats a transport failure as indeterminate — reload, never retry', () => {
@@ -49,6 +49,8 @@ describe('interpretCalendarRetryResponse', () => {
       error: RETRY_TRANSPORT_ERROR,
       indeterminate: true,
     });
-    expect(interpretCalendarRetryResponse(0, undefined)).toMatchObject({ indeterminate: true });
+    const result = interpretCalendarRetryResponse(0, undefined);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.indeterminate).toBe(true);
   });
 });

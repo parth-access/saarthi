@@ -18,7 +18,6 @@ import {
   CreditCard,
   Gauge,
   HeartPulse,
-  History,
   Inbox,
   LayoutDashboard,
   Mail,
@@ -205,21 +204,6 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
         // honest placeholder, until it is designed properly.
         status: 'planned',
         backedBy: ['users (role, sessionRevokeBefore)'],
-      },
-    ],
-  },
-  {
-    id: 'transitional',
-    label: 'Transitional',
-    hint: 'Being replaced',
-    items: [
-      {
-        href: '/admin/legacy',
-        label: 'Current console',
-        purpose: 'The existing admin screens, until the sections above replace them.',
-        icon: History,
-        status: 'ready',
-        backedBy: ['GET /api/bookings', 'therapists', 'contacts', 'emails'],
       },
     ],
   },

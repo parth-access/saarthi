@@ -1,9 +1,8 @@
 /**
- * Visual shell for the new admin console.
+ * Visual shell for the admin console.
  *
- * Scoped to this route group so the console's chrome applies to the sections
- * being built, while `/admin/legacy` — the console operators still use today —
- * keeps rendering with its own full-page layout and is not double-framed.
+ * The whole of /admin is this console now; the group exists to keep the shell
+ * scoped to the console's pages rather than the auth layout above them.
  */
 import { AdminShell } from '@/components/admin/shell/AdminShell';
 

@@ -14,6 +14,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { Button } from '@/components/ui/Button';
 import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import {

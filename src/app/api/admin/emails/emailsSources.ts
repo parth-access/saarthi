@@ -19,6 +19,8 @@ import { logger } from '../../_lib/logger';
  */
 export const UNREADABLE = 'Could not be read just now. Reload to try again.';
 
+export { EMAIL_LIST_LIMIT };
+
 function requireDb() {
   if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
   return adminDb;

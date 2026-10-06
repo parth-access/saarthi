@@ -19,6 +19,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, RotateCcw, Search } from 'lucide-react';
 import Link from 'next/link';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { Button } from '@/components/ui/Button';
 import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import {
@@ -29,7 +30,6 @@ import {
   METRICS_CAVEAT,
   severityBadge,
   type BookingHit,
-  type EmailHit,
   type TimelineRow,
 } from '@/domains/admin/operationsTriage';
 import {
@@ -443,7 +443,7 @@ function TraceTab({
           title={`Correlation chain`}
           subtitle={`Stitched from the loaded timeline rows for ${correlationId}`}
         >
-          <ChainView rows={correlationChain(payload.timelines, correlationId)} onBooking={onSearchBooking} onAction={onAction} />
+          <ChainView rows={correlationChain(payload.timelines, correlationId)} onAction={onAction} />
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[0.625rem] leading-relaxed text-muted-foreground">{CORRELATION_SLICE_BOUND}</p>
             <Button variant="ghost" size="sm" onClick={onClearTrace}>
@@ -568,11 +568,9 @@ function BookingHitCard({
 
 function ChainView({
   rows,
-  onBooking,
   onAction,
 }: {
   rows: readonly TimelineRow[];
-  onBooking: (id: string) => void;
   onAction: (action: PendingAction) => void;
 }) {
   if (rows.length === 0) {

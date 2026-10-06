@@ -146,20 +146,4 @@ export const therapistService = {
     }
   },
 
-  updateTherapistStatus: async (therapistId: string, active: boolean) => {
-    try {
-      const response = await fetchWithAuth('/api/therapist/status', {
-        method: 'POST',
-        body: JSON.stringify({ therapistId, active })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'API Request Failed');
-      }
-      return data;
-    } catch (err: unknown) {
-      handleFirestoreError(err, OperationType.UPDATE, `therapists/${therapistId}`);
-      throw err;
-    }
-  }
 };

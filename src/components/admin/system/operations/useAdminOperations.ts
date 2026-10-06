@@ -105,14 +105,12 @@ export function useOperationsSearch(): OperationsSearchState {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ran, setRan] = useState(false);
-  const [term, setTerm] = useState('');
   const guard = useRef(createLatestRequestGuard());
 
   const run = useCallback((input: string) => {
     const query = input.trim();
     if (query.length < 3 || loading) return;
     const ticket = guard.current.begin();
-    setTerm(query);
     setLoading(true);
     setError(null);
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/requireRole';
-import { updateContactStatus, deleteContact } from './contactsSources';
+import { updateContactStatus, deleteContact } from '../contactsSources';
 import { checkRateLimit, getClientIp } from '../../../_lib/rateLimit';
 import { logger } from '../../../_lib/logger';
 

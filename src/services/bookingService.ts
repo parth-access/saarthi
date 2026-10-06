@@ -66,16 +66,6 @@ export const bookingService = {
     }
   },
 
-  getBookings: async (): Promise<Booking[]> => {
-    try {
-      const data = await fetchWithAuth('/api/bookings', { method: 'GET' });
-      return (data || []).map((b: Record<string, unknown>) => mapBooking(String(b.id), b));
-    } catch (err: unknown) {
-      handleFirestoreError(err, OperationType.LIST, 'bookings');
-      return [];
-    }
-  },
-
   getBookingsByTherapist: async (therapistId: string): Promise<Booking[]> => {
     try {
       const data = await fetchWithAuth('/api/bookings?therapistId=' + therapistId, { method: 'GET' });

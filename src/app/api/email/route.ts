@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { adminDb } from '@/lib/firebase/admin';
 import { sendEmailAction, type EmailPayload } from './emailSender';
 import { logger } from '../_lib/logger';
-import { requireAdmin } from '@/lib/auth/requireRole';
 import { verifySession } from '@/lib/auth/verifySession';
 import { getClientIp } from '../_lib/rateLimit';
 import { checkDistributedRateLimit } from '../_lib/distributedRateLimit';
@@ -12,7 +10,9 @@ import { checkDistributedRateLimit } from '../_lib/distributedRateLimit';
  * Transactional email dispatch API.
  *
  * Only `booking-confirmed` and `booking-declined` are accepted here — a manual
- * therapist/admin resend capability. Every other transactional email is sent
+ * therapist/admin resend capability. (The admin log listing that used to share
+ * this file moved to `GET /api/admin/emails`, which projects rows instead of
+ * shipping raw documents with their rendered bodies.) Every other transactional email is sent
  * server-side by its owning flow (calendar service, ConfirmBookingCommand,
  * EmailListener/outbox listeners, reminder service) and is deliberately NOT
  * reachable through this endpoint: unauthenticated, client-parameterized types
@@ -61,35 +61,11 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 200 });
 
   } catch (error) {
+    // sendEmailAction's authored refusals already surface as 4xx-style results;
+    // anything reaching this catch is an unexpected failure whose text has no
+    // business in a browser response.
     logger.error('EMAIL', 'Email API Error', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'The email could not be dispatched just now. Please try again.' }, { status: 500 });
   }
 }
 
-export async function GET(request: Request) {
-  try {
-    const authResult = await requireAdmin(request);
-    if (authResult instanceof NextResponse) return authResult;
-
-    // Query emails
-    const emailsSnap = await adminDb.collection('emails')
-      .orderBy('createdAt', 'desc')
-      .limit(100)
-      .get();
-
-    const emails = emailsSnap.docs.map(doc => {
-      const data = doc.data();
-      return {
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null,
-        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt || null,
-      };
-    });
-
-    return NextResponse.json(emails, { status: 200 });
-
-  } catch (error) {
-    logger.error('EMAIL', 'Error fetching email logs', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
-  }
-}

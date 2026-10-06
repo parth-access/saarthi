@@ -6,14 +6,14 @@ vi.mock('@/app/api/_lib/rateLimit', () => ({
   checkRateLimit: vi.fn().mockReturnValue({ success: true, limit: 30, remaining: 29, reset: 0 }),
   getClientIp: vi.fn().mockReturnValue('test-client-ip'),
 }));
-vi.mock('./contactsSources', () => ({
+vi.mock('../contactsSources', () => ({
   updateContactStatus: vi.fn().mockResolvedValue({ ok: true }),
   deleteContact: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 import { PATCH, DELETE } from './route';
 import { requireAdmin } from '@/lib/auth/requireRole';
-import { updateContactStatus, deleteContact } from './contactsSources';
+import { updateContactStatus, deleteContact } from '../contactsSources';
 import { checkRateLimit } from '@/app/api/_lib/rateLimit';
 
 function patch(body: unknown, contactId = 'contact_1') {

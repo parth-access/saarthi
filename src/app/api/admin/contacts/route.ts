@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/requireRole';
-import { listContactsPage, CONTACT_PAGE_SIZE } from './contactsSources';
+import { listContactsPage } from './contactsSources';
 import { logger } from '../../_lib/logger';
 
 export const dynamic = 'force-dynamic';
