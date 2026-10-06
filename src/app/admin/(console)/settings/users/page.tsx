@@ -1,5 +1,5 @@
-import { PlannedSection } from '@/components/admin/shell/SectionPlaceholder';
+import { UsersScreen } from '@/components/admin/system/users/UsersScreen';
 
 export default function AdminUsersPage() {
-  return <PlannedSection />;
+  return <UsersScreen />;
 }

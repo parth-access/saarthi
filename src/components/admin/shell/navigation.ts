@@ -193,17 +193,15 @@ export const ADMIN_NAV: readonly AdminNavGroup[] = [
       {
         href: '/admin/settings/users',
         label: 'Users & roles',
-        purpose: 'Accounts, their roles, and access revocation — planned, not built.',
+        purpose: 'Accounts, their roles, and access revocation.',
         icon: UserCog,
-        // Deliberately 'planned'. Role mutation is the highest-risk surface in
-        // the platform (self-escalation, session revocation interplay), it has
-        // no legacy capability to reach parity with — role changes have only
-        // ever happened by direct database edit — and building it in the same
-        // pass as the migration would rush the one piece of the console whose
-        // failure mode is granting authority. It stays visible here, as an
-        // honest placeholder, until it is designed properly.
-        status: 'planned',
-        backedBy: ['users (role, sessionRevokeBefore)'],
+        status: 'ready',
+        backedBy: [
+          'GET /api/admin/users',
+          'PATCH /api/admin/users/[id]',
+          'users (role, sessionRevokeBefore, accountDisabled)',
+          'POST /api/auth/session (refuses disabled accounts)',
+        ],
       },
     ],
   },

@@ -4,6 +4,7 @@ import { verifySession } from './verifySession';
 import { middleware } from '../../middleware';
 import { NextRequest } from 'next/server';
 import { requireAdmin, requireTherapist } from './requireRole';
+import { adminAuth } from '../firebase/admin';
 
 const { mockGetUserDoc } = vi.hoisted(() => ({
   mockGetUserDoc: vi.fn(),
@@ -296,5 +297,75 @@ describe('Session kill-switch (sessionRevokeBefore)', () => {
     });
 
     expect(await verifySession(requestWith(token))).toBeNull();
+  });
+});
+
+/**
+ * Disabled accounts authenticate nowhere. The console pairs `accountDisabled`
+ * with a revoke mark; the mark alone cannot stop a client whose Firebase
+ * session outlived it from minting fresh ID tokens, so verifySession checks
+ * the flag itself on both session paths.
+ */
+describe('disabled accounts (accountDisabled)', () => {
+  const originalEnv = process.env.JWT_SECRET;
+
+  beforeEach(() => {
+    vi.resetModules();
+    mockGetUserDoc.mockReset();
+  });
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.JWT_SECRET = originalEnv;
+    } else {
+      delete process.env.JWT_SECRET;
+    }
+  });
+
+  const requestWith = (token: string) =>
+    new Request('https://saarthilife.com/api/test', { headers: { cookie: `__session=${token}` } });
+
+  async function makeToken() {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    return new SignJWT({ uid: 'user_123', email: 'user@example.com', role: 'admin' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
+  }
+
+  it('rejects a valid session cookie for a disabled account, even without a revoke mark', async () => {
+    const token = await makeToken();
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin', accountDisabled: true }),
+    });
+
+    expect(await verifySession(requestWith(token))).toBeNull();
+  });
+
+  it('rejects a raw Firebase ID token for a disabled account', async () => {
+    // A valid ID token is exactly the path that could outlive the revoke mark.
+    vi.mocked(adminAuth.verifyIdToken).mockResolvedValueOnce({
+      uid: 'user_123',
+      email: 'user@example.com',
+      iat: Math.floor(Date.now() / 1000),
+    } as never);
+    mockGetUserDoc.mockResolvedValue({
+      exists: true,
+      data: () => ({ role: 'admin', accountDisabled: true }),
+    });
+
+    expect(await verifySession(requestWith('raw-firebase-id-token'))).toBeNull();
+  });
+
+  it('authenticates normally when the flag is absent — no behaviour change for existing accounts', async () => {
+    const token = await makeToken();
+    mockGetUserDoc.mockResolvedValue({ exists: true, data: () => ({ role: 'admin' }) });
+
+    const session = await verifySession(requestWith(token));
+    expect(session).not.toBeNull();
+    expect(session?.role).toBe('admin');
   });
 });

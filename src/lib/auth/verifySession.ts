@@ -55,6 +55,14 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
         return null;
       }
 
+      // Disabled accounts authenticate nowhere — not via minted session
+      // cookies (blocked at /api/auth/session) and not via raw Firebase ID
+      // tokens, whose client-side refresh would otherwise outlive the revoke
+      // mark. Same ride-along read.
+      if (userDoc.exists && isAccountDisabled(userDoc.data())) {
+        return null;
+      }
+
       return {
         uid,
         email,
@@ -74,6 +82,10 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
 
        // Same kill-switch for raw Firebase ID tokens (token iat vs. revoke mark)
        if (userDoc.exists && isSessionRevoked(userDoc.data(), (decodedToken as { iat?: number }).iat)) {
+         return null;
+       }
+
+       if (userDoc.exists && isAccountDisabled(userDoc.data())) {
          return null;
        }
 
@@ -106,4 +118,14 @@ function isSessionRevoked(
     return true;
   }
   return (issuedAtSeconds as number) < revokedBefore;
+}
+
+/**
+ * Disabled accounts never authenticate: only the admin console sets
+ * `accountDisabled`, and it always pairs it with a revoke mark, so this
+ * catches anything the mark alone cannot — chiefly fresh Firebase ID tokens
+ * from a client whose Firebase session outlived the mark.
+ */
+function isAccountDisabled(userData: Record<string, unknown> | undefined): boolean {
+  return userData?.accountDisabled === true;
 }

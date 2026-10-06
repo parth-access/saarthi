@@ -27,6 +27,16 @@ export async function POST(request: Request) {
     if (userDoc.exists) {
        const userData = userDoc.data();
        role = userData?.role || 'client';
+
+       // Disabled accounts get no session cookie. The console pairs this flag
+       // with a sessionRevokeBefore mark (which kills existing cookies); this
+       // gate is what stops the person simply signing back in.
+       if (userData?.accountDisabled === true) {
+         return NextResponse.json(
+           { error: 'This account has been disabled. Contact the practice if you believe this is a mistake.' },
+           { status: 403 }
+         );
+       }
     }
 
     // Create a Custom Edge-Verifiable JWT
