@@ -2,13 +2,10 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
-  // Add experimental features or redirects here if needed
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true, 
-  },
+  // Type-checking and linting run during `next build` (Next defaults): the
+  // build gate must fail on type errors or lint errors. Do not re-add
+  // ignoreBuildErrors / ignoreDuringBuilds — that is how a broken deploy
+  // (e.g. the module-scope Resend build crash) would have shipped.
   images: {
     remotePatterns: [
       {

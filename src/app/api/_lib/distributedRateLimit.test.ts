@@ -57,6 +57,10 @@ describe('checkDistributedRateLimit', () => {
     const set = (h.tx!.set as ReturnType<typeof vi.fn>).mock.calls[0][1];
     expect(set.count).toBe(1);
     expect(set.windowStart).toBe(NOW);
+    // TTL contract: `expireAt` must be a Date (Firestore TTL policies ignore
+    // numeric values), one window ahead of the window start.
+    expect(set.expireAt).toBeInstanceOf(Date);
+    expect(set.expireAt.getTime()).toBe(NOW + 60_000);
   });
 
   it('increments the shared counter under the limit', async () => {

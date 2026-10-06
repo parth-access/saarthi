@@ -26,6 +26,12 @@ export interface DistributedRateLimitResult {
  *  - on any Firestore failure the limiter fails OPEN to the per-instance
  *    bucket: this is an abuse throttle, not a security boundary, and endpoint
  *    availability must not depend on the counter store.
+ *
+ * GARBAGE COLLECTION: every counter doc carries `expireAt` (a Date, one
+ * window ahead). Enable a Firestore TTL policy on `rate_limits.expireAt`
+ * (Firebase console → Firestore → Data → TTL policy) so stale counters are
+ * deleted automatically; without it the collection accumulates one doc per
+ * unique route+visitor. TTL deletions are free of read/write costs.
  */
 export async function checkDistributedRateLimit(
   ip: string,
@@ -53,7 +59,7 @@ export async function checkDistributedRateLimit(
       const now = Date.now();
 
       if (!snap.exists) {
-        t.set(ref, { route, count: 1, windowStart: now, expiresAt: now + windowMs });
+        t.set(ref, { route, count: 1, windowStart: now, expireAt: new Date(now + windowMs) });
         return true;
       }
 
@@ -62,7 +68,7 @@ export async function checkDistributedRateLimit(
       const count = Number(data.count) || 0;
 
       if (now - windowStart >= windowMs) {
-        t.set(ref, { route, count: 1, windowStart: now, expiresAt: now + windowMs });
+        t.set(ref, { route, count: 1, windowStart: now, expireAt: new Date(now + windowMs) });
         return true;
       }
 
