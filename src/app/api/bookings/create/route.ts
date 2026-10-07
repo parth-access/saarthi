@@ -16,15 +16,11 @@ export async function POST(request: Request) {
 
     const sessionToken = request.headers.get('Authorization')?.split('Bearer ')[1];
     let uid = 'guest';
-    let authenticatedEmail: string | undefined;
-    let authenticatedName: string | undefined;
 
     if (sessionToken) {
       try {
         const decoded = await adminAuth.verifyIdToken(sessionToken);
         uid = decoded.uid;
-        authenticatedEmail = decoded.email;
-        authenticatedName = decoded.name;
       } catch (authErr) {
         logger.warn('BOOKING', 'Invalid ID token provided on booking creation', { authErr });
       }
@@ -37,13 +33,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.format() }, { status: 400 });
     }
 
-    // Force normalized email casing & trim
-    const normalizedClientEmail = parsed.data.email.trim().toLowerCase();
-    const normalizedClientName = parsed.data.name.trim();
-
-    // If user is authenticated, override identity with verified token claims
-    const email = (authenticatedEmail || normalizedClientEmail).trim().toLowerCase();
-    const name = (authenticatedName || normalizedClientName).trim();
+    // The booking's client identity is exactly what the person booking typed
+    // in, normalized. The authenticated account contributes OWNERSHIP (the uid
+    // below), never identity: a signed-in therapist or client may book with
+    // any contact email, and the confirmation email, calendar invite,
+    // reminders, receipt and manage-booking link all derive from this
+    // persisted field. (This used to override the form email and name with the
+    // token's claims, which sent a therapist's confirmation — and every other
+    // client-facing email — to their login address when booking for someone
+    // else.)
+    const email = parsed.data.email.trim().toLowerCase();
+    const name = parsed.data.name.trim();
 
     const bookingData = {
       ...parsed.data,

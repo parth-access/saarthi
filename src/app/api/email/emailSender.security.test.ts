@@ -117,6 +117,21 @@ describe('sendEmailAction — booking resolution', () => {
     expect(adminMocked.__mocks.therapistDocId).toHaveBeenCalledWith('th_priya'); // booking's therapist
   });
 
+  it('sends the confirmation to the booking\u2019s client email even when ownership belongs to another account', async () => {
+    // The therapist-booked-for-someone-else shape: the booking's userId names
+    // the account that created it, the email names the client it is for. The
+    // recipient must be the booking's client email — there is no path where an
+    // account email can substitute for it here.
+    vi.mocked(firestoreBookingRepository.findById).mockResolvedValue(
+      bookingFixture({ email: 'personal@example.com', userId: 'therapist_uid' }) as never
+    );
+
+    await sendEmailAction(confirmedPayload());
+
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sendMock.mock.calls[0][0].to).toBe('personal@example.com');
+  });
+
   it('sends the therapist copy only to the booking\'s assigned therapist email', async () => {
     await sendEmailAction({ type: 'booking-rescheduled', bookingId: 'bk_1', therapistId: 'th_priya' });
 
