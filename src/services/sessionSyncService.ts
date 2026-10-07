@@ -12,6 +12,9 @@
  * - Retry: bounded (MAX_SYNC_RETRIES) with fixed backoff — no infinite loops.
  * - Invalidation: logout or a user switch bumps a generation counter, and any
  *   in-flight/retrying sync for the superseded identity stops silently.
+ * - Terminal refusals: a 4xx that carries the server's own sentence (e.g. a
+ *   disabled account) is surfaced to the caller verbatim — it will never
+ *   improve on retry, so the user must be told rather than bounced.
  *
  * The server remains authoritative: this module only relays a Firebase ID
  * token to /api/auth/session, which verifies it with Firebase Admin. A failed
@@ -26,12 +29,25 @@ export interface SyncableFirebaseUser {
   getIdToken(force?: boolean): Promise<string>;
 }
 
+export interface SessionSyncResult {
+  /** True when the server confirmed and the cookie is fresh. */
+  ok: boolean;
+  /** HTTP status of the last mint attempt; null when the network failed first. */
+  status: number | null;
+  /**
+   * The server's own sentence for a terminal refusal — currently a disabled
+   * account. Non-null only for 4xx responses that carried an explanation;
+   * those do not improve on retry, so the UI shows them instead of looping.
+   */
+  refusedMessage: string | null;
+}
+
 const MAX_SYNC_RETRIES = 2;
 const RETRY_DELAY_MS = [800, 2000];
 
 interface InflightSync {
   uid: string;
-  promise: Promise<boolean>;
+  promise: Promise<SessionSyncResult>;
 }
 
 let inflight: InflightSync | null = null;
@@ -42,23 +58,34 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function postSession(idToken: string): Promise<{ ok: boolean; status: number }> {
+async function postSession(
+  idToken: string
+): Promise<SessionSyncResult> {
   const response = await fetch('/api/auth/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ idToken }),
   });
-  return { ok: response.ok, status: response.status };
+  let refusedMessage: string | null = null;
+  if (!response.ok && response.status >= 400 && response.status < 500) {
+    try {
+      const body = (await response.json()) as { error?: unknown } | null;
+      refusedMessage =
+        body && typeof body.error === 'string' && body.error ? body.error : null;
+    } catch {
+      refusedMessage = null;
+    }
+  }
+  return { ok: response.ok, status: response.status, refusedMessage };
 }
 
 /**
- * Synchronize the server session cookie for `user`. Resolves true when the
- * server confirmed (and the cookie is fresh), false when every attempt failed
- * or the sync was invalidated mid-flight (logout / account switch).
- *
- * Concurrent calls for the same uid share one network effort.
+ * Synchronize the server session cookie for `user`. Resolves the result of
+ * the last attempt: `ok` when the server confirmed (and the cookie is fresh);
+ * `refusedMessage` carries the server's sentence when it refused the session
+ * outright. Concurrent calls for the same uid share one network effort.
  */
-export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> {
+export function syncSessionCookie(user: SyncableFirebaseUser): Promise<SessionSyncResult> {
   // Same user already syncing: everyone waits on that single effort.
   if (inflight && inflight.uid === user.uid) {
     return inflight.promise;
@@ -71,25 +98,25 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
   }
 
   const syncGeneration = ++generation;
-  const promise = (async (): Promise<boolean> => {
+  const promise = (async (): Promise<SessionSyncResult> => {
     for (let attempt = 0; attempt <= MAX_SYNC_RETRIES; attempt++) {
       try {
         const idToken = await user.getIdToken();
         // Bail out if the identity was invalidated while we awaited the token.
-        if (generation !== syncGeneration) return false;
+        if (generation !== syncGeneration) return { ok: false, status: null, refusedMessage: null };
 
         const result = await postSession(idToken);
-        if (generation !== syncGeneration) return false;
+        if (generation !== syncGeneration) return { ok: false, status: null, refusedMessage: null };
 
         if (result.ok) {
-          return true;
+          return result;
         }
 
         // 4xx client errors will not improve on retry (e.g. an invalid token —
         // which re-authentication, not retrying, fixes). Retry only 5xx and
         // network failures below.
-        if (result.status >= 400 && result.status < 500) {
-          return false;
+        if (result.status !== null && result.status >= 400 && result.status < 500) {
+          return result;
         }
       } catch {
         // Network error: fall through to retry decision.
@@ -97,12 +124,12 @@ export function syncSessionCookie(user: SyncableFirebaseUser): Promise<boolean> 
 
       const isLastAttempt = attempt === MAX_SYNC_RETRIES;
       if (isLastAttempt || generation !== syncGeneration) {
-        return false;
+        return { ok: false, status: null, refusedMessage: null };
       }
       await delay(RETRY_DELAY_MS[attempt]);
-      if (generation !== syncGeneration) return false;
+      if (generation !== syncGeneration) return { ok: false, status: null, refusedMessage: null };
     }
-    return false;
+    return { ok: false, status: null, refusedMessage: null };
   })();
 
   inflight = { uid: user.uid, promise };

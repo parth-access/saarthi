@@ -9,20 +9,21 @@ import { auth, db } from '../lib/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { syncSessionCookie, invalidateSessionSync } from '@/services/sessionSyncService';
+import { syncSessionCookie, invalidateSessionSync, type SessionSyncResult } from '@/services/sessionSyncService';
 import { perfMark, perfMeasure } from '@/lib/perfTracing';
 
 interface AuthContextType {
   currentUser: CustomUser | null;
   loading: boolean;
   /**
-   * Resolves true when the server session cookie has been confirmed for the
+   * Resolves when the server session cookie has been confirmed for the
    * current user (or the user is signed out), so callers that immediately
    * depend on server-side session state (e.g. the login page's redirect to
    * middleware-protected routes) can wait for it without every consumer of
-   * the auth context having to.
+   * the auth context having to. The resolved result carries the server's own
+   * sentence when it refused the session outright (e.g. a disabled account).
    */
-  sessionSyncComplete: Promise<boolean> | null;
+  sessionSyncComplete: Promise<SessionSyncResult> | null;
   login: (email: string, pw: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   register: (email: string, pw: string, name: string) => Promise<void>;
@@ -34,7 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sessionSyncComplete, setSessionSyncComplete] = useState<Promise<boolean> | null>(null);
+  const [sessionSyncComplete, setSessionSyncComplete] = useState<Promise<SessionSyncResult> | null>(null);
   const router = useRouter();
   
   const isMounted = useRef(true);
@@ -144,14 +145,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           const syncPromise = syncSessionCookie(firebaseUser);
           setSessionSyncComplete(syncPromise);
-          void syncPromise.then((ok) => {
+          void syncPromise.then((result) => {
             perfMeasure('SESSION_SYNC_END', 'SESSION_SYNC_START', 'AUTH');
-            if (!ok) {
+            if (!result.ok) {
               // The cookie could not be synced. Client state stays valid
               // (Firebase auth governs it), but middleware/API calls will
               // bounce until a later sync succeeds — e.g. the next auth
-              // event or an explicit re-login.
-              console.warn('Background session sync did not complete.');
+              // event or an explicit re-login. A terminal refusal (the
+              // server's own sentence, e.g. a disabled account) is carried
+              // on the result for the login screen to show verbatim.
+              console.warn('Background session sync did not complete.', result.status);
             }
           });
         } else {

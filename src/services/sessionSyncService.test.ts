@@ -29,12 +29,12 @@ afterEach(() => {
 });
 
 describe('syncSessionCookie', () => {
-  it('POSTs the ID token and resolves true on success', async () => {
+  it('POSTs the ID token and resolves ok on success', async () => {
     const user = makeUser('u1');
 
     const result = await syncSessionCookie(user);
 
-    expect(result).toBe(true);
+    expect(result).toMatchObject({ ok: true, status: 200, refusedMessage: null });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/session', {
       method: 'POST',
@@ -54,8 +54,8 @@ describe('syncSessionCookie', () => {
     const [r1, r2] = await Promise.all([p1, p2]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(r1).toBe(true);
-    expect(r2).toBe(true);
+    expect(r1.ok).toBe(true);
+    expect(r2.ok).toBe(true);
   });
 
   it('reconfirms the cookie after a previous success, since middleware may have cleared it', async () => {
@@ -64,7 +64,7 @@ describe('syncSessionCookie', () => {
     await syncSessionCookie(user);
     const second = await syncSessionCookie(user);
 
-    expect(second).toBe(true);
+    expect(second.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -76,7 +76,7 @@ describe('syncSessionCookie', () => {
     await vi.advanceTimersByTimeAsync(1_000);
     const result = await promise;
 
-    expect(result).toBe(true);
+    expect(result.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -88,8 +88,65 @@ describe('syncSessionCookie', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     const result = await promise;
 
-    expect(result).toBe(false);
+    expect(result).toMatchObject({ ok: false, status: 400, refusedMessage: null });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('carries the server\u2019s refusal sentence verbatim on a terminal 403', async () => {
+    const user = makeUser('u1');
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        error: 'This account has been disabled. Contact the practice if you believe this is a mistake.',
+      }),
+    });
+
+    const promise = syncSessionCookie(user);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const result = await promise;
+
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      refusedMessage:
+        'This account has been disabled. Contact the practice if you believe this is a mistake.',
+    });
+    // Terminal: no retries burned on an answer that will not change.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers a 4xx without a readable body with a null refusal, not a crash', async () => {
+    const user = makeUser('u1');
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => {
+        throw new Error('no body');
+      },
+    });
+
+    const promise = syncSessionCookie(user);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const result = await promise;
+
+    expect(result).toMatchObject({ ok: false, status: 400, refusedMessage: null });
+  });
+
+  it('never carries a refusal message from a 5xx, which may yet succeed on retry', async () => {
+    const user = makeUser('u1');
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: 'upstream exploded' }),
+    });
+
+    const promise = syncSessionCookie(user);
+    await vi.advanceTimersByTimeAsync(5_000);
+    const result = await promise;
+
+    expect(result).toMatchObject({ ok: false, refusedMessage: null });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('retries 5xx responses up to the retry budget', async () => {
@@ -100,7 +157,7 @@ describe('syncSessionCookie', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     const result = await promise;
 
-    expect(result).toBe(false);
+    expect(result.ok).toBe(false);
     // Initial attempt + 2 retries.
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
@@ -117,7 +174,7 @@ describe('syncSessionCookie', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     const result = await promise;
 
-    expect(result).toBe(false);
+    expect(result).toMatchObject({ ok: false, status: null, refusedMessage: null });
     // Only the first attempt went out; the invalidation cancelled the rest.
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -134,8 +191,8 @@ describe('syncSessionCookie', () => {
     await vi.advanceTimersByTimeAsync(200);
 
     const [resultA, resultB] = await Promise.all([promiseA, promiseB]);
-    expect(resultA).toBe(false); // A superseded by B
-    expect(resultB).toBe(true);
+    expect(resultA.ok).toBe(false); // A superseded by B
+    expect(resultB.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/auth/session',
       expect.objectContaining({ method: 'POST' })

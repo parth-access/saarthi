@@ -13,7 +13,7 @@ const authState = vi.hoisted(() => ({
   current: {
     currentUser: null as User | null,
     loading: true,
-    sessionSyncComplete: null as Promise<boolean> | null,
+    sessionSyncComplete: null as Promise<import('@/services/sessionSyncService').SessionSyncResult> | null,
   },
 }));
 
@@ -114,8 +114,8 @@ describe('/login navigation', () => {
   });
 
   it('waits for successful cookie sync before returning to a role-authorized destination', async () => {
-    let finishSync!: (synced: boolean) => void;
-    const sessionSyncComplete = new Promise<boolean>((resolve) => {
+    let finishSync!: (synced: { ok: boolean; status: number | null; refusedMessage: string | null }) => void;
+    const sessionSyncComplete = new Promise<import('@/services/sessionSyncService').SessionSyncResult>((resolve) => {
       finishSync = resolve;
     });
     authState.current = {
@@ -129,7 +129,7 @@ describe('/login navigation', () => {
     loginEffect.current?.();
     expect(navigationState.router.replace).not.toHaveBeenCalled();
 
-    finishSync(true);
+    finishSync({ ok: true, status: 200, refusedMessage: null });
     await sessionSyncComplete;
     await Promise.resolve();
 
@@ -140,7 +140,7 @@ describe('/login navigation', () => {
   });
 
   it('falls back to the role root for duplicate next parameters', async () => {
-    const sessionSyncComplete = Promise.resolve(true);
+    const sessionSyncComplete = Promise.resolve({ ok: true, status: 200, refusedMessage: null });
     authState.current = {
       currentUser: { uid: 'client-1', email: 'client@example.com', role: 'client' },
       loading: false,
@@ -157,7 +157,7 @@ describe('/login navigation', () => {
   });
 
   it('falls back to the role root when next belongs to another role', async () => {
-    const sessionSyncComplete = Promise.resolve(true);
+    const sessionSyncComplete = Promise.resolve({ ok: true, status: 200, refusedMessage: null });
     authState.current = {
       currentUser: { uid: 'therapist-1', email: 'therapist@example.com', role: 'therapist' },
       loading: false,
@@ -177,7 +177,7 @@ describe('/login navigation', () => {
     ['therapist', '/therapist/sessions?view=upcoming'],
     ['admin', '/admin/bookings?status=pending'],
   ] as const)('returns a signed-in %s to an eligible nested page', async (role, destination) => {
-    const sessionSyncComplete = Promise.resolve(true);
+    const sessionSyncComplete = Promise.resolve({ ok: true, status: 200, refusedMessage: null });
     authState.current = {
       currentUser: { uid: `${role}-1`, email: `${role}@example.com`, role },
       loading: false,
@@ -194,7 +194,7 @@ describe('/login navigation', () => {
 
   it.each(['https://evil.example', '//evil.example', 'javascript:alert(1)', 'data:text/html,evil'])
     ('ignores a malicious next value %s', async (destination) => {
-      const sessionSyncComplete = Promise.resolve(true);
+      const sessionSyncComplete = Promise.resolve({ ok: true, status: 200, refusedMessage: null });
       authState.current = {
         currentUser: { uid: 'client-1', email: 'client@example.com', role: 'client' },
         loading: false,
@@ -210,7 +210,7 @@ describe('/login navigation', () => {
     });
 
   it('does not navigate on a previous sync while a new auth state is loading', async () => {
-    const sessionSyncComplete = Promise.resolve(true);
+    const sessionSyncComplete = Promise.resolve({ ok: true, status: 200, refusedMessage: null });
     authState.current = {
       currentUser: { uid: 'client-1', email: 'client@example.com', role: 'client' },
       loading: true,
@@ -225,7 +225,7 @@ describe('/login navigation', () => {
   });
 
   it.each([
-    ['a false result', () => Promise.resolve(false)],
+    ['a false result', () => Promise.resolve({ ok: false, status: 503, refusedMessage: null })],
     ['a rejected sync', () => Promise.reject(new Error('sync failed'))],
   ])('does not enter a protected redirect loop after %s', async (_label, createSessionSync) => {
     const sessionSyncComplete = createSessionSync();
@@ -246,8 +246,8 @@ describe('/login navigation', () => {
   });
 
   it('does not navigate after the redirect effect has been cleaned up', async () => {
-    let finishSync!: (synced: boolean) => void;
-    const sessionSyncComplete = new Promise<boolean>((resolve) => {
+    let finishSync!: (synced: { ok: boolean; status: number | null; refusedMessage: string | null }) => void;
+    const sessionSyncComplete = new Promise<import('@/services/sessionSyncService').SessionSyncResult>((resolve) => {
       finishSync = resolve;
     });
     authState.current = {
@@ -260,7 +260,7 @@ describe('/login navigation', () => {
     renderLogin();
     const cleanup = loginEffect.current?.();
     cleanup?.();
-    finishSync(true);
+    finishSync({ ok: true, status: 200, refusedMessage: null });
     await sessionSyncComplete;
     await Promise.resolve();
 

@@ -9,6 +9,7 @@ import { Lock, User as UserIcon, Eye, EyeOff, Shield, ArrowRight, Heart, Mail, U
 import { toast } from "sonner";
 import { BackLink } from "@/components/navigation/BackLink";
 import { getSafeReturnPath } from "@/lib/auth/returnPath";
+import type { SessionSyncResult } from "@/services/sessionSyncService";
 
 interface FloatingInputProps {
   id?: string;
@@ -195,7 +196,9 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [failedSessionSync, setFailedSessionSync] = useState<Promise<boolean> | null>(null);
+  const [failedSessionSync, setFailedSessionSync] = useState<Promise<SessionSyncResult> | null>(null);
+  /** The server's own sentence when it refused the session (e.g. a disabled account). */
+  const [syncRefusal, setSyncRefusal] = useState<string | null>(null);
 
   const {
     login,
@@ -218,10 +221,13 @@ function LoginContent() {
 
     let cancelled = false;
     void sessionSyncComplete.then(
-      (synced) => {
+      (result) => {
         if (cancelled) return;
-        if (!synced) {
+        if (!result.ok) {
           setFailedSessionSync(sessionSyncComplete);
+          // A terminal refusal carries the server's explanation — a disabled
+          // account says so by name instead of the generic network copy.
+          setSyncRefusal(result.refusedMessage);
           return;
         }
 
@@ -229,7 +235,10 @@ function LoginContent() {
         router.replace(returnPath ?? getRoleRoot(currentUser.role));
       },
       () => {
-        if (!cancelled) setFailedSessionSync(sessionSyncComplete);
+        if (!cancelled) {
+          setFailedSessionSync(sessionSyncComplete);
+          setSyncRefusal(null);
+        }
       }
     );
 
@@ -299,9 +308,15 @@ function LoginContent() {
           <div className="w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
             <Shield className="mx-auto mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
             <h1 className="font-serif text-xl text-primary">We couldn&apos;t finish signing you in</h1>
-            <p role="alert" className="mt-2 text-sm text-primary/60">
-              Your secure session could not be confirmed. Please sign out and try again.
-            </p>
+            {syncRefusal ? (
+              <p role="alert" className="mt-2 text-sm text-primary/80">
+                {syncRefusal}
+              </p>
+            ) : (
+              <p role="alert" className="mt-2 text-sm text-primary/60">
+                Your secure session could not be confirmed. Please sign out and try again.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => void logout()}
