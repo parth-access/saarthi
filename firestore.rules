@@ -46,7 +46,21 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'client');
 
       allow update: if
-        isAdmin()
+        (
+          isAdmin()
+          // Authority fields change ONLY through the server: the Admin SDK
+          // bypasses rules, so these keys are exactly how the console's
+          // audited endpoints write them. A client-SDK write touching any of
+          // them is refused outright — role changes made through here would
+          // bypass the self-guard, the last-admin guard and the audit_logs
+          // row, which is the "direct database edit with a UI" path the
+          // console exists to retire.
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'role',
+            'sessionRevokeBefore',
+            'accountDisabled'
+          ])
+        )
         || (
           isSignedIn()
           && request.auth.uid == userId
