@@ -123,4 +123,57 @@ describe('ProtectedRoute', () => {
       capturedEffects.current[1]?.dependencies
     );
   });
+
+  /**
+   * The role matrix, as the guards declare it. The dashboard is every
+   * authenticated role's personal space; the therapist portal is
+   * therapist-only (an admin is bounced to /admin — existing behavior);
+   * the admin console is admin-only.
+   */
+  describe.each([
+    ['client', 'DASHBOARD', ['client', 'admin', 'therapist']],
+    ['therapist', 'DASHBOARD', ['client', 'admin', 'therapist']],
+    ['admin', 'DASHBOARD', ['client', 'admin', 'therapist']],
+    ['therapist', 'THERAPIST', ['therapist']],
+    ['admin', 'THERAPIST', ['therapist']],
+    ['client', 'THERAPIST', ['therapist']],
+    ['therapist', 'ADMIN', ['admin']],
+    ['client', 'ADMIN', ['admin']],
+  ] as const)('role matrix: %s on %s', (role, section, allowedRolesTuple) => {
+    const allowedRoles: Array<'client' | 'therapist' | 'admin'> = [...allowedRolesTuple];
+    const isDashboard = allowedRoles.includes('admin') && allowedRoles.includes('therapist');
+
+    it(isDashboard || allowedRoles.includes(role)
+      ? 'renders the section without redirecting'
+      : 'redirects to the role root', () => {
+      authState.currentUser = { uid: `${role}-1`, email: `${role}@example.com`, role };
+      navigationState.pathname =
+        section === 'DASHBOARD' ? '/dashboard' : section === 'THERAPIST' ? '/therapist' : '/admin';
+
+      const html = renderRoute([...allowedRoles]);
+      runLatestEffect();
+
+      const allowed = isDashboard || allowedRoles.includes(role);
+      if (allowed) {
+        expect(html).toContain('Private content');
+        expect(navigationState.router.replace).not.toHaveBeenCalled();
+      } else {
+        expect(navigationState.router.replace).toHaveBeenCalledWith(
+          role === 'admin' ? '/admin' : role === 'therapist' ? '/therapist' : '/dashboard'
+        );
+        expect(html).not.toContain('Private content');
+      }
+    });
+  });
+
+  it('sends an unauthenticated visitor on a therapist path to login with the return path', () => {
+    navigationState.pathname = '/therapist/sessions';
+
+    renderRoute(['therapist']);
+    runLatestEffect();
+
+    expect(navigationState.router.replace).toHaveBeenCalledWith(
+      '/login?next=%2Ftherapist%2Fsessions%3Fstatus%3Dconfirmed%26page%3D2'
+    );
+  });
 });

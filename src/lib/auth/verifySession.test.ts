@@ -192,7 +192,9 @@ describe('middleware: signed-out navigation', () => {
   const PROTECTED = [
     '/dashboard',
     '/dashboard/bookings',
+    '/admin',
     '/admin/bookings/bk_20260915_3B221AE5',
+    '/therapist',
     '/therapist/bookings/bk_20260915_3B221AE5',
   ];
 
@@ -222,6 +224,74 @@ describe('middleware: signed-out navigation', () => {
 
     expect(res.headers.get('location')).toBeNull();
     expect(res.headers.get('set-cookie') ?? '').toContain('__session=');
+  });
+});
+
+/**
+ * Middleware's role routing, which the role matrix relies on: /dashboard is
+ * authentication-only (any signed-in role passes — the client guard owns
+ * nothing here), /admin is admin-only, /therapist admits therapist and admin
+ * at the middleware layer (the client guard decides what an admin sees there).
+ */
+describe('middleware: role routing', () => {
+  const originalEnv = process.env.JWT_SECRET;
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.JWT_SECRET = originalEnv;
+    } else {
+      delete process.env.JWT_SECRET;
+    }
+  });
+
+  async function tokenWithRole(role: string) {
+    process.env.JWT_SECRET = 'super-secret-production-key-12345';
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    return new SignJWT({ uid: `${role}_user`, email: `${role}@example.com`, role })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('5d')
+      .sign(secret);
+  }
+
+  it('lets a signed-in therapist onto /dashboard without redirecting', async () => {
+    const token = await tokenWithRole('therapist');
+    const res = await middleware(
+      new NextRequest('https://saarthilife.com/dashboard', {
+        headers: { cookie: `__session=${token}` },
+      })
+    );
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('lets a signed-in admin onto /dashboard without redirecting (existing behavior)', async () => {
+    const token = await tokenWithRole('admin');
+    const res = await middleware(
+      new NextRequest('https://saarthilife.com/dashboard', {
+        headers: { cookie: `__session=${token}` },
+      })
+    );
+    expect(res.headers.get('location')).toBeNull();
+  });
+
+  it('bounces a signed-in therapist from /admin (existing middleware behavior)', async () => {
+    const token = await tokenWithRole('therapist');
+    const res = await middleware(
+      new NextRequest('https://saarthilife.com/admin', {
+        headers: { cookie: `__session=${token}` },
+      })
+    );
+    expect(res.headers.get('location')).toContain('/dashboard');
+  });
+
+  it('admits a signed-in admin at the middleware layer on /therapist; the client guard decides', async () => {
+    const token = await tokenWithRole('admin');
+    const res = await middleware(
+      new NextRequest('https://saarthilife.com/therapist', {
+        headers: { cookie: `__session=${token}` },
+      })
+    );
+    expect(res.headers.get('location')).toBeNull();
   });
 });
 

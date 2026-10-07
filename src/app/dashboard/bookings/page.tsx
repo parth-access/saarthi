@@ -281,7 +281,11 @@ function DashboardBookings() {
 
 export default function DashboardBookingsRoute() {
   return (
-    <ProtectedRoute allowedRoles={["client", "admin"]}>
+    <ProtectedRoute // The dashboard is every authenticated role's personal space: it reads
+        // only data scoped to the signed-in identity (bookings keyed to the
+        // account email, receipts/profile to the session), and Firestore rules
+        // enforce the same ownership server-side.
+        allowedRoles={["client", "admin", "therapist"]}>
       <DashboardBookings />
     </ProtectedRoute>
   );
