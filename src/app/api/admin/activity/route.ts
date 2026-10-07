@@ -6,9 +6,13 @@ import { logger } from '../../_lib/logger';
 export const dynamic = 'force-dynamic';
 
 /**
- * The activity log: a paged, filtered read of `timelines` — the record of what
- * actors did and what the system did in response. Per-booking audit history
- * lives on the booking detail screen; this is the cross-booking stream.
+ * The activity log: a paged, filtered read in two ledgers, selected by
+ * `?source=` — `timeline` (default): `timelines`, the record of what actors
+ * did and what the system did in response as events fire; `audit`: the
+ * top-level `audit_logs` collection — the durable trail of slot holds,
+ * payments, refunds and console administration (role and access changes,
+ * bookability). Per-booking audit history also lives on the booking detail
+ * screen; this is the cross-booking stream.
  *
  * The query plan refuses unsupported filter combinations with an explanation,
  * every page is bounded, and the only ordering is the declared one. A failed
@@ -21,11 +25,14 @@ export async function GET(req: NextRequest) {
 
   const sp = new URL(req.url).searchParams;
   const plan = planActivityQuery({
+    source: sp.get('source'),
     correlationId: sp.get('correlationId'),
     bookingId: sp.get('bookingId'),
     severity: sp.get('severity'),
     event: sp.get('event'),
     actorType: sp.get('actorType'),
+    eventType: sp.get('eventType'),
+    userId: sp.get('userId'),
     pageSize: sp.get('pageSize'),
   });
 
@@ -50,10 +57,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await readActivityPage({ filter: plan.filter, pageSize: plan.pageSize, cursor });
+    const result = await readActivityPage({ source: plan.source, filter: plan.filter, pageSize: plan.pageSize, cursor });
     if (!result.ok) {
       return NextResponse.json(
-        { success: true, activity: { ok: false, reason: result.reason } },
+        { success: true, source: plan.source, activity: { ok: false, reason: result.reason } },
         { headers: { 'Cache-Control': 'private, no-store' } }
       );
     }
@@ -64,6 +71,7 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         generatedAtIso: new Date().toISOString(),
+        source: plan.source,
         activity: { ok: true, entries: result.page.entries, hasMore: result.page.hasMore },
         nextCursor,
         appliedFilter: plan.filter,

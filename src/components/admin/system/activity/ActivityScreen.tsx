@@ -19,7 +19,9 @@ import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import {
   ACTIVITY_ACTOR_TYPES,
   ACTIVITY_SEVERITIES,
+  ACTIVITY_SOURCES,
   type ActivityFilter,
+  type ActivitySource,
 } from '@/domains/admin/activityQuery';
 import { severityBadge } from '@/domains/admin/operationsTriage';
 import {
@@ -31,7 +33,12 @@ import { useAdminActivity } from './useAdminActivity';
 
 type FilterKind = ActivityFilter['kind'] | 'none';
 
-const FILTER_LABELS: Record<Exclude<FilterKind, 'none'>, string> = {
+const SOURCE_LABELS: Record<ActivitySource, string> = {
+  timeline: 'System events',
+  audit: 'Admin audit trail',
+};
+
+const TIMELINE_FILTER_LABELS: Record<string, string> = {
   correlationId: 'Correlation id',
   bookingId: 'Booking id',
   severity: 'Severity',
@@ -39,13 +46,29 @@ const FILTER_LABELS: Record<Exclude<FilterKind, 'none'>, string> = {
   actorType: 'Actor',
 };
 
+const AUDIT_FILTER_LABELS: Record<string, string> = {
+  eventType: 'Event type',
+  userId: 'Actor id',
+};
+
 export function ActivityScreen() {
+  const [source, setSource] = useState<ActivitySource>('timeline');
   const [filterKind, setFilterKind] = useState<FilterKind>('none');
   const [filterValue, setFilterValue] = useState('');
   const [filter, setFilter] = useState<ActivityFilter | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const activity = useAdminActivity(filter);
+  const activity = useAdminActivity(filter, source);
+
+  function switchSource(next: ActivitySource) {
+    if (next === source) return;
+    // The two ledgers have different filter vocabularies; carrying a filter
+    // across would silently mean something else.
+    setSource(next);
+    setFilterKind('none');
+    setFilterValue('');
+    setFilter(null);
+  }
 
   function applyFilter() {
     const value = filterValue.trim();
@@ -76,7 +99,10 @@ export function ActivityScreen() {
         </Notice>
       )}
 
+      <SourceToggle source={source} onSource={switchSource} />
+
       <FilterPanel
+        source={source}
         filterKind={filterKind}
         onKind={(kind) => {
           setFilterKind(kind);
@@ -174,7 +200,44 @@ function Reading({
   );
 }
 
+function SourceToggle({
+  source,
+  onSource,
+}: {
+  source: ActivitySource;
+  onSource: (source: ActivitySource) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-hairline bg-white px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Activity ledger">
+        {ACTIVITY_SOURCES.map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={source === value}
+            onClick={() => onSource(value)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              source === value
+                ? 'bg-primary text-white'
+                : 'bg-neutral-surface text-primary/70 hover:text-primary'
+            }`}
+          >
+            {SOURCE_LABELS[value]}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[0.625rem] leading-relaxed text-muted-foreground">
+        {source === 'timeline'
+          ? 'What the system did as events fired — booking, payment, email and reminder flows. Rows without a filter are the newest first.'
+          : 'The durable audit trail: role and access changes, bookability switches, slot holds, payments and refunds. Rows here were written at the moment the change was made.'}
+      </p>
+    </div>
+  );
+}
+
 function FilterPanel({
+  source,
   filterKind,
   onKind,
   filterValue,
@@ -183,6 +246,7 @@ function FilterPanel({
   onClear,
   activeFilter,
 }: {
+  source: ActivitySource;
   filterKind: FilterKind;
   onKind: (kind: FilterKind) => void;
   filterValue: string;
@@ -193,7 +257,9 @@ function FilterPanel({
 }) {
   const fieldClass =
     'rounded-lg border border-hairline bg-white px-2.5 py-1.5 text-xs text-primary focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20';
-  const selectKind = filterKind === 'severity' || filterKind === 'actorType';
+  const isTimeline = source === 'timeline';
+  const labels = isTimeline ? TIMELINE_FILTER_LABELS : AUDIT_FILTER_LABELS;
+  const selectKind = isTimeline && (filterKind === 'severity' || filterKind === 'actorType');
 
   return (
     <div className="rounded-xl border border-hairline bg-white px-4 py-3 shadow-sm">
@@ -208,9 +274,9 @@ function FilterPanel({
           className={fieldClass}
         >
           <option value="none">No filter</option>
-          {(Object.keys(FILTER_LABELS) as Array<Exclude<FilterKind, 'none'>>).map((kind) => (
+          {(Object.keys(labels) as Array<Exclude<FilterKind, 'none'>>).map((kind) => (
             <option key={kind} value={kind}>
-              {FILTER_LABELS[kind]}
+              {labels[kind]}
             </option>
           ))}
         </select>
@@ -237,7 +303,13 @@ function FilterPanel({
               onKeyDown={(event) => {
                 if (event.key === 'Enter') onApply();
               }}
-              placeholder={filterKind === 'event' ? 'e.g. BookingConfirmed' : 'id'}
+              placeholder={
+                filterKind === 'event'
+                  ? 'e.g. BookingConfirmed'
+                  : filterKind === 'eventType'
+                    ? 'e.g. PAYMENT_SUCCEEDED'
+                    : 'id'
+              }
               aria-label="Filter value"
               className={`min-w-0 flex-1 ${fieldClass}`}
             />
@@ -253,7 +325,7 @@ function FilterPanel({
       </div>
       {activeFilter && (
         <p className="mt-2 text-[0.625rem] text-muted-foreground">
-          Filtering by {FILTER_LABELS[activeFilter.kind as Exclude<FilterKind, 'none'>]}:{' '}
+          Filtering by {labels[activeFilter.kind as Exclude<FilterKind, 'none'>]}:{' '}
           <span className="font-mono">{activeFilter.value}</span>
         </p>
       )}
@@ -278,7 +350,7 @@ function EntryCard({
   onCorrelation: (id: string) => void;
   onBooking: (id: string) => void;
 }) {
-  const severity = severityBadge(entry.severity);
+  const severity = severityBadge(entry.severity ?? 'info');
 
   return (
     <li className="rounded-xl border border-hairline bg-white p-3.5 shadow-sm">
@@ -293,10 +365,18 @@ function EntryCard({
         ) : (
           <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         )}
-        <Badge {...severity} label={severity.label} title="Severity as written by the event." />
+        {entry.severity === null ? (
+          <Badge
+            tone="info"
+            label="Audit"
+            title="A durable audit row — written at the moment the change was made."
+          />
+        ) : (
+          <Badge {...severity} label={severity.label} title="Severity as written by the event." />
+        )}
         <span className="font-mono text-xs text-primary">{entry.event}</span>
         <span className="text-[0.6875rem] text-muted-foreground">
-          Actor: {entry.actorType ?? 'system'}
+          Actor: {entry.actorType ?? entry.actorId ?? 'system'}
         </span>
         {entry.createdAtIso && (
           <span className="ml-auto text-[0.6875rem] text-muted-foreground">

@@ -4,10 +4,11 @@
  * distinct from a failed read, which is data on the page.
  */
 import type { ActivityEntry } from '@/app/api/admin/activity/activitySources';
-import type { ActivityFilter } from '@/domains/admin/activityQuery';
+import type { ActivityFilter, ActivitySource } from '@/domains/admin/activityQuery';
 
 export interface ActivityPagePayload {
   readonly generatedAtIso: string;
+  readonly source: ActivitySource;
   readonly entries: readonly ActivityEntry[];
   readonly hasMore: boolean;
   readonly nextCursor: string | null;
@@ -56,6 +57,7 @@ export function interpretAdminActivityResponse(
   if (!scan) return { ok: false, error: GENERIC_ACTIVITY_ERROR };
 
   const generatedAtIso = typeof record.generatedAtIso === 'string' ? record.generatedAtIso : null;
+  const source: ActivitySource = record.source === 'audit' ? 'audit' : 'timeline';
   const pageSize =
     typeof record.pageSize === 'number' && Number.isFinite(record.pageSize) ? record.pageSize : 30;
 
@@ -64,6 +66,7 @@ export function interpretAdminActivityResponse(
       ok: true,
       page: {
         generatedAtIso: generatedAtIso ?? new Date(0).toISOString(),
+        source,
         entries: [],
         hasMore: false,
         nextCursor: null,
@@ -87,6 +90,7 @@ export function interpretAdminActivityResponse(
     ok: true,
     page: {
       generatedAtIso: generatedAtIso ?? new Date(0).toISOString(),
+      source,
       entries,
       hasMore: scan.hasMore === true,
       nextCursor: typeof record.nextCursor === 'string' && record.nextCursor ? record.nextCursor : null,

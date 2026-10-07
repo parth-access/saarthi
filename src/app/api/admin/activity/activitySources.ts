@@ -3,6 +3,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import {
   planActivityQuery,
   type ActivityFilter,
+  type ActivitySource,
 } from '@/domains/admin/activityQuery';
 import { isoOrNull } from '@/domains/booking/queries/adminBookingQuery';
 import { logger } from '../../_lib/logger';
@@ -22,7 +23,8 @@ export const UNREADABLE = 'Could not be read just now. Reload to try again.';
 export interface ActivityEntry {
   readonly id: string;
   readonly event: string;
-  readonly severity: string;
+  /** Audit rows carry no severity — null means the row is from the audit ledger. */
+  readonly severity: string | null;
   readonly message: string;
   readonly actorType: string | null;
   readonly actorId: string | null;
@@ -96,24 +98,65 @@ function applyFilter(
       return query.where('event', '==', filter.value);
     case 'actorType':
       return query.where('actor.type', '==', filter.value);
+    case 'eventType':
+      return query.where('eventType', '==', filter.value);
+    case 'userId':
+      return query.where('userId', '==', filter.value);
   }
 }
 
+/**
+ * An `audit_logs` row as the activity screen renders one. The collection's
+ * writers share `eventType`, `timestamp` and usually `details`; everything
+ * else — before/after, target ids, amounts, reasons — is payload, so it flows
+ * into the expandable metadata rather than being dropped. `userId` is the
+ * actor (an admin for console actions, a client for booking flows), and
+ * `razorpayPaymentId` maps to the payment reference the row is about.
+ */
+function toAuditEntry(doc: { id: string; data: () => Record<string, unknown> }): ActivityEntry {
+  const data = doc.data();
+  const metadata: Record<string, unknown> = { ...data };
+  for (const projected of ['eventType', 'timestamp', 'details', 'bookingId', 'razorpayPaymentId', 'userId']) {
+    delete metadata[projected];
+  }
+  return {
+    id: doc.id,
+    event: str(data.eventType) ?? 'unknown',
+    severity: null,
+    message: str(data.details) ?? '',
+    actorType: null,
+    actorId: str(data.userId),
+    correlationId: null,
+    bookingId: str(data.bookingId),
+    paymentId: str(data.razorpayPaymentId),
+    emailId: null,
+    metadata: Object.keys(metadata).length > 0 ? metadata : null,
+    createdAtIso: isoOrNull(data.timestamp),
+  };
+}
+
 export async function readActivityPage(params: {
+  source: ActivitySource;
   filter: ActivityFilter | null;
   pageSize: number;
   cursor: { createdAtMs: number; id: string } | null;
 }): Promise<ActivityReadResult> {
-  const { filter, pageSize, cursor } = params;
+  const { source, filter, pageSize, cursor } = params;
   try {
-    let query = applyFilter(requireDb().collection('timelines'), filter)
-      .orderBy('createdAt', 'desc')
+    // The audit ledger has always stamped its rows `timestamp`, not `createdAt`.
+    const collection = source === 'audit' ? requireDb().collection('audit_logs') : requireDb().collection('timelines');
+    const orderField = source === 'audit' ? 'timestamp' : 'createdAt';
+    let query = applyFilter(collection, filter)
+      .orderBy(orderField, 'desc')
       .limit(pageSize + 1);
     if (cursor) {
       query = query.startAfter(Timestamp.fromMillis(cursor.createdAtMs), cursor.id);
     }
     const snapshot = await query.get();
-    const entries = snapshot.docs.slice(0, pageSize).map(toEntry);
+    const entries = (source === 'audit' ? snapshot.docs.map(toAuditEntry) : snapshot.docs.map(toEntry)).slice(
+      0,
+      pageSize
+    );
     const hasMore = snapshot.size > pageSize;
     const last = entries[entries.length - 1];
     const lastMs = last?.createdAtIso ? Date.parse(last.createdAtIso) : NaN;
@@ -127,7 +170,10 @@ export async function readActivityPage(params: {
       },
     };
   } catch (error) {
-    logger.error('SYSTEM', 'Admin activity page read failed', error, { filter: filter?.kind ?? null });
+    logger.error('SYSTEM', 'Admin activity page read failed', error, {
+      source,
+      filter: filter?.kind ?? null,
+    });
     return { ok: false, reason: UNREADABLE };
   }
 }

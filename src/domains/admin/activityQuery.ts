@@ -16,6 +16,27 @@
 export const ACTIVITY_PAGE_SIZE_DEFAULT = 30;
 export const ACTIVITY_PAGE_SIZE_MAX = 100;
 
+/**
+ * The activity screen reads two ledgers, and says which one it is showing:
+ *
+ *  - `timeline` — the `timelines` collection written by TimelineListener as
+ *    events fire; ordered by `createdAt`.
+ *  - `audit` — the top-level `audit_logs` collection written durably by the
+ *    booking commands (slot holds, payments, refunds) and the admin console
+ *    (bookability, user role and access changes); ordered by `timestamp`,
+ *    which is the field name every audit writer has always used.
+ *
+ * They are separate queries, not a merged stream: interleaved pagination
+ * across two collections would need a two-part cursor and doubly-bounded
+ * reads for one screen. The toggle is honest about the seam.
+ */
+export const ACTIVITY_SOURCES = ['timeline', 'audit'] as const;
+export type ActivitySource = (typeof ACTIVITY_SOURCES)[number];
+
+export function isActivitySource(value: unknown): value is ActivitySource {
+  return ACTIVITY_SOURCES.includes(value as ActivitySource);
+}
+
 /** The severities `TimelineListener` writes. */
 export const ACTIVITY_SEVERITIES = ['info', 'warning', 'error'] as const;
 
@@ -34,10 +55,17 @@ export type ActivityFilter =
   | { readonly kind: 'bookingId'; readonly value: string }
   | { readonly kind: 'severity'; readonly value: string }
   | { readonly kind: 'event'; readonly value: string }
-  | { readonly kind: 'actorType'; readonly value: string };
+  | { readonly kind: 'actorType'; readonly value: string }
+  | { readonly kind: 'eventType'; readonly value: string }
+  | { readonly kind: 'userId'; readonly value: string };
 
 export type ActivityPlan =
-  | { readonly ok: true; readonly filter: ActivityFilter | null; readonly pageSize: number }
+  | {
+      readonly ok: true;
+      readonly source: ActivitySource;
+      readonly filter: ActivityFilter | null;
+      readonly pageSize: number;
+    }
   | { readonly ok: false; readonly code: 'INVALID_PARAM' | 'UNSUPPORTED_COMBINATION'; readonly message: string };
 
 const ID_PARAM_PATTERN = /^[A-Za-z0-9_.-]{1,256}$/;
@@ -45,27 +73,53 @@ const ID_PARAM_PATTERN = /^[A-Za-z0-9_.-]{1,256}$/;
 /**
  * Validates the query parameters into at most one filter. Anything the console
  * does not declare is a named refusal, in words an operator can read.
+ *
+ * Each source has its own filter vocabulary — the audit trail's rows carry
+ * `eventType` and `userId`, not `severity` or `actor` — and a filter from the
+ * other ledger is refused with the reason rather than quietly ignored.
  */
 export function planActivityQuery(params: {
+  source?: string | null;
   correlationId?: string | null;
   bookingId?: string | null;
   severity?: string | null;
   event?: string | null;
   actorType?: string | null;
+  eventType?: string | null;
+  userId?: string | null;
   pageSize?: string | null;
 }): ActivityPlan {
+  if (
+    params.source !== undefined &&
+    params.source !== null &&
+    params.source !== '' &&
+    !isActivitySource(params.source)
+  ) {
+    return {
+      ok: false,
+      code: 'INVALID_PARAM',
+      message: 'Source is one of timeline, audit.',
+    };
+  }
+  const source: ActivitySource = isActivitySource(params.source) ? params.source : 'timeline';
+
   const pageSizeRaw = params.pageSize ? Number(params.pageSize) : NaN;
   const pageSize = Number.isFinite(pageSizeRaw)
     ? Math.min(Math.max(Math.trunc(pageSizeRaw), 1), ACTIVITY_PAGE_SIZE_MAX)
     : ACTIVITY_PAGE_SIZE_DEFAULT;
 
-  const candidates: Array<[ActivityFilter['kind'], string | null | undefined, (value: string) => ActivityFilter]> = [
+  const timelineCandidates: Array<[string, string | null | undefined, (value: string) => ActivityFilter]> = [
     ['correlationId', params.correlationId, (value) => ({ kind: 'correlationId', value })],
     ['bookingId', params.bookingId, (value) => ({ kind: 'bookingId', value })],
     ['severity', params.severity, (value) => ({ kind: 'severity', value })],
     ['event', params.event, (value) => ({ kind: 'event', value })],
     ['actorType', params.actorType, (value) => ({ kind: 'actorType', value })],
   ];
+  const auditCandidates: Array<[string, string | null | undefined, (value: string) => ActivityFilter]> = [
+    ['eventType', params.eventType, (value) => ({ kind: 'eventType', value })],
+    ['userId', params.userId, (value) => ({ kind: 'userId', value })],
+  ];
+  const candidates = source === 'audit' ? auditCandidates : timelineCandidates;
 
   const provided = candidates.filter(([, value]) => typeof value === 'string' && value !== '');
   if (provided.length > 1) {
@@ -77,11 +131,32 @@ export function planActivityQuery(params: {
     };
   }
 
+  // A param set for the other ledger is a routing mistake, not an empty result.
+  const allowed = new Set(candidates.map(([name]) => name));
+  const foreign = Object.entries(params).filter(
+    ([key, value]) =>
+      typeof value === 'string' && value !== '' && key !== 'source' && key !== 'pageSize' && !allowed.has(key)
+  );
+  if (foreign.length > 0) {
+    const names = foreign.map(([key]) => key).join(', ');
+    return {
+      ok: false,
+      code: 'UNSUPPORTED_COMBINATION',
+      message:
+        source === 'audit'
+          ? `The audit trail filters by event type or actor id — ${names} belong to the system timeline. (Per-booking audit history also lives on the booking detail screen.)`
+          : `${names} belong to the admin audit trail. Switch the source to it, or use the system timeline's own axes.`,
+    };
+  }
+
   if (provided.length === 1) {
     const [kind, raw, build] = provided[0];
     const value = (raw as string).trim();
 
-    if ((kind === 'correlationId' || kind === 'bookingId' || kind === 'event') && !ID_PARAM_PATTERN.test(value)) {
+    if (
+      (kind === 'correlationId' || kind === 'bookingId' || kind === 'event' || kind === 'eventType' || kind === 'userId') &&
+      !ID_PARAM_PATTERN.test(value)
+    ) {
       return {
         ok: false,
         code: 'INVALID_PARAM',
@@ -102,10 +177,10 @@ export function planActivityQuery(params: {
         message: 'Actor is one of system, patient, therapist, admin, worker, webhook.',
       };
     }
-    return { ok: true, filter: build(value), pageSize };
+    return { ok: true, source, filter: build(value), pageSize };
   }
 
-  return { ok: true, filter: null, pageSize };
+  return { ok: true, source, filter: null, pageSize };
 }
 
 /**
@@ -114,7 +189,7 @@ export function planActivityQuery(params: {
  * that file honest reads this list.
  */
 export const ACTIVITY_INDEX_REQUIREMENTS: ReadonlyArray<{
-  collectionGroup: 'timelines';
+  collectionGroup: 'timelines' | 'audit_logs';
   fields: ReadonlyArray<{ fieldPath: string; order: 'ASCENDING' | 'DESCENDING' }>;
 }> = [
   {
@@ -150,6 +225,20 @@ export const ACTIVITY_INDEX_REQUIREMENTS: ReadonlyArray<{
     fields: [
       { fieldPath: 'actor.type', order: 'ASCENDING' },
       { fieldPath: 'createdAt', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'audit_logs',
+    fields: [
+      { fieldPath: 'eventType', order: 'ASCENDING' },
+      { fieldPath: 'timestamp', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'audit_logs',
+    fields: [
+      { fieldPath: 'userId', order: 'ASCENDING' },
+      { fieldPath: 'timestamp', order: 'DESCENDING' },
     ],
   },
 ];

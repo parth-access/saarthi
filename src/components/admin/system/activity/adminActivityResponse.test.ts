@@ -14,9 +14,16 @@ function okBody(overrides: Record<string, unknown> = {}): unknown {
 }
 
 describe('interpretAdminActivityResponse', () => {
-  it('accepts a well-formed page', () => {
+  it('accepts a well-formed page and defaults the source to the system timeline', () => {
     const result = interpretAdminActivityResponse(200, okBody());
     expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.page.source).toBe('timeline');
+  });
+
+  it('carries the audit source through so the screen knows which ledger it read', () => {
+    const result = interpretAdminActivityResponse(200, okBody({ source: 'audit' }));
+    expect(result.ok && result.page.source).toBe('audit');
   });
 
   it('carries entries and the applied filter through', () => {

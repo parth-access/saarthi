@@ -17,9 +17,9 @@ import {
 const INDEXES_FILE = join(process.cwd(), 'firestore.indexes.json');
 
 describe('planActivityQuery', () => {
-  it('allows no filter and defaults the page size', () => {
+  it('allows no filter and defaults the page size and source', () => {
     const plan = planActivityQuery({});
-    expect(plan).toEqual({ ok: true, filter: null, pageSize: 30 });
+    expect(plan).toEqual({ ok: true, source: 'timeline', filter: null, pageSize: 30 });
   });
 
   it('accepts exactly one filter of each supported kind', () => {
@@ -64,6 +64,52 @@ describe('planActivityQuery', () => {
       pageSize: ACTIVITY_PAGE_SIZE_MAX,
     });
     expect(planActivityQuery({ pageSize: 'junk' })).toMatchObject({ ok: true, pageSize: 30 });
+  });
+});
+
+describe('planActivityQuery source selection', () => {
+  it('accepts the audit source and its own filter axes', () => {
+    expect(planActivityQuery({ source: 'audit' })).toMatchObject({
+      ok: true,
+      source: 'audit',
+      filter: null,
+    });
+    expect(planActivityQuery({ source: 'audit', eventType: 'PAYMENT_SUCCEEDED' })).toMatchObject({
+      ok: true,
+      source: 'audit',
+      filter: { kind: 'eventType', value: 'PAYMENT_SUCCEEDED' },
+    });
+    expect(planActivityQuery({ source: 'audit', userId: 'uid_admin' })).toMatchObject({
+      ok: true,
+      source: 'audit',
+      filter: { kind: 'userId', value: 'uid_admin' },
+    });
+  });
+
+  it('refuses an unknown source instead of silently reading the default', () => {
+    const plan = planActivityQuery({ source: 'everything' });
+    expect(plan.ok).toBe(false);
+    expect(plan.ok ? null : plan.code).toBe('INVALID_PARAM');
+    expect(plan.ok ? null : plan.message).toContain('Source is one of timeline, audit');
+  });
+
+  it('refuses a timeline filter on the audit source and says where the axis belongs', () => {
+    const plan = planActivityQuery({ source: 'audit', severity: 'error' });
+    expect(plan.ok).toBe(false);
+    expect(plan.ok ? null : plan.code).toBe('UNSUPPORTED_COMBINATION');
+    expect(plan.ok ? null : plan.message).toContain('event type or actor id');
+  });
+
+  it('refuses an audit filter on the timeline source and names the other ledger', () => {
+    const plan = planActivityQuery({ eventType: 'USER_ROLE_CHANGED' });
+    expect(plan.ok).toBe(false);
+    expect(plan.ok ? null : plan.code).toBe('UNSUPPORTED_COMBINATION');
+    expect(plan.ok ? null : plan.message).toContain('admin audit trail');
+  });
+
+  it('validates the audit filter values like the timeline ones', () => {
+    expect(planActivityQuery({ source: 'audit', eventType: '../etc' }).ok).toBe(false);
+    expect(planActivityQuery({ source: 'audit', userId: 'has spaces' }).ok).toBe(false);
   });
 });
 

@@ -56,6 +56,37 @@ describe('ActivityScreen rendering', () => {
     expect(html).toContain('href="/admin/bookings/bk_1"');
   });
 
+  it('offers both ledgers and defaults to the system timeline', () => {
+    mockState();
+    const html = renderToStaticMarkup(<ActivityScreen />);
+    expect(html).toContain('System events');
+    expect(html).toContain('Admin audit trail');
+    expect(html).toContain('aria-selected="true"');
+  });
+
+  it('renders an audit row with the Audit badge and the actor id, without inventing a severity', () => {
+    mockState({
+      entries: [
+        entry({
+          id: 'al_1',
+          event: 'USER_ROLE_CHANGED',
+          severity: null,
+          actorType: null,
+          actorId: 'uid_admin',
+          correlationId: null,
+          bookingId: null,
+          metadata: { before: { role: 'client' }, after: { role: 'admin' }, targetUserId: 'user_9' },
+        }),
+      ],
+    });
+    const html = renderToStaticMarkup(<ActivityScreen />);
+    expect(html).toContain('USER_ROLE_CHANGED');
+    expect(html).toContain('Actor: uid_admin');
+    expect(html).toContain('A durable audit row');
+    // No severity claim on an audit row.
+    expect(html).not.toContain('Severity as written by the event');
+  });
+
   it('renders a failed read as a named gap, not an empty log', () => {
     mockState({ entries: [], failed: true, failedReason: 'Could not be read just now. Reload to try again.' });
     const html = renderToStaticMarkup(<ActivityScreen />);

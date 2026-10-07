@@ -14,7 +14,7 @@ import {
   interpretAdminActivityResponse,
   type ActivityPagePayload,
 } from './adminActivityResponse';
-import type { ActivityFilter } from '@/domains/admin/activityQuery';
+import type { ActivityFilter, ActivitySource } from '@/domains/admin/activityQuery';
 
 export interface AdminActivityState {
   readonly pages: readonly ActivityPagePayload[];
@@ -44,7 +44,7 @@ function filterParams(filter: ActivityFilter | null): string {
   return `&${filter.kind}=${encodeURIComponent(filter.value)}`;
 }
 
-export function useAdminActivity(filter: ActivityFilter | null): AdminActivityState {
+export function useAdminActivity(filter: ActivityFilter | null, source: ActivitySource = 'timeline'): AdminActivityState {
   const [pages, setPages] = useState<ActivityPagePayload[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -67,7 +67,7 @@ export function useAdminActivity(filter: ActivityFilter | null): AdminActivitySt
     (async () => {
       try {
         const response = await fetchWithAuth(
-          `/api/admin/activity?pageSize=30${filterParams(filter)}`,
+          `/api/admin/activity?pageSize=30&source=${encodeURIComponent(source)}${filterParams(filter)}`,
           { signal: controller.signal }
         );
         if (!guard.current.isCurrent(ticket)) return;
@@ -96,7 +96,7 @@ export function useAdminActivity(filter: ActivityFilter | null): AdminActivitySt
     })();
 
     return () => controller.abort();
-  }, [filter, reloadToken]);
+  }, [filter, source, reloadToken]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !nextCursorRef.current) return;
@@ -107,7 +107,7 @@ export function useAdminActivity(filter: ActivityFilter | null): AdminActivitySt
     (async () => {
       try {
         const response = await fetchWithAuth(
-          `/api/admin/activity?pageSize=30${filterParams(filter)}&cursor=${encodeURIComponent(cursor)}`
+          `/api/admin/activity?pageSize=30&source=${encodeURIComponent(source)}${filterParams(filter)}&cursor=${encodeURIComponent(cursor)}`
         );
         if (!guard.current.isCurrent(ticket)) return;
         const body = await parseJson(response);
@@ -127,7 +127,7 @@ export function useAdminActivity(filter: ActivityFilter | null): AdminActivitySt
         if (guard.current.isCurrent(ticket)) setLoadingMore(false);
       }
     })();
-  }, [filter, loadingMore]);
+  }, [filter, source, loadingMore]);
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 

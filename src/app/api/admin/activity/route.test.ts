@@ -14,7 +14,7 @@ import { planActivityQuery, readActivityPage } from './activitySources';
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(planActivityQuery).mockReturnValue({ ok: true, filter: null, pageSize: 30 });
+  vi.mocked(planActivityQuery).mockReturnValue({ ok: true, source: 'timeline', filter: null, pageSize: 30 });
   vi.mocked(readActivityPage).mockResolvedValue({
     ok: true,
     page: { entries: [], hasMore: false, nextCursor: null },
@@ -76,5 +76,29 @@ describe('GET /api/admin/activity', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { activity: { ok: boolean } };
     expect(body.activity.ok).toBe(false);
+  });
+
+  it('passes the requested source into the plan and the read, and echoes it back', async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ uid: 'uid_admin', role: 'admin' } as never);
+    vi.mocked(planActivityQuery).mockReturnValue({
+      ok: true,
+      source: 'audit',
+      filter: { kind: 'eventType', value: 'USER_ROLE_CHANGED' },
+      pageSize: 30,
+    });
+    const res = await get('http://localhost/api/admin/activity?source=audit&eventType=USER_ROLE_CHANGED');
+
+    expect(planActivityQuery).toHaveBeenCalledWith(expect.objectContaining({ source: 'audit' }));
+    expect(readActivityPage).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'audit', filter: { kind: 'eventType', value: 'USER_ROLE_CHANGED' } })
+    );
+    const body = (await res.json()) as { source: string };
+    expect(body.source).toBe('audit');
+  });
+
+  it('defaults the source to the system timeline', async () => {
+    vi.mocked(requireAdmin).mockResolvedValue({ uid: 'uid_admin', role: 'admin' } as never);
+    await get();
+    expect(readActivityPage).toHaveBeenCalledWith(expect.objectContaining({ source: 'timeline' }));
   });
 });
