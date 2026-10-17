@@ -1,6 +1,7 @@
 export interface User {
   uid: string;
   email: string;
+  emailVerified?: boolean;
   name?: string;
   role: 'admin' | 'therapist' | 'client';
 }

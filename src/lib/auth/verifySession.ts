@@ -91,7 +91,7 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
 
        return {
          uid: decodedToken.uid,
-         email: decodedToken.email,
+         email: decodedToken.email_verified === true ? decodedToken.email : undefined,
          role
        };
     }

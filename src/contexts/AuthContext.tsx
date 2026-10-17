@@ -123,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCurrentUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
+              emailVerified: firebaseUser.emailVerified,
               role: role as 'admin' | 'therapist' | 'client',
               name: firebaseUser.displayName || undefined
             });

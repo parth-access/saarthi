@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       comment,
       user: {
         uid: decodedToken.uid,
-        email: decodedToken.email,
+        email: decodedToken.email_verified === true ? decodedToken.email : undefined,
         name: decodedToken.name
       }
     });

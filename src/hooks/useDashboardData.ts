@@ -70,7 +70,13 @@ export function useDashboardData(): DashboardData {
     setError(null);
     try {
       const bookingsRef = collection(db, 'bookings');
-      const snap = await getDocs(query(bookingsRef, where('email', '==', currentUser.email)));
+      // Email-matched bookings require a verified address (Firestore rules);
+      // until then, show only bookings tied to this account's uid.
+      const snap = await getDocs(
+        currentUser.emailVerified
+          ? query(bookingsRef, where('email', '==', currentUser.email))
+          : query(bookingsRef, where('userId', '==', currentUser.uid))
+      );
       const allBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
 
       // Sort newest-first in memory (avoids a composite index requirement).

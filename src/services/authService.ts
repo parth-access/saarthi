@@ -7,6 +7,7 @@ import {
   User as FirebaseUser,
   signInWithCredential,
   signInWithPopup,
+  sendEmailVerification,
 } from 'firebase/auth';
 import {
   doc,
@@ -281,6 +282,14 @@ export const authService = {
       preferredTherapists: [],
       lastSessionDate: null,
     });
+
+    // Bookings made under this email (e.g. as a guest) only become visible
+    // once the address is verified — see firestore.rules hasVerifiedEmail().
+    try {
+      await sendEmailVerification(user);
+    } catch (err) {
+      console.warn('Could not send verification email:', err);
+    }
 
     return user;
   },

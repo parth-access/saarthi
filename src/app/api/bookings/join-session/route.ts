@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = decodedToken.uid;
-    const userEmail = decodedToken.email;
+    // Unverified emails are not ownership proof (anyone can register any address).
+    const userEmail = decodedToken.email_verified === true ? decodedToken.email : undefined;
 
     // Role comes from the CANONICAL source of truth (the `users` collection,
     // re-read live) — not from Firebase custom claims, which are a second
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
         const therapistSnap = await adminDb.collection('therapists').doc(booking.therapistId).get();
         if (therapistSnap.exists) {
           const therapistData = therapistSnap.data();
-          if (therapistData?.authId === userId || therapistData?.id === userId || therapistData?.email === userEmail) {
+          if (therapistData?.authId === userId || therapistData?.id === userId) {
             isAuthorized = true;
           }
         }

@@ -19,6 +19,15 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // Email claims are only proof of ownership once Firebase has verified
+    // the address; otherwise anyone could register a guest's email and
+    // read their bookings.
+    function hasVerifiedEmail(email) {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && email == request.auth.token.email;
+    }
+
     function isTherapistDocOwner(therapistId) {
       return isSignedIn()
         && exists(/databases/$(database)/documents/therapists/$(therapistId))
@@ -138,7 +147,7 @@ service cloud.firestore {
         || (
           isSignedIn()
           && (
-            (resource.data.email != null && resource.data.email == request.auth.token.email) ||
+            (resource.data.email != null && hasVerifiedEmail(resource.data.email)) ||
             (resource.data.userId != null && resource.data.userId == request.auth.uid)
           )
         );
@@ -164,7 +173,7 @@ service cloud.firestore {
           )
           || (
             isSignedIn()
-            && get(/databases/$(database)/documents/bookings/$(bookingId)).data.email == request.auth.token.email
+            && hasVerifiedEmail(get(/databases/$(database)/documents/bookings/$(bookingId)).data.email)
           );
 
         allow write: if false;

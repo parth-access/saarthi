@@ -52,7 +52,9 @@ export async function POST(request: Request) {
 
     const sessionCookie = await new SignJWT({ 
       uid: decodedToken.uid, 
-      email: decodedToken.email,
+      // Only a verified email may act as booking-ownership proof downstream
+      // (cancel-self, join-session, receipts). Unverified → omitted.
+      email: decodedToken.email_verified === true ? decodedToken.email : undefined,
       role 
     })
       .setProtectedHeader({ alg })
