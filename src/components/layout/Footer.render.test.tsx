@@ -20,7 +20,7 @@ describe('public footer', () => {
   it('keeps the public quick links and legal pages', () => {
     const html = renderToStaticMarkup(<Footer />);
 
-    for (const href of ['/therapists', '/about', '/vision', '/contact', '/privacy', '/terms']) {
+    for (const href of ['/book', '/therapists', '/therapists/dravina', '/about', '/vision', '/contact', '/privacy', '/terms']) {
       expect(html).toContain(`href="${href}"`);
     }
     expect(html).toContain('Privacy Policy');

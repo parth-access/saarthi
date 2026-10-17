@@ -60,7 +60,9 @@ export function Footer() {
             <div>
               <h4 className="font-heading font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
+                <li><Link href="/book" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Book a Session</Link></li>
                 <li><Link href="/therapists" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Therapists</Link></li>
+                <li><Link href="/therapists/dravina" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Dravina Gupta</Link></li>
                 <li><Link href="/about" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">About</Link></li>
                 <li><Link href="/vision" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Our Vision</Link></li>
                 <li><Link href="/contact" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-0.5 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Contact</Link></li>
