@@ -22,6 +22,7 @@ import {
   Phone,
   Trash2,
   User,
+  UserX,
   Video,
 } from "lucide-react";
 import { Booking, BookingStatus } from "../../types";
@@ -316,6 +317,18 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
                     <CheckCircle2 className="h-3 w-3" />
                   )}
                   Mark Completed
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isProcessing}
+                  onClick={() => onUpdateStatus(booking.id, "no_show")}
+                  className="w-full justify-center gap-1.5 text-xs text-warning border-warning/30 hover:bg-warning-surface"
+                >
+                  <UserX className="h-3 w-3" />
+                  Client didn&apos;t attend
                 </Button>
 
                 <Button

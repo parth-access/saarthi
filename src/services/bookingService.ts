@@ -24,6 +24,17 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return data;
 }
 
+/** fetch() resolves on 4xx/5xx — surface the server's message as an error. */
+async function throwIfFailed(res: Response, fallback: string): Promise<void> {
+  if (res.ok) return;
+  let message = fallback;
+  try {
+    const body = await res.json();
+    if (body && typeof body.error === 'string') message = body.error;
+  } catch { /* non-JSON body */ }
+  throw new Error(message);
+}
+
 export const bookingService = {
   lockSlot: async (therapistId: string, date: string, time: string) => {
     try {
@@ -78,10 +89,11 @@ export const bookingService = {
 
   updateStatus: async (id: string, status: BookingStatus, reason?: string, customNote?: string) => {
     try {
-      await fetchWithAuth('/api/bookings/update-status', {
+      const res = await fetchWithAuth('/api/bookings/update-status', {
         method: 'POST',
         body: JSON.stringify({ bookingId: id, status, reason, customNote })
       });
+      await throwIfFailed(res, 'Could not update the session.');
       logger.success('BOOKING', 'Updated booking status successfully', { bookingId: id, status });
       return { success: true };
     } catch (err) {
@@ -92,10 +104,11 @@ export const bookingService = {
 
   declineBooking: async (id: string, adminUid: string, reason: string, customNote?: string) => {
     try {
-      await fetchWithAuth('/api/bookings/update-status', {
+      const res = await fetchWithAuth('/api/bookings/update-status', {
         method: 'POST',
         body: JSON.stringify({ bookingId: id, status: 'rejected', reason, customNote })
       });
+      await throwIfFailed(res, 'Could not decline the session.');
       logger.success('BOOKING', 'Declined booking successfully', { bookingId: id });
       return { success: true };
     } catch (err) {

@@ -191,39 +191,32 @@ export function useTherapistDashboard(): TherapistDashboardData {
 // --- Status update helpers ---
 
 export function useBookingActions(
-  setBookings: React.Dispatch<React.SetStateAction<Booking[]>>
+  /** Called after a successful change so the shared therapist data re-reads. */
+  onChanged: () => void
 ) {
   const { currentUser } = useAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const updateStatus = useCallback(async (id: string, status: BookingStatus) => {
+  const updateStatus = useCallback(async (id: string, status: BookingStatus, reason?: string) => {
     try {
       setProcessingId(id);
-      await bookingService.updateStatus(id, status);
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
-    } catch (err) {
-      console.error('Update status error:', err);
-      throw err;
+      await bookingService.updateStatus(id, status, reason);
+      onChanged();
     } finally {
       setProcessingId(null);
     }
-  }, [setBookings]);
+  }, [onChanged]);
 
   const declineBooking = useCallback(async (id: string, reason: string, note?: string) => {
     if (!currentUser?.uid) return;
     try {
       setProcessingId(id);
       await bookingService.declineBooking(id, currentUser.uid, reason, note);
-      setBookings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status: 'rejected' as BookingStatus } : b))
-      );
-    } catch (err) {
-      console.error('Decline error:', err);
-      throw err;
+      onChanged();
     } finally {
       setProcessingId(null);
     }
-  }, [currentUser?.uid, setBookings]);
+  }, [currentUser?.uid, onChanged]);
 
   return { processingId, updateStatus, declineBooking };
 }
