@@ -32,6 +32,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+type Role = 'admin' | 'therapist' | 'client';
+
+/** Role for `uid` from the existing session cookie, or null (never throws). */
+async function roleFromSessionCookie(uid: string): Promise<Role | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2500);
+  try {
+    const res = await fetch('/api/auth/session', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { uid?: unknown; role?: unknown };
+    if (body.uid !== uid) return null;
+    return body.role === 'admin' || body.role === 'therapist' || body.role === 'client' ? body.role : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // user's login-page redirect while their role/session are resolving.
           setSessionSyncComplete(null);
           perfMark('GET_USER_ROLE_START');
-          let role = await authService.getUserRole(firebaseUser.uid);
+          // Fast path: the server already knows the role from the session
+          // cookie. Falls back to the browser's own Firestore read when there
+          // is no cookie yet (first sign-in) or it belongs to someone else.
+          let role =
+            (await roleFromSessionCookie(firebaseUser.uid)) ??
+            (await authService.getUserRole(firebaseUser.uid));
           perfMeasure('GET_USER_ROLE', 'GET_USER_ROLE_START', 'AUTH');
           
           if (isStaleEvent()) return;

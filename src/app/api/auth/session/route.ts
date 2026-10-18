@@ -3,6 +3,7 @@ import { checkDistributedRateLimit } from '../../_lib/distributedRateLimit';
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { SignJWT } from 'jose';
+import { verifySession } from '@/lib/auth/verifySession';
 
 export async function POST(request: Request) {
   const clientIp = getClientIp(request);
@@ -86,4 +87,25 @@ export async function DELETE() {
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.cookies.delete('__session');
   return response;
+}
+
+/**
+ * Fast role lookup for the sign-in gate: who does the existing `__session`
+ * cookie belong to, and what is their role right now?
+ *
+ * verifySession re-reads users/{uid} on the server (Mumbai → Firestore Delhi,
+ * a few ms) — much faster than the browser opening its first Firestore
+ * connection just to read the role. Honours revocation and disabled accounts
+ * exactly like every other API. 401 when there is no valid cookie; the client
+ * then falls back to its own Firestore read.
+ */
+export async function GET(request: Request) {
+  const session = await verifySession(request);
+  if (!session) {
+    return NextResponse.json({ error: 'No session' }, { status: 401, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+  return NextResponse.json(
+    { uid: session.uid, role: session.role },
+    { headers: { 'Cache-Control': 'private, no-store' } }
+  );
 }
