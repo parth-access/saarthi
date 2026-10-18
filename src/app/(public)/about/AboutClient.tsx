@@ -1,6 +1,7 @@
 "use client";
 
 
+import Image from "next/image";
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Shield, Sparkles, Users, Lightbulb, Leaf } from "lucide-react"
@@ -88,11 +89,13 @@ export default function AboutPage() {
               className="relative"
             >
               <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
-                <img 
-                  src="/about_page.png" 
-                  alt="Calm meditation" 
+                <Image
+                  src="/dravina.webp"
+                  alt="Calm meditation"
+                  width={1024}
+                  height={1024}
+                  sizes="(min-width: 1024px) 50vw, 100vw"
                   className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
                 />
               </div>
               <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/10 rounded-full blur-2xl -z-10" />

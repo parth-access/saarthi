@@ -10,7 +10,7 @@ export const DRAVINA_THERAPIST: Therapist = {
   specialization: 'Psychologist & Clinical Counsellor',
   experience: '1+ Years',
   bio: 'Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.',
-  image: '/dravina.png',
+  image: '/dravina.webp',
   active: true,
 };
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Button } from "../ui/Button"
@@ -27,12 +28,13 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
             transition={{ duration: 0.8 }}
           >
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
-              <img
-                src="/dravina.png"
+              <Image
+                src="/dravina.webp"
                 alt="Dravina Gupta - Certified Psychologist at Saarthi"
+                width={1024}
+                height={1024}
+                sizes="(min-width: 1024px) 40vw, 100vw"
                 className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-                loading="lazy"
               />
               <div className="absolute inset-0 bg-primary/10" />
             </div>

@@ -63,7 +63,7 @@ export default async function Page() {
         const personId = `${profileUrl}/#person`;
         const imageUrl = t.image
           ? (t.image.startsWith('http') ? t.image : `https://www.saarthilife.com${t.image.startsWith('/') ? '' : '/'}${t.image}`)
-          : 'https://www.saarthilife.com/dravina.png';
+          : 'https://www.saarthilife.com/dravina.webp';
 
         return {
           '@type': 'ListItem',

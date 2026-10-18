@@ -1,6 +1,7 @@
 "use client";
 
 
+import Image from "next/image";
 import * as React from "react"
 import { Button } from "../ui/Button"
 import MobileMenu from "./MobileMenu"
@@ -64,11 +65,13 @@ const Navbar = ({ onBookClick }: NavbarProps) => {
               className="group flex items-center gap-2 text-primary font-serif transition-transform hover:scale-[1.02]"
             >
               {/* ✅ Use icon-style logo (IMPORTANT) */}
-              <img
-                src="/saarthi-logo-Photoroom.png" // <-- use your simplified icon version
+              <Image
+                src="/saarthi-logo.webp"
                 alt="Saarthi"
+                width={256}
+                height={256}
+                priority
                 className="h-10 md:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-                referrerPolicy="no-referrer"
               />
 
               {/* ✅ Clean text */}

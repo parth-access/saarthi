@@ -1,6 +1,7 @@
 "use client";
 
 
+import Image from "next/image";
 import * as React from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/Button"
@@ -92,11 +93,13 @@ export default function VisionPage() {
               className="relative"
             >
               <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl">
-                <img 
-                   src="/vision_page.png" 
-                   alt="Visionary landscape" 
+                <Image
+                   src="/vision_page.webp"
+                   alt="Visionary landscape"
+                   width={1024}
+                   height={1536}
+                   sizes="(min-width: 1024px) 50vw, 100vw"
                    className="w-full h-full object-cover"
-                   referrerPolicy="no-referrer"
                 />
               </div>
               <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-accent rounded-full flex items-center justify-center text-white shadow-xl rotate-12 p-8 text-center">

@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
         destination: '/book',
         permanent: true,
       },
+      // Retired images (old links, emails, Firestore records) → optimized WebP.
+      { source: '/dravina.png', destination: '/dravina.webp', permanent: true },
+      { source: '/about_page.png', destination: '/dravina.webp', permanent: true },
+      { source: '/vision_page.png', destination: '/vision_page.webp', permanent: true },
+      { source: '/home_page.jpeg', destination: '/home_page.webp', permanent: true },
     ];
   },
   // Security headers (CSP, X-Frame-Options, HSTS, ...) are defined ONLY in

@@ -47,7 +47,7 @@ export default function Page() {
         'jobTitle': 'Psychologist & Clinical Counsellor',
         'knowsLanguage': ['Hindi', 'English'],
         'description': 'Psychologist holding a Master’s in Clinical Psychology, specializing in anger management, anxiety, depression, and Cognitive Behavioral Therapy.',
-        'image': 'https://www.saarthilife.com/dravina.png',
+        'image': 'https://www.saarthilife.com/dravina.webp',
         'worksFor': {
           '@type': 'Organization',
           'name': 'Saarthi',
@@ -66,7 +66,7 @@ export default function Page() {
         '@type': 'ProfessionalService',
         'name': 'Dravina Gupta Psychotherapeutic Services',
         'url': 'https://www.saarthilife.com/therapists/dravina',
-        'image': 'https://www.saarthilife.com/dravina.png',
+        'image': 'https://www.saarthilife.com/dravina.webp',
         'description': 'Online psychological consulting and CBT sessions for stress relief, adolescent concerns, anger, and anxiety.',
         'email': 'contact@saarthilife.com',
         'provider': {

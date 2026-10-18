@@ -5,8 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Retired public/ images and their optimized replacements. */
+const LEGACY_IMAGES: Record<string, string> = {
+  "/dravina.png": "/dravina.webp",
+  "/about_page.png": "/dravina.webp",
+  "/vision_page.png": "/vision_page.webp",
+  "/home_page.jpeg": "/home_page.webp",
+};
+
 export function normalizeImageUrl(src: string | undefined): string {
-  if (!src) return "/about_page.png";
+  if (!src) return "/dravina.webp";
+  if (LEGACY_IMAGES[src]) return LEGACY_IMAGES[src];
   if (src.startsWith("http://") || src.startsWith("https://")) {
     return src;
   }

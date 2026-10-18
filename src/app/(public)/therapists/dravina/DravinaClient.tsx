@@ -59,7 +59,7 @@ export default function DravinaProfilePage() {
         languages={dravinaData.languages}
         experience={dravinaData.experience}
         shortIntro={dravinaData.shortIntro}
-        image="/dravina.png"
+        image="/dravina.webp"
         bookingHref={getTherapistBookingHref(DRAVINA_THERAPIST)}
       />
       

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import * as React from "react"
 import { Button } from "../ui/Button"
 import { motion } from "framer-motion"
@@ -60,12 +61,14 @@ const Hero = ({ onBookClick }: HeroProps) => {
             <div className="absolute -inset-10 -z-10 translate-x-10 translate-y-10 rounded-full bg-accent/10 blur-3xl" />
             
             <div className="relative overflow-hidden rounded-[3.5rem] shadow-2xl shadow-primary/10">
-              <img
-                src="/home_page.jpeg"
+              <Image
+                src="/home_page.webp"
                 alt="Mental Wellness and Emotional Clarity"
+                width={1600}
+                height={1067}
+                priority
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="aspect-[4/5] h-full w-full object-cover sm:aspect-video lg:aspect-[4/5]"
-                referrerPolicy="no-referrer"
-                decoding="async"
               />
               <div className="absolute inset-0 bg-primary/5 mix-blend-multiply" />
             </div>

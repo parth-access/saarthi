@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Compass, Home, Mail, UsersRound } from 'lucide-react';
 
@@ -15,7 +16,7 @@ export default function NotFound() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/saarthi-logo-Photoroom.png" alt="Saarthi" className="h-9 w-auto object-contain" referrerPolicy="no-referrer" />
+            <Image src="/saarthi-logo.webp" alt="Saarthi" width={256} height={256} className="h-9 w-auto object-contain" />
             <span className="hidden font-serif text-xl font-semibold text-primary sm:inline">Saarthi</span>
           </Link>
           <Link href="/" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-primary/80 hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">

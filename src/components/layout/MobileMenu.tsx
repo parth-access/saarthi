@@ -1,3 +1,4 @@
+import Image from "next/image";
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
@@ -66,11 +67,12 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
           {/* Top Bar: Logo (Left) + Close (Right) */}
           <div className="flex items-center justify-between mb-12">
             <Link href="/" className="flex items-center" onClick={onClose}>
-              <img 
-                src="/saarthi-logo-Photoroom.png" 
-                alt="Saarthi Logo" 
-                className="h-10 w-auto object-contain" 
-                referrerPolicy="no-referrer"
+              <Image
+                src="/saarthi-logo.webp"
+                alt="Saarthi Logo"
+                width={256}
+                height={256}
+                className="h-10 w-auto object-contain"
               />
             </Link>
             <button

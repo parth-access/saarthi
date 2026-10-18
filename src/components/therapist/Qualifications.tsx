@@ -1,3 +1,4 @@
+import Image from "next/image";
 import * as React from "react"
 import { motion } from "framer-motion"
 import { GraduationCap } from "lucide-react"
@@ -57,11 +58,13 @@ const Qualifications = ({ items }: QualificationsProps) => {
             transition={{ duration: 1, delay: 0.2 }}
             className="relative overflow-hidden rounded-3xl shadow-2xl"
           >
-            <img
-              src="/vision_page.png"
+            <Image
+              src="/vision_page.webp"
               alt="Qualifications"
+              width={1024}
+              height={1536}
+              sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-primary/10" />
           </motion.div>

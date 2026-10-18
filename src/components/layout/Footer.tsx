@@ -1,3 +1,4 @@
+import Image from "next/image";
 import * as React from "react"
 import Link from "next/link"
 import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin } from "lucide-react"
@@ -10,7 +11,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-3 text-primary mb-4">
-              <img src="/saarthi-logo-Photoroom.png" alt="Saarthi Logo" className="h-10 w-auto object-contain" referrerPolicy="no-referrer" />
+              <Image src="/saarthi-logo.webp" alt="Saarthi Logo" width={256} height={256} className="h-10 w-auto object-contain" />
               <span className="font-heading text-2xl font-bold tracking-tight text-text">Saarthi</span>
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">

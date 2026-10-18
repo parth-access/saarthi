@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,12 +47,12 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Brand */}
           <Link href="/dashboard" className="group flex items-center gap-2 text-primary font-serif shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/saarthi-logo-Photoroom.png"
+            <Image
+              src="/saarthi-logo.webp"
               alt="Saarthi"
+              width={256}
+              height={256}
               className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-              referrerPolicy="no-referrer"
             />
             <span className="hidden sm:inline text-xl font-semibold tracking-tight">Saarthi</span>
           </Link>

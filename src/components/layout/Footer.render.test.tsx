@@ -30,7 +30,7 @@ describe('public footer', () => {
   it('keeps the branding, contact details and social profiles', () => {
     const html = renderToStaticMarkup(<Footer />);
 
-    expect(html).toContain('/saarthi-logo-Photoroom.png');
+    expect(html).toContain('saarthi-logo.webp');
     expect(html).toContain('contact@saarthilife.com');
 
     for (const network of ['Instagram', 'YouTube', 'Facebook', 'LinkedIn']) {
