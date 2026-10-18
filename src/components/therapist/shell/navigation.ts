@@ -13,6 +13,7 @@ import {
   Clock3,
   LayoutDashboard,
   UserRound,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -37,6 +38,12 @@ export const THERAPIST_NAV: readonly TherapistNavItem[] = [
     label: 'Sessions',
     purpose: 'Search and manage all sessions assigned to you.',
     icon: CalendarDays,
+  },
+  {
+    href: '/therapist/clients',
+    label: 'Clients',
+    purpose: 'Everyone you work with and their full session history.',
+    icon: Users,
   },
   {
     href: '/therapist/availability',
