@@ -42,7 +42,7 @@ const MAX_PX = 800;
 const WEBP_QUALITY = 0.8;
 
 /** Resize + re-encode to WebP in the browser. */
-async function toWebpDataUrl(file: File): Promise<string> {
+export async function toWebpDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, MAX_PX / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement('canvas');

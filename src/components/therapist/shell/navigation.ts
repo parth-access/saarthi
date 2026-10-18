@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Clock3,
   LayoutDashboard,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -42,6 +43,12 @@ export const THERAPIST_NAV: readonly TherapistNavItem[] = [
     label: 'Availability',
     purpose: 'The hours that determine when clients can book you.',
     icon: Clock3,
+  },
+  {
+    href: '/therapist/profile',
+    label: 'Profile',
+    purpose: 'How you appear to clients on the website and booking page.',
+    icon: UserRound,
   },
 ];
 

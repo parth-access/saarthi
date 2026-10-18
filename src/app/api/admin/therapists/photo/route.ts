@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { adminDb } from '@/lib/firebase/admin';
-import { requireAdmin } from '@/lib/auth/requireRole';
+import { requireTherapist } from '@/lib/auth/requireRole';
 import { checkRateLimit, getClientIp } from '../../../_lib/rateLimit';
 import { logger } from '../../../_lib/logger';
 
@@ -24,7 +24,8 @@ const ALLOWED = new Set(['image/webp', 'image/jpeg', 'image/png']);
 const schema = z.object({ dataUrl: z.string().max(1_000_000) });
 
 export async function POST(req: Request) {
-  const authorized = await requireAdmin(req);
+  // Admins (any therapist) and therapists (their own profile photo).
+  const authorized = await requireTherapist(req);
   if (authorized instanceof NextResponse) return authorized;
 
   if (!checkRateLimit(getClientIp(req), 'admin_therapist_photo', 10, 60_000).success) {
