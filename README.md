@@ -90,7 +90,10 @@ docs/audits/           Past security / production audits
 
 Repo settings needed: secret **`CRON_SECRET`** (same as Vercel) and variable
 **`PRODUCTION_URL`** (`https://www.saarthilife.com`).
-⚠️ GitHub pauses scheduled workflows after 60 days without a push — any push re-arms them.
+**Backup:** Vercel Cron calls `/api/cron/all` once a day (06:00 IST, `vercel.json` → `crons`),
+which runs all five jobs. GitHub pauses scheduled workflows after 60 days without a push; the
+daily run keeps everything moving meanwhile and — if `GITHUB_KEEPALIVE_TOKEN` and
+`GITHUB_KEEPALIVE_REPO` are set — switches the GitHub schedule back on automatically.
 
 ## Deploying
 

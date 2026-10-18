@@ -3,6 +3,12 @@
   "regions": [
     "bom1"
   ],
+  "crons": [
+    {
+      "path": "/api/cron/all",
+      "schedule": "30 0 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
