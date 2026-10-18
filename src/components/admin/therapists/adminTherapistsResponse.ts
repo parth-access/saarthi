@@ -71,6 +71,12 @@ export interface AdminTherapistIdentity {
   readonly bio: string | null;
   readonly active: boolean;
   readonly email: string | null;
+  readonly slug: string | null;
+  readonly image: string | null;
+  readonly sessionPrice: number | null;
+  readonly inPersonPrice: number | null;
+  /** Whether a sign-in account is linked (`authId` set). */
+  readonly accountLinked: boolean;
 }
 
 export type RuleScan =
@@ -223,7 +229,12 @@ function isIdentity(value: unknown): value is AdminTherapistIdentity {
     isNullableString(t.experience) &&
     isNullableString(t.bio) &&
     typeof t.active === 'boolean' &&
-    isNullableString(t.email)
+    isNullableString(t.email) &&
+    isNullableString(t.slug) &&
+    isNullableString(t.image) &&
+    (t.sessionPrice === null || typeof t.sessionPrice === 'number') &&
+    (t.inPersonPrice === null || typeof t.inPersonPrice === 'number') &&
+    typeof t.accountLinked === 'boolean'
   );
 }
 

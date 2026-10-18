@@ -15,8 +15,11 @@
  * sees who has been taken off the booking page, so filtering the inactive ones out
  * would hide exactly what they came to check.
  */
-import { RotateCcw, Stethoscope, TriangleAlert } from 'lucide-react';
+import { Plus, RotateCcw, Stethoscope, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { TherapistProfileDialog, EMPTY_PROFILE } from './TherapistProfileDialog';
 import { Button } from '@/components/ui/Button';
 import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import { DISPLAY_TIME_ZONE_LABEL, formatCreatedAt, toneClasses } from '../bookings/adminBookingPresentation';
@@ -69,10 +72,13 @@ function Reading({
           not refresh on its own.
         </p>
       </div>
-      <Button variant="outline" size="sm" onClick={onReload} disabled={loading}>
-        <RotateCcw aria-hidden="true" className={`mr-1.5 h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-        {loading ? 'Reading…' : 'Read again'}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <AddTherapistButton />
+        <Button variant="outline" size="sm" onClick={onReload} disabled={loading}>
+          <RotateCcw aria-hidden="true" className={`mr-1.5 h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Reading…' : 'Read again'}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -238,5 +244,31 @@ function RosterSkeleton() {
       <div className="h-12 animate-pulse rounded-xl bg-neutral-surface" />
       <div className="h-64 animate-pulse rounded-xl bg-neutral-surface" />
     </div>
+  );
+}
+
+/** Opens the profile form; on success goes straight to the new therapist's page
+ *  so the operator can add their schedule and switch bookability on. */
+function AddTherapistButton() {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  return (
+    <>
+      <Button size="sm" onClick={() => setOpen(true)}>
+        <Plus aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
+        Add therapist
+      </Button>
+      {open && (
+        <TherapistProfileDialog
+          mode="create"
+          initial={EMPTY_PROFILE}
+          onClose={() => setOpen(false)}
+          onSaved={(id) => {
+            setOpen(false);
+            router.push(`/admin/therapists/${encodeURIComponent(id)}`);
+          }}
+        />
+      )}
+    </>
   );
 }

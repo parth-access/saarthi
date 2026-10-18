@@ -4,7 +4,7 @@ import { ChevronLeft, Loader2, AlertCircle, Clock, RotateCcw } from "lucide-reac
 import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
-import { CONFIRM_CTA_LABEL, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "../bookingUi"
+import { confirmCtaLabelFor, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "../bookingUi"
 import { BookingSummary } from "../BookingSummary"
 
 export type BookingFlowState = 
@@ -86,7 +86,7 @@ export const ReviewStep = ({
         </span>
       );
     }
-    return CONFIRM_CTA_LABEL;
+    return confirmCtaLabelFor(therapists.find((t) => t.id === data.therapistId));
   };
 
   // The shared card carries itself via layoutId; everything around it (header,

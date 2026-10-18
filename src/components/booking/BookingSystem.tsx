@@ -18,6 +18,7 @@ import { ReviewStep, BookingFlowState } from "./steps/ReviewStep"
 // Presentational shell
 import { BookingStepper } from "./BookingStepper"
 import { BookingLayout } from "./BookingLayout"
+import { sessionPriceDisplayFor } from "./bookingUi"
 import { BookingSummary, CARD_SURFACE } from "./BookingSummary"
 import { cn } from "../../lib/utils"
 
@@ -418,7 +419,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
       case 1:
         return <TherapistStep selectedId={bookingData.therapistId} onSelect={handleTherapistSelect} />
       case 2:
-        return <SessionTypeStep selected={bookingData.sessionType} onSelect={handleSessionTypeSelect} onBack={handleBack} />
+        return <SessionTypeStep selected={bookingData.sessionType} onSelect={handleSessionTypeSelect} onBack={handleBack} priceLabel={sessionPriceDisplayFor(selectedTherapist)} />
       case 3:
         return <DateStep selectedDate={bookingData.date} onSelect={handleDateSelect} onNext={handleNext} onBack={handleBack} />
       case 4:
@@ -432,7 +433,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
           />
         )
       case 5:
-        return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} />
+        return <DetailsStep initialData={bookingData} sessionType={bookingData.sessionType} onNext={handleDetailsSubmit} onBack={handleBack} priceLabel={sessionPriceDisplayFor(selectedTherapist)} />
       case 7:
         return (
           <div className="mx-auto max-w-lg">

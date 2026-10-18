@@ -7,7 +7,7 @@ import { CalendarDays, Clock, ChevronDown, ShieldCheck, Sparkles, HelpCircle, Us
 import { Therapist } from "../../types";
 import { SESSION_DURATION_MINUTES } from "@/shared/constants";
 import { cn } from "../../lib/utils";
-import { formatTime12h, SESSION_PRICE_DISPLAY } from "./bookingUi";
+import { formatTime12h, sessionPriceDisplayFor } from "./bookingUi";
 
 interface ClientDetails {
   name: string;
@@ -112,7 +112,7 @@ function SummaryBody({
       <div className="flex items-center justify-between rounded-2xl border border-primary/10 bg-white/70 px-4 py-3">
         <div>
           <p className="text-xs font-medium text-muted-foreground">Total</p>
-          <p className="text-lg font-semibold tabular-nums text-primary">{SESSION_PRICE_DISPLAY}</p>
+          <p className="text-lg font-semibold tabular-nums text-primary">{sessionPriceDisplayFor(therapist)}</p>
         </div>
         <p className="text-right text-xs font-medium leading-snug text-muted-foreground">
           {SESSION_DURATION_MINUTES}-minute
@@ -178,7 +178,7 @@ export function BookingSummary({ therapist, sessionType, date, time, variant = "
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-2">
-            <span className="text-sm font-semibold tabular-nums text-primary">{SESSION_PRICE_DISPLAY}</span>
+            <span className="text-sm font-semibold tabular-nums text-primary">{sessionPriceDisplayFor(therapist)}</span>
             <ChevronDown className={cn("h-4 w-4 text-primary/50 transition-transform", open && "rotate-180")} />
           </span>
         </button>

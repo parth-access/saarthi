@@ -274,14 +274,18 @@ export interface MachinerySources {
  * named event.
  */
 export async function readMachinerySources(limit = OVERVIEW_SCAN_LIMIT): Promise<MachinerySources> {
-  const dead = await countAbandonedEvents(limit);
+  // Both reads in flight together rather than one after the other.
+  const deadPromise = countAbandonedEvents(limit);
 
   try {
-    const snapshot = await requireDb()
-      .collection('outbox_events')
-      .where('status', 'in', ['pending', 'processing'])
-      .limit(limit + 1)
-      .get();
+    const [dead, snapshot] = await Promise.all([
+      deadPromise,
+      requireDb()
+        .collection('outbox_events')
+        .where('status', 'in', ['pending', 'processing'])
+        .limit(limit + 1)
+        .get(),
+    ]);
 
     const sample: WaitingEvent[] = snapshot.docs.slice(0, limit).map((doc) => {
       const data = doc.data() as Record<string, unknown>;
@@ -298,7 +302,7 @@ export async function readMachinerySources(limit = OVERVIEW_SCAN_LIMIT): Promise
       sample,
     };
   } catch (error) {
-    return { waiting: failed('outbox_waiting', error), dead, sample: [] };
+    return { waiting: failed('outbox_waiting', error), dead: await deadPromise, sample: [] };
   }
 }
 

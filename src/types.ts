@@ -180,6 +180,10 @@ export interface Therapist {
   slug?: string;
   authId?: string;
   email?: string;
+  /** Online session price in INR; platform default when absent. */
+  sessionPrice?: number;
+  /** In-person session price in INR; platform default when absent. */
+  inPersonPrice?: number;
 }
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';

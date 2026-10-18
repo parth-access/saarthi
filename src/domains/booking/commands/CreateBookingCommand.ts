@@ -82,7 +82,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
 
     const rawSessionMode = data.sessionMode?.toLowerCase();
     const normalizedSessionMode = rawSessionMode === 'in_person' ? 'in_person' : 'online';
-    const amount = calculateBookingPrice(data.sessionMode);
+    const amount = calculateBookingPrice(data.sessionMode, therapistDoc.data());
     const currency = 'INR';
 
     const holdExpiresAtDate = new Date(Date.now() + 10 * 60 * 1000);

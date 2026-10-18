@@ -1,3 +1,4 @@
+import { calculateBookingPrice } from "@/domains/booking/utils/pricing";
 /**
  * Pure, DOM-free helpers for the booking wizard.
  *
@@ -18,6 +19,20 @@ export const SESSION_PRICE_DISPLAY = "₹1,500";
 
 /** Confirm CTA label, built from the one price source so the two never drift. */
 export const CONFIRM_CTA_LABEL = `Confirm & Pay ${SESSION_PRICE_DISPLAY}`;
+
+/** "₹1,500" style INR formatting. */
+export function formatInr(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
+/** The online price shown for a therapist — the same rule the server charges by. */
+export function sessionPriceDisplayFor(therapist?: { sessionPrice?: unknown } | null): string {
+  return formatInr(calculateBookingPrice("online", therapist));
+}
+
+export function confirmCtaLabelFor(therapist?: { sessionPrice?: unknown } | null): string {
+  return `Confirm & Pay ${sessionPriceDisplayFor(therapist)}`;
+}
 
 /**
  * Shared-element identity for the Booking Summary card. The sidebar card

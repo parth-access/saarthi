@@ -70,7 +70,11 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
       };
     } catch {
        // If it fails, it might be a raw Firebase ID token passed in the Authorization header.
-       const decodedToken = await adminAuth.verifyIdToken(session, true);
+       // No `checkRevoked`: it costs a round trip to Firebase Auth on EVERY
+       // API request. Revocation and disabling are enforced just below by the
+       // users-doc kill-switch (sessionRevokeBefore / accountDisabled), which
+       // rides the read we already make, and ID tokens expire within an hour.
+       const decodedToken = await adminAuth.verifyIdToken(session);
        
        // Need to fetch role again for raw ID tokens
        const userDoc = await adminDb.collection('users').doc(decodedToken.uid).get();

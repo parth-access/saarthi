@@ -47,9 +47,11 @@ interface Props {
   selected: SessionType | "";
   onSelect: (type: SessionType) => void;
   onBack: () => void;
+  /** Price for the chosen therapist; defaults to the platform price. */
+  priceLabel?: string;
 }
 
-export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
+export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSION_PRICE_DISPLAY }: Props) => {
   const reduce = useReducedMotion();
   return (
     <div className="space-y-8">
@@ -59,7 +61,7 @@ export const SessionTypeStep = ({ selected, onSelect, onBack }: Props) => {
         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
           <span>{SESSION_DURATION_MINUTES}-minute session</span>
           <span className="text-primary/30">·</span>
-          <span className="font-semibold tabular-nums">{SESSION_PRICE_DISPLAY}</span>
+          <span className="font-semibold tabular-nums">{priceLabel}</span>
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">

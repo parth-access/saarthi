@@ -63,6 +63,7 @@ import type {
 } from './adminTherapistsResponse';
 import { ScheduleEditor, type ScheduleEditIntent } from './ScheduleEditor';
 import { BookabilityControl } from './BookabilityControl';
+import { TherapistProfileDialog } from './TherapistProfileDialog';
 import { useAdminTherapistDetail } from './useAdminTherapists';
 
 export function TherapistDetailScreen({ therapistId }: { therapistId: string }) {
@@ -162,18 +163,45 @@ function Identity({
   onApplied: () => void;
 }) {
   const status = describeActiveStatus(therapist.active);
+  const [editing, setEditing] = useState(false);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+  const inr = (n: number | null, fallback: string) => (n ? `₹${n.toLocaleString('en-IN')}` : `${fallback} (default)`);
 
   return (
     <Panel title="Therapist">
+      {savedNote && (
+        <p role="status" className={`mt-2 rounded-lg px-2.5 py-1.5 text-xs ${toneClasses('success')}`}>
+          {savedNote}
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        {therapist.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={therapist.image} alt="" className="h-14 w-14 shrink-0 rounded-xl border border-hairline object-cover" />
+        )}
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-primary">{therapist.name}</p>
           <p className="text-xs text-muted-foreground">
             {therapist.specialization ?? 'Specialization not recorded'}
             {therapist.experience ? ` · ${therapist.experience}` : ''}
           </p>
           {therapist.email && <p className="text-xs text-muted-foreground">{therapist.email}</p>}
+          <p className="text-xs text-muted-foreground">
+            Online {inr(therapist.sessionPrice, '₹1,500')} · In person {inr(therapist.inPersonPrice, '₹2,000')}
+            {therapist.slug ? ` · /book?therapist=${therapist.slug}` : ''}
+          </p>
+          <p className={`text-xs ${therapist.accountLinked ? 'text-success' : 'text-warning'}`}>
+            {therapist.accountLinked
+              ? 'Sign-in account linked'
+              : therapist.email
+                ? 'No sign-in account for this email yet — save again after they sign up'
+                : 'No sign-in email set — they cannot use the therapist dashboard'}
+          </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+          <Pencil aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
+          Edit profile
+        </Button>
         <span
           className={`shrink-0 rounded px-2 py-0.5 text-[0.6875rem] font-medium ${toneClasses(
             therapist.active ? 'success' : 'neutral'
@@ -202,6 +230,30 @@ function Identity({
       <div className="mt-2.5 border-t border-hairline pt-2.5">
         <CopyableId id={therapist.id} label="therapist id" />
       </div>
+
+      {editing && (
+        <TherapistProfileDialog
+          mode="edit"
+          therapistId={therapist.id}
+          initial={{
+            name: therapist.name,
+            slug: therapist.slug ?? '',
+            specialization: therapist.specialization ?? '',
+            experience: therapist.experience ?? '',
+            bio: therapist.bio ?? '',
+            image: therapist.image ?? '',
+            loginEmail: therapist.email ?? '',
+            sessionPrice: therapist.sessionPrice ? String(therapist.sessionPrice) : '',
+            inPersonPrice: therapist.inPersonPrice ? String(therapist.inPersonPrice) : '',
+          }}
+          onClose={() => setEditing(false)}
+          onSaved={(_, summary) => {
+            setEditing(false);
+            setSavedNote(summary);
+            onApplied();
+          }}
+        />
+      )}
     </Panel>
   );
 }

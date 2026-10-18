@@ -21,6 +21,8 @@ interface Props {
   sessionType?: string;
   onNext: (data: FormData) => void;
   onBack: () => void;
+  /** Price for the chosen therapist; defaults to the platform price. */
+  priceLabel?: string;
 }
 
 /** Longest dial code is 4 chars ("+971"); keeps the composed value within the schema's 20-char max. */
@@ -63,7 +65,7 @@ function FieldTick({ show, className }: { show: boolean; className?: string }) {
   );
 }
 
-export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, onBack }: Props) => {
+export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, onBack, priceLabel = SESSION_PRICE_DISPLAY }: Props) => {
   const {
     register,
     handleSubmit,
@@ -109,7 +111,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span>{sessionType} Therapy Session</span>
             <span className="text-primary/30">·</span>
-            <span className="font-semibold tabular-nums">{SESSION_PRICE_DISPLAY}</span>
+            <span className="font-semibold tabular-nums">{priceLabel}</span>
             <span className="text-primary/30">·</span>
             <span className="text-muted-foreground">{SESSION_DURATION_MINUTES} Minutes</span>
           </div>

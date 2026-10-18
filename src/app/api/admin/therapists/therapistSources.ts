@@ -165,6 +165,12 @@ export interface AdminTherapistIdentity {
   readonly bio: string | null;
   readonly active: boolean;
   readonly email: string | null;
+  readonly slug: string | null;
+  readonly image: string | null;
+  readonly sessionPrice: number | null;
+  readonly inPersonPrice: number | null;
+  /** Whether a sign-in account is linked (`authId` set). */
+  readonly accountLinked: boolean;
 }
 
 export type RuleScan =
@@ -231,6 +237,11 @@ export async function readTherapistDetail(
       bio: trimmedOrNull(data.bio),
       active: data.active !== false,
       email: trimmedOrNull(data.email),
+      slug: trimmedOrNull(data.slug),
+      image: trimmedOrNull(data.image),
+      sessionPrice: typeof data.sessionPrice === 'number' ? data.sessionPrice : null,
+      inPersonPrice: typeof data.inPersonPrice === 'number' ? data.inPersonPrice : null,
+      accountLinked: typeof data.authId === 'string' && data.authId.length > 0,
     },
     rules,
     overrides,
