@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "regions": [
+    "bom1"
+  ],
   "headers": [
     {
       "source": "/(.*)",
