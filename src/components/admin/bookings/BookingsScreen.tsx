@@ -20,6 +20,7 @@
 import { AlertTriangle, ChevronRight, Info, RotateCcw, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+import { ExportCsvButton } from '../ExportCsvButton';
 import { Button } from '@/components/ui/Button';
 import { useTherapists } from '@/hooks/useTherapists';
 import {
@@ -87,6 +88,11 @@ export function BookingsScreen() {
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <div className="text-right">
+          <ExportCsvButton type="bookings" />
+        </div>
+      </div>
       <BookingsFilterBar
         view={view}
         therapists={therapists}

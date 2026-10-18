@@ -23,6 +23,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ArrowRight, RotateCcw, Search } from 'lucide-react';
 import Link from 'next/link';
+import { ExportCsvButton } from '../ExportCsvButton';
 import { Button } from '@/components/ui/Button';
 import type { AdminTone } from '@/domains/booking/queries/adminBookingQuery';
 import { reconcilePayment, type PaymentTrace } from '@/domains/admin/paymentTrace';
@@ -120,10 +121,15 @@ function Reading({
           not refresh on its own.
         </p>
       </div>
-      <Button variant="outline" size="sm" onClick={onReload} disabled={loading}>
-        <RotateCcw aria-hidden="true" className={`mr-1.5 h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-        {loading ? 'Reading…' : 'Read again'}
-      </Button>
+      <div className="flex flex-wrap items-start gap-2">
+        <div>
+          <ExportCsvButton type="payments" />
+        </div>
+        <Button variant="outline" size="sm" onClick={onReload} disabled={loading}>
+          <RotateCcw aria-hidden="true" className={`mr-1.5 h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? 'Reading…' : 'Read again'}
+        </Button>
+      </div>
     </div>
   );
 }
