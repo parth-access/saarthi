@@ -99,13 +99,10 @@ service cloud.firestore {
 
       allow create: if isAdmin();
 
-      allow update: if
-        isAdmin()
-        || (
-          isSignedIn()
-          && resource.data.authId == request.auth.uid
-          && request.resource.data.authId == resource.data.authId
-        );
+      // Profile, prices, bookability and archiving all go through audited
+      // server routes (Admin SDK). A therapist editing their own doc directly
+      // could otherwise change their price or un-archive themselves.
+      allow update: if isAdmin();
 
       allow delete: if isAdmin();
     }

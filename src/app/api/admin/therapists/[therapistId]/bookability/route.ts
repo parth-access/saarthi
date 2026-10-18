@@ -68,6 +68,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ therap
     return NextResponse.json({ error: 'No therapist exists with that id.' }, { status: 404 });
   }
 
+  if (active && beforeSnap.data()?.archived === true) {
+    return NextResponse.json(
+      { error: 'This therapist is archived. Restore them first, then mark them bookable.' },
+      { status: 409 }
+    );
+  }
+
   const before = beforeSnap.data()?.active === false ? false : true;
   if (before === active) {
     return NextResponse.json({

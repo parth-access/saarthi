@@ -103,6 +103,7 @@ export interface AdminTherapistRosterRow {
   readonly name: string;
   readonly specialization: string | null;
   readonly active: boolean;
+  readonly archived: boolean;
   readonly email: string | null;
   /** `null` when this therapist's rules could not be read — the row still lists. */
   readonly summary: ScheduleSummary | null;
@@ -140,6 +141,7 @@ export async function readTherapistRoster(): Promise<AdminTherapistRosterScan> {
           name: trimmedOrNull(data.name) ?? 'Unnamed therapist',
           specialization: trimmedOrNull(data.specialization),
           active: data.active !== false,
+          archived: data.archived === true,
           email: trimmedOrNull(data.email),
           summary: rules ? summarizeSchedule(rules) : null,
         };
@@ -171,6 +173,7 @@ export interface AdminTherapistIdentity {
   readonly inPersonPrice: number | null;
   /** Whether a sign-in account is linked (`authId` set). */
   readonly accountLinked: boolean;
+  readonly archived: boolean;
 }
 
 export type RuleScan =
@@ -242,6 +245,7 @@ export async function readTherapistDetail(
       sessionPrice: typeof data.sessionPrice === 'number' ? data.sessionPrice : null,
       inPersonPrice: typeof data.inPersonPrice === 'number' ? data.inPersonPrice : null,
       accountLinked: typeof data.authId === 'string' && data.authId.length > 0,
+      archived: data.archived === true,
     },
     rules,
     overrides,

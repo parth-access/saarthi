@@ -64,6 +64,7 @@ import type {
 import { ScheduleEditor, type ScheduleEditIntent } from './ScheduleEditor';
 import { BookabilityControl } from './BookabilityControl';
 import { TherapistProfileDialog } from './TherapistProfileDialog';
+import { ArchiveControl } from './ArchiveControl';
 import { useAdminTherapistDetail } from './useAdminTherapists';
 
 export function TherapistDetailScreen({ therapistId }: { therapistId: string }) {
@@ -216,11 +217,27 @@ function Identity({
         changing it never adds or removes hours, and changing the schedule never flips it.
       </p>
 
-      <BookabilityControl
+      {therapist.archived ? (
+        <p className={`mt-2.5 rounded-lg px-3 py-2 text-xs ${toneClasses('neutral')}`}>
+          Archived — hidden from clients and the roster, and cannot be booked. Restore below to bring them back.
+        </p>
+      ) : (
+        <BookabilityControl
+          therapistId={therapist.id}
+          name={therapist.name}
+          active={therapist.active}
+          onApplied={onApplied}
+        />
+      )}
+
+      <ArchiveControl
         therapistId={therapist.id}
         name={therapist.name}
-        active={therapist.active}
-        onApplied={onApplied}
+        archived={therapist.archived}
+        onApplied={(summary) => {
+          setSavedNote(summary);
+          onApplied();
+        }}
       />
 
       {therapist.bio && (

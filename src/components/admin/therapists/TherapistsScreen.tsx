@@ -121,16 +121,36 @@ function Roster({ scan }: { scan: AdminTherapistRosterScan }) {
     );
   }
 
+  return <RosterList rows={scan.rows} />;
+}
+
+/** Archived therapists are hidden unless asked for — they are no longer on the books. */
+function RosterList({ rows }: { rows: readonly AdminTherapistRosterRow[] }) {
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = rows.filter((r) => r.archived).length;
+  const visible = showArchived ? rows : rows.filter((r) => !r.archived);
+  const current = rows.length - archivedCount;
+
   return (
     <Panel
       title="Roster"
-      subtitle={`${scan.rows.length} ${scan.rows.length === 1 ? 'therapist' : 'therapists'}, by name.`}
+      subtitle={`${current} ${current === 1 ? 'therapist' : 'therapists'}, by name${archivedCount ? ` · ${archivedCount} archived` : ''}.`}
     >
-      <ul className="mt-3 space-y-2.5">
-        {scan.rows.map((row) => (
-          <RosterCard key={row.id} row={row} />
-        ))}
-      </ul>
+      {archivedCount > 0 && (
+        <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          Show archived therapists
+        </label>
+      )}
+      {visible.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">Every therapist is archived. Use “Add therapist” to add one.</p>
+      ) : (
+        <ul className="mt-3 space-y-2.5">
+          {visible.map((row) => (
+            <RosterCard key={row.id} row={row} />
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }
@@ -152,7 +172,14 @@ function RosterCard({ row }: { row: AdminTherapistRosterRow }) {
             <Stethoscope aria-hidden="true" className="h-4 w-4 text-primary" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-primary">{row.name}</p>
+            <p className="text-sm font-medium text-primary">
+              {row.name}
+              {row.archived && (
+                <span className={`ml-2 rounded px-1.5 py-0.5 text-[0.625rem] font-medium ${toneClasses('neutral')}`}>
+                  Archived
+                </span>
+              )}
+            </p>
             <p className="truncate text-xs text-muted-foreground">
               {row.specialization ?? 'Specialization not recorded'}
             </p>

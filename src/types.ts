@@ -184,6 +184,8 @@ export interface Therapist {
   sessionPrice?: number;
   /** In-person session price in INR; platform default when absent. */
   inPersonPrice?: number;
+  /** Removed from the practice; never bookable, hidden from the admin roster by default. */
+  archived?: boolean;
 }
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';

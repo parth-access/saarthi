@@ -57,5 +57,8 @@ export function mapTherapist(id: string, data: Partial<Therapist> & Record<strin
     slug: rawSlug,
     authId: data?.authId || '',
     email: data?.email || '',
+    sessionPrice: typeof data?.sessionPrice === 'number' ? data.sessionPrice : undefined,
+    inPersonPrice: typeof data?.inPersonPrice === 'number' ? data.inPersonPrice : undefined,
+    archived: data?.archived === true,
   };
 }

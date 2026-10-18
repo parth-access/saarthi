@@ -8,6 +8,7 @@
  */
 import { ScheduleBuilder } from '@/components/dashboard/ScheduleBuilder';
 import { useTherapistData } from '../layout';
+import { BookingPauseControl } from '@/components/therapist/BookingPauseControl';
 
 export default function TherapistAvailabilityPage() {
   const data = useTherapistData();
@@ -32,6 +33,11 @@ export default function TherapistAvailabilityPage() {
           Set your recurring hours and closed dates. These are the times clients can request.
         </p>
       </div>
+      <BookingPauseControl
+        active={data.therapist?.active !== false}
+        archived={data.therapist?.archived === true}
+        onChanged={data.refresh}
+      />
       <ScheduleBuilder therapistId={therapistId} />
     </section>
   );

@@ -44,6 +44,7 @@ export interface AdminTherapistRosterRow {
   readonly name: string;
   readonly specialization: string | null;
   readonly active: boolean;
+  readonly archived: boolean;
   readonly email: string | null;
   readonly summary: ScheduleSummary | null;
 }
@@ -77,6 +78,7 @@ export interface AdminTherapistIdentity {
   readonly inPersonPrice: number | null;
   /** Whether a sign-in account is linked (`authId` set). */
   readonly accountLinked: boolean;
+  readonly archived: boolean;
 }
 
 export type RuleScan =
@@ -186,6 +188,7 @@ function isRosterRow(value: unknown): value is AdminTherapistRosterRow {
     typeof row.name === 'string' &&
     isNullableString(row.specialization) &&
     typeof row.active === 'boolean' &&
+    typeof row.archived === 'boolean' &&
     isNullableString(row.email) &&
     (row.summary === null || isSummary(row.summary))
   );
@@ -234,7 +237,8 @@ function isIdentity(value: unknown): value is AdminTherapistIdentity {
     isNullableString(t.image) &&
     (t.sessionPrice === null || typeof t.sessionPrice === 'number') &&
     (t.inPersonPrice === null || typeof t.inPersonPrice === 'number') &&
-    typeof t.accountLinked === 'boolean'
+    typeof t.accountLinked === 'boolean' &&
+    typeof t.archived === 'boolean'
   );
 }
 
