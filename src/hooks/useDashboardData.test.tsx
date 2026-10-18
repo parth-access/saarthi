@@ -12,7 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
  */
 
 const authState = vi.hoisted(() => ({
-  currentUser: null as { uid: string; email: string; role: string } | null,
+  currentUser: null as { uid: string; email: string; role: string; emailVerified?: boolean } | null,
 }));
 
 const { mockWhere, mockGetDocs } = vi.hoisted(() => ({
@@ -73,14 +73,24 @@ beforeEach(() => {
 });
 
 describe('useDashboardData — self-scoped reads', () => {
-  it('queries bookings keyed to the signed-in account email, whatever role it belongs to', async () => {
-    authState.currentUser = { uid: 'therapist_uid', email: 'therapist@example.com', role: 'therapist' };
+  it('queries bookings keyed to the signed-in account email once that email is verified', async () => {
+    authState.currentUser = { uid: 'therapist_uid', email: 'therapist@example.com', role: 'therapist', emailVerified: true };
 
     renderToStaticMarkup(<Probe />);
     await runDataEffect();
 
     expect(mockWhere).toHaveBeenCalledWith('email', '==', 'therapist@example.com');
     expect(mockGetDocs).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the account id while the email is unverified (email is not ownership proof yet)', async () => {
+    authState.currentUser = { uid: 'client_uid', email: 'someone@example.com', role: 'client', emailVerified: false };
+
+    renderToStaticMarkup(<Probe />);
+    await runDataEffect();
+
+    expect(mockWhere).toHaveBeenCalledWith('userId', '==', 'client_uid');
+    expect(mockWhere).not.toHaveBeenCalledWith('email', '==', 'someone@example.com');
   });
 
   it('never queries when there is no signed-in identity', async () => {

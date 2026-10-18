@@ -66,9 +66,13 @@ describe('firestore.rules agreement: bookings are readable only by their own cli
     rules.indexOf('allow write: if false')
   );
 
-  it('scopes booking reads to the signed-in identity (email or uid), not just the query', () => {
-    expect(bookingsBlock).toContain('resource.data.email == request.auth.token.email');
+  it('scopes booking reads to the signed-in identity (VERIFIED email or uid), not just the query', () => {
+    expect(bookingsBlock).toContain('hasVerifiedEmail(resource.data.email)');
     expect(bookingsBlock).toContain('resource.data.userId == request.auth.uid');
+    // The helper must require Firebase's email_verified claim.
+    const helper = rules.slice(rules.indexOf('function hasVerifiedEmail'), rules.indexOf('function isTherapistDocOwner'));
+    expect(helper).toContain('request.auth.token.email_verified == true');
+    expect(helper).toContain('email == request.auth.token.email');
   });
 
   it('never opens booking reads to any signed-in user', () => {

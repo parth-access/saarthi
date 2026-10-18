@@ -108,7 +108,7 @@ export function useDashboardData(): DashboardData {
       }
       hasLoadedOnce.current = true;
     }
-  }, [currentUser?.email]);
+  }, [currentUser?.email, currentUser?.emailVerified, currentUser?.uid]);
 
   useEffect(() => {
     if (currentUser?.email) {
