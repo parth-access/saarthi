@@ -1,6 +1,24 @@
 import { MetadataRoute } from 'next';
+import { adminDb } from '@/lib/firebase/admin';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+/** Rebuild hourly so new therapist profiles are picked up. */
+export const revalidate = 3600;
+
+/** Public, bookable therapist profiles (Dravina's hand-built page is listed above). */
+async function therapistProfileRoutes(): Promise<string[]> {
+  try {
+    if (!adminDb) return [];
+    const snap = await adminDb.collection('therapists').where('active', '==', true).get();
+    return snap.docs
+      .map((d) => d.data())
+      .filter((d) => d.archived !== true && typeof d.slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(d.slug) && d.slug !== 'dravina')
+      .map((d) => `/therapists/${d.slug}`);
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://www.saarthilife.com';
   const lastModified = new Date();
 
@@ -16,7 +34,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const legalRoutes = ['/privacy', '/terms'];
 
+  const profileRoutes = await therapistProfileRoutes();
+
   return [
+    ...profileRoutes.map((route) => ({
+      url: `${baseUrl}${route}`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
     ...mainRoutes.map((route) => ({
       url: `${baseUrl}${route}`,
       lastModified,

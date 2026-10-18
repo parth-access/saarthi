@@ -48,18 +48,24 @@ const ProfileHero = ({
             <p className="text-xl md:text-2xl text-accent font-serif italic mb-6">{title}</p>
             
             <div className="flex flex-wrap gap-6 mb-8 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span className="text-sm">{location}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Languages className="h-4 w-4 text-primary" />
-                <span className="text-sm">{languages.join(", ")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-sm">{experience} Experience</span>
-              </div>
+              {location && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="text-sm">{location}</span>
+                </div>
+              )}
+              {languages.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Languages className="h-4 w-4 text-primary" />
+                  <span className="text-sm">{languages.join(", ")}</span>
+                </div>
+              )}
+              {experience && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-sm">{experience} Experience</span>
+                </div>
+              )}
             </div>
 
             <p className="text-lg text-muted-foreground mb-10 max-w-xl">
