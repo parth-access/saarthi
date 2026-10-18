@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { AlertTriangle, ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { BusinessMetricsPanel } from './BusinessMetricsPanel';
 import {
   formatBoundedCount,
   machineryTone,
@@ -66,6 +67,8 @@ export function OverviewScreen() {
   return (
     <div className="space-y-3">
       <Reading payload={data} loading={loading} onReload={reload} />
+
+      <BusinessMetricsPanel />
 
       {error && (
         <Notice tone="warning">
