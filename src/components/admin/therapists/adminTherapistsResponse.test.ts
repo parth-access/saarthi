@@ -81,6 +81,7 @@ function detailBody(overrides: Record<string, unknown> = {}) {
       image: null,
       sessionPrice: 1800,
       inPersonPrice: null,
+      payoutPercent: 70,
       accountLinked: true,
       archived: false,
     },

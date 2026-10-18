@@ -171,6 +171,7 @@ export interface AdminTherapistIdentity {
   readonly image: string | null;
   readonly sessionPrice: number | null;
   readonly inPersonPrice: number | null;
+  readonly payoutPercent: number | null;
   /** Whether a sign-in account is linked (`authId` set). */
   readonly accountLinked: boolean;
   readonly archived: boolean;
@@ -244,6 +245,7 @@ export async function readTherapistDetail(
       image: trimmedOrNull(data.image),
       sessionPrice: typeof data.sessionPrice === 'number' ? data.sessionPrice : null,
       inPersonPrice: typeof data.inPersonPrice === 'number' ? data.inPersonPrice : null,
+      payoutPercent: typeof data.payoutPercent === 'number' ? data.payoutPercent : null,
       accountLinked: typeof data.authId === 'string' && data.authId.length > 0,
       archived: data.archived === true,
     },

@@ -69,6 +69,8 @@ export const therapistProfileSchema = z.object({
     .optional(),
   sessionPrice: price,
   inPersonPrice: price,
+  /** Therapist's share of net session revenue, in percent. */
+  payoutPercent: z.number().int('Use a whole percentage.').min(0).max(100).nullable().optional(),
 });
 
 export type TherapistProfileInput = z.infer<typeof therapistProfileSchema>;

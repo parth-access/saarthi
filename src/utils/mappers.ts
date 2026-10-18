@@ -25,6 +25,7 @@ export function mapBooking(id: string, data: Partial<Booking> & Record<string, u
     razorpayOrderId: data?.razorpayOrderId,
     razorpayPaymentId: data?.razorpayPaymentId,
     paymentAmount: data?.paymentAmount,
+    refundAmount: typeof data?.refundAmount === 'number' ? data.refundAmount : undefined,
     paymentCurrency: data?.paymentCurrency,
     paymentVerifiedAt: data?.paymentVerifiedAt,
     paymentLinkSentAt: data?.paymentLinkSentAt,
@@ -60,5 +61,6 @@ export function mapTherapist(id: string, data: Partial<Therapist> & Record<strin
     sessionPrice: typeof data?.sessionPrice === 'number' ? data.sessionPrice : undefined,
     inPersonPrice: typeof data?.inPersonPrice === 'number' ? data.inPersonPrice : undefined,
     archived: data?.archived === true,
+    payoutPercent: typeof data?.payoutPercent === 'number' ? data.payoutPercent : undefined,
   };
 }

@@ -189,6 +189,7 @@ function Identity({
           {therapist.email && <p className="text-xs text-muted-foreground">{therapist.email}</p>}
           <p className="text-xs text-muted-foreground">
             Online {inr(therapist.sessionPrice, '₹1,500')} · In person {inr(therapist.inPersonPrice, '₹2,000')}
+            {therapist.payoutPercent !== null ? ` · Payout ${therapist.payoutPercent}%` : ' · Payout share not set'}
             {therapist.slug ? ` · /book?therapist=${therapist.slug}` : ''}
           </p>
           <p className={`text-xs ${therapist.accountLinked ? 'text-success' : 'text-warning'}`}>
@@ -262,6 +263,7 @@ function Identity({
             loginEmail: therapist.email ?? '',
             sessionPrice: therapist.sessionPrice ? String(therapist.sessionPrice) : '',
             inPersonPrice: therapist.inPersonPrice ? String(therapist.inPersonPrice) : '',
+            payoutPercent: therapist.payoutPercent !== null ? String(therapist.payoutPercent) : '',
           }}
           onClose={() => setEditing(false)}
           onSaved={(_, summary) => {

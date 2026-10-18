@@ -74,6 +74,8 @@ export interface Booking {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   paymentAmount?: number;
+  /** Refunded amount in paise. */
+  refundAmount?: number;
   paymentCurrency?: string;
   holdExpiresAt?: FirebaseTimestamp | Date | string | null | unknown;
   paymentVerifiedAt?: FirebaseTimestamp | Date | string | null | unknown;
@@ -186,6 +188,8 @@ export interface Therapist {
   inPersonPrice?: number;
   /** Removed from the practice; never bookable, hidden from the admin roster by default. */
   archived?: boolean;
+  /** Therapist's share of net session revenue, 0–100 (set by the practice). */
+  payoutPercent?: number;
 }
 
 export type SessionType = 'Individual' | 'Couple' | 'Family' | 'Teen';

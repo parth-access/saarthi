@@ -14,6 +14,7 @@ export const PROFILE_FIELDS = [
   'authId',
   'sessionPrice',
   'inPersonPrice',
+  'payoutPercent',
 ] as const;
 
 export type ProfileField = (typeof PROFILE_FIELDS)[number];
@@ -67,6 +68,7 @@ export function toProfileDoc(
   if (input.image !== undefined) doc.image = input.image;
   if (input.sessionPrice !== undefined) doc.sessionPrice = input.sessionPrice;
   if (input.inPersonPrice !== undefined) doc.inPersonPrice = input.inPersonPrice;
+  if (input.payoutPercent !== undefined) doc.payoutPercent = input.payoutPercent;
   if (link) {
     doc.email = link.email;
     // Never unlink an existing account just because it has not signed up yet.

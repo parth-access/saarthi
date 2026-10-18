@@ -76,6 +76,7 @@ export interface AdminTherapistIdentity {
   readonly image: string | null;
   readonly sessionPrice: number | null;
   readonly inPersonPrice: number | null;
+  readonly payoutPercent: number | null;
   /** Whether a sign-in account is linked (`authId` set). */
   readonly accountLinked: boolean;
   readonly archived: boolean;
@@ -237,6 +238,7 @@ function isIdentity(value: unknown): value is AdminTherapistIdentity {
     isNullableString(t.image) &&
     (t.sessionPrice === null || typeof t.sessionPrice === 'number') &&
     (t.inPersonPrice === null || typeof t.inPersonPrice === 'number') &&
+    (t.payoutPercent === null || typeof t.payoutPercent === 'number') &&
     typeof t.accountLinked === 'boolean' &&
     typeof t.archived === 'boolean'
   );

@@ -24,6 +24,7 @@ export interface TherapistProfileValues {
   loginEmail: string;
   sessionPrice: string;
   inPersonPrice: string;
+  payoutPercent: string;
 }
 
 export const EMPTY_PROFILE: TherapistProfileValues = {
@@ -36,6 +37,7 @@ export const EMPTY_PROFILE: TherapistProfileValues = {
   loginEmail: '',
   sessionPrice: '',
   inPersonPrice: '',
+  payoutPercent: '',
 };
 
 const MAX_PX = 800;
@@ -132,6 +134,12 @@ export function TherapistProfileDialog({
       setError('Prices must be whole rupees, e.g. 1500.');
       return;
     }
+    const payoutRaw = values.payoutPercent.trim();
+    const payoutPercent = payoutRaw === '' ? null : Number(payoutRaw);
+    if (payoutPercent !== null && !(Number.isInteger(payoutPercent) && payoutPercent >= 0 && payoutPercent <= 100)) {
+      setError('Payout share must be a whole percentage from 0 to 100.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -144,6 +152,7 @@ export function TherapistProfileDialog({
         loginEmail: values.loginEmail,
         sessionPrice,
         inPersonPrice,
+        payoutPercent,
       };
       const res = await fetchWithAuth(
         mode === 'create'
@@ -265,6 +274,12 @@ export function TherapistProfileDialog({
           </div>
         </div>
         <p className={hint}>Leave a price blank to use the platform default. Existing bookings keep the price they were made at.</p>
+
+        <div>
+          <label className={label} htmlFor="tp-payout">Therapist&apos;s payout share (%)</label>
+          <input id="tp-payout" inputMode="numeric" value={values.payoutPercent} onChange={set('payoutPercent')} className={field} placeholder="e.g. 70" />
+          <p className={hint}>Their share of net session revenue (after refunds), shown on their Earnings page.</p>
+        </div>
 
         <div>
           <label className={label} htmlFor="tp-email">Therapist&apos;s sign-in email</label>
