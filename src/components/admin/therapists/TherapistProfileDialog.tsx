@@ -39,6 +39,7 @@ export const EMPTY_PROFILE: TherapistProfileValues = {
 };
 
 const MAX_PX = 800;
+const WEBP_QUALITY = 0.8;
 
 /** Resize + re-encode to WebP in the browser. */
 async function toWebpDataUrl(file: File): Promise<string> {
@@ -50,7 +51,7 @@ async function toWebpDataUrl(file: File): Promise<string> {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas is not available in this browser.');
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/webp', 0.85);
+  return canvas.toDataURL('image/webp', WEBP_QUALITY);
 }
 
 function slugify(name: string): string {

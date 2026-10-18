@@ -1,42 +1,34 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { getStorage } from 'firebase-admin/storage';
+import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
+import { adminDb } from '@/lib/firebase/admin';
 import { requireAdmin } from '@/lib/auth/requireRole';
 import { checkRateLimit, getClientIp } from '../../../_lib/rateLimit';
 import { logger } from '../../../_lib/logger';
-import '@/lib/firebase/admin';
 
 export const dynamic = 'force-dynamic';
 
-/** ~1.5 MB decoded. The console resizes to ≤800px WebP before sending. */
-const MAX_BYTES = 1_500_000;
+/**
+ * Upload a therapist photo.
+ *
+ * Stored in Firestore (`therapist_photos/{id}`) rather than Firebase Storage,
+ * which needs the paid Blaze plan. The console resizes to ≤800px WebP first, so
+ * a photo is typically 50–150 KB — well under Firestore's 1 MiB document limit.
+ * It is served by GET /api/therapist-photo/{id} with immutable CDN caching, so
+ * Firestore is read roughly once per photo, not once per page view.
+ */
+const MAX_BYTES = 700_000;
 const ALLOWED = new Set(['image/webp', 'image/jpeg', 'image/png']);
 
-const schema = z.object({
-  /** data:image/webp;base64,.... */
-  dataUrl: z.string().max(2_200_000),
-});
+const schema = z.object({ dataUrl: z.string().max(1_000_000) });
 
-/**
- * Upload a therapist photo to Firebase Storage and return its public download
- * URL (token-based, so it works without making the bucket public).
- * Requires FIREBASE_STORAGE_BUCKET (or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).
- */
 export async function POST(req: Request) {
   const authorized = await requireAdmin(req);
   if (authorized instanceof NextResponse) return authorized;
 
   if (!checkRateLimit(getClientIp(req), 'admin_therapist_photo', 10, 60_000).success) {
     return NextResponse.json({ error: 'Too many uploads in a short time. Wait a minute and try again.' }, { status: 429 });
-  }
-
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-  if (!bucketName) {
-    return NextResponse.json(
-      { error: 'Photo upload is not configured (FIREBASE_STORAGE_BUCKET is not set). Paste an image URL instead.' },
-      { status: 503 }
-    );
   }
 
   let dataUrl: string;
@@ -52,27 +44,21 @@ export async function POST(req: Request) {
   if (!match || !ALLOWED.has(match[1])) {
     return NextResponse.json({ error: 'Upload a WebP, JPEG or PNG image.' }, { status: 400 });
   }
-  const contentType = match[1];
   const bytes = Buffer.from(match[2], 'base64');
   if (bytes.length === 0 || bytes.length > MAX_BYTES) {
-    return NextResponse.json({ error: 'The image must be under 1.5 MB.' }, { status: 400 });
+    return NextResponse.json({ error: 'The image must be under 700 KB after resizing.' }, { status: 400 });
   }
 
   try {
-    const ext = contentType.split('/')[1];
-    const path = `therapists/${crypto.randomUUID()}.${ext}`;
-    const token = crypto.randomUUID();
-    const bucket = getStorage().bucket(bucketName);
-    await bucket.file(path).save(bytes, {
-      contentType,
-      resumable: false,
-      metadata: {
-        cacheControl: 'public, max-age=31536000, immutable',
-        metadata: { firebaseStorageDownloadTokens: token },
-      },
+    const id = crypto.randomUUID();
+    await adminDb.collection('therapist_photos').doc(id).set({
+      contentType: match[1],
+      data: bytes,
+      size: bytes.length,
+      uploadedBy: authorized.uid,
+      createdAt: FieldValue.serverTimestamp(),
     });
-    const url = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
-    return NextResponse.json({ success: true, url });
+    return NextResponse.json({ success: true, url: `/api/therapist-photo/${id}` });
   } catch (error) {
     logger.error('THERAPIST_MUTATION', 'Therapist photo upload failed', error);
     return NextResponse.json({ error: 'The photo could not be uploaded. Please try again.' }, { status: 500 });
