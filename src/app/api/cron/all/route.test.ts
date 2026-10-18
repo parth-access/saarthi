@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const calls = vi.hoisted(() => [] as string[]);
-const ok = (name: string) => async () => {
-  calls.push(name);
-  return new Response('{}', { status: 200 });
-};
+// vi.mock factories are hoisted above all other code, so anything they use
+// must come from vi.hoisted (which is hoisted with them).
+const { calls, ok } = vi.hoisted(() => {
+  const calls: string[] = [];
+  const ok = (name: string) => async () => {
+    calls.push(name);
+    return new Response('{}', { status: 200 });
+  };
+  return { calls, ok };
+});
 
 vi.mock('@/app/api/_lib/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 vi.mock('../process-outbox/route', () => ({ GET: ok('process-outbox') }));
