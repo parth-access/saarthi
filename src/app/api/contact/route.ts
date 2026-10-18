@@ -22,11 +22,14 @@ const ContactPayloadSchema = z.object({
   honeypot: z.string().max(0).optional().or(z.literal('')), // Must be empty
 });
 
-import { getClientIp, checkRateLimit } from '../_lib/rateLimit';
+import { getClientIp } from '../_lib/rateLimit';
+import { checkDistributedRateLimit } from '../_lib/distributedRateLimit';
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rateCheck = checkRateLimit(ip, 'contact_submit', 5, 15 * 60000);
+  // Shared across serverless instances: this route sends mail to a
+  // visitor-supplied address, so a per-instance limit is not enough.
+  const rateCheck = await checkDistributedRateLimit(ip, 'contact_submit', 5, 15 * 60000);
   if (!rateCheck.success) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
@@ -46,15 +49,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const safeName = escapeString(name.trim());
-    const safeEmail = escapeString(email.trim());
-    const safeMessage = escapeString(message.trim());
+    // Stored as plain text; escaping happens only where it is rendered as HTML
+    // (the admin notification below). The admin console renders text via React.
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+    const cleanMessage = message.trim();
+    const safeName = escapeString(cleanName);
+    const safeEmail = escapeString(cleanEmail);
+    const safeMessage = escapeString(cleanMessage);
 
     // Save to Firestore
     const docRef = await adminDb.collection('contacts').add({
-      name: safeName,
-      email: safeEmail,
-      message: safeMessage,
+      name: cleanName,
+      email: cleanEmail,
+      message: cleanMessage,
       status: 'unread',
       priority: 'normal',
       source: 'website',
@@ -64,41 +72,42 @@ export async function POST(request: Request) {
     });
 
     if (resend) {
-      // Send Notification to Admin
-      await resend.emails.send({
-        from: 'Saarthi Contact <contact@saarthilife.com>',
-        to: 'contact@saarthilife.com',
-        replyTo: 'healwithsaarthi@gmail.com',
-        subject: 'New Saarthi Contact Inquiry',
-        html: `
-          <h2>New Contact Inquiry</h2>
-          <p><strong>Name:</strong> ${safeName}</p>
-          <p><strong>Email:</strong> ${safeEmail}</p>
-          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-          <h3>Message:</h3>
-          <p style="white-space: pre-wrap;">${safeMessage}</p>
-        `,
-      });
+      // The enquiry is already saved, so email failures must not turn into a
+      // 500 — the visitor would resubmit and create duplicate contacts.
+      try {
+        await resend.emails.send({
+          from: 'Saarthi Contact <contact@saarthilife.com>',
+          to: 'contact@saarthilife.com',
+          replyTo: cleanEmail,
+          subject: 'New Saarthi Contact Inquiry',
+          html: `
+            <h2>New Contact Inquiry</h2>
+            <p><strong>Name:</strong> ${safeName}</p>
+            <p><strong>Email:</strong> ${safeEmail}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+            <h3>Message:</h3>
+            <p style="white-space: pre-wrap;">${safeMessage}</p>
+          `,
+        });
+      } catch (err) {
+        console.error('API /contact: admin notification failed', err);
+      }
 
-      // Auto-Reply — built from the shared Saarthi email layout so it matches
-      // the booking/reminder/post-session emails. The template escapes the
-      // visitor's own words; the admin notification above stays escaped here.
-      await resend.emails.send({
-        from: 'Saarthi <contact@saarthilife.com>',
-        to: email.trim(),
-        replyTo: 'healwithsaarthi@gmail.com',
-        subject: 'We received your message — Saarthi',
-        html: generateContactConfirmationEmail({
-          name: name.trim(),
-          email: email.trim(),
-          message: message.trim(),
-        }),
-        text: generateContactConfirmationText({
-          name: name.trim(),
-          email: email.trim(),
-          message: message.trim(),
-        }),
-      });
+      // Auto-reply deliberately echoes nothing the visitor typed (no name,
+      // no message): anything echoed to a visitor-chosen address would let
+      // the form send Saarthi-branded text to arbitrary inboxes.
+      try {
+        await resend.emails.send({
+          from: 'Saarthi <contact@saarthilife.com>',
+          to: cleanEmail,
+          replyTo: 'healwithsaarthi@gmail.com',
+          subject: 'We received your message — Saarthi',
+          html: generateContactConfirmationEmail({ email: cleanEmail }),
+          text: generateContactConfirmationText({ email: cleanEmail }),
+        });
+      } catch (err) {
+        console.error('API /contact: auto-reply failed', err);
+      }
     }
 
     return NextResponse.json({ success: true, id: docRef.id }, { status: 200 });

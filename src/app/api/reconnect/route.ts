@@ -4,7 +4,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { verifySession } from "@/lib/auth/verifySession";
 import { getResendClient } from "../_lib/resendClient";
 import escapeString from "escape-html";
-import { checkRateLimit, getClientIp } from "../_lib/rateLimit";
+import { getClientIp } from "../_lib/rateLimit";
+import { checkDistributedRateLimit } from "../_lib/distributedRateLimit";
 import { logger } from '../_lib/logger';
 
 const ADMIN_EMAIL = 'admin@saarthilife.com';
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
   try {
     // This route emails the admin inbox; throttle so an authenticated account
     // cannot flood it.
-    if (!checkRateLimit(getClientIp(req), 'reconnect_request', 5, 60_000).success) {
+    if (!(await checkDistributedRateLimit(getClientIp(req), 'reconnect_request', 5, 60_000)).success) {
       return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
     }
 

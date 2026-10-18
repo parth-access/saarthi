@@ -56,13 +56,9 @@ describe('email templates', () => {
 });
 
 describe('contact form confirmation email', () => {
-  const base = {
-    name: 'Asha Rao',
-    email: 'asha@example.com',
-    message: 'I would like to know more about evening sessions.',
-  };
+  const base = { email: 'asha@example.com' };
 
-  it('uses the shared Saarthi layout and greeting', () => {
+  it('uses the shared Saarthi layout and a generic greeting', () => {
     const html = generateContactConfirmationEmail(base);
 
     // Same shell as every other transactional email.
@@ -70,51 +66,26 @@ describe('contact form confirmation email', () => {
     expect(html).toContain('Playfair');
     expect(html).toContain('Saarthi is not an emergency psychiatric service');
 
-    // The acknowledgement itself.
-    expect(html).toContain('Hi Asha Rao,');
+    expect(html).toContain('Hi there,');
     expect(html).toContain('Thank you for reaching out to Saarthi');
     expect(html).toContain("We've received your message and our team will review it.");
     expect(html).toContain("We'll get back to you at:");
     expect(html).toContain('asha@example.com');
-    expect(html).toContain("We'll be in touch soon.");
     expect(html).toContain('The Saarthi Team');
   });
 
-  it('has a plain-text twin that carries the same message and crisis note', () => {
+  it('has a plain-text twin with the crisis note', () => {
     const text = generateContactConfirmationText(base);
 
-    expect(text).toContain('Hi Asha Rao,');
-    expect(text).toContain(base.message);
+    expect(text).toContain('Hi there,');
     expect(text).toContain('asha@example.com');
     expect(text).toContain('Saarthi is not an emergency psychiatric service');
     expect(text).not.toContain('<p');
   });
 
-  it('escapes visitor-supplied name and message so no form HTML becomes email markup', () => {
-    const html = generateContactConfirmationEmail({
-      name: '<img src=x onerror=alert(1)>Priya',
-      email: 'priya@example.com',
-      message: '<script>alert("xss")</script> & "quoted" <b>bold</b>',
-    });
-
+  it('escapes the address it shows', () => {
+    const html = generateContactConfirmationEmail({ email: '"><script>x</script>@example.com' });
     expect(html).not.toContain('<script>');
-    expect(html).not.toContain('<img src=x');
-    expect(html).not.toContain('<b>bold</b>');
-    expect(html).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
-    expect(html).toContain('&amp;');
-  });
-
-  it('renders special characters and very long messages on one wrapped block', () => {
-    const longMessage = `${'word '.repeat(400)}₹1,500 — “curly” & <angle>`;
-    const html = generateContactConfirmationEmail({ ...base, message: longMessage });
-
-    // The message is one pre-wrapped block, so a long body cannot break the card.
-    expect(html).toContain('white-space: pre-wrap');
-    expect(html).toContain('word-break: break-word');
-    // Non-ASCII punctuation is left intact (only & < > " ' are entity-encoded),
-    // and an <angle> bracket is escaped rather than parsed as markup.
-    expect(html).toContain('₹1,500');
-    expect(html).toContain('“curly” &amp; &lt;angle&gt;');
-    expect(html.length).toBeGreaterThan(longMessage.length);
+    expect(html).toContain('&lt;script&gt;');
   });
 });

@@ -21,6 +21,10 @@ vi.mock('@/lib/firebase/admin', () => ({
   },
 }));
 
+vi.mock('../_lib/distributedRateLimit', () => ({
+  checkDistributedRateLimit: async () => ({ success: true, store: 'memory' }),
+}));
+
 vi.mock('@/lib/auth/verifySession', () => ({
   verifySession: vi.fn(),
 }));

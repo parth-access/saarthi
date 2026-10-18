@@ -25,6 +25,10 @@ vi.mock('../_lib/rateLimit', () => ({
   getClientIp: () => 'test-client-ip',
 }));
 
+vi.mock('../_lib/distributedRateLimit', () => ({
+  checkDistributedRateLimit: async () => ({ success: true, store: 'memory' }),
+}));
+
 import { POST } from './route';
 
 function submit(body: Record<string, unknown>): Promise<Response> {
@@ -65,30 +69,38 @@ describe('POST /api/contact', () => {
     expect(autoReply[0].to).toBe('asha@example.com');
     expect(autoReply[0].subject).toBe('We received your message — Saarthi');
 
-    // The shared Saarthi layout, not a two-line plain email.
+    // The shared Saarthi layout, and nothing the visitor typed is echoed back
+    // (the recipient is visitor-chosen, so echoed text would be a spam relay).
     const html = autoReply[0].html as string;
     expect(html).toContain('saarthi-logo-Photoroom.png');
-    expect(html).toContain('Hi Asha Rao,');
-    expect(html).toContain('Evening sessions please.');
     expect(html).toContain('Saarthi is not an emergency psychiatric service');
+    expect(html).not.toContain('Asha Rao');
+    expect(html).not.toContain('Evening sessions please.');
 
-    // Plain-text twin for clients that block HTML.
     const text = autoReply[0].text as string;
-    expect(text).toContain('Hi Asha Rao,');
-    expect(text).toContain('Evening sessions please.');
+    expect(text).not.toContain('Evening sessions please.');
     expect(text).toContain('The Saarthi Team');
   });
 
-  it('escapes visitor-supplied content in the auto-reply', async () => {
-    await submit({
-      name: 'Asha',
-      email: 'asha@example.com',
-      message: '<script>alert(1)</script>',
-    });
+  it('stores the enquiry as plain text, not pre-escaped HTML', async () => {
+    await submit({ name: 'R&D <Team>', email: 'asha@example.com', message: 'Tom & Jerry' });
 
-    const html = sendMock.mock.calls[1][0].html as string;
-    expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;');
+    const stored = addMock.mock.calls[0][0];
+    expect(stored.name).toBe('R&D <Team>');
+    expect(stored.message).toBe('Tom & Jerry');
+
+    // ...but the admin notification HTML is still escaped.
+    const notification = sendMock.mock.calls[0][0].html as string;
+    expect(notification).toContain('R&amp;D &lt;Team&gt;');
+  });
+
+  it('still succeeds when email delivery fails after the enquiry is saved', async () => {
+    sendMock.mockRejectedValue(new Error('Resend down'));
+
+    const res = await submit({ name: 'Asha', email: 'asha@example.com', message: 'Hello' });
+
+    expect(res.status).toBe(200);
+    expect(addMock).toHaveBeenCalledTimes(1);
   });
 
   it('never stores or emails a filled honeypot submission', async () => {

@@ -1,33 +1,49 @@
 import { NextResponse } from "next/server";
 import { getClientIp } from '../_lib/rateLimit';
+import { checkDistributedRateLimit } from '../_lib/distributedRateLimit';
 import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 import { firestoreBookingRepository, RescheduleBookingCommand, RescheduleBookingCommandHandler } from "@/domains/booking";
-
-const rateLimits = new Map<string, { count: number; timestamp: number }>();
 
 /** Short, non-reversible correlation marker for a booking token — never log the token itself. */
 function fingerprintToken(token: string): string {
   return `${token.slice(0, 6)}…(len ${token.length})`;
 }
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const record = rateLimits.get(ip);
-  if (record && now - record.timestamp < 60000) { 
-    if (record.count >= 10) return true;
-    record.count++;
-  } else {
-    rateLimits.set(ip, { count: 1, timestamp: now });
-  }
-  return false;
+/** Shared across serverless instances — this route accepts a bearer token. */
+async function isRateLimited(ip: string): Promise<boolean> {
+  const result = await checkDistributedRateLimit(ip, 'manage_booking', 10, 60_000);
+  return !result.success;
+}
+
+/** Manage links stop working this many days after the session date. */
+const TOKEN_GRACE_DAYS = 7;
+
+/** Statuses after which a manage link may still view, but never change, a booking. */
+const READ_ONLY_STATUSES = new Set(['cancelled', 'completed', 'rejected', 'no_show', 'expired']);
+
+/** Today's date in IST as YYYY-MM-DD. */
+function todayIst(): string {
+  return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * A manage token is a long-lived bearer credential sent by email, so it is
+ * bounded by the booking itself: it expires TOKEN_GRACE_DAYS after the session
+ * date. Bookings with an unparseable date fail closed.
+ */
+function isTokenExpired(bookingDate: unknown): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(bookingDate ?? '').trim());
+  if (!m) return true;
+  const expiry = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + TOKEN_GRACE_DAYS));
+  return todayIst() > expiry.toISOString().slice(0, 10);
 }
 
 export async function GET(request: Request) {
   const clientIp = getClientIp(request);
   
-  if (isRateLimited(clientIp)) {
+  if (await isRateLimited(clientIp)) {
     logger.warn('MANAGE_BOOKING', 'Rate limit exceeded', { ip: clientIp });
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
@@ -49,6 +65,11 @@ export async function GET(request: Request) {
     if (booking.invalidToken) {
        logger.warn('MANAGE_BOOKING', 'Attempted to use invalidated token', { tokenFingerprint: fingerprintToken(token), bookingId: booking.id });
        return NextResponse.json({ error: "This booking link is no longer valid." }, { status: 400 });
+    }
+
+    if (isTokenExpired(booking.date)) {
+      logger.warn('MANAGE_BOOKING', 'Expired manage token used', { tokenFingerprint: fingerprintToken(token), bookingId: booking.id });
+      return NextResponse.json({ error: "This booking link has expired." }, { status: 410 });
     }
 
     let therapistName = "Your Therapist";
@@ -89,7 +110,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const clientIp = getClientIp(request);
   
-  if (isRateLimited(clientIp)) {
+  if (await isRateLimited(clientIp)) {
     logger.warn('MANAGE_BOOKING', 'Rate limit exceeded', { ip: clientIp });
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
@@ -110,6 +131,16 @@ export async function POST(request: Request) {
     const booking = await firestoreBookingRepository.findByToken(token);
     if (!booking)
       return NextResponse.json({ error: "Booking not found or link expired." }, { status: 404 });
+
+    if (booking.invalidToken) {
+      return NextResponse.json({ error: "This booking link is no longer valid." }, { status: 400 });
+    }
+    if (isTokenExpired(booking.date)) {
+      return NextResponse.json({ error: "This booking link has expired." }, { status: 410 });
+    }
+    if (READ_ONLY_STATUSES.has(String(booking.status))) {
+      return NextResponse.json({ error: "This booking can no longer be changed." }, { status: 409 });
+    }
 
     const bookingId = booking.id;
 
