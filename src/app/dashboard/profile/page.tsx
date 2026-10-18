@@ -9,6 +9,7 @@ import { auth, db } from "@/lib/firebase/client";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SupportModal } from "@/components/dashboard/SupportModal";
+import { DownloadMyDataButton } from "@/components/dashboard/DownloadMyDataButton";
 import { toast } from "sonner";
 import { User, Mail, Shield, ArrowLeft, Loader2, Save, CheckCircle } from "lucide-react";
 import Link from "next/link";
@@ -370,9 +371,13 @@ function Profile() {
                 <div className="p-5 rounded-2xl border border-primary/10 bg-white">
                   <h3 className="font-medium text-primary text-sm">Your data</h3>
                   <p className="text-xs text-primary/60 mt-1 mb-3 leading-relaxed">
-                    Session notes stay between you and your therapist. Read what we collect and why in our{" "}
+                    Download a copy of everything Saarthi holds about you — your account, bookings, payments,
+                    refunds, reviews, requests, and any session summaries your therapist shared with you. Your
+                    therapist&apos;s private notes are their professional records and aren&apos;t included. Read what we
+                    collect and why in our{" "}
                     <Link href="/privacy" className="font-medium text-primary underline hover:text-[#E6A520]">privacy policy</Link>.
                   </p>
+                  <DownloadMyDataButton />
                 </div>
 
                 <div className="p-5 rounded-2xl border border-red-100 bg-red-50/50">
