@@ -2,7 +2,7 @@ import { getClientIp } from '../../_lib/rateLimit';
 import { checkDistributedRateLimit } from '../../_lib/distributedRateLimit';
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
-import { SignJWT } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
 import { verifySession } from '@/lib/auth/verifySession';
 
 export async function POST(request: Request) {
@@ -59,6 +59,8 @@ export async function POST(request: Request) {
       role 
     })
       .setProtectedHeader({ alg })
+      // Per-session id, so signing out can revoke exactly this cookie.
+      .setJti(crypto.randomUUID())
       .setIssuedAt()
       .setExpirationTime('5d')
       .sign(secret);
@@ -83,7 +85,32 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+/**
+ * Sign-out. Clearing the cookie alone would leave a copied cookie valid until
+ * it expires (5 days), so the session's jti is denylisted in
+ * `revoked_sessions` until then; verifySession refuses it from now on.
+ * Best-effort: the cookie is cleared even if the denylist write fails.
+ * (Enable a Firestore TTL policy on `revoked_sessions.expiresAt` to prune it.)
+ */
+export async function DELETE(request: Request) {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const token = cookieHeader.match(/__session=([^;]+)/)?.[1];
+  const jwtSecret = process.env.JWT_SECRET;
+  if (token && jwtSecret) {
+    try {
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
+      if (payload.jti && payload.exp) {
+        await adminDb.collection('revoked_sessions').doc(payload.jti).set({
+          uid: payload.uid ?? null,
+          revokedAt: new Date(),
+          expiresAt: new Date(payload.exp * 1000),
+        });
+      }
+    } catch (error) {
+      console.warn('Could not revoke session on sign-out:', error);
+    }
+  }
+
   const response = NextResponse.json({ success: true }, { status: 200 });
   response.cookies.delete('__session');
   return response;

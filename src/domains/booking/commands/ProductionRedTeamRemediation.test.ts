@@ -17,10 +17,24 @@ vi.mock('@/shared/config', () => ({
   },
 }));
 
+// Razorpay's view of each test payment: captured, on the order the test pays.
+// Confirmation fails closed when the gateway cannot vouch for a payment.
+const PAYMENT_ORDERS: Record<string, string> = {
+  pay_123: 'order_123',
+  pay_razorpay_123: 'order_123',
+  pay_A: 'order_A',
+  pay_hook_1: 'order_webhook_1',
+  pay_loser: 'order_loser',
+  pay_race: 'order_race',
+};
+
 vi.mock('razorpay', () => ({
   default: class MockRazorpay {
     orders = {
       create: vi.fn().mockResolvedValue({ id: 'order_123' }),
+    };
+    payments = {
+      fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured' })),
     };
   },
 }));

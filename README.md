@@ -106,7 +106,10 @@ daily run keeps everything moving meanwhile and — if `GITHUB_KEEPALIVE_TOKEN` 
 
 ## Security notes
 
-- CSP and security headers are defined **only** in `vercel.json`. A stricter
-  *report-only* policy (no `unsafe-eval`) reports to `/api/csp-report`; check the Vercel
-  logs for "CSP violation" before promoting it.
+- CSP and security headers are defined **only** in `vercel.json`. The enforced policy no
+  longer allows `unsafe-eval`; the identical *report-only* policy still reports to
+  `/api/csp-report` — check the Vercel logs for "CSP violation". `unsafe-inline` remains
+  (removing it needs nonces).
+- Signing out denylists the session in `revoked_sessions` until it expires. Enable a
+  Firestore TTL policy on `revoked_sessions.expiresAt` (and `rate_limits.expireAt`).
 - Never commit `.env*` files or service-account JSON.

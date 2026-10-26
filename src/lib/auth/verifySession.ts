@@ -38,8 +38,16 @@ export async function verifySession(request: Request): Promise<DecodedSessionInf
       const uid = payload.uid as string;
       const email = payload.email as string | undefined;
 
-      // Fetch live user role from database to ensure immediate role revocation
-      const userDoc = await adminDb.collection('users').doc(uid).get();
+      // Fetch live user role from database to ensure immediate role revocation.
+      // A signed-out session's id (jti) is denylisted by DELETE /api/auth/session;
+      // that lookup runs alongside the users read, so it adds no latency.
+      const [userDoc, revokedDoc] = await Promise.all([
+        adminDb.collection('users').doc(uid).get(),
+        payload.jti ? adminDb.collection('revoked_sessions').doc(payload.jti).get() : null,
+      ]);
+      if (revokedDoc?.exists) {
+        return null;
+      }
       let role = 'client';
       if (userDoc.exists) {
         const userData = userDoc.data();

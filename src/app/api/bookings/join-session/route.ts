@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { adminDb } from '@/lib/firebase/admin';
+import { verifySession } from '@/lib/auth/verifySession';
 import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { GoogleCalendarService } from '@/services/googleCalendarService';
 import { logger } from '@/app/api/_lib/logger';
-import { checkRateLimit, getClientIp } from '../../_lib/rateLimit';
+import { getClientIp } from '../../_lib/rateLimit';
+import { checkDistributedRateLimit } from '../../_lib/distributedRateLimit';
 
 export async function GET(req: NextRequest) {
   try {
     // join-session can trigger on-demand Google Calendar/Meet creation — an
     // expensive operation — so it is throttled per client.
     const clientIp = getClientIp(req);
-    if (!checkRateLimit(clientIp, 'join_session', 10, 60_000).success) {
+    if (!(await checkDistributedRateLimit(clientIp, 'join_session', 10, 60_000)).success) {
       return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 });
     }
 
@@ -21,36 +23,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'bookingId is required' }, { status: 400 });
     }
 
-    // 1. Verify Authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: missing authorization header' }, { status: 401 });
+    // 1. Verify Authentication. verifySession accepts the Bearer ID token,
+    // re-reads the role live from `users`, and refuses disabled accounts and
+    // revoked sessions. It only exposes a verified email, since unverified
+    // emails are not ownership proof (anyone can register any address).
+    const session = await verifySession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json({ error: 'Unauthorized: invalid token' }, { status: 401 });
-    }
-
-    const userId = decodedToken.uid;
-    // Unverified emails are not ownership proof (anyone can register any address).
-    const userEmail = decodedToken.email_verified === true ? decodedToken.email : undefined;
-
-    // Role comes from the CANONICAL source of truth (the `users` collection,
-    // re-read live) — not from Firebase custom claims, which are a second
-    // authority that can go stale or never be provisioned.
-    let userRole = 'client';
-    try {
-      const userSnap = await adminDb.collection('users').doc(userId).get();
-      if (userSnap.exists) {
-        userRole = (userSnap.data()?.role as string) || 'client';
-      }
-    } catch (roleErr) {
-      logger.warn('JOIN_SESSION', 'Could not read user role; defaulting to client', { error: String(roleErr) });
-    }
+    const userId = session.uid;
+    const userEmail = session.email;
+    const userRole = session.role || 'client';
 
     // 2. Retrieve Booking
     const booking = await firestoreBookingRepository.findById(bookingId);
@@ -129,6 +113,6 @@ export async function GET(req: NextRequest) {
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     logger.error('JOIN_SESSION', 'Error fetching meeting link', { error: errorMsg });
-    return NextResponse.json({ error: 'Failed to process request: ' + errorMsg }, { status: 500 });
+    return NextResponse.json({ error: 'Could not fetch the session link. Please try again.' }, { status: 500 });
   }
 }

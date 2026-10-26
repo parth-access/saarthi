@@ -61,10 +61,8 @@ describe('dashboard role matrix agreement', () => {
 
 describe('firestore.rules agreement: bookings are readable only by their own client', () => {
   const rules = readFileSync(join(process.cwd(), 'firestore.rules'), 'utf8');
-  const bookingsBlock = rules.slice(
-    rules.indexOf('match /bookings/'),
-    rules.indexOf('allow write: if false')
-  );
+  const bookingsStart = rules.indexOf('match /bookings/');
+  const bookingsBlock = rules.slice(bookingsStart, rules.indexOf('allow write: if false', bookingsStart));
 
   it('scopes booking reads to the signed-in identity (VERIFIED email or uid), not just the query', () => {
     expect(bookingsBlock).toContain('hasVerifiedEmail(resource.data.email)');

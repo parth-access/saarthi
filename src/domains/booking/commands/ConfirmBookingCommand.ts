@@ -32,13 +32,19 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
     let bookingId = '';
 
     // 1. Ground truth Razorpay payment verification if available
-    if (razorpayPaymentId && !razorpayPaymentId.startsWith('mock_')) {
+    if (razorpayPaymentId && !razorpayGateway.isMockPaymentId(razorpayPaymentId)) {
       const rzpPayment = await razorpayGateway.fetchPayment(razorpayPaymentId);
+      // Fail closed: with live keys, a payment Razorpay cannot vouch for is
+      // never confirmed; the webhook (or a retry) confirms it once the gateway
+      // answers. Unconfigured dev mode has no gateway to ask.
+      if (!rzpPayment && razorpayGateway.isConfigured()) {
+        throw new Error('Could not verify the payment with Razorpay');
+      }
       if (rzpPayment) {
-        if (rzpPayment.order_id && rzpPayment.order_id !== razorpayOrderId) {
+        if (rzpPayment.order_id !== razorpayOrderId) {
           throw new Error('Razorpay payment order ID does not match expected order');
         }
-        if (rzpPayment.status && rzpPayment.status !== 'captured' && rzpPayment.status !== 'authorized') {
+        if (rzpPayment.status !== 'captured' && rzpPayment.status !== 'authorized') {
           throw new Error(`Razorpay payment status is ${rzpPayment.status}, expected captured or authorized`);
         }
       }
@@ -227,7 +233,7 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         // A double-booking capture must always be returned 100% (agreed policy). The
         // deterministic `refund_<paymentId>` doc id guarantees at most one refund per
         // payment; the process-refunds cron drives the actual Razorpay call.
-        if (razorpayPaymentId && !razorpayPaymentId.startsWith('mock_')) {
+        if (razorpayPaymentId && !razorpayGateway.isMockPaymentId(razorpayPaymentId)) {
           try {
             await firestoreRefundRepository.enqueue({
               id: firestoreRefundRepository.refundIdForPayment(razorpayPaymentId),

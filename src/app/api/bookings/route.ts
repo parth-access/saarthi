@@ -6,6 +6,17 @@ import { logger } from '@/app/api/_lib/logger';
 
 const PRIVATE_NO_STORE = { 'Cache-Control': 'private, no-store' };
 
+/**
+ * The manage token is the client's bearer credential for /api/manage-booking;
+ * a therapist holding it could reschedule the client's session.
+ */
+function withoutManageToken<T extends object>(booking: T): Omit<T, 'bookingToken' | 'invalidToken'> {
+  const rest = { ...booking } as Record<string, unknown>;
+  delete rest.bookingToken;
+  delete rest.invalidToken;
+  return rest as Omit<T, 'bookingToken' | 'invalidToken'>;
+}
+
 export async function GET(req: Request) {
   try {
     const session = await verifySession(req);
@@ -35,7 +46,7 @@ export async function GET(req: Request) {
       }
 
       const bookings = await BookingService.getBookingsByTherapist(therapistSnapshot.docs[0].id);
-      return NextResponse.json(bookings, { headers: PRIVATE_NO_STORE });
+      return NextResponse.json(bookings.map(withoutManageToken), { headers: PRIVATE_NO_STORE });
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

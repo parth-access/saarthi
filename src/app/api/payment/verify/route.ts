@@ -5,12 +5,13 @@ import crypto from 'crypto';
 import { config } from '@/shared/config';
 import { timingSafeEqualStrings } from '@/shared/utils/timingSafeEqual';
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler, SlotAlreadyBookedError } from '@/domains/booking';
-import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
+import { getClientIp } from '../../_lib/rateLimit';
+import { checkDistributedRateLimit } from '../../_lib/distributedRateLimit';
 
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIp(request);
-    const rateCheck = checkRateLimit(clientIp, 'payment_verify', 10, 60000);
+    const rateCheck = await checkDistributedRateLimit(clientIp, 'payment_verify', 10, 60000);
     if (!rateCheck.success) {
       return NextResponse.json({ error: 'Too many verification attempts. Please wait a moment.' }, { status: 429 });
     }

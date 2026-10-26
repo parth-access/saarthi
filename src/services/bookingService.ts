@@ -136,7 +136,10 @@ export const bookingService = {
 
   getBookingByTokenAPIRoute: async (token: string) => {
     try {
-      const response = await fetch(`/api/manage-booking?token=${token}`);
+      const response = await fetch('/api/manage-booking', {
+        headers: { 'X-Booking-Token': token },
+        cache: 'no-store',
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to load booking');
       return data;

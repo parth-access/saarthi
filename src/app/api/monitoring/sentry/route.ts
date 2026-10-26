@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { timingSafeEqualStrings } from '@/shared/utils/timingSafeEqual';
 
 export async function GET(req: NextRequest) {
   const isDev = process.env.NODE_ENV !== 'production';
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   const providedSecret = req.headers.get('x-sentry-test-secret');
 
   // Strictly block in production unless explicitly authorized with a secret key
-  if (!isDev && (!testSecret || providedSecret !== testSecret)) {
+  if (!isDev && (!testSecret || !providedSecret || !timingSafeEqualStrings(providedSecret, testSecret))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

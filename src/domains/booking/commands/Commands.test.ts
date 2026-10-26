@@ -37,11 +37,25 @@ vi.mock("@/shared/config", () => ({
 
 // Class-based mock for Razorpay to guarantee "new Razorpay" works perfectly
 
+// Razorpay's view of each test payment: captured, on the order the test pays.
+// Confirmation fails closed when the gateway cannot vouch for a payment.
+const PAYMENT_ORDERS: Record<string, string> = {
+  pay_123: 'order_123',
+  pay_razorpay_123: 'order_123',
+  pay_A: 'order_A',
+  pay_hook_1: 'order_webhook_1',
+  pay_loser: 'order_loser',
+  pay_race: 'order_race',
+};
+
 vi.mock('razorpay', () => {
   return {
     default: class MockRazorpay {
       orders = {
         create: vi.fn().mockResolvedValue({ id: 'order_123' })
+      };
+      payments = {
+        fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured' })),
       };
     }
   };
@@ -1465,7 +1479,9 @@ describe('Command Handlers Suite', () => {
       const handler = new ConfirmBookingCommandHandler();
       const mismatchedCmd = new ConfirmBookingCommand('pay_123', 'order_different_456', 'sig_123', 'direct');
 
-      await expect(handler.execute(mismatchedCmd)).rejects.toThrow('razorpayOrderId mismatch');
+      // Razorpay itself reports pay_123 on order_123, so the gateway check
+      // refuses the mismatched order before the booking is even read.
+      await expect(handler.execute(mismatchedCmd)).rejects.toThrow('does not match expected order');
     });
 
     it('J. Existing invalid transitions still fail (e.g. invalid signature fails)', async () => {

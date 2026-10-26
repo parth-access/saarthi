@@ -30,6 +30,15 @@ export class RazorpayGateway implements PaymentGateway {
     }
   }
 
+  /**
+   * `mock_` payment ids exist only in dev/mock mode. Once real keys are
+   * configured every id is verified with Razorpay, so a crafted `mock_…` id
+   * cannot skip the gateway check.
+   */
+  isMockPaymentId(paymentId: string): boolean {
+    return paymentId.startsWith('mock_') && !this.isConfigured();
+  }
+
   /** True when Razorpay keys are usable; false means dev/mock mode (no external calls possible). */
   isConfigured(): boolean {
     const key_id = config.razorpay.keyId;
