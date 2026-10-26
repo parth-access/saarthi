@@ -8,6 +8,7 @@ import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { SlotReservationService } from '../services/SlotReservationService';
+import { BookingStateMachine } from '../state/BookingStateMachine';
 import { SlotAlreadyBookedError } from '../errors/SlotAlreadyBookedError';
 
 export class ConfirmBookingCommand implements Command {
@@ -101,6 +102,14 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           await firestoreBookingRepository.save(data, transaction);
           shouldSendEmail = false;
           return;
+        }
+
+        // Cancelled only because a payment attempt was reported failed (e.g. the
+        // customer closed checkout while a UPI request was still pending, then
+        // approved it): the money is real, so take the slot back if nobody else
+        // has it. The double-booking guard below still refuses a taken slot.
+        if (data.status === 'cancelled' && data.paymentStatus === 'failed') {
+          BookingStateMachine.transition(data, 'awaiting_payment', { skipEventBus: true });
         }
 
         if (data.status === 'cancelled' || data.status === 'expired' || data.status === 'rejected') {

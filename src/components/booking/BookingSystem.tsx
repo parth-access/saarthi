@@ -393,14 +393,12 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
       };
 
       const rzp = new (window as unknown as { Razorpay: new (opts: Record<string, unknown>) => { on: (evt: string, cb: (response: RazorpayFailResponse) => void) => void, open: () => void } }).Razorpay(rzpOptions);
+      // A failed attempt is not the end of checkout: Razorpay keeps the modal
+      // open for a retry, so the booking and its slot hold must survive it.
+      // Only `ondismiss` (the customer gave up) reports the failure.
       rzp.on('payment.failed', function (response: RazorpayFailResponse) {
         if (!isVerifyingRef.current) {
           const failReason = response?.error?.description || response?.error?.reason || 'Payment failed';
-          paymentService.reportPaymentFailure({
-            bookingId: result.data.bookingId,
-            orderId: result.data.orderId,
-            reason: failReason
-          });
           isProcessingRef.current = false;
           setBookingFlowState('ERROR');
           setSubmitError(`Payment Failed: ${failReason}. If any money was debited, it will be refunded within 5-7 business days.`);

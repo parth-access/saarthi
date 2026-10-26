@@ -29,6 +29,9 @@ const PAYMENT_ORDERS: Record<string, string> = {
   pay_own: 'order_own',
   pay_guest: 'order_guest',
   pay_other: 'order_other',
+  pay_late: 'order_late',
+  pay_late_taken: 'order_late_taken',
+  pay_user_cancelled: 'order_user_cancelled',
 };
 
 vi.mock('razorpay', () => ({
@@ -330,6 +333,45 @@ describe('Production Red-Team Validations', () => {
       await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
       expect(booking.status).toBe('awaiting_payment');
       expect(enqueueRefundSpy).toHaveBeenCalledWith(expect.objectContaining({ bookingId: 'bk_mine', refundPercent: 100 }));
+    });
+
+    // Checkout closed while a UPI request was pending, the failure report
+    // cancelled the booking, then the customer approved on their phone.
+    const lapsedHold = { expiresAt: new Date(Date.now() - 60_000) };
+
+    it('confirms a payment that lands after a failed-payment cancellation when the slot is still free', async () => {
+      const { booking, run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_late', order: 'order_late', booking: 'bk_late' },
+        { userId: 'uid_signed_in', email: 'client@example.com', status: 'cancelled', paymentStatus: 'failed' },
+        lapsedHold
+      );
+
+      await expect(run()).resolves.toMatchObject({ success: true });
+      expect(booking.status).toBe('confirmed');
+      expect(booking.paymentStatus).toBe('paid');
+      expect(enqueueRefundSpy).not.toHaveBeenCalled();
+    });
+
+    it('still refunds that late payment when someone else has since taken the slot', async () => {
+      const { run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_late_taken', order: 'order_late_taken', booking: 'bk_late_taken' },
+        { userId: 'uid_signed_in', email: 'client@example.com', status: 'cancelled', paymentStatus: 'failed' },
+        { bookingId: 'bk_someone_else', status: 'booked', isPermanent: true }
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(enqueueRefundSpy).toHaveBeenCalledWith(expect.objectContaining({ bookingId: 'bk_late_taken', refundPercent: 100 }));
+    });
+
+    it('does not revive a booking cancelled for any other reason', async () => {
+      const { booking, run } = confirmAgainstHold(
+        { pay: 'pay_user_cancelled', order: 'order_user_cancelled', booking: 'bk_user_cancelled' },
+        { userId: 'uid_signed_in', email: 'client@example.com', status: 'cancelled', paymentStatus: 'pending' },
+        lapsedHold
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(booking.status).toBe('cancelled');
     });
   });
 
