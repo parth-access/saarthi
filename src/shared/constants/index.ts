@@ -2,6 +2,17 @@ export const BOOKING_LIFETIME_MS = 15 * 60 * 1000; // 15 minutes to pay
 export const MAX_RETRY_ATTEMPTS = 3;
 export const BOOKING_WINDOW_DAYS = 14; // Maximum advance booking window in days
 
+/** How long a new booking holds its slot while the customer pays. */
+export const SLOT_HOLD_MS = 10 * 60 * 1000;
+
+/**
+ * Razorpay Checkout closes itself after this many seconds. It must close before
+ * the slot hold lapses: a payment made after that can land on a slot someone
+ * else has taken, and is then refunded instead of booked. The minute of slack
+ * covers network time and the confirm round trip.
+ */
+export const CHECKOUT_TIMEOUT_SECONDS = SLOT_HOLD_MS / 1000 - 60;
+
 /**
  * Counselling session length in minutes. The Google Calendar event builder uses
  * the same 45-minute block (googleCalendarService.ts) — this constant is the

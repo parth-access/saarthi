@@ -8,6 +8,7 @@ import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { SlotReservationService } from '../services/SlotReservationService';
+import { BookingStateMachine } from '../state/BookingStateMachine';
 import { SlotAlreadyBookedError } from '../errors/SlotAlreadyBookedError';
 
 export class ConfirmBookingCommand implements Command {
@@ -103,6 +104,14 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
           return;
         }
 
+        // Cancelled only because a payment attempt was reported failed (e.g. the
+        // customer closed checkout while a UPI request was still pending, then
+        // approved it): the money is real, so take the slot back if nobody else
+        // has it. The double-booking guard below still refuses a taken slot.
+        if (data.status === 'cancelled' && data.paymentStatus === 'failed') {
+          BookingStateMachine.transition(data, 'awaiting_payment', { skipEventBus: true });
+        }
+
         if (data.status === 'cancelled' || data.status === 'expired' || data.status === 'rejected') {
           throw new SlotAlreadyBookedError(
             `Booking is in terminal '${data.status}' state (lock expired or cancelled before payment completed)`,
@@ -132,10 +141,18 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
               ? (typeof existingSlot.expiresAt.toDate === 'function' ? existingSlot.expiresAt.toDate() : new Date(existingSlot.expiresAt))
               : null;
             const isHoldActive = Boolean(expiresDate && expiresDate > new Date());
-            const holdBelongsToOther =
-              Boolean((existingSlot.bookingId && existingSlot.bookingId !== bookingId) ||
-              (existingSlot.userId && data.userId && existingSlot.userId !== data.userId) ||
-              (existingSlot.userId && data.email && existingSlot.userId !== data.email));
+            // A hold tagged with a booking id belongs to that booking, full stop.
+            // Only an untagged hold (a bare lock-slot pin) falls back to the
+            // holder: booking creation stores `userId || email`, so it is ours
+            // when it matches EITHER. (Requiring it to match both rejected every
+            // signed-in customer's own hold: a uid never equals an email.)
+            const holdBelongsToOther = existingSlot.bookingId
+              ? existingSlot.bookingId !== bookingId
+              : Boolean(
+                  existingSlot.userId &&
+                  existingSlot.userId !== data.userId &&
+                  existingSlot.userId !== data.email
+                );
 
             if (isHoldActive && holdBelongsToOther) {
               isActivelyHeldByOther = true;

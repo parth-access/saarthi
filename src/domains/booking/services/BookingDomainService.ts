@@ -42,6 +42,9 @@ export class BookingDomainService {
           date: booking.date,
           time: booking.time,
           sessionMode: booking.sessionMode,
+          userId: booking.userId ?? null,
+          amount: booking.paymentAmount ?? null,
+          currency: booking.paymentCurrency ?? null,
           previousStatus,
           targetStatus: 'awaiting_payment'
         }
@@ -82,6 +85,7 @@ export class BookingDomainService {
           date: booking.date,
           time: booking.time,
           sessionMode: booking.sessionMode,
+          userId: booking.userId ?? null,
           previousStatus,
           targetStatus: 'payment_initiated'
         }
@@ -132,6 +136,9 @@ export class BookingDomainService {
           date: booking.date,
           time: booking.time,
           sessionMode: booking.sessionMode,
+          userId: booking.userId ?? null,
+          amount: booking.paymentAmount ?? null,
+          currency: booking.paymentCurrency ?? null,
           previousStatus,
           targetStatus: 'confirmed',
           metadata: {

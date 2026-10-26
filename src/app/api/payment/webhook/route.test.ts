@@ -9,6 +9,9 @@ import crypto from 'crypto';
  */
 
 const h = vi.hoisted(() => ({
+  auditAdd: vi.fn().mockResolvedValue(undefined),
+  findByOrderId: vi.fn(),
+  failExecute: vi.fn(),
   refundFindByPaymentId: vi.fn(),
   refundSave: vi.fn().mockResolvedValue(undefined),
   refundIdForPayment: vi.fn((paymentId: string) => `refund_${paymentId}`),
@@ -21,6 +24,7 @@ vi.mock('@/lib/firebase/admin', () => ({
       where: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       get: h.bookingGet,
+      add: h.auditAdd,
       doc: vi.fn(() => ({
         update: vi.fn().mockResolvedValue(undefined),
       })),
@@ -37,11 +41,11 @@ vi.mock('@/domains/payment', () => ({
 }));
 
 vi.mock('@/domains/booking', () => ({
-  firestoreBookingRepository: { findByOrderId: vi.fn() },
+  firestoreBookingRepository: { findByOrderId: (...a: unknown[]) => h.findByOrderId(...a) },
   ConfirmBookingCommand: class {},
   ConfirmBookingCommandHandler: class { execute() { return Promise.resolve({ success: true }); } },
   FailPaymentCommand: class {},
-  FailPaymentCommandHandler: class { execute() { return Promise.resolve({ success: true }); } },
+  FailPaymentCommandHandler: class { execute() { return h.failExecute(); } },
   SlotAlreadyBookedError: class extends Error {},
 }));
 
@@ -114,5 +118,29 @@ describe('refund.processed webhook — untracked manual refunds', () => {
     expect(res.status).toBe(400);
     expect(h.refundSave).not.toHaveBeenCalled();
     expect(h.bookingGet).not.toHaveBeenCalled();
+  });
+});
+
+describe('payment.failed webhook — a failed attempt keeps the booking open', () => {
+  it('records the attempt without cancelling the booking or releasing the slot', async () => {
+    h.findByOrderId.mockResolvedValue({ id: 'bk_1' });
+    const body = JSON.stringify({
+      event: 'payment.failed',
+      payload: { payment: { entity: { id: 'pay_F1', order_id: 'order_1', error_description: 'UPI request timed out' } } },
+    });
+    const signature = crypto.createHmac('sha256', SECRET).update(body).digest('hex');
+
+    const res = await post(body, { 'x-razorpay-signature': signature, 'Content-Type': 'application/json' });
+
+    expect(res.status).toBe(200);
+    // The customer can still retry in the same checkout; only the hold's expiry
+    // or the checkout's dismiss report may end the booking.
+    expect(h.failExecute).not.toHaveBeenCalled();
+    expect(h.auditAdd).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'PAYMENT_ATTEMPT_FAILED',
+      bookingId: 'bk_1',
+      razorpayOrderId: 'order_1',
+      razorpayPaymentId: 'pay_F1',
+    }));
   });
 });

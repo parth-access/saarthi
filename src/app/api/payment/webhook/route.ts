@@ -10,8 +10,6 @@ import {
   firestoreBookingRepository,
   ConfirmBookingCommand,
   ConfirmBookingCommandHandler,
-  FailPaymentCommand,
-  FailPaymentCommandHandler,
   SlotAlreadyBookedError
 } from '@/domains/booking';
 
@@ -110,23 +108,31 @@ export async function POST(request: Request) {
         throw confirmErr;
       }
     } else if (event === 'payment.failed') {
+      // One failed ATTEMPT, not an abandoned checkout: Razorpay keeps the order
+      // open and the customer can retry in the same modal. Cancelling here
+      // released the slot under them, so a successful retry was refunded as a
+      // double booking. Record it only; the hold's expiry and the checkout's own
+      // dismiss report end the booking.
       const paymentData = eventPayload?.payment?.entity as Record<string, unknown> | undefined;
       const razorpayOrderId = paymentData?.order_id as string | undefined;
+      const razorpayPaymentId = paymentData?.id as string | undefined;
       const errorDescription = (paymentData?.error_description || paymentData?.error_reason || 'Payment failed') as string;
 
       if (razorpayOrderId) {
-        const failCommand = new FailPaymentCommand(
-          undefined,
+        const booking = await firestoreBookingRepository.findByOrderId(razorpayOrderId);
+        await adminDb.collection('audit_logs').add({
+          eventType: 'PAYMENT_ATTEMPT_FAILED',
+          bookingId: booking?.id ?? null,
           razorpayOrderId,
-          errorDescription,
-          'webhook'
-        );
-        const failHandler = new FailPaymentCommandHandler();
-        await failHandler.execute(failCommand);
-
-        logger.warn('PAYMENT', 'Payment failure processed via webhook', { razorpayOrderId, errorDescription });
+          razorpayPaymentId: razorpayPaymentId ?? null,
+          reason: errorDescription,
+          source: 'webhook',
+          timestamp: FieldValue.serverTimestamp(),
+          details: `Payment attempt failed for order ${razorpayOrderId}: ${errorDescription}`
+        });
+        logger.warn('PAYMENT', 'Payment attempt failed; booking kept open for retry', { razorpayOrderId, bookingId: booking?.id, errorDescription });
       } else {
-        logger.warn('PAYMENT', 'Payment failure webhook missing order_id', { eventPayload });
+        logger.warn('PAYMENT', 'Payment failure webhook missing order_id');
       }
     } else if (event === 'refund.processed') {
       const refundData = eventPayload?.refund?.entity as Record<string, unknown> | undefined;

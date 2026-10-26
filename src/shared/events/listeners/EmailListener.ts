@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { logger } from '@/shared/logger';
+import { bookingFromPayload } from './bookingPayload';
 
 export function registerEmailListeners(eventBus: any) {
   // NOTE: The session-confirmation email is intentionally NOT sent here.
@@ -10,7 +11,8 @@ export function registerEmailListeners(eventBus: any) {
   // by ConfirmBookingCommand, so payment is still acknowledged even if calendar is pending.
 
   eventBus.subscribe('BookingRejected', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     try {
       await sendEmailAction({
         type: 'booking-declined',
