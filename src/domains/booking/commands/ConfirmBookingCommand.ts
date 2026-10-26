@@ -132,10 +132,18 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
               ? (typeof existingSlot.expiresAt.toDate === 'function' ? existingSlot.expiresAt.toDate() : new Date(existingSlot.expiresAt))
               : null;
             const isHoldActive = Boolean(expiresDate && expiresDate > new Date());
-            const holdBelongsToOther =
-              Boolean((existingSlot.bookingId && existingSlot.bookingId !== bookingId) ||
-              (existingSlot.userId && data.userId && existingSlot.userId !== data.userId) ||
-              (existingSlot.userId && data.email && existingSlot.userId !== data.email));
+            // A hold tagged with a booking id belongs to that booking, full stop.
+            // Only an untagged hold (a bare lock-slot pin) falls back to the
+            // holder: booking creation stores `userId || email`, so it is ours
+            // when it matches EITHER. (Requiring it to match both rejected every
+            // signed-in customer's own hold: a uid never equals an email.)
+            const holdBelongsToOther = existingSlot.bookingId
+              ? existingSlot.bookingId !== bookingId
+              : Boolean(
+                  existingSlot.userId &&
+                  existingSlot.userId !== data.userId &&
+                  existingSlot.userId !== data.email
+                );
 
             if (isHoldActive && holdBelongsToOther) {
               isActivelyHeldByOther = true;

@@ -26,6 +26,9 @@ const PAYMENT_ORDERS: Record<string, string> = {
   pay_hook_1: 'order_webhook_1',
   pay_loser: 'order_loser',
   pay_race: 'order_race',
+  pay_own: 'order_own',
+  pay_guest: 'order_guest',
+  pay_other: 'order_other',
 };
 
 vi.mock('razorpay', () => ({
@@ -235,6 +238,98 @@ describe('Production Red-Team Validations', () => {
         razorpayPaymentId: 'pay_A',
         refundPercent: 100,
       }));
+    });
+  });
+
+  describe('Confirming onto the customer\'s OWN active hold (production incident 2026-10-26)', () => {
+    // Booking creation tags the hold with the booking id and `userId || email`.
+    // A signed-in customer's hold therefore carries their uid, never their email.
+    function confirmAgainstHold(
+      ids: { pay: string; order: string; booking: string },
+      bookingFields: Record<string, unknown>,
+      hold: Record<string, unknown>
+    ) {
+      const booking = new Booking({
+        id: ids.booking,
+        status: 'awaiting_payment',
+        paymentStatus: 'pending',
+        therapistId: 'therapist_1',
+        date: '2026-10-27',
+        time: '13:00',
+        razorpayOrderId: ids.order,
+        ...bookingFields,
+      });
+      const payment = new Payment({
+        id: ids.order,
+        bookingId: ids.booking,
+        amount: 1500,
+        currency: 'INR',
+        status: 'pending',
+        razorpayOrderId: ids.order,
+      });
+      vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(booking);
+      vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(payment);
+      vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
+      vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);
+      const enqueueRefundSpy = vi.spyOn(firestoreRefundRepository, 'enqueue').mockResolvedValue(true);
+      const slotSetSpy = vi.fn();
+      const mockTx = {
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ expiresAt: new Date(Date.now() + 9 * 60_000), ...hold }),
+        }),
+        set: slotSetSpy,
+        delete: vi.fn(),
+        update: vi.fn(),
+        create: vi.fn(),
+      };
+      vi.mocked(adminDb.runTransaction).mockImplementation(async (callback) => callback(mockTx as any));
+      const run = () =>
+        new ConfirmBookingCommandHandler().execute(
+          new ConfirmBookingCommand(ids.pay, ids.order, 'sig', 'webhook', ids.booking)
+        );
+      return { booking, run, enqueueRefundSpy, slotSetSpy };
+    }
+
+    it('confirms a signed-in customer whose hold is tagged with their own booking', async () => {
+      const { booking, run, enqueueRefundSpy, slotSetSpy } = confirmAgainstHold(
+        { pay: 'pay_own', order: 'order_own', booking: 'bk_own' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_own', userId: 'uid_signed_in', lockId: 'lock_own' }
+      );
+
+      await expect(run()).resolves.toMatchObject({ success: true });
+      expect(booking.status).toBe('confirmed');
+      expect(booking.paymentStatus).toBe('paid');
+      expect(enqueueRefundSpy).not.toHaveBeenCalled();
+      expect(slotSetSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ bookingId: 'bk_own', status: 'booked', isPermanent: true })
+      );
+    });
+
+    it('confirms a guest whose untagged hold carries their email', async () => {
+      const { booking, run } = confirmAgainstHold(
+        { pay: 'pay_guest', order: 'order_guest', booking: 'bk_guest' },
+        { email: 'guest@example.com' },
+        { userId: 'guest@example.com', lockId: 'lock_guest' }
+      );
+
+      await expect(run()).resolves.toMatchObject({ success: true });
+      expect(booking.status).toBe('confirmed');
+    });
+
+    it('still refuses a hold tagged with a different booking, even for the same customer', async () => {
+      const { booking, run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(booking.status).toBe('awaiting_payment');
+      expect(enqueueRefundSpy).toHaveBeenCalledWith(expect.objectContaining({ bookingId: 'bk_mine', refundPercent: 100 }));
     });
   });
 
