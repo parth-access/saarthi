@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { auditService } from '@/domains/audit/AuditService';
 import { logger } from '@/shared/logger';
+import { bookingFromPayload } from './bookingPayload';
 
 export function registerAuditListeners(eventBus: any) {
   // Helper to log a sub-collection audit log safely
@@ -23,25 +24,29 @@ export function registerAuditListeners(eventBus: any) {
 
   // 1. Booking Events
   eventBus.subscribe('BookingSlotLocked', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('BOOKING_UPDATED', { message: 'Slot locked' }, booking.userId, bookingId);
     await logBookingSubCollectionAudit(bookingId, 'slot_locked', 'Booking slot locked.');
   });
 
   eventBus.subscribe('BookingAwaitingPayment', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('PAYMENT_LINK_SENT', { amount: booking.paymentAmount, currency: booking.paymentCurrency }, booking.userId, bookingId);
     await logBookingSubCollectionAudit(bookingId, 'awaiting_payment', 'Payment order generated and awaiting payment.');
   });
 
   eventBus.subscribe('BookingPaymentInitiated', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('PAYMENT_STARTED', {}, booking.userId, bookingId);
     await logBookingSubCollectionAudit(bookingId, 'payment_initiated', 'Payment process initiated by client.');
   });
 
   eventBus.subscribe('BookingConfirmed', async (event: any) => {
-    const { bookingId, booking, metadata } = event.payload;
+    const { bookingId, metadata } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     const source = metadata?.source || 'direct';
     const actorId = booking.userId || 'system';
 
@@ -61,7 +66,8 @@ export function registerAuditListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingNoShow', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('SESSION_NO_SHOW', { status: 'no_show', reason: booking?.declineReason }, 'system', bookingId);
     await logBookingSubCollectionAudit(bookingId, 'no_show', `Session marked as no-show: ${booking?.declineReason || 'Student did not attend'}`);
   });
@@ -76,7 +82,8 @@ export function registerAuditListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingCancelled', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('BOOKING_UPDATED', { status: 'cancelled', reason: booking.declineReason }, 'system', bookingId);
     await logBookingSubCollectionAudit(bookingId, 'status_updated', `Booking cancelled: ${booking.declineReason}`, {
       status: 'cancelled',
@@ -85,7 +92,8 @@ export function registerAuditListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingRejected', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     const actor = booking.declinedBy || 'system';
     await auditService.logEvent('BOOKING_UPDATED', { status: 'rejected', reason: booking.declineReason }, actor, bookingId);
     await logBookingSubCollectionAudit(bookingId, 'status_updated', `Booking declined: ${booking.declineReason}`, {
@@ -102,7 +110,8 @@ export function registerAuditListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingRescheduled', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await auditService.logEvent('BOOKING_UPDATED', { status: 'rescheduled', date: booking.date, time: booking.time }, 'system', bookingId);
     await logBookingSubCollectionAudit(bookingId, 'rescheduled', `Booking rescheduled to ${booking.date} at ${booking.time}`);
   });

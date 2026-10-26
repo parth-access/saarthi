@@ -2,6 +2,7 @@
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/shared/logger';
+import { bookingFromPayload } from './bookingPayload';
 
 export function registerTimelineListeners(eventBus: any) {
   async function writeTimelineEntry(entry: {
@@ -33,7 +34,8 @@ export function registerTimelineListeners(eventBus: any) {
 
   // 1. Booking Events
   eventBus.subscribe('BookingSlotLocked', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
@@ -46,7 +48,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingAwaitingPayment', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
@@ -59,7 +62,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingPaymentInitiated', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
@@ -72,7 +76,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingConfirmed', async (event: any) => {
-    const { bookingId, booking, metadata } = event.payload;
+    const { bookingId, metadata } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     const source = metadata?.source || 'direct';
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
@@ -99,7 +104,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingNoShow', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
@@ -125,7 +131,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingCancelled', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
@@ -138,7 +145,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingRejected', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     const actorType = booking?.declinedBy === 'therapist' ? 'therapist' : 'admin';
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
@@ -165,7 +173,8 @@ export function registerTimelineListeners(eventBus: any) {
   });
 
   eventBus.subscribe('BookingRescheduled', async (event: any) => {
-    const { bookingId, booking } = event.payload;
+    const { bookingId } = event.payload;
+    const booking = bookingFromPayload(event.payload);
     await writeTimelineEntry({
       correlationId: event.correlationId || '',
       bookingId,
