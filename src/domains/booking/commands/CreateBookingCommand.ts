@@ -11,7 +11,7 @@ import { BookingDomainService } from '../services/BookingDomainService';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
 import { istToUtcIsoString } from '@/shared/utils/dateTime';
 import { slotTemporalReason } from '@/shared/scheduling/slots';
-import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
+import { BOOKING_WINDOW_DAYS, SLOT_HOLD_MS } from '@/shared/constants';
 import { logger } from '@/app/api/_lib/logger';
 import { calculateBookingPrice } from '../utils/pricing';
 import { SlotReservationService } from '../services/SlotReservationService';
@@ -85,7 +85,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
     const amount = calculateBookingPrice(data.sessionMode, therapistDoc.data());
     const currency = 'INR';
 
-    const holdExpiresAtDate = new Date(Date.now() + 10 * 60 * 1000);
+    const holdExpiresAtDate = new Date(Date.now() + SLOT_HOLD_MS);
     const newBookingId = firestoreBookingRepository.generateId();
     const bookingToken = crypto.randomUUID() + crypto.randomUUID();
 
@@ -128,7 +128,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
                   bookingId: slotData.bookingId,
                   orderId: ebData.razorpayOrderId
                 });
-                const extendedHold = new Date(Date.now() + 10 * 60 * 1000);
+                const extendedHold = new Date(Date.now() + SLOT_HOLD_MS);
                 t.update(slotRef, {
                   expiresAt: Timestamp.fromDate(extendedHold),
                   updatedAt: FieldValue.serverTimestamp()
@@ -223,7 +223,7 @@ export class CreateBookingCommandHandler implements CommandHandler<CreateBooking
         time: data.time,
         userId: userId || email,
         lockId: activeLockId,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        expiresAt: new Date(Date.now() + SLOT_HOLD_MS),
         timestamp: FieldValue.serverTimestamp(),
         details: `Slot reserved for 10 minutes for booking ${newBookingId}`
       });

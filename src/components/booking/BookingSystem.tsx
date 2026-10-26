@@ -31,6 +31,7 @@ import { paymentService } from "../../services/paymentService"
 import { trackEvent } from "@/lib/analytics"
 import { useDialogA11y } from "@/hooks/useDialogA11y"
 import { parseValidClientAge } from "@/shared/validation/age"
+import { CHECKOUT_TIMEOUT_SECONDS } from "@/shared/constants"
 import { SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "./bookingUi"
 import { resolveBookTherapist } from "@/constants/therapists"
 
@@ -325,6 +326,8 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
         description: `Therapy Session with ${selectedTherapistName}`,
         image: '/favicon.ico',
         order_id: result.data.orderId,
+        // Close checkout before the slot hold lapses (see CHECKOUT_TIMEOUT_SECONDS).
+        timeout: CHECKOUT_TIMEOUT_SECONDS,
         handler: async function (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string; }) {
           if (isVerifyingRef.current) return;
           isVerifyingRef.current = true;
