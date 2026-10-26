@@ -3,7 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { firestoreBookingRepository } from '../repository/FirestoreBookingRepository';
 import { BookingDomainService } from '../services/BookingDomainService';
-import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway, firestoreRefundRepository } from '@/domains/payment';
+import { ConfirmPaymentCommand, ConfirmPaymentCommandHandler, razorpayGateway, firestoreRefundRepository, refundService } from '@/domains/payment';
 import { logger } from '@/app/api/_lib/logger';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/outbox';
@@ -249,19 +249,43 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         // Enqueue an idempotent, retryable FULL refund for this stranded capture.
         // A double-booking capture must always be returned 100% (agreed policy). The
         // deterministic `refund_<paymentId>` doc id guarantees at most one refund per
-        // payment; the process-refunds cron drives the actual Razorpay call.
+        // payment. The refund is issued right away so the customer is not left
+        // waiting on the cron (GitHub's schedule has run hours apart); a refund
+        // that fails here stays FAILED and the process-refunds cron retries it.
+        // processRefund reconciles against Razorpay first, so a concurrent
+        // confirm (verify + webhook) or cron run cannot refund twice.
         if (razorpayPaymentId && !razorpayGateway.isMockPaymentId(razorpayPaymentId)) {
+          const refundDocId = firestoreRefundRepository.refundIdForPayment(razorpayPaymentId);
+          let refundQueuedHere = false;
           try {
-            await firestoreRefundRepository.enqueue({
-              id: firestoreRefundRepository.refundIdForPayment(razorpayPaymentId),
+            refundQueuedHere = await firestoreRefundRepository.enqueue({
+              id: refundDocId,
               bookingId,
               razorpayPaymentId,
               razorpayOrderId,
               refundPercent: 100,
               reason: 'double_booking',
             });
-          } catch (enqueueErr) {
-            logger.error('PAYMENT', 'Failed to enqueue refund after double-booking prevention', enqueueErr, { bookingId, razorpayPaymentId });
+            await refundService.processRefund(refundDocId);
+          } catch (refundErr) {
+            logger.error('PAYMENT', 'Failed to enqueue or issue refund after double-booking prevention', refundErr, { bookingId, razorpayPaymentId });
+          }
+
+          // Tell the customer their money is coming back. Only the confirm that
+          // queued the refund sends it, so verify + webhook refusing the same
+          // payment produce one email, not two.
+          if (refundQueuedHere) {
+            try {
+              // sendEmailAction loads the booking itself and takes the therapist from it.
+              await sendEmailAction({
+                type: 'payment-refunded',
+                bookingId,
+                therapistId: therapistId || '',
+                paymentDetails: { paymentId: razorpayPaymentId, orderId: razorpayOrderId },
+              });
+            } catch (emailErr) {
+              logger.error('EMAIL', 'Failed to send refund email after double-booking prevention', emailErr, { bookingId });
+            }
           }
         }
         throw bookingTxErr;

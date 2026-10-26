@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type MockInstance } from 'vitest';
 import { ConfirmBookingCommand, ConfirmBookingCommandHandler } from './ConfirmBookingCommand';
 import { CancelBookingCommand, CancelBookingCommandHandler } from './CancelBookingCommand';
 import { adminDb } from '@/lib/firebase/admin';
 import { firestoreBookingRepository, Booking, SlotAlreadyBookedError } from '@/domains/booking';
-import { firestorePaymentRepository, Payment, razorpayGateway, firestoreRefundRepository } from '@/domains/payment';
+import { firestorePaymentRepository, Payment, razorpayGateway, firestoreRefundRepository, refundService } from '@/domains/payment';
 import { sendEmailAction } from '@/app/api/email/emailSender';
 
 vi.mock('@/shared/config', () => ({
@@ -94,8 +94,10 @@ vi.mock('@/app/api/email/emailSender', () => ({
 }));
 
 describe('Production Red-Team Validations', () => {
+  let processRefundSpy: MockInstance<typeof refundService.processRefund>;
   beforeEach(() => {
     vi.clearAllMocks();
+    processRefundSpy = vi.spyOn(refundService, 'processRefund').mockResolvedValue({ success: true, outcome: 'PROCESSED' });
   });
 
   describe('HIGH FINDING #1: Slot Lock Expiry vs Payment Completion Race', () => {
@@ -333,6 +335,50 @@ describe('Production Red-Team Validations', () => {
       await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
       expect(booking.status).toBe('awaiting_payment');
       expect(enqueueRefundSpy).toHaveBeenCalledWith(expect.objectContaining({ bookingId: 'bk_mine', refundPercent: 100 }));
+      // Issued immediately, not left for the cron.
+      expect(processRefundSpy).toHaveBeenCalledWith('refund_pay_other');
+    });
+
+    it('still refuses the payment when the immediate refund fails (the cron retries it)', async () => {
+      processRefundSpy.mockRejectedValueOnce(new Error('Razorpay unreachable'));
+      const { run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(enqueueRefundSpy).toHaveBeenCalled();
+      // The refund is still owed, so the customer still hears about it.
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({ type: 'payment-refunded', bookingId: 'bk_mine' }));
+    });
+
+    it('emails the customer once that a refund is on its way', async () => {
+      const { run } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(sendEmailAction).toHaveBeenCalledTimes(1);
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'payment-refunded',
+        bookingId: 'bk_mine',
+        paymentDetails: expect.objectContaining({ paymentId: 'pay_other' }),
+      }));
+    });
+
+    it('sends no second refund email when the refund was already queued (verify + webhook both refused)', async () => {
+      const { run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+      enqueueRefundSpy.mockResolvedValue(false);
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(sendEmailAction).not.toHaveBeenCalled();
     });
 
     // Checkout closed while a UPI request was pending, the failure report

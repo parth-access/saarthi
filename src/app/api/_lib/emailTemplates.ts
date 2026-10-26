@@ -473,6 +473,57 @@ export function generatePaymentFailedEmail(data: PaymentFailedEmailData, reason?
   return generateEmailLayout(content, 'Information regarding your Saarthi payment attempt.');
 }
 
+/**
+ * Sent when a captured payment could not be turned into a booking (the slot was
+ * taken first) and a full refund was issued. Unlike the payment-failed email,
+ * Saarthi DID receive this money, so it must say a refund is on its way.
+ */
+export function generatePaymentRefundedEmail(data: PaymentFailedEmailData): string {
+  const formattedAmount = data.amount ? `₹${data.amount.toLocaleString('en-IN')}` : 'Your payment';
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${data.patientName},</h2>
+    <p style="margin: 0 0 24px 0;">We received your payment for a session with <strong>${data.therapistName}</strong>, but that time slot was booked by someone else moments before your payment completed, so we couldn't confirm your session. We're sorry for the trouble.</p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid ${COLORS.border}; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: ${COLORS.textMuted};">Refund Details</h3>
+
+      <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Amount:</td>
+          <td style="padding-bottom: 12px; font-weight: 600; font-size: 15px; color: ${COLORS.text};">${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Requested slot:</td>
+          <td style="padding-bottom: 12px; font-weight: 500; font-size: 15px; color: ${COLORS.text};">${data.sessionDate} at ${data.sessionTime} (IST)</td>
+        </tr>
+        ${data.paymentId ? `
+        <tr>
+          <td width="140" style="padding-bottom: 12px; color: ${COLORS.textMuted}; font-size: 15px;">Payment ID:</td>
+          <td style="padding-bottom: 12px; font-family: monospace; font-size: 14px; color: ${COLORS.text};">${escapeString(data.paymentId)}</td>
+        </tr>
+        ` : ''}
+        <tr>
+          <td width="140" style="color: ${COLORS.textMuted}; font-size: 15px;">Status:</td>
+          <td style="font-weight: 600; font-size: 15px; color: ${COLORS.accent};">Full refund initiated</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin: 0 0 24px 0;">The full amount is being returned to your original payment method. UPI refunds usually arrive within a few hours; cards and net banking can take 5–7 business days, depending on your bank. You don't need to do anything.</p>
+
+    <p style="margin: 0 0 24px 0;">If you'd still like a session, please pick another time:</p>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${process.env.APP_URL || 'https://www.saarthilife.com'}/book" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">Choose Another Slot</a>
+    </div>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, 'Your Saarthi payment is being refunded.');
+}
+
 export interface SessionReminderEmailData {
   patientName: string;
   therapistName: string;
