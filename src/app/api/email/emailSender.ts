@@ -11,6 +11,7 @@ import {
   generatePaymentReceiptEmail,
   generateBookingSlotReleasedEmail,
   generatePaymentFailedEmail,
+  generatePaymentRefundedEmail,
   generateSessionReminderStudentEmail,
   generateSessionReminderTherapistEmail,
   generateSessionCompletedStudentEmail,
@@ -280,7 +281,7 @@ async function updateBookingEmailStatus(bookingId: string, status: 'sent' | 'fai
 }
 
 export interface EmailPayload {
-  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'booking-rescheduled' | 'booking-declined' | 'session-reminder' | 'session-completed';
+  type: 'booking-received' | 'booking-confirmed' | 'payment-receipt' | 'booking-slot-released' | 'payment-failed' | 'payment-refunded' | 'booking-rescheduled' | 'booking-declined' | 'session-reminder' | 'session-completed';
   bookingId: string;
   therapistId: string;
   declineReason?: string;
@@ -517,6 +518,32 @@ export async function sendEmailAction(payload: EmailPayload) {
       }, reason),
       text: plainText,
     }, bookingId, 'payment-failed');
+
+    return { success: true, data };
+  }
+
+  if (type === 'payment-refunded') {
+    const amount = paymentDetails?.amount || bookingData.paymentAmount;
+    const paymentId = paymentDetails?.paymentId || bookingData.razorpayPaymentId;
+    const amountText = amount ? `₹${amount.toLocaleString('en-IN')}` : 'your payment';
+
+    const plainText = `Refund Initiated\nHi ${safePatientName},\nWe received your payment for a session with ${safeTherapistName} on ${safeDate} at ${safeTime}, but that slot was booked by someone else moments before your payment completed, so we couldn't confirm it.\nA full refund of ${amountText} has been initiated to your original payment method${paymentId ? ` (payment ID ${paymentId})` : ''}. UPI refunds usually arrive within a few hours; cards and net banking can take 5-7 business days.\nYou can pick another time at any point.\n- The Saarthi Team`.trim();
+
+    const data = await sendEmailWithRetry({
+      from: 'Saarthi Accounts <contact@saarthilife.com>',
+      to: patientEmail,
+      subject: 'Your Saarthi payment is being refunded',
+      html: generatePaymentRefundedEmail({
+        patientName: safePatientName,
+        therapistName: safeTherapistName,
+        amount,
+        currency: bookingData.paymentCurrency || 'INR',
+        paymentId,
+        sessionDate: safeDate,
+        sessionTime: safeTime,
+      }),
+      text: plainText,
+    }, bookingId, 'payment-refunded');
 
     return { success: true, data };
   }

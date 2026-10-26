@@ -256,8 +256,9 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
         // confirm (verify + webhook) or cron run cannot refund twice.
         if (razorpayPaymentId && !razorpayGateway.isMockPaymentId(razorpayPaymentId)) {
           const refundDocId = firestoreRefundRepository.refundIdForPayment(razorpayPaymentId);
+          let refundQueuedHere = false;
           try {
-            await firestoreRefundRepository.enqueue({
+            refundQueuedHere = await firestoreRefundRepository.enqueue({
               id: refundDocId,
               bookingId,
               razorpayPaymentId,
@@ -268,6 +269,23 @@ export class ConfirmBookingCommandHandler implements CommandHandler<ConfirmBooki
             await refundService.processRefund(refundDocId);
           } catch (refundErr) {
             logger.error('PAYMENT', 'Failed to enqueue or issue refund after double-booking prevention', refundErr, { bookingId, razorpayPaymentId });
+          }
+
+          // Tell the customer their money is coming back. Only the confirm that
+          // queued the refund sends it, so verify + webhook refusing the same
+          // payment produce one email, not two.
+          if (refundQueuedHere) {
+            try {
+              // sendEmailAction loads the booking itself and takes the therapist from it.
+              await sendEmailAction({
+                type: 'payment-refunded',
+                bookingId,
+                therapistId: therapistId || '',
+                paymentDetails: { paymentId: razorpayPaymentId, orderId: razorpayOrderId },
+              });
+            } catch (emailErr) {
+              logger.error('EMAIL', 'Failed to send refund email after double-booking prevention', emailErr, { bookingId });
+            }
           }
         }
         throw bookingTxErr;

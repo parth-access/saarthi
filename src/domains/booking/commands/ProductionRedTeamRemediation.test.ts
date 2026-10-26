@@ -349,6 +349,36 @@ describe('Production Red-Team Validations', () => {
 
       await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
       expect(enqueueRefundSpy).toHaveBeenCalled();
+      // The refund is still owed, so the customer still hears about it.
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({ type: 'payment-refunded', bookingId: 'bk_mine' }));
+    });
+
+    it('emails the customer once that a refund is on its way', async () => {
+      const { run } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(sendEmailAction).toHaveBeenCalledTimes(1);
+      expect(sendEmailAction).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'payment-refunded',
+        bookingId: 'bk_mine',
+        paymentDetails: expect.objectContaining({ paymentId: 'pay_other' }),
+      }));
+    });
+
+    it('sends no second refund email when the refund was already queued (verify + webhook both refused)', async () => {
+      const { run, enqueueRefundSpy } = confirmAgainstHold(
+        { pay: 'pay_other', order: 'order_other', booking: 'bk_mine' },
+        { userId: 'uid_signed_in', email: 'client@example.com' },
+        { bookingId: 'bk_someone_else', userId: 'uid_signed_in', lockId: 'lock_x' }
+      );
+      enqueueRefundSpy.mockResolvedValue(false);
+
+      await expect(run()).rejects.toBeInstanceOf(SlotAlreadyBookedError);
+      expect(sendEmailAction).not.toHaveBeenCalled();
     });
 
     // Checkout closed while a UPI request was pending, the failure report
