@@ -1,4 +1,4 @@
-import { adminDb } from '@/lib/firebase/admin';
+import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { DocumentData, Query, Timestamp } from 'firebase-admin/firestore';
 import {
   isUserRole,
@@ -176,10 +176,35 @@ export async function revokeUserSessions(
       .collection('users')
       .doc(userId)
       .update({ sessionRevokeBefore: markSeconds, updatedAt: Timestamp.now() });
+    await syncFirebaseAuth(userId, { revoke: true });
     return { ok: true };
   } catch (error) {
     logger.error('SYSTEM', `Admin session revocation failed for ${userId}`, error);
     return { ok: false, status: 500, error: 'The revocation did not go through just now.' };
+  }
+}
+
+/**
+ * Mirrors a revoke / disable onto the Firebase Auth account. The users-doc
+ * fields gate our API, but the Firebase client SDK talks to Firestore directly
+ * with ID tokens it refreshes on its own; revoking refresh tokens stops that
+ * within the hour, and disabling the Auth user stops sign-in outright.
+ * Best-effort: the users doc stays the source of truth (verifySession and the
+ * Firestore rules both read it), so a failure here is logged, not surfaced.
+ */
+async function syncFirebaseAuth(
+  userId: string,
+  change: { revoke: boolean; disabled?: boolean }
+): Promise<void> {
+  try {
+    if (change.disabled !== undefined) {
+      await adminAuth.updateUser(userId, { disabled: change.disabled });
+    }
+    if (change.revoke) {
+      await adminAuth.revokeRefreshTokens(userId);
+    }
+  } catch (error) {
+    logger.error('SYSTEM', `Firebase Auth sync failed for ${userId}`, error);
   }
 }
 
@@ -203,6 +228,7 @@ export async function setUserAccountDisabled(
       update.sessionRevokeBefore = markSeconds;
     }
     await requireDb().collection('users').doc(userId).update(update);
+    await syncFirebaseAuth(userId, { revoke: disabled, disabled });
     return { ok: true };
   } catch (error) {
     logger.error('SYSTEM', `Admin account ${disabled ? 'disable' : 'enable'} failed for ${userId}`, error);

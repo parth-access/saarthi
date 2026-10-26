@@ -23,13 +23,18 @@ export class ConfirmPaymentCommandHandler implements CommandHandler<ConfirmPayme
     }
 
     // 1. Ground truth check directly from Razorpay Gateway if valid paymentId is available
-    if (paymentId && !paymentId.startsWith('mock_')) {
+    if (paymentId && !razorpayGateway.isMockPaymentId(paymentId)) {
       const rzpPayment = await razorpayGateway.fetchPayment(paymentId);
+      // Fail closed with live keys: never confirm a payment Razorpay could not
+      // vouch for. Unconfigured dev mode has no gateway to ask.
+      if (!rzpPayment && razorpayGateway.isConfigured()) {
+        throw new Error('Could not verify the payment with Razorpay');
+      }
       if (rzpPayment) {
         if (rzpPayment.status !== 'captured' && rzpPayment.status !== 'authorized') {
           throw new Error(`Razorpay payment status is ${rzpPayment.status}, expected captured or authorized`);
         }
-        if (rzpPayment.order_id && rzpPayment.order_id !== orderId) {
+        if (rzpPayment.order_id !== orderId) {
           throw new Error('Payment/order mismatch: Razorpay payment order ID does not match expected order');
         }
       }
@@ -52,7 +57,7 @@ export class ConfirmPaymentCommandHandler implements CommandHandler<ConfirmPayme
 
       // Idempotent execution: if payment is already marked as success, verify payment ID consistency and save signature if newly provided
       if (payment.status === 'success') {
-        if (payment.razorpayPaymentId && payment.razorpayPaymentId !== paymentId && !paymentId.startsWith('mock_')) {
+        if (payment.razorpayPaymentId && payment.razorpayPaymentId !== paymentId && !razorpayGateway.isMockPaymentId(paymentId)) {
           throw new Error('Order already confirmed with a different payment ID');
         }
         if (signature && !payment.razorpaySignature) {
@@ -63,8 +68,11 @@ export class ConfirmPaymentCommandHandler implements CommandHandler<ConfirmPayme
       }
 
       // Verify captured payment amount matches expected order amount
-      if (paymentId && !paymentId.startsWith('mock_')) {
+      if (paymentId && !razorpayGateway.isMockPaymentId(paymentId)) {
         const rzpPayment = await razorpayGateway.fetchPayment(paymentId);
+        if (!rzpPayment && razorpayGateway.isConfigured()) {
+          throw new Error('Could not verify the payment amount with Razorpay');
+        }
         if (rzpPayment && payment.amount && rzpPayment.amount) {
           const expectedPaise = payment.amount * 100;
           if (rzpPayment.amount !== expectedPaise && rzpPayment.amount !== payment.amount) {

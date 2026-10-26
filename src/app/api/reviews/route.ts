@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { adminDb } from '@/lib/firebase/admin';
+import { verifySession } from '@/lib/auth/verifySession';
 import { ReviewService } from '@/services/reviewService';
 import { logger } from '@/app/api/_lib/logger';
+import type { Review } from '@/types';
 import { z } from 'zod';
 
 const postReviewSchema = z.object({
@@ -10,20 +12,26 @@ const postReviewSchema = z.object({
   comment: z.string().max(1000).optional()
 });
 
+/**
+ * The public shape of a review. Stored reviews carry the client's uid, name
+ * and email; on a therapy platform even "X is seeing therapist Y" is sensitive,
+ * so none of that ever leaves through an unauthenticated read.
+ */
+function toPublicReview(review: Review) {
+  return {
+    id: review.id,
+    rating: review.rating,
+    comment: review.comment,
+    createdAt: review.createdAt,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: Missing authorization header' }, { status: 401 });
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    let decodedToken;
-    try {
-      decodedToken = await adminAuth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    // 1. Authenticate user (honours the disabled-account / revoked-session kill-switch)
+    const session = await verifySession(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 2. Parse & Validate request body
@@ -38,15 +46,14 @@ export async function POST(req: NextRequest) {
 
     const { bookingId, rating, comment } = parseResult.data;
 
-    // 3. Submit review
+    // 3. Submit review (verifySession only exposes a verified email)
     const result = await ReviewService.submitReview({
       bookingId,
       rating,
       comment,
       user: {
-        uid: decodedToken.uid,
-        email: decodedToken.email_verified === true ? decodedToken.email : undefined,
-        name: decodedToken.name
+        uid: session.uid,
+        email: session.email,
       }
     });
 
@@ -73,8 +80,25 @@ export async function GET(req: NextRequest) {
     const therapistId = searchParams.get('therapistId');
 
     if (bookingId) {
+      // A single booking's review is only visible to its author, the booking's
+      // therapist, or an admin.
+      const session = await verifySession(req);
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
       const review = await ReviewService.getReviewByBookingId(bookingId);
       if (!review) {
+        return NextResponse.json({ review: null, exists: false }, { status: 200 });
+      }
+
+      let allowed = session.role === 'admin' || review.studentId === session.uid;
+      if (!allowed && session.role === 'therapist' && review.therapistId) {
+        const therapistSnap = await adminDb.collection('therapists').doc(review.therapistId).get();
+        allowed = therapistSnap.exists && therapistSnap.data()?.authId === session.uid;
+      }
+      if (!allowed) {
+        // Same answer as "no review" so booking ids cannot be probed.
         return NextResponse.json({ review: null, exists: false }, { status: 200 });
       }
       return NextResponse.json({ review, exists: true }, { status: 200 });
@@ -82,7 +106,13 @@ export async function GET(req: NextRequest) {
 
     if (therapistId) {
       const summary = await ReviewService.getTherapistReviews(therapistId);
-      return NextResponse.json({ success: true, ...summary }, { status: 200 });
+      return NextResponse.json({
+        success: true,
+        therapistId: summary.therapistId,
+        averageRating: summary.averageRating,
+        totalReviews: summary.totalReviews,
+        reviews: summary.reviews.map(toPublicReview),
+      }, { status: 200 });
     }
 
     return NextResponse.json(

@@ -48,8 +48,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const token = searchParams.get('token');
+  // The token travels in a header so it never lands in request logs or
+  // analytics as part of a URL.
+  const token = request.headers.get('x-booking-token');
   if (!token) return NextResponse.json({ error: "Missing token" }, { status: 400 });
 
   try {

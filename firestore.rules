@@ -9,8 +9,15 @@ service cloud.firestore {
     =========================================
     */
 
+    // A disabled account is signed out everywhere, including direct client-SDK
+    // reads: its Firebase ID token may still be valid for up to an hour after
+    // the admin console disables it.
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && (
+          !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('accountDisabled', false) != true
+        );
     }
 
     function isAdmin() {
@@ -117,13 +124,10 @@ service cloud.firestore {
 
       allow read: if true;
 
-      allow create: if
-        isAdmin()
-        || isTherapistDocOwner(request.resource.data.therapistId);
-
-      allow update, delete: if
-        isAdmin()
-        || isTherapistDocOwner(resource.data.therapistId);
+      // Server-only, like therapistAvailability/*/recurringRules: the
+      // owner-only check never verified users/{uid}.role, and nothing in the
+      // app writes here from the client.
+      allow write: if false;
     }
 
     /*
@@ -134,13 +138,11 @@ service cloud.firestore {
 
     match /bookings/{bookingId} {
 
+      // No therapist clause: booking docs carry the client's manage-booking
+      // token, which a direct read would expose. Therapist workspaces read
+      // through /api/bookings and /api/therapist/bookings, which withhold it.
       allow read, list: if
         isAdmin()
-        || (
-          isSignedIn()
-          && resource.data.therapistId != null
-          && isTherapistDocOwner(resource.data.therapistId)
-        )
         || (
           isSignedIn()
           && (
@@ -185,7 +187,10 @@ service cloud.firestore {
 
     match /locked_slots/{slotId} {
 
-      allow read: if true;
+      // Server-only. Hold docs carry the holder's uid and the lockId that
+      // proves ownership of a hold; public availability is served (times
+      // only) by /api/availability.
+      allow read: if false;
 
       allow write: if false;
     }
