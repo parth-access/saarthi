@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { checkTherapistAccess } from "../../_lib/authCheck";
 import { logger } from "../../../_lib/logger";
+import { listAvailability } from "../../_lib/availabilityRead";
+
+export async function GET(request: Request) {
+  return listAvailability(request, "overrides", "READ_OVERRIDES");
+}
 
 export async function POST(request: Request) {
   try {
