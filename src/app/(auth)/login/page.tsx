@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { BackLink } from "@/components/navigation/BackLink";
 import { getSafeReturnPath } from "@/lib/auth/returnPath";
 import { FloatingInput } from "@/components/auth/FloatingInput";
+import { isBetterAuth } from "@/lib/auth/provider";
+import Link from "next/link";
 import type { SessionSyncResult } from "@/services/sessionSyncService";
 
 function getFriendlyAuthErrorMessage(err: unknown, fallbackMessage: string): string {
@@ -90,7 +92,10 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  // Better Auth's Google callback returns here with ?error= when sign-in fails.
+  const [error, setError] = useState(() =>
+    searchParams.get("error") ? "Google sign-in didn't complete. Please try again." : ""
+  );
   const [loading, setLoading] = useState(false);
   const [failedSessionSync, setFailedSessionSync] = useState<Promise<SessionSyncResult> | null>(null);
   /** The server's own sentence when it refused the session (e.g. a disabled account). */
@@ -365,6 +370,17 @@ function LoginContent() {
                 helperText={isRegister ? "Must be at least 8 characters" : undefined}
               />
 
+              {!isRegister && (
+                <div className="flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-primary/60 hover:text-primary transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
+
               <div className="pt-2">
                 <motion.button
                   type="submit"
@@ -418,7 +434,8 @@ function LoginContent() {
                     setError("");
                     try {
                       await loginWithGoogle();
-                      toast.success("Signed in successfully");
+                      // Better Auth leaves the page for Google here; the welcome comes after.
+                      if (!isBetterAuth()) toast.success("Signed in successfully");
                     } catch (err: unknown) {
                       setError(getFriendlyAuthErrorMessage(err, "Google authentication failed"));
                     } finally {

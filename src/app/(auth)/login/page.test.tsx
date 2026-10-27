@@ -20,6 +20,7 @@ const authState = vi.hoisted(() => ({
 const navigationState = vi.hoisted(() => ({
   router: { replace: vi.fn(), push: vi.fn(), refresh: vi.fn() },
   nextValues: [] as string[],
+  error: null as string | null,
 }));
 
 const loginEffect = vi.hoisted(() => ({
@@ -44,6 +45,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigationState.router,
   useSearchParams: () => ({
     getAll: (key: string) => key === 'next' ? navigationState.nextValues : [],
+    get: (key: string) => key === 'error' ? navigationState.error : null,
   }),
 }));
 
@@ -77,6 +79,7 @@ describe('/login navigation', () => {
   beforeEach(() => {
     authState.current = { currentUser: null, loading: false, sessionSyncComplete: null };
     navigationState.nextValues = [];
+    navigationState.error = null;
     navigationState.router.replace.mockReset();
     loginEffect.current = null;
   });
@@ -100,6 +103,15 @@ describe('/login navigation', () => {
 
     expect(html).toContain('Welcome back');
     expect(html).toContain('Sign In');
+  });
+
+  it('offers a way to reset a forgotten password', () => {
+    expect(renderLogin()).toContain('href="/forgot-password"');
+  });
+
+  it('explains a Google sign-in that came back with an error', () => {
+    navigationState.error = 'access_denied';
+    expect(renderLogin()).toContain('Google sign-in didn&#x27;t complete');
   });
 
   it('keeps the way out while auth is still resolving, so a stalled bootstrap is not a dead end', () => {
