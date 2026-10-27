@@ -524,6 +524,54 @@ export function generatePaymentRefundedEmail(data: PaymentFailedEmailData): stri
   return generateEmailLayout(content, 'Your Saarthi payment is being refunded.');
 }
 
+export interface AuthLinkEmailData {
+  name: string;
+  /** Better Auth's one-time link; carries the token. */
+  url: string;
+}
+
+function generateAuthLinkEmail(data: AuthLinkEmailData, intro: string, buttonLabel: string, footnote: string, previewText: string): string {
+  const url = escapeString(data.url);
+  const content = `
+    <h2 style="margin: 0 0 24px 0; font-size: 20px; font-weight: 600; font-family: ${SERIF_STACK}; color: ${COLORS.text};">Hi ${escapeString(data.name)},</h2>
+    <p style="margin: 0 0 32px 0;">${intro}</p>
+
+    <div style="text-align: center; margin-bottom: 32px;">
+      <a href="${url}" style="display: inline-block; padding: 14px 28px; background-color: ${COLORS.accent}; color: #FFFFFF; font-weight: 500; font-size: 15px; text-decoration: none; border-radius: 8px;">${buttonLabel}</a>
+    </div>
+
+    <p style="margin: 0 0 8px 0; font-size: 14px; color: ${COLORS.textMuted};">If the button doesn't work, copy this link into your browser:</p>
+    <p style="margin: 0 0 24px 0; font-size: 13px; word-break: break-all;"><a href="${url}" style="color: ${COLORS.accent};">${url}</a></p>
+
+    <p style="margin: 0 0 24px 0; font-size: 14px; color: ${COLORS.textMuted};">${footnote}</p>
+
+    <p style="margin: 0 0 4px 0; font-size: 15px;">Warmly,</p>
+    <p style="margin: 0; font-weight: 500; font-size: 15px; color: ${COLORS.accent};">The Saarthi Team</p>
+  `;
+
+  return generateEmailLayout(content, previewText);
+}
+
+export function generatePasswordResetEmail(data: AuthLinkEmailData): string {
+  return generateAuthLinkEmail(
+    data,
+    'We received a request to reset the password for your Saarthi account. Choose a new password with the button below.',
+    'Reset Password',
+    "This link expires in 1 hour and can be used once. If you didn't ask to reset your password, you can ignore this email; your password stays the same.",
+    'Reset your Saarthi password.'
+  );
+}
+
+export function generateVerifyEmailEmail(data: AuthLinkEmailData): string {
+  return generateAuthLinkEmail(
+    data,
+    'Please confirm this is your email address so we can keep your bookings and account secure.',
+    'Verify Email',
+    "This link expires in 1 hour. If you didn't create a Saarthi account, you can ignore this email.",
+    'Confirm your email for Saarthi.'
+  );
+}
+
 export interface SessionReminderEmailData {
   patientName: string;
   therapistName: string;

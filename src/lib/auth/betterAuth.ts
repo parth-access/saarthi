@@ -3,16 +3,15 @@ import { admin } from 'better-auth/plugins';
 import { nextCookies } from 'better-auth/next-js';
 import { hashPassword } from 'better-auth/crypto';
 import { Pool } from 'pg';
+import { sendResetPasswordEmail, sendVerificationEmail } from './authEmails';
 import { verifyPassword } from './firebasePassword';
 import { ac, roles } from './permissions';
 import { SUPABASE_ROOT_CA } from './supabaseCa';
 
 /**
- * Better Auth server instance (migration phase 1: config + schema only).
- *
- * Not mounted yet: there is no /api/auth/[...all] route, and verifySession
- * still reads Firebase sessions. Phase 2 wires this in. See
- * docs/plans/2026-10-26-better-auth-migration.md.
+ * Better Auth server instance, mounted at /api/auth/[...all]. Only live when
+ * AUTH_PROVIDER=better-auth; until then verifySession reads Firebase
+ * sessions. See docs/plans/2026-10-26-better-auth-migration.md.
  *
  * Auth tables live in Postgres (Supabase, Mumbai); app data stays in
  * Firestore. Users imported from Firebase keep their Firebase uid as
@@ -35,8 +34,10 @@ export function poolSsl(databaseUrl: string | undefined): { ca: string } | undef
   return host.endsWith('.supabase.com') || host.endsWith('.supabase.co') ? { ca: SUPABASE_ROOT_CA } : undefined;
 }
 
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+// Sign-in has its own Google OAuth client; GOOGLE_CLIENT_ID/SECRET belong to
+// the Calendar/Meet integration.
+const googleClientId = process.env.GOOGLE_AUTH_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_AUTH_CLIENT_SECRET;
 
 export const auth = betterAuth({
   appName: 'Saarthi',
@@ -54,7 +55,15 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     revokeSessionsOnPasswordReset: true,
     password: { hash: hashPassword, verify: verifyPassword },
-    // sendResetPassword is added in phase 3 (Resend templates).
+    sendResetPassword: sendResetPasswordEmail,
+    resetPasswordTokenExpiresIn: 60 * 60,
+  },
+
+  emailVerification: {
+    sendVerificationEmail,
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60,
   },
 
   socialProviders:
