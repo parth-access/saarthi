@@ -9,6 +9,8 @@ import {
 } from '@/domains/admin/usersTriage';
 import { isoOrNull } from '@/domains/booking/queries/adminBookingQuery';
 import { logger } from '../../_lib/logger';
+import { isBetterAuth } from '@/lib/auth/provider';
+import { setBetterAuthRole, setBetterAuthBanned, revokeBetterAuthSessions } from '@/lib/auth/betterAuthAdmin';
 
 /**
  * Reading and writing `users` for the Users & roles screen.
@@ -18,6 +20,10 @@ import { logger } from '../../_lib/logger';
  * the disable flag POST /api/auth/session honours at mint time — so a change
  * made here is enforced by the platform's own authorization path, not by the
  * console believing it.
+ *
+ * Under Better Auth the role and ban verifySession reads live on the Better
+ * Auth user instead. Each change is written there first (a failure there
+ * fails the change), then mirrored to `users` so the lists stay right.
  *
  * Reads are bounded: paged scans of `USERS_PAGE_SIZE + 1`, an exact-email
  * lookup capped at five rows, and a `count()` aggregation for the
@@ -155,6 +161,7 @@ export async function setUserRole(userId: string, role: UserRole): Promise<UserM
     return { ok: false, status: 400, error: 'That role is not one the console can set.' };
   }
   try {
+    if (isBetterAuth()) await setBetterAuthRole(userId, role);
     await requireDb()
       .collection('users')
       .doc(userId)
@@ -172,11 +179,12 @@ export async function revokeUserSessions(
   markSeconds: number
 ): Promise<UserMutationResult> {
   try {
+    if (isBetterAuth()) await revokeBetterAuthSessions(userId);
     await requireDb()
       .collection('users')
       .doc(userId)
       .update({ sessionRevokeBefore: markSeconds, updatedAt: Timestamp.now() });
-    await syncFirebaseAuth(userId, { revoke: true });
+    if (!isBetterAuth()) await syncFirebaseAuth(userId, { revoke: true });
     return { ok: true };
   } catch (error) {
     logger.error('SYSTEM', `Admin session revocation failed for ${userId}`, error);
@@ -227,8 +235,9 @@ export async function setUserAccountDisabled(
     if (disabled) {
       update.sessionRevokeBefore = markSeconds;
     }
+    if (isBetterAuth()) await setBetterAuthBanned(userId, disabled);
     await requireDb().collection('users').doc(userId).update(update);
-    await syncFirebaseAuth(userId, { revoke: disabled, disabled });
+    if (!isBetterAuth()) await syncFirebaseAuth(userId, { revoke: disabled, disabled });
     return { ok: true };
   } catch (error) {
     logger.error('SYSTEM', `Admin account ${disabled ? 'disable' : 'enable'} failed for ${userId}`, error);
