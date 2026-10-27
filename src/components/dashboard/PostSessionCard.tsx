@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Star, FileText, Sparkles, ChevronRight, CheckCircle } from 'lucide-react';
-import { auth } from '@/lib/firebase/client';
+import { authHeaders } from '@/lib/authHeaders';
 import { Booking, Therapist } from '@/types';
 import { ReviewModal } from './ReviewModal';
 
@@ -46,11 +46,10 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
     setSummaryLoading(true);
     setSummaryError(null);
     try {
-      const user = auth?.currentUser;
-      if (!user) throw new Error('Please sign in to view your summary');
-      const token = await user.getIdToken();
+      const auth = await authHeaders();
+      if (!auth) throw new Error('Please sign in to view your summary');
       const res = await fetch(`/api/bookings/${session.id}/summary`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: auth,
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

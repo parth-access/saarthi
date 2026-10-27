@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { FileText, Loader2, Check, StickyNote, Users } from 'lucide-react';
-import { auth } from '@/lib/firebase/client';
+import { authHeaders } from '@/lib/authHeaders';
 import { Booking } from '@/types';
 
 /**
@@ -70,11 +70,10 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
     let active = true;
     (async () => {
       try {
-        const user = auth?.currentUser;
-        if (!user) throw new Error('Not signed in');
-        const token = await user.getIdToken();
+        const auth = await authHeaders();
+        if (!auth) throw new Error('Not signed in');
         const res = await fetch(`/api/bookings/session-notes?bookingId=${booking.id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: auth,
         });
         const data = await res.json();
         if (!active) return;
@@ -98,12 +97,11 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
     setNotesMessage(null);
     setNotesError(null);
     try {
-      const user = auth?.currentUser;
-      if (!user) throw new Error('Please sign in');
-      const token = await user.getIdToken();
+      const auth = await authHeaders();
+      if (!auth) throw new Error('Please sign in');
       const res = await fetch('/api/bookings/session-notes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({
           bookingId: booking.id,
           privateNotes,
@@ -128,12 +126,11 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
   const saveFollowUp = async (status: FollowUpStatus) => {
     setSavingFollowUp(true);
     try {
-      const user = auth?.currentUser;
-      if (!user) throw new Error('Please sign in');
-      const token = await user.getIdToken();
+      const auth = await authHeaders();
+      if (!auth) throw new Error('Please sign in');
       const res = await fetch('/api/bookings/follow-up', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({ bookingId: booking.id, followUpStatus: status }),
       });
       const data = await res.json();

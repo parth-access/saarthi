@@ -1,18 +1,12 @@
-import { auth } from '../lib/firebase/client';
+import { authHeaders } from '../lib/authHeaders';
 import { Booking, BookingStatus } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapBooking } from '../utils/mappers';
 import { logger } from '../utils/logger';
 
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const currentUser = auth?.currentUser;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  
-  if (currentUser) {
-    const token = await currentUser.getIdToken();
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(await authHeaders()) };
+
   options.headers = { ...headers, ...options.headers };
   const response = await fetch(url, options);
   const data = await response.json();

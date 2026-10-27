@@ -1,23 +1,21 @@
-import { auth } from "@/lib/firebase/client";
+import { authHeaders } from "@/lib/authHeaders";
 
 export async function fetchWithAuth(
   input: RequestInfo | URL,
   init: RequestInit = {}
 ) {
-  const user = auth.currentUser;
+  const auth = await authHeaders();
 
-  if (!user) {
+  if (!auth) {
     throw new Error("User not authenticated");
   }
-
-  const token = await user.getIdToken();
 
   return fetch(input, {
     ...init,
     headers: {
       ...(init.headers || {}),
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...auth,
     },
   });
 }

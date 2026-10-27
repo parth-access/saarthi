@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { auth } from '@/lib/firebase/client';
+import { authHeaders } from '@/lib/authHeaders';
 import { Booking } from '@/types';
 import { toast } from 'sonner';
 
@@ -29,15 +29,15 @@ export function useJoinSession() {
 
     try {
       setJoiningId(session.id);
-      const idToken = await auth?.currentUser?.getIdToken();
-      if (!idToken) {
+      const auth = await authHeaders();
+      if (!auth) {
         toast.error('Please sign in again to access your meeting link.');
         return;
       }
 
       toast.loading('Preparing your Google Meet room…', { id: 'join-meet' });
       const res = await fetch(`/api/bookings/join-session?bookingId=${encodeURIComponent(session.id)}`, {
-        headers: { Authorization: `Bearer ${idToken}` },
+        headers: auth,
       });
       const data = await res.json().catch(() => ({}));
 

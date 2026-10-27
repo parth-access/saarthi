@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Star, X, CheckCircle, Loader2 } from 'lucide-react';
-import { auth } from '@/lib/firebase/client';
+import { authHeaders } from '@/lib/authHeaders';
 import { Booking, Review } from '@/types';
 import { useDialogA11y } from '@/hooks/useDialogA11y';
 
@@ -51,17 +51,16 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     setError(null);
 
     try {
-      const user = auth?.currentUser;
-      if (!user) {
+      const auth = await authHeaders();
+      if (!auth) {
         throw new Error('Please sign in to submit a review');
       }
 
-      const token = await user.getIdToken();
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          ...auth
         },
         body: JSON.stringify({
           bookingId: booking.id,
