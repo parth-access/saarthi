@@ -30,6 +30,18 @@ const nextConfig: NextConfig = {
       { source: '/home_page.jpeg', destination: '/home_page.webp', permanent: true },
     ];
   },
+  // Firebase Auth's sign-in helper, served from our own domain. With
+  // NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN set to the site's host, Google's consent
+  // screen says "continue to saarthilife.com" instead of the
+  // <project>.firebaseapp.com default, and the popup stays first-party.
+  async rewrites() {
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!projectId) return [];
+    return [
+      { source: '/__/auth/:path*', destination: `https://${projectId}.firebaseapp.com/__/auth/:path*` },
+      { source: '/__/firebase/:path*', destination: `https://${projectId}.firebaseapp.com/__/firebase/:path*` },
+    ];
+  },
   // Security headers (CSP, X-Frame-Options, HSTS, ...) are defined ONLY in
   // vercel.json. Do not add a headers() block here: duplicate/conflicting
   // CSP headers are intersected by browsers, so any drift between two copies
