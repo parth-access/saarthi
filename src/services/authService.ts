@@ -8,6 +8,7 @@ import {
   signInWithCredential,
   signInWithPopup,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   doc,
@@ -15,9 +16,15 @@ import {
   setDoc,
   serverTimestamp,
 } from 'firebase/firestore';
+import { isBetterAuth } from '../lib/auth/provider';
+import { betterAuthService } from './betterAuthService';
 
 export const authService = {
   loginWithGoogle: async () => {
+    if (isBetterAuth()) {
+      // Full-page redirect; Google returns to this page, which routes by role.
+      return betterAuthService.loginWithGoogle(window.location.pathname + window.location.search);
+    }
     if (!isFirebaseEnabled) {
       throw new Error('Firebase is not enabled.');
     }
@@ -260,6 +267,7 @@ export const authService = {
   },
 
   register: async (email: string, password: string, name: string) => {
+    if (isBetterAuth()) return betterAuthService.register(email, password, name);
     if (!isFirebaseEnabled) throw new Error('Firebase is not enabled.');
 
     const userCred = await createUserWithEmailAndPassword(
@@ -295,6 +303,7 @@ export const authService = {
   },
 
   login: async (email: string, password: string) => {
+    if (isBetterAuth()) return betterAuthService.login(email, password);
     if (!isFirebaseEnabled) throw new Error('Firebase is not enabled.');
 
     const userCred = await signInWithEmailAndPassword(
@@ -307,8 +316,23 @@ export const authService = {
   },
 
   logout: async () => {
+    if (isBetterAuth()) return betterAuthService.logout();
     if (isFirebaseEnabled) {
       await signOut(auth);
+    }
+  },
+
+  /**
+   * Sends a reset link. Resolves the same way whether or not the email has an
+   * account, so the form never reveals which emails are registered.
+   */
+  requestPasswordReset: async (email: string) => {
+    if (isBetterAuth()) return betterAuthService.requestPasswordReset(email);
+    if (!isFirebaseEnabled) throw new Error('Firebase is not enabled.');
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      if ((err as { code?: string })?.code !== 'auth/user-not-found') throw err;
     }
   },
 
