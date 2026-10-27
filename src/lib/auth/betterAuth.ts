@@ -10,7 +10,7 @@ import { SUPABASE_ROOT_CA } from './supabaseCa';
 
 /**
  * Better Auth server instance, mounted at /api/auth/[...all]. Only live when
- * AUTH_PROVIDER=better-auth; until then verifySession reads Firebase
+ * NEXT_PUBLIC_AUTH_PROVIDER=better-auth; until then verifySession reads Firebase
  * sessions. See docs/plans/2026-10-26-better-auth-migration.md.
  *
  * Auth tables live in Postgres (Supabase, Mumbai); app data stays in

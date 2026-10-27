@@ -6,7 +6,7 @@ import { isBetterAuth } from './lib/auth/provider';
 
 /**
  * Page gate only: every API route re-checks the session and live role itself.
- * With AUTH_PROVIDER=better-auth the role comes from Better Auth's session
+ * With NEXT_PUBLIC_AUTH_PROVIDER=better-auth the role comes from Better Auth's session
  * (its signed cookie cache, refreshed from Postgres at most every 5 minutes);
  * otherwise from the Firebase-era `__session` JWT.
  */

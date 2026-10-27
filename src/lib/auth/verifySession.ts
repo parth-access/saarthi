@@ -148,7 +148,7 @@ function isAccountDisabled(userData: Record<string, unknown> | undefined): boole
 }
 
 /**
- * Better Auth path (AUTH_PROVIDER=better-auth). Same contract as the Firebase
+ * Better Auth path (NEXT_PUBLIC_AUTH_PROVIDER=better-auth). Same contract as the Firebase
  * path: the live role, and an email only once it is verified. The cookie
  * cache is bypassed so a ban or revocation applies on the very next request;
  * a banned user's sessions are deleted by the admin plugin, and the explicit

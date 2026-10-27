@@ -3,7 +3,7 @@ import { isBetterAuth } from '@/lib/auth/provider';
 
 /**
  * Better Auth's endpoints (sign-in, sign-up, OAuth callbacks, sessions,
- * admin). Answers 404 until AUTH_PROVIDER=better-auth, so nobody can create
+ * admin). Answers 404 until NEXT_PUBLIC_AUTH_PROVIDER=better-auth, so nobody can create
  * accounts in the new system before the migration cuts over.
  * /api/auth/session (Firebase) is a separate static route and wins over this one.
  */

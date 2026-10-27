@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 /**
- * AUTH_PROVIDER=better-auth: verifySession, the page middleware and the
+ * NEXT_PUBLIC_AUTH_PROVIDER=better-auth: verifySession, the page middleware and the
  * /api/auth/[...all] mount read Better Auth instead of Firebase.
  */
 const { mockGetSession, mockGetUserDoc } = vi.hoisted(() => ({
@@ -28,11 +28,11 @@ const req = (path = '/api/test') => new Request(`https://www.saarthilife.com${pa
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.AUTH_PROVIDER = 'better-auth';
+  process.env.NEXT_PUBLIC_AUTH_PROVIDER = 'better-auth';
 });
 
 afterEach(() => {
-  delete process.env.AUTH_PROVIDER;
+  delete process.env.NEXT_PUBLIC_AUTH_PROVIDER;
 });
 
 describe('verifySession (better-auth)', () => {
@@ -108,7 +108,7 @@ describe('middleware (better-auth)', () => {
 
 describe('/api/auth/[...all]', () => {
   it('answers 404 while Firebase is still the provider', async () => {
-    delete process.env.AUTH_PROVIDER;
+    delete process.env.NEXT_PUBLIC_AUTH_PROVIDER;
     const res = await authRouteGet(req('/api/auth/get-session'));
     expect(res.status).toBe(404);
   });
