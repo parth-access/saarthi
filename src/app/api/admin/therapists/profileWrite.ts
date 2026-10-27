@@ -1,5 +1,7 @@
 import 'server-only';
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { isBetterAuth } from '@/lib/auth/provider';
+import { findBetterAuthUserIdByEmail } from '@/lib/auth/betterAuthAdmin';
 import type { TherapistProfileInput } from './profileSchema';
 
 /** Fields of a therapist document this console's profile editor owns. */
@@ -41,11 +43,15 @@ export async function resolveAuthLink(
 ): Promise<{ email: string | null; authId: string | null; linked: boolean }> {
   if (!loginEmail) return { email: null, authId: null, linked: false };
   let uid: string | null = null;
-  try {
-    uid = (await adminAuth.getUserByEmail(loginEmail)).uid;
-  } catch (err) {
-    const code = (err as { code?: string }).code;
-    if (code !== 'auth/user-not-found') throw err;
+  if (isBetterAuth()) {
+    uid = await findBetterAuthUserIdByEmail(loginEmail);
+  } else {
+    try {
+      uid = (await adminAuth.getUserByEmail(loginEmail)).uid;
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code !== 'auth/user-not-found') throw err;
+    }
   }
   if (uid) {
     const snap = await adminDb.collection('therapists').where('authId', '==', uid).limit(2).get();
