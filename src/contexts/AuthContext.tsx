@@ -2,7 +2,7 @@
 
 
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
 import { User as CustomUser } from '../types';
 import { auth, db } from '../lib/firebase/client';
@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { syncSessionCookie, invalidateSessionSync, type SessionSyncResult } from '@/services/sessionSyncService';
 import { perfMark, perfMeasure } from '@/lib/perfTracing';
+import { isBetterAuth } from '@/lib/auth/provider';
+import { authClient } from '@/lib/auth/authClient';
 
 interface AuthContextType {
   currentUser: CustomUser | null;
@@ -56,7 +58,7 @@ async function roleFromSessionCookie(uid: string): Promise<Role | null> {
   }
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<CustomUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionSyncComplete, setSessionSyncComplete] = useState<Promise<SessionSyncResult> | null>(null);
@@ -276,6 +278,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+function toRole(role: unknown): Role {
+  return role === 'admin' || role === 'therapist' ? role : 'client';
+}
+
+/** Server session cookies are set by Better Auth itself; nothing to sync. */
+const SESSION_READY: SessionSyncResult = { ok: true, status: 200, refusedMessage: null };
+
+/**
+ * NEXT_PUBLIC_AUTH_PROVIDER=better-auth: the session comes from Better Auth's
+ * cookie via useSession(), which refreshes itself after sign-in and sign-out.
+ * Same context shape as the Firebase provider, so no consumer changes.
+ */
+const BetterAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data, isPending } = authClient.useSession();
+  const [actionPending, setActionPending] = useState(false);
+  const router = useRouter();
+  const user = data?.user;
+
+  const currentUser = useMemo<CustomUser | null>(
+    () =>
+      user && !user.banned
+        ? { uid: user.id, email: user.email, emailVerified: user.emailVerified, role: toRole(user.role), name: user.name || undefined }
+        : null,
+    [user]
+  );
+  const uid = currentUser?.uid;
+  const sessionSyncComplete = useMemo(() => (uid ? Promise.resolve(SESSION_READY) : null), [uid]);
+
+  // Server components read the session too; refresh them when it changes.
+  const previousUid = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (isPending) return;
+    const next = uid ?? null;
+    if (previousUid.current !== undefined && previousUid.current !== next) router.refresh();
+    previousUid.current = next;
+  }, [uid, isPending, router]);
+
+  const run = useCallback(async (action: () => Promise<unknown>) => {
+    setActionPending(true);
+    try {
+      await action();
+    } finally {
+      setActionPending(false);
+    }
+  }, []);
+
+  const login = useCallback((email: string, pw: string) => run(() => authService.login(email, pw)), [run]);
+  // Leaves the page for Google; nothing to reset on success.
+  const loginWithGoogle = useCallback(() => run(() => authService.loginWithGoogle()), [run]);
+  const register = useCallback((email: string, pw: string, name: string) => run(() => authService.register(email, pw, name)), [run]);
+  const logout = useCallback(async () => {
+    try {
+      await run(() => authService.logout());
+    } catch (error) {
+      console.error('Logout error', error);
+    } finally {
+      router.replace('/');
+    }
+  }, [run, router]);
+
+  return (
+    <AuthContext.Provider value={{ currentUser, loading: isPending || actionPending, sessionSyncComplete, login, loginWithGoogle, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = isBetterAuth() ? BetterAuthProvider : FirebaseAuthProvider;
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
