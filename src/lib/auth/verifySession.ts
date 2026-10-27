@@ -1,5 +1,6 @@
 import { adminAuth, adminDb } from '../firebase/admin';
 import { jwtVerify } from 'jose';
+import { isBetterAuth } from './provider';
 
 export interface DecodedSessionInfo {
   uid: string;
@@ -8,6 +9,10 @@ export interface DecodedSessionInfo {
 }
 
 export async function verifySession(request: Request): Promise<DecodedSessionInfo | null> {
+  if (isBetterAuth()) {
+    return verifyBetterAuthSession(request);
+  }
+
   let session = '';
   
   // Try to get Authorization header first
@@ -140,4 +145,30 @@ function isSessionRevoked(
  */
 function isAccountDisabled(userData: Record<string, unknown> | undefined): boolean {
   return userData?.accountDisabled === true;
+}
+
+/**
+ * Better Auth path (AUTH_PROVIDER=better-auth). Same contract as the Firebase
+ * path: the live role, and an email only once it is verified. The cookie
+ * cache is bypassed so a ban or revocation applies on the very next request;
+ * a banned user's sessions are deleted by the admin plugin, and the explicit
+ * check covers anything that slips past that.
+ */
+async function verifyBetterAuthSession(request: Request): Promise<DecodedSessionInfo | null> {
+  try {
+    const { auth } = await import('./betterAuth');
+    const result = await auth.api.getSession({
+      headers: request.headers,
+      query: { disableCookieCache: true },
+    });
+    if (!result || result.user.banned) return null;
+    return {
+      uid: result.user.id,
+      email: result.user.emailVerified ? result.user.email : undefined,
+      role: result.user.role || 'client',
+    };
+  } catch (error) {
+    console.warn('Session verification failed:', error);
+    return null;
+  }
 }
