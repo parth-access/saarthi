@@ -84,6 +84,18 @@ export const auth = betterAuth({
     cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
 
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user, ctx) => {
+          // Imported lazily: the middleware loads this module and needs no Firestore.
+          const { createUserProfile } = await import('./userProfile');
+          await createUserProfile(user, ctx?.path?.startsWith('/callback') ? 'google' : 'credential');
+        },
+      },
+    },
+  },
+
   // Shared across serverless instances; the in-memory default is per instance.
   rateLimit: { enabled: true, storage: 'database' },
 
