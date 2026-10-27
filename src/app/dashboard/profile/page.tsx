@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { sendPasswordResetEmail, updateProfile } from "firebase/auth";
-import { auth, db } from "@/lib/firebase/client";
+import { profileService } from "@/services/profileService";
+import { authService } from "@/services/authService";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SupportModal } from "@/components/dashboard/SupportModal";
@@ -46,46 +45,19 @@ function Profile() {
   const [bio, setBio] = useState("");
 
   /** Sign-in method actually used by this account — drives the security options. */
-  const usesPassword = useMemo(
-    () => (auth?.currentUser?.providerData || []).some((p) => p.providerId === "password"),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [auth?.currentUser?.uid, loading]
-  );
+  const [usesPassword, setUsesPassword] = useState(false);
 
   useEffect(() => {
     if (!currentUser) return;
     let active = true;
     const fetchProfile = async () => {
       try {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        let dbName = "";
-        let dbPhone = "";
-        let dbBio = "";
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          dbName = data.name || "";
-          dbPhone = data.phone || "";
-          dbBio = data.bio || "";
-        }
+        const profile = await profileService.load({ uid: currentUser.uid, email: currentUser.email });
         if (!active) return;
-        setName(dbName);
-        setPhone(dbPhone);
-        setBio(dbBio);
-
-        // Fall back to the details on the user's most recent booking so the form
-        // isn't blank for people who booked before ever opening this page.
-        if (!dbName && !dbPhone && currentUser.email) {
-          const snap = await getDocs(
-            query(collection(db, "bookings"), where("email", "==", currentUser.email))
-          );
-          if (!snap.empty && active) {
-            const rows = snap.docs
-              .map((d) => d.data() as { name?: string; phone?: string; createdAt?: { seconds: number } })
-              .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-            if (!dbName && rows[0]?.name) setName(rows[0].name);
-            if (!dbPhone && rows[0]?.phone) setPhone(rows[0].phone);
-          }
-        }
+        setName(profile.name);
+        setPhone(profile.phone);
+        setBio(profile.bio);
+        setUsesPassword(profile.usesPassword);
       } catch (err) {
         console.error("Failed to load profile:", err);
         toast.error("We could not load your profile just now. Please refresh the page.");
@@ -100,28 +72,12 @@ function Profile() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
-    const trimmed = name.trim();
     setSaving(true);
     try {
-      await setDoc(
-        doc(db, "users", currentUser.uid),
-        {
-          name: trimmed,
-          phone: phone.trim(),
-          bio: bio.trim(),
-          email: currentUser.email,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
+      await profileService.save(
+        { uid: currentUser.uid, email: currentUser.email },
+        { name: name.trim(), phone: phone.trim(), bio: bio.trim() }
       );
-      // Keep the Firebase Auth display name in step so the header/avatar match.
-      if (auth?.currentUser && trimmed && auth.currentUser.displayName !== trimmed) {
-        try {
-          await updateProfile(auth.currentUser, { displayName: trimmed });
-        } catch {
-          /* non-fatal: the Firestore profile is the source of truth for display */
-        }
-      }
       toast.success("Your details have been saved.");
     } catch (err) {
       console.error("Failed to update profile", err);
@@ -132,10 +88,10 @@ function Profile() {
   };
 
   const handlePasswordReset = async () => {
-    if (!currentUser?.email || !auth) return;
+    if (!currentUser?.email) return;
     setSendingReset(true);
     try {
-      await sendPasswordResetEmail(auth, currentUser.email);
+      await authService.requestPasswordReset(currentUser.email);
       toast.success(`We've sent a password reset link to ${currentUser.email}.`);
     } catch (err) {
       console.error("Password reset failed", err);

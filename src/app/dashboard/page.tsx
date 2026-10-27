@@ -10,6 +10,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
+import { isBetterAuth } from "@/lib/auth/provider";
+import { profileService } from "@/services/profileService";
 import { Booking, Therapist } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
 import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
@@ -139,6 +141,12 @@ function Dashboard() {
     (async () => {
       if (!currentUser?.uid) return;
       try {
+        if (isBetterAuth()) {
+          // No Firestore identity in the browser under Better Auth.
+          const data = await profileService.load({ uid: currentUser.uid, email: currentUser.email });
+          if (active) setProfile(data);
+          return;
+        }
         const snap = await getDoc(doc(db, "users", currentUser.uid));
         if (active && snap.exists()) setProfile(snap.data() as UserProfile);
       } catch {
@@ -146,7 +154,7 @@ function Dashboard() {
       }
     })();
     return () => { active = false; };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, currentUser?.email]);
 
   const displayName =
     profile.name || currentUser?.name || currentUser?.email?.split("@")[0] || "there";
