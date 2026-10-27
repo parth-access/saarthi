@@ -103,3 +103,23 @@ describe('useDashboardData — self-scoped reads', () => {
     expect(mockGetDocs).not.toHaveBeenCalled();
   });
 });
+
+describe('useDashboardData — Better Auth', () => {
+  it('reads through /api/me/bookings and never touches Firestore', async () => {
+    vi.stubEnv('NEXT_PUBLIC_AUTH_PROVIDER', 'better-auth');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ bookings: [], therapists: {} }) });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      authState.currentUser = { uid: 'u1', email: 'a@example.com', role: 'client', emailVerified: true };
+
+      renderToStaticMarkup(<Probe />);
+      await runDataEffect();
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/me/bookings', { cache: 'no-store' });
+      expect(mockGetDocs).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+});

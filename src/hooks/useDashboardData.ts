@@ -5,6 +5,7 @@ import { Booking, Therapist } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionStartMs } from '@/lib/sessionDisplay';
 import { perfMark, perfMeasure } from '@/lib/perfTracing';
+import { isBetterAuth } from '@/lib/auth/provider';
 
 /**
  * Single source of truth for the client dashboard's booking data.
@@ -52,6 +53,47 @@ export interface DashboardData {
   refresh: () => Promise<void>;
 }
 
+interface DashboardPayload {
+  bookings: Booking[];
+  therapists: Record<string, Therapist>;
+}
+
+/** Under Better Auth the browser has no Firestore identity: read via the API. */
+async function fetchFromApi(): Promise<DashboardPayload> {
+  const res = await fetch('/api/me/bookings', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`GET /api/me/bookings ${res.status}`);
+  return (await res.json()) as DashboardPayload;
+}
+
+async function fetchFromFirestore(user: { uid: string; email: string; emailVerified?: boolean }): Promise<DashboardPayload> {
+  const bookingsRef = collection(db, 'bookings');
+  // Email-matched bookings require a verified address (Firestore rules);
+  // until then, show only bookings tied to this account's uid.
+  const snap = await getDocs(
+    user.emailVerified
+      ? query(bookingsRef, where('email', '==', user.email))
+      : query(bookingsRef, where('userId', '==', user.uid))
+  );
+  const allBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
+
+  // Sort newest-first in memory (avoids a composite index requirement).
+  allBookings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // De-duplicate therapist IDs, then fetch them all in parallel (no N+1 loop).
+  const uniqueTherapistIds = Array.from(
+    new Set(allBookings.map((b) => b.therapistId).filter(Boolean))
+  );
+  const therapistDocs = await Promise.all(
+    uniqueTherapistIds.map((tId) => getDoc(doc(db, 'therapists', tId)))
+  );
+  const tMap: Record<string, Therapist> = {};
+  therapistDocs.forEach((tDoc) => {
+    if (tDoc.exists()) tMap[tDoc.id] = { id: tDoc.id, ...tDoc.data() } as Therapist;
+  });
+
+  return { bookings: allBookings, therapists: tMap };
+}
+
 export function useDashboardData(): DashboardData {
   const { currentUser } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -69,33 +111,9 @@ export function useDashboardData(): DashboardData {
     setLoading(true);
     setError(null);
     try {
-      const bookingsRef = collection(db, 'bookings');
-      // Email-matched bookings require a verified address (Firestore rules);
-      // until then, show only bookings tied to this account's uid.
-      const snap = await getDocs(
-        currentUser.emailVerified
-          ? query(bookingsRef, where('email', '==', currentUser.email))
-          : query(bookingsRef, where('userId', '==', currentUser.uid))
-      );
-      const allBookings = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Booking));
-
-      // Sort newest-first in memory (avoids a composite index requirement).
-      allBookings.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-
-      // De-duplicate therapist IDs, then fetch them all in parallel (no N+1 loop).
-      const uniqueTherapistIds = Array.from(
-        new Set(allBookings.map((b) => b.therapistId).filter(Boolean))
-      );
-      const therapistDocs = await Promise.all(
-        uniqueTherapistIds.map((tId) => getDoc(doc(db, 'therapists', tId)))
-      );
-      const tMap: Record<string, Therapist> = {};
-      therapistDocs.forEach((tDoc) => {
-        if (tDoc.exists()) tMap[tDoc.id] = { id: tDoc.id, ...tDoc.data() } as Therapist;
-      });
-
-      setBookings(allBookings);
-      setTherapists(tMap);
+      const data = isBetterAuth() ? await fetchFromApi() : await fetchFromFirestore({ uid: currentUser.uid, email: currentUser.email, emailVerified: currentUser.emailVerified });
+      setBookings(data.bookings);
+      setTherapists(data.therapists);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       setError('We could not load your sessions right now. Please try again.');
