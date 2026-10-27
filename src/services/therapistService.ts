@@ -9,6 +9,15 @@ import { Therapist, TherapistAvailabilityRule, TherapistOverride } from '../type
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapTherapist } from '../utils/mappers';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { isBetterAuth } from '@/lib/auth/provider';
+
+/** Under Better Auth the browser can't read availability from Firestore; the API can. */
+async function listAvailabilityViaApi<T>(kind: 'rule' | 'override', therapistId: string): Promise<T[]> {
+  const response = await fetchWithAuth(`/api/therapist/availability/${kind}?therapistId=${encodeURIComponent(therapistId)}`);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'API Request Failed');
+  return data.items as T[];
+}
 
 export const therapistService = {
   getTherapistByAuthId: async (authId: string): Promise<Therapist | null> => {
@@ -49,6 +58,7 @@ export const therapistService = {
     therapistId: string
   ): Promise<TherapistAvailabilityRule[]> => {
     try {
+      if (isBetterAuth()) return await listAvailabilityViaApi<TherapistAvailabilityRule>('rule', therapistId);
       const ref = collection(db, `therapistAvailability/${therapistId}/recurringRules`);
       const snapshot = await getDocs(ref);
 
@@ -100,6 +110,7 @@ export const therapistService = {
 
   getOverrides: async (therapistId: string): Promise<TherapistOverride[]> => {
     try {
+      if (isBetterAuth()) return await listAvailabilityViaApi<TherapistOverride>('override', therapistId);
       const ref = collection(db, `therapistAvailability/${therapistId}/overrides`);
       const snapshot = await getDocs(ref);
 
