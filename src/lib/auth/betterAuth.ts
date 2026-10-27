@@ -5,6 +5,7 @@ import { hashPassword } from 'better-auth/crypto';
 import { Pool } from 'pg';
 import { verifyPassword } from './firebasePassword';
 import { ac, roles } from './permissions';
+import { SUPABASE_ROOT_CA } from './supabaseCa';
 
 /**
  * Better Auth server instance (migration phase 1: config + schema only).
@@ -18,6 +19,22 @@ import { ac, roles } from './permissions';
  * `user.id`, so every Firestore reference to a uid stays valid.
  */
 
+/**
+ * TLS for the auth database. Supabase gets full certificate verification
+ * against its own root CA (sessions and password hashes cross the public
+ * internet); a local Postgres (socket or localhost) needs none.
+ */
+export function poolSsl(databaseUrl: string | undefined): { ca: string } | undefined {
+  if (!databaseUrl) return undefined;
+  let host = '';
+  try {
+    host = new URL(databaseUrl).hostname;
+  } catch {
+    return undefined;
+  }
+  return host.endsWith('.supabase.com') || host.endsWith('.supabase.co') ? { ca: SUPABASE_ROOT_CA } : undefined;
+}
+
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -28,7 +45,7 @@ export const auth = betterAuth({
 
   // pg connects lazily, so importing this module needs no database. On
   // Supabase use the transaction pooler URL (port 6543) for serverless.
-  database: new Pool({ connectionString: process.env.DATABASE_URL, max: 5 }),
+  database: new Pool({ connectionString: process.env.DATABASE_URL, max: 5, ssl: poolSsl(process.env.DATABASE_URL) }),
 
   emailAndPassword: {
     enabled: true,
