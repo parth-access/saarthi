@@ -19,7 +19,7 @@
  * a Firestore read and a history entry, and a per-keystroke search would issue
  * seven queries for `ananya` and leave six junk entries behind the Back button.
  */
-import { Search, X } from 'lucide-react';
+import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   BOOKING_STATUS_GROUPS,
@@ -93,6 +93,9 @@ export function BookingsFilterBar({
   const orphanTherapistId =
     view.therapistId && !therapistIds.has(view.therapistId) ? view.therapistId : null;
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = [view.statusGroup, view.paymentGroup, view.therapistId, view.date].filter(Boolean).length;
+
   return (
     <section
       aria-label="Filter bookings"
@@ -149,7 +152,31 @@ export function BookingsFilterBar({
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2 border-t border-hairline pt-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* On a phone the four filters fill a screen before the first booking, so
+          they fold behind one button there; from `sm` up they are always open. */}
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((open) => !open)}
+        aria-expanded={filtersOpen}
+        aria-controls={`${ids}-filters`}
+        className="mt-3 flex w-full items-center justify-between rounded-lg border border-hairline px-3 py-2 text-sm font-medium text-primary sm:hidden"
+      >
+        <span className="inline-flex items-center gap-2">
+          <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[0.625rem] font-semibold leading-none text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </span>
+        <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <div
+        id={`${ids}-filters`}
+        className={`mt-3 grid-cols-1 gap-2 border-t border-hairline pt-3 sm:grid sm:grid-cols-2 lg:grid-cols-4 ${filtersOpen ? 'grid' : 'hidden'}`}
+      >
         <div>
           <label className={LABEL_CLASSES} htmlFor={`${ids}-status`}>
             Status
