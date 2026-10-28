@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   // build gate must fail on type errors or lint errors. Do not re-add
   // ignoreBuildErrors / ignoreDuringBuilds — that is how a broken deploy
   // (e.g. the module-scope Resend build crash) would have shipped.
+  experimental: {
+    // Vercel's 8 GB build machine ran out of memory after type-check/lint;
+    // this trades a little build time for a lower webpack memory peak.
+    webpackMemoryOptimizations: true,
+  },
   images: {
     remotePatterns: [
       {
@@ -54,7 +59,8 @@ export default process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || p
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT || 'javascript-nextjs',
       silent: true,
-      widenClientFileUpload: true,
+      // Not widened: source maps for every library chunk pushed the Vercel
+      // build out of memory. Our own code's stack traces stay readable.
       sourcemaps: {
         deleteSourcemapsAfterUpload: true,
       },
