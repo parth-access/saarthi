@@ -23,6 +23,7 @@ import {
   interpretAdminPaymentsResponse,
   type AdminPaymentsPayload,
 } from './adminPaymentsResponse';
+import { readAdminCache, writeAdminCache } from '../adminReadCache';
 
 export type { AdminPaymentsPayload } from './adminPaymentsResponse';
 
@@ -49,11 +50,12 @@ function urlFor(query: string): string {
 }
 
 export function useAdminPayments(query: string): AdminPaymentsState {
-  const [data, setData] = useState<AdminPaymentsPayload | null>(null);
+  const cacheKey = urlFor(query);
+  const [data, setData] = useState<AdminPaymentsPayload | null>(() => readAdminCache<AdminPaymentsPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -77,6 +79,7 @@ export function useAdminPayments(query: string): AdminPaymentsState {
         const result = interpretAdminPaymentsResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           // The last good payload stays on screen behind the error rather than
@@ -98,7 +101,7 @@ export function useAdminPayments(query: string): AdminPaymentsState {
     })();
 
     return () => controller.abort();
-  }, [query, reloadToken]);
+  }, [query, cacheKey, reloadToken]);
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 

@@ -16,6 +16,7 @@ import {
   interpretAdminCalendarResponse,
   type AdminCalendarPayload,
 } from './adminCalendarResponse';
+import { readAdminCache, writeAdminCache } from '../../adminReadCache';
 
 export type { AdminCalendarPayload } from './adminCalendarResponse';
 
@@ -37,11 +38,12 @@ async function parseJson(response: Response): Promise<unknown> {
 }
 
 export function useAdminCalendar(): AdminCalendarState {
-  const [data, setData] = useState<AdminCalendarPayload | null>(null);
+  const cacheKey = '/api/admin/calendar';
+  const [data, setData] = useState<AdminCalendarPayload | null>(() => readAdminCache<AdminCalendarPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -65,6 +67,7 @@ export function useAdminCalendar(): AdminCalendarState {
         const result = interpretAdminCalendarResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           // The last good payload stays on screen behind the error.

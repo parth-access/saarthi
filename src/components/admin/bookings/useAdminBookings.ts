@@ -27,6 +27,7 @@ export type {
   AdminBookingsPage,
   AdminBookingsPayload,
 } from './adminBookingsResponse';
+import { readAdminCache, writeAdminCache } from '../adminReadCache';
 
 export interface AdminBookingsState {
   readonly data: AdminBookingsPayload | null;
@@ -49,11 +50,12 @@ async function parseJson(response: Response): Promise<unknown> {
 
 export function useAdminBookings(view: AdminBookingsView): AdminBookingsState {
   const query = adminBookingsApiQuery(view);
-  const [data, setData] = useState<AdminBookingsPayload | null>(null);
+  const cacheKey = `/api/admin/bookings${query ? `?${query}` : ''}`;
+  const [data, setData] = useState<AdminBookingsPayload | null>(() => readAdminCache<AdminBookingsPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -80,6 +82,7 @@ export function useAdminBookings(view: AdminBookingsView): AdminBookingsState {
         const result = interpretAdminBookingsResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           setError(result.error);
@@ -100,7 +103,7 @@ export function useAdminBookings(view: AdminBookingsView): AdminBookingsState {
     })();
 
     return () => controller.abort();
-  }, [query, reloadToken]);
+  }, [query, cacheKey, reloadToken]);
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 

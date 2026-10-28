@@ -22,6 +22,7 @@ import {
   interpretAdminRefundsResponse,
   type AdminRefundsPayload,
 } from './adminRefundsResponse';
+import { readAdminCache, writeAdminCache } from '../adminReadCache';
 
 export type { AdminRefundsPayload } from './adminRefundsResponse';
 
@@ -43,11 +44,12 @@ async function parseJson(response: Response): Promise<unknown> {
 }
 
 export function useAdminRefunds(): AdminRefundsState {
-  const [data, setData] = useState<AdminRefundsPayload | null>(null);
+  const cacheKey = '/api/admin/refunds';
+  const [data, setData] = useState<AdminRefundsPayload | null>(() => readAdminCache<AdminRefundsPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -71,6 +73,7 @@ export function useAdminRefunds(): AdminRefundsState {
         const result = interpretAdminRefundsResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           // The last good payload stays on screen behind the error rather than

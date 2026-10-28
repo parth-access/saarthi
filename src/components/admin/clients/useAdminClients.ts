@@ -21,6 +21,7 @@ import {
   interpretAdminClientsResponse,
   type AdminClientsPayload,
 } from './adminClientsResponse';
+import { readAdminCache, writeAdminCache } from '../adminReadCache';
 
 export type { AdminClientsPayload } from './adminClientsResponse';
 
@@ -46,11 +47,12 @@ function urlFor(query: string): string {
 }
 
 export function useAdminClients(query: string): AdminClientsState {
-  const [data, setData] = useState<AdminClientsPayload | null>(null);
+  const cacheKey = urlFor(query);
+  const [data, setData] = useState<AdminClientsPayload | null>(() => readAdminCache<AdminClientsPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -74,6 +76,7 @@ export function useAdminClients(query: string): AdminClientsState {
         const result = interpretAdminClientsResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           // The last good payload stays on screen behind the error rather than being
@@ -94,7 +97,7 @@ export function useAdminClients(query: string): AdminClientsState {
     })();
 
     return () => controller.abort();
-  }, [query, reloadToken]);
+  }, [query, cacheKey, reloadToken]);
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 

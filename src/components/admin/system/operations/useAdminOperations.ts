@@ -17,6 +17,7 @@ import {
   type OperationsSearchInterpretation,
 } from './adminOperationsResponse';
 import type { OperationsDashboardPayload, SearchResultsPayload } from '@/domains/admin/operationsTriage';
+import { readAdminCache, writeAdminCache } from '../../adminReadCache';
 
 export type { OperationsDashboardPayload } from '@/domains/admin/operationsTriage';
 
@@ -46,11 +47,12 @@ async function parseJson(response: Response): Promise<unknown> {
 }
 
 export function useAdminOperations(): AdminOperationsState {
-  const [data, setData] = useState<OperationsDashboardPayload | null>(null);
+  const cacheKey = '/api/operations/dashboard';
+  const [data, setData] = useState<OperationsDashboardPayload | null>(() => readAdminCache<OperationsDashboardPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -75,6 +77,7 @@ export function useAdminOperations(): AdminOperationsState {
         const result = interpretAdminOperationsResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           setError(result.error);
