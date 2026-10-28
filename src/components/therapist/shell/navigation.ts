@@ -5,8 +5,8 @@
  * sidebar, the mobile drawer, the page heading and any breadcrumb, so a route
  * cannot appear in one and be missing from another.
  *
- * Only three sections: a therapist's day is sessions and availability, not
- * platform operations. Every href is backed by a working route.
+ * A therapist's day is sessions, clients and availability, not platform
+ * operations. Every href is backed by a working route.
  */
 import {
   CalendarDays,
@@ -70,15 +70,17 @@ export const THERAPIST_NAV: readonly TherapistNavItem[] = [
  * The nav item a pathname belongs to.
  *
  * Longest matching href wins, so `/therapist/sessions` resolves correctly
- * rather than always falling back to `/therapist`. A nested route such as
- * `/therapist/bookings/bk_1` resolves to Dashboard (its parent section).
+ * rather than always falling back to `/therapist`. One booking's page
+ * (`/therapist/bookings/bk_1`) belongs to Sessions, where its back link goes.
  */
 export function resolveTherapistNavItem(pathname: string): TherapistNavItem | null {
+  if (pathname.startsWith('/therapist/bookings/')) {
+    return THERAPIST_NAV.find((item) => item.href === '/therapist/sessions') ?? null;
+  }
   const candidates = THERAPIST_NAV.filter(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
   );
   if (candidates.length === 0) {
-    // Fallback: /therapist/bookings/* should highlight Dashboard
     if (pathname.startsWith('/therapist')) return THERAPIST_NAV[0];
     return null;
   }

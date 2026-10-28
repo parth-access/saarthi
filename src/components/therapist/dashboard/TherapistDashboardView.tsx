@@ -94,7 +94,7 @@ function Stat({
           aria-hidden="true"
         />
       </div>
-      <p className="mt-2 font-serif text-2xl font-semibold tabular-nums text-primary">{value}</p>
+      <div className="mt-2 font-serif text-2xl font-semibold tabular-nums text-primary">{value}</div>
       <p className="mt-0.5 text-xs text-muted-foreground">{detail}</p>
     </div>
   );

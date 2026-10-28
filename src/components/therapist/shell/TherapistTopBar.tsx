@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * Page header for the therapist workspace. Structurally identical to the admin
- * console's `AdminTopBar`: section label, purpose subtitle, user info, sign-out.
+ * The therapist workspace's top bar: which section you are in, what it is for,
+ * and a way to re-read your sessions. Signing out lives in the rail's account
+ * footer (and the mobile drawer), as it does in the admin console.
+ *
+ * The workspace reads its data once and does not poll, so Refresh is how a
+ * therapist sees a request that arrived after they opened the page.
  */
-import { LogOut, Menu, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { TherapistNavItem } from './navigation';
 
@@ -19,64 +21,32 @@ interface TherapistTopBarProps {
 }
 
 export function TherapistTopBar({ section, onOpenNav, onRefresh, loading }: TherapistTopBarProps) {
-  const { currentUser, logout } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
   return (
-    <header className="sticky top-0 z-20 border-b border-hairline bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex items-center gap-3 px-4 py-3 lg:px-6">
+    <header className="sticky top-0 z-20 border-b border-hairline bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/75">
+      <div className="mx-auto flex min-h-14 w-full max-w-[1400px] items-center gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <button
           type="button"
           onClick={onOpenNav}
           aria-label="Open navigation"
-          className="-ml-1 rounded-lg p-2 text-primary/70 hover:bg-white/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+          className="-ml-1.5 rounded-lg p-2 text-primary/70 hover:bg-neutral-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
         </button>
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-serif text-primary">{section?.label ?? 'Dashboard'}</h1>
+          <h1 className="truncate font-serif text-[1.25rem] leading-tight text-primary">{section?.label ?? 'Dashboard'}</h1>
           {section?.purpose && (
-            <p className="truncate text-xs text-muted-foreground">{section.purpose}</p>
+            <p className="hidden truncate text-xs text-muted-foreground sm:block">{section.purpose}</p>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading} className="shrink-0">
-              <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden="true" />
-              <span className="hidden sm:inline">{loading ? 'Reading…' : 'Refresh'}</span>
-            </Button>
-          )}
-
-          {currentUser?.email && (
-            <div className="hidden text-right sm:block">
-              <p className="max-w-[13rem] truncate text-xs font-medium text-primary">{currentUser.email}</p>
-              <p className="text-[0.6875rem] uppercase tracking-wide text-muted-foreground">
-                {currentUser.role}
-              </p>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            aria-label="Sign out"
-          >
-            <LogOut aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />
-            {signingOut ? 'Signing out…' : 'Sign out'}
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading} className="shrink-0">
+            <RefreshCw className={cn('h-3.5 w-3.5 sm:mr-1.5', loading && 'animate-spin')} aria-hidden="true" />
+            <span className="hidden sm:inline">{loading ? 'Refreshing…' : 'Refresh'}</span>
+            <span className="sr-only sm:hidden">Refresh</span>
           </Button>
-        </div>
+        )}
       </div>
     </header>
   );
