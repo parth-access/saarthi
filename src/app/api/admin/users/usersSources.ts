@@ -166,10 +166,45 @@ export async function setUserRole(userId: string, role: UserRole): Promise<UserM
       .collection('users')
       .doc(userId)
       .update({ role, updatedAt: Timestamp.now() });
-    return { ok: true };
   } catch (error) {
     logger.error('SYSTEM', `Admin role change failed for ${userId}`, error);
     return { ok: false, status: 500, error: 'The role change did not go through just now.' };
+  }
+  if (role === 'therapist') await linkTherapistProfile(userId);
+  return { ok: true };
+}
+
+/**
+ * Link the therapist profile an admin gave this account's email to, when the
+ * account is made a therapist.
+ *
+ * Saving a profile links the account only if it already exists, so a
+ * therapist who signs up after their profile was made would otherwise stay
+ * unlinked (and see "No therapist profile found") until someone re-saved it.
+ * Links only one unambiguous, unlinked profile, and never an account that is
+ * already linked. Best effort: the role change has already gone through, and
+ * re-saving the profile still links it.
+ */
+export async function linkTherapistProfile(userId: string): Promise<void> {
+  try {
+    const db = requireDb();
+    const email = (await db.collection('users').doc(userId).get()).get('email');
+    if (typeof email !== 'string' || email.trim() === '') return;
+
+    const therapists = db.collection('therapists');
+    const alreadyLinked = await therapists.where('authId', '==', userId).limit(1).get();
+    if (!alreadyLinked.empty) return;
+
+    const spellings = [...new Set([email.trim(), email.trim().toLowerCase()])];
+    const matches = await therapists.where('email', 'in', spellings).limit(2).get();
+    if (matches.docs.length !== 1) return;
+    const profile = matches.docs[0];
+    if (profile.get('authId')) return;
+
+    await profile.ref.update({ authId: userId });
+    logger.info('SYSTEM', `Linked therapist profile ${profile.id} to ${userId} on role change`);
+  } catch (error) {
+    logger.error('SYSTEM', `Therapist profile link failed for ${userId}`, error);
   }
 }
 

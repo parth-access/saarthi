@@ -196,7 +196,7 @@ function Identity({
             {therapist.accountLinked
               ? 'Sign-in account linked'
               : therapist.email
-                ? 'No sign-in account for this email yet — save again after they sign up'
+                ? 'No sign-in account for this email yet — it links once they sign up and get the therapist role'
                 : 'No sign-in email set — they cannot use the therapist dashboard'}
           </p>
         </div>

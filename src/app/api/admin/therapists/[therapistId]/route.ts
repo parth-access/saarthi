@@ -116,7 +116,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ therapist
       accountLinked: link ? link.linked : Boolean(before.authId),
       summary:
         link && link.email && !link.linked
-          ? 'Profile saved. No sign-in account exists for that email yet — save again after they sign up to link it.'
+          ? 'Profile saved. No sign-in account exists for that email yet — it links once they sign up and you give them the therapist role.'
           : 'Profile saved.',
     });
   } catch (error) {

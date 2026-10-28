@@ -285,8 +285,8 @@ export function TherapistProfileDialog({
           <label className={label} htmlFor="tp-email">Therapist&apos;s sign-in email</label>
           <input id="tp-email" type="email" value={values.loginEmail} onChange={set('loginEmail')} maxLength={200} className={field} />
           <p className={hint}>
-            Links their Saarthi account so they can use the therapist dashboard. Also give them the
-            therapist role under Users &amp; roles.
+            Links their Saarthi account so they can use the therapist dashboard. Then give them the
+            therapist role under Users &amp; roles; if they sign up later, that links it.
           </p>
         </div>
       </div>
