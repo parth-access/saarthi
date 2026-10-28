@@ -155,3 +155,44 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
+
+/*
+ * Admin console surface.
+ *
+ * The public site's cream canvas and cream hairlines are tuned for long-form
+ * reading; an operator screen of tables and tiles reads cleaner on a cool,
+ * near-white canvas where white panels separate by contrast rather than by
+ * colour. The brand stays in the rail, the headings and the accents — only the
+ * neutrals are re-pointed, and only inside the console.
+ */
+.admin-dense {
+  --color-background: #F4F6F3;
+  --color-hairline: #E2E6DF;
+  --color-neutral-surface: #EEF1EC;
+  --color-muted-foreground: #4F5A52;
+}
+
+/*
+ * Page and section titles keep Playfair; the many small panel and card titles
+ * below them switch to Inter so a dense screen has one display face per level
+ * rather than serif everywhere.
+ */
+.admin-dense h3,
+.admin-dense h4,
+.admin-dense h5,
+.admin-dense h6 {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+/* Marketing buttons lift on hover; console controls stay put under the cursor. */
+.admin-dense button:hover,
+.admin-dense a:hover {
+  translate: none;
+}
+
+/* Thin, quiet scrollbars for the rail and wide tables. */
+.admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+}

@@ -10,9 +10,16 @@ import { getLoginRedirectPath } from "@/lib/auth/returnPath";
 export const ProtectedRoute = ({
   children,
   allowedRoles,
+  fallback,
 }: {
   children: React.ReactNode;
   allowedRoles?: Array<"admin" | "therapist" | "client">;
+  /**
+   * Painted while the session resolves or a redirect is pending, in place of
+   * the full-screen spinner — e.g. a skeleton of the page's own frame, so the
+   * wait looks like the page arriving rather than a blank screen.
+   */
+  fallback?: React.ReactNode;
 }) => {
   const { currentUser, loading } = useAuth();
   const router = useRouter();
@@ -40,6 +47,10 @@ export const ProtectedRoute = ({
       router.replace(roleRedirect);
     }
   }, [loading, isAuthenticated, pathname, roleRedirect, router]);
+
+  if (fallback !== undefined && (loading || !isAuthenticated || !isRoleAllowed)) {
+    return <>{fallback}</>;
+  }
 
   if (loading) {
     return (

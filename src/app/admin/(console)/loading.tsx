@@ -1,5 +1,5 @@
-import { RouteLoading } from "@/components/ui/RouteFallback";
+import { AdminContentSkeleton } from '@/components/admin/shell/AdminShellSkeleton';
 
 export default function AdminConsoleLoading() {
-  return <RouteLoading />;
+  return <AdminContentSkeleton />;
 }
