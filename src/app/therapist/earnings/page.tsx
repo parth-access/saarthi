@@ -9,7 +9,7 @@
 import * as React from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useTherapistData } from '../layout';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 import { computeBusinessMetrics } from '@/domains/admin/businessMetrics';
 import { toCsv } from '@/domains/admin/csv';
 import { statusBadge, toneClasses } from '@/components/admin/bookings/adminBookingPresentation';
@@ -107,7 +107,7 @@ export default function TherapistEarningsPage() {
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-hairline bg-white px-3 py-2.5 shadow-sm">
             <p className="text-[0.6875rem] font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-lg font-semibold tabular-nums text-primary">{value}</p>
+            <div className="mt-0.5 text-lg font-semibold tabular-nums text-primary">{value}</div>
           </div>
         ))}
       </div>

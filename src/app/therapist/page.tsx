@@ -8,7 +8,7 @@
  * re-fetches.
  */
 import { TherapistDashboardScreen } from "@/components/therapist/dashboard/TherapistDashboardScreen";
-import { useTherapistData } from "./layout";
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 
 export default function TherapistDashboardRoute() {
   const data = useTherapistData();

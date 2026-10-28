@@ -21,6 +21,7 @@ import {
   TherapistBookingDetailView,
 } from './TherapistBookingDetailView';
 import type { Booking } from '@/types';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 
 interface ScreenState {
   readonly data: Booking | null;
@@ -94,6 +95,7 @@ function useTherapistBookingDetail(bookingId: string): ScreenState {
 }
 
 export function TherapistBookingDetailScreen({ bookingId }: { bookingId: string }) {
+  const { therapist } = useTherapistData();
   const { data, initialLoading, error, notFound, reload } = useTherapistBookingDetail(bookingId);
 
   if (notFound) {
@@ -114,5 +116,5 @@ export function TherapistBookingDetailScreen({ bookingId }: { bookingId: string 
     );
   }
 
-  return <TherapistBookingDetailView booking={data} onAfterSave={reload} />;
+  return <TherapistBookingDetailView booking={data} onAfterSave={reload} therapistName={therapist?.name} />;
 }

@@ -23,7 +23,6 @@ import { BackLink } from '@/components/navigation/BackLink';
 import { CopyableId } from '@/components/admin/bookings/CopyableId';
 import { TherapistPostSessionPanel } from '@/components/dashboard/TherapistPostSessionPanel';
 import { useJoinSession } from '@/hooks/useJoinSession';
-import { useTherapists } from '@/hooks/useTherapists';
 import {
   formatSessionDate,
   formatSessionTimeRange,
@@ -37,13 +36,15 @@ export const isPostSessionNotesHash = (hash: string) => hash === '#post-session-
 export function TherapistBookingDetailView({
   booking,
   onAfterSave,
+  therapistName,
 }: {
   booking: Booking;
   /** Called after a post-session save so the screen can re-read the booking. */
   onAfterSave?: () => void;
+  /** The signed-in therapist's name, from the workspace already loaded. */
+  therapistName?: string;
 }) {
   const { join, joiningId } = useJoinSession();
-  const { therapists } = useTherapists();
   const [focusPrivateNotes, setFocusPrivateNotes] = React.useState(false);
 
   React.useEffect(() => {
@@ -52,11 +53,6 @@ export function TherapistBookingDetailView({
     window.addEventListener('hashchange', syncHash);
     return () => window.removeEventListener('hashchange', syncHash);
   }, [booking.id]);
-
-  const therapistName = React.useMemo(() => {
-    const byId = new Map(therapists.map((t) => [t.id, t.name]));
-    return (id: string) => byId.get(id) ?? 'Assigned therapist';
-  }, [therapists]);
 
   const isConfirmed = booking.status === 'confirmed';
   const isUpcoming =
@@ -86,7 +82,7 @@ export function TherapistBookingDetailView({
               {booking.name || 'Name not recorded'}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {booking.sessionType || 'Therapy session'} · with {therapistName(booking.therapistId)}
+              {booking.sessionType || 'Therapy session'} · with {therapistName || 'you'}
             </p>
           </div>
           <div className="flex flex-col items-start gap-1.5 sm:items-end">

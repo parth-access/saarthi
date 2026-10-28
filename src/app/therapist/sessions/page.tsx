@@ -13,11 +13,12 @@ import { useSearchParams } from 'next/navigation';
 import { Search, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ClinicalSessionCard } from '@/components/therapist/ClinicalSessionCard';
-import { useTherapistData } from '../layout';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 import { isToday, parseISO } from 'date-fns';
 import type { Booking, BookingStatus } from '@/types';
 import { useBookingActions } from '@/hooks/useTherapistDashboard';
-import { parseSessionView, sessionsForView } from '@/components/therapist/dashboard/sessionView';
+import { orderSessions, parseSessionView, sessionsForView, type SessionView } from '@/components/therapist/dashboard/sessionView';
+import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'sonner';
 
@@ -27,6 +28,13 @@ const DECLINE_REASONS = [
   'Client needs a different level of care',
   'Other',
 ] as const;
+
+const VIEW_TABS: readonly { view: SessionView; label: string }[] = [
+  { view: 'all', label: 'All' },
+  { view: 'requests', label: 'Requests' },
+  { view: 'upcoming', label: 'Upcoming' },
+  { view: 'history', label: 'Past' },
+];
 
 /** Status changes that are hard to undo get an explicit confirmation step. */
 const CONFIRM_COPY: Partial<Record<BookingStatus, { title: string; body: string; cta: string }>> = {
@@ -109,9 +117,18 @@ function TherapistSessionsContent() {
     }
   };
 
+  const today = new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+  const viewCounts = React.useMemo(
+    () =>
+      Object.fromEntries(
+        VIEW_TABS.map((tab) => [tab.view, sessionsForView(data.bookings, tab.view, data.upcomingSessions).length])
+      ) as Record<SessionView, number>,
+    [data.bookings, data.upcomingSessions]
+  );
+
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return sessionsForView(data.bookings, view, data.upcomingSessions).filter((b) => {
+    return orderSessions(sessionsForView(data.bookings, view, data.upcomingSessions), today).filter((b) => {
       const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
       const matchesQuery =
         !needle ||
@@ -120,18 +137,40 @@ function TherapistSessionsContent() {
         );
       return matchesStatus && matchesQuery;
     });
-  }, [data.bookings, data.upcomingSessions, view, query, statusFilter]);
+  }, [data.bookings, data.upcomingSessions, view, query, statusFilter, today]);
 
   const stillLoading = data.loading && data.bookings.length === 0;
 
   return (
     <section className="space-y-3">
-      {view !== 'all' && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline bg-white px-4 py-2 text-sm text-primary">
-          <span>Showing {view === 'requests' ? 'requests awaiting review' : view === 'upcoming' ? 'upcoming sessions' : 'session history'}</span>
-          <Link href="/therapist/sessions" className="font-medium underline underline-offset-2">Show all sessions</Link>
-        </div>
-      )}
+      <nav aria-label="Session views" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        {VIEW_TABS.map((tab) => {
+          const active = tab.view === view;
+          return (
+            <Link
+              key={tab.view}
+              href={tab.view === 'all' ? '/therapist/sessions' : `/therapist/sessions?view=${tab.view}`}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                active
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-hairline bg-white text-primary/70 hover:border-primary/30 hover:text-primary'
+              )}
+            >
+              {tab.label}
+              <span
+                className={cn(
+                  'rounded-full px-1.5 text-xs tabular-nums',
+                  active ? 'bg-white/20 text-white' : tab.view === 'requests' && viewCounts.requests > 0 ? 'bg-warning-surface text-warning' : 'bg-neutral-surface text-muted-foreground'
+                )}
+              >
+                {viewCounts[tab.view]}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
       {/* Filter bar */}
       <div className="rounded-xl border border-hairline bg-white p-3 shadow-sm sm:flex sm:items-center sm:gap-3">
         <label className="sr-only" htmlFor="session-search">Search sessions</label>

@@ -38,15 +38,6 @@ vi.mock('@/hooks/useJoinSession', () => ({
   useJoinSession: () => ({ join: vi.fn(), joiningId: null }),
 }));
 
-vi.mock('@/hooks/useTherapists', () => ({
-  useTherapists: () => ({
-    therapists: [{ id: 'th_assigned', name: 'Dr Priya Menon', active: true }],
-    loading: false,
-    error: null,
-    refetch: vi.fn(),
-  }),
-}));
-
 vi.mock('@/components/dashboard/TherapistPostSessionPanel', () => ({
   TherapistPostSessionPanel: () => createElement('div', { 'data-testid': 'post-session-panel' }),
 }));
@@ -77,7 +68,7 @@ const BASE: Partial<Booking> = {
 
 function render(booking: Partial<Booking>): string {
   return renderToStaticMarkup(
-    createElement(TherapistBookingDetailView, { booking: booking as Booking })
+    createElement(TherapistBookingDetailView, { booking: booking as Booking, therapistName: 'Dr Priya Menon' })
   );
 }
 

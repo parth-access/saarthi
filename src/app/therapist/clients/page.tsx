@@ -8,7 +8,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { Search, ChevronRight, StickyNote } from 'lucide-react';
-import { useTherapistData } from '../layout';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 import { groupClients, type ClientSummary } from '@/components/therapist/clientHistory';
 import { statusBadge, toneClasses } from '@/components/admin/bookings/adminBookingPresentation';
 import { formatTime12h } from '@/components/booking/bookingUi';

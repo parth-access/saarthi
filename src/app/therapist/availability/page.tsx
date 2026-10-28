@@ -7,7 +7,7 @@
  * the sidebar stays persistent when the therapist navigates here.
  */
 import { ScheduleBuilder } from '@/components/dashboard/ScheduleBuilder';
-import { useTherapistData } from '../layout';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 import { BookingPauseControl } from '@/components/therapist/BookingPauseControl';
 
 export default function TherapistAvailabilityPage() {

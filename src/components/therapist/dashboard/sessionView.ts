@@ -8,6 +8,21 @@ export function parseSessionView(value: string | null): SessionView {
     : 'all';
 }
 
+const startKey = (b: Booking) => `${b.date ?? ''} ${b.time ?? ''}`;
+
+/**
+ * The order a therapist reads a list of sessions in: everything from today on,
+ * soonest first, then everything earlier, most recent first. Bookings arrive in
+ * the order they were made, which says nothing about when they happen.
+ */
+export function orderSessions(bookings: readonly Booking[], today: string): Booking[] {
+  const ahead = bookings.filter((b) => (b.date ?? '') >= today);
+  const behind = bookings.filter((b) => (b.date ?? '') < today);
+  ahead.sort((a, b) => startKey(a).localeCompare(startKey(b)));
+  behind.sort((a, b) => startKey(b).localeCompare(startKey(a)));
+  return [...ahead, ...behind];
+}
+
 /** Keep dashboard and list meanings aligned: upcoming is the dashboard's computed set. */
 export function sessionsForView(
   bookings: readonly Booking[],

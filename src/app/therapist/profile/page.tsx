@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { toWebpDataUrl } from '@/components/admin/therapists/TherapistProfileDialog';
 import { sessionPriceDisplayFor } from '@/components/booking/bookingUi';
-import { useTherapistData } from '../layout';
+import { useTherapistData } from '@/components/therapist/TherapistDataContext';
 
 export default function TherapistProfilePage() {
   const data = useTherapistData();
