@@ -92,7 +92,7 @@ routes that call them don't change.
 | `src/app/api/admin/therapists/profileWrite.ts` | `adminAuth.getUserByEmail` to link a therapist login | Query Better Auth `user` by email |
 | `join-session`, `reviews` | Accept Bearer ID tokens | Already go through `verifySession`; nothing else |
 | Email | Firebase sends verification/reset | `sendVerificationEmail` / `sendResetPassword` via the existing Resend client, with templates in `emailTemplates.ts` (don't await; use `waitUntil`) |
-| Env | `JWT_SECRET`, `NEXT_PUBLIC_FIREBASE_*` (auth), `FIREBASE_ADMIN_KEY_BASE64` | Add `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `DATABASE_URL`, `GOOGLE_CLIENT_ID/SECRET`. Remove `JWT_SECRET` and the auth-only Firebase client vars; keep the Admin key (Firestore) |
+| Env | `JWT_SECRET`, `NEXT_PUBLIC_FIREBASE_*` (auth), `FIREBASE_ADMIN_KEY_BASE64` | Add `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `DATABASE_URL`, `GOOGLE_AUTH_CLIENT_ID/SECRET` (the sign-in client; `GOOGLE_CLIENT_ID/SECRET` stay with Calendar/Meet). Remove `JWT_SECRET` and the auth-only Firebase client vars; keep the Admin key (Firestore) |
 
 ### Client
 
