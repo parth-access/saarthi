@@ -23,6 +23,7 @@ import {
   interpretAdminOverviewResponse,
   type AdminOverviewPayload,
 } from './adminOverviewResponse';
+import { readAdminCache, writeAdminCache } from '../adminReadCache';
 
 export type { AdminOverviewPayload } from './adminOverviewResponse';
 
@@ -44,11 +45,12 @@ async function parseJson(response: Response): Promise<unknown> {
 }
 
 export function useAdminOverview(): AdminOverviewState {
-  const [data, setData] = useState<AdminOverviewPayload | null>(null);
+  const cacheKey = '/api/admin/overview';
+  const [data, setData] = useState<AdminOverviewPayload | null>(() => readAdminCache<AdminOverviewPayload>(cacheKey));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const hasLoaded = useRef(false);
+  const hasLoaded = useRef(data !== null);
   const guard = useRef(createLatestRequestGuard());
   const inFlight = useRef<AbortController | null>(null);
 
@@ -72,6 +74,7 @@ export function useAdminOverview(): AdminOverviewState {
         const result = interpretAdminOverviewResponse(response.status, body);
         if (result.ok) {
           setData(result.payload);
+          writeAdminCache(cacheKey, result.payload);
           hasLoaded.current = true;
         } else {
           // The last good payload is kept on screen behind the error rather than

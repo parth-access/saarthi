@@ -33,10 +33,10 @@ function delta(current: number, previous: number): { text: string; tone: string 
 
 function Stat({ label, value, sub, d }: { label: string; value: string; sub?: string; d?: ReturnType<typeof delta> }) {
   return (
-    <div className="rounded-lg border border-hairline px-3 py-2.5">
-      <p className="text-[0.6875rem] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums text-primary">{value}</p>
-      {d && <p className={`text-[0.6875rem] ${d.tone}`}>{d.text}</p>}
+    <div className="rounded-xl bg-neutral-surface/70 px-3.5 py-3">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums text-primary">{value}</div>
+      {d && <p className={`mt-0.5 text-[0.6875rem] font-medium ${d.tone}`}>{d.text}</p>}
       {sub && <p className="text-[0.6875rem] text-muted-foreground">{sub}</p>}
     </div>
   );
@@ -48,14 +48,14 @@ function Trend({ months }: { months: MonthMetrics[] }) {
     <div className="mt-3">
       <p className="text-[0.6875rem] font-medium text-muted-foreground">Net revenue, last 6 months</p>
       <ul className="mt-2 grid grid-cols-6 items-end gap-2" aria-label="Net revenue by month">
-        {months.map((m) => (
+        {months.map((m, i) => (
           <li key={m.month} className="flex flex-col items-center gap-1">
             <span className="text-[0.625rem] tabular-nums text-muted-foreground">
               {m.netRevenue > 0 ? inr(m.netRevenue) : '—'}
             </span>
-            <span className="flex h-20 w-full items-end rounded bg-neutral-surface">
+            <span className="flex h-24 w-full items-end rounded bg-neutral-surface/70">
               <span
-                className="w-full rounded bg-primary/70"
+                className={`w-full rounded ${i === months.length - 1 ? 'bg-accent' : 'bg-primary/75'}`}
                 style={{ height: `${Math.max(m.netRevenue > 0 ? 4 : 0, (m.netRevenue / max) * 100)}%` }}
                 title={`${monthLabel(m.month)}: ${inr(m.netRevenue)} net · ${m.sessionsBooked} sessions`}
               />
@@ -95,16 +95,16 @@ export function BusinessMetricsPanel() {
   }, [load]);
 
   return (
-    <section className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+    <section className="rounded-xl border border-hairline bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-sm font-semibold text-primary">
+        <h3 className="text-[0.9375rem] font-semibold text-primary">
           Revenue &amp; bookings{data ? ` — ${monthLabel(data.currentMonth)}` : ''}
         </h3>
         <button
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+          className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-neutral-surface hover:text-primary disabled:opacity-50"
         >
           {loading ? 'Reading…' : 'Refresh'}
         </button>
