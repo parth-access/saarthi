@@ -29,7 +29,9 @@
  */
 import {
   AlertTriangle,
+  Download,
   ExternalLink,
+  FileText,
   Info,
   RotateCcw,
 } from 'lucide-react';
@@ -66,6 +68,13 @@ import {
   toneClasses,
   type StatusBadge,
 } from './adminBookingPresentation';
+
+/**
+ * Payment states that have a receipt — the same set as `isReceiptable` in
+ * `domains/payment/Receipt`, which is server-only. The receipt route answers
+ * 404 for anything else, so a drift here hides or shows a link, never a receipt.
+ */
+const RECEIPTABLE_PAYMENT_STATES = new Set(['paid', 'success', 'refunded']);
 
 export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
   const { data, loading, initialLoading, error, notFound, reload } =
@@ -182,6 +191,27 @@ export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
               ))}
             </div>
             <CopyableId id={booking.id} size="md" />
+            {booking.paymentStatus && RECEIPTABLE_PAYMENT_STATES.has(booking.paymentStatus) && (
+              <div className="flex items-center gap-1.5">
+                <a
+                  href={`/api/admin/bookings/${encodeURIComponent(booking.id)}/receipt`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-primary ring-1 ring-hairline hover:bg-neutral-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <FileText aria-hidden="true" className="h-3.5 w-3.5" />
+                  Receipt
+                </a>
+                <a
+                  href={`/api/admin/bookings/${encodeURIComponent(booking.id)}/receipt?download=1`}
+                  aria-label="Download the receipt PDF"
+                  title="Download the receipt PDF"
+                  className="inline-flex items-center rounded-lg p-1.5 text-primary ring-1 ring-hairline hover:bg-neutral-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </header>

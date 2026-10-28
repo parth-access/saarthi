@@ -365,3 +365,21 @@ describe('ReceiptService.listForClient', () => {
     expect(h.state.getAllCalls).toHaveLength(0);
   });
 });
+
+describe('ReceiptService.getForAdmin', () => {
+  it('returns any paid booking’s receipt, whoever owns it', async () => {
+    vi.mocked(firestoreBookingRepository.findById).mockResolvedValue(booking());
+    const receipt = await service.getForAdmin('bk_20260902_ABCD1234');
+    expect(receipt?.bookingId).toBe('bk_20260902_ABCD1234');
+  });
+
+  it('still refuses a booking that was never paid', async () => {
+    vi.mocked(firestoreBookingRepository.findById).mockResolvedValue(booking({ paymentStatus: 'failed' }));
+    expect(await service.getForAdmin('bk_20260902_ABCD1234')).toBeNull();
+  });
+
+  it('reads nothing for a blank id', async () => {
+    expect(await service.getForAdmin('  ')).toBeNull();
+    expect(firestoreBookingRepository.findById).not.toHaveBeenCalled();
+  });
+});

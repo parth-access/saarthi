@@ -118,7 +118,28 @@ export class ReceiptService {
     const booking = await firestoreBookingRepository.findById(id);
     if (!booking) return null;
     if (!ownsBookingForReceipt(booking, identity)) return null;
+    return this.receiptFor(booking);
+  }
+
+  /**
+   * One receipt, by booking id, with no ownership check — for the admin
+   * console, so an operator can re-send a client their receipt.
+   *
+   * The caller is responsible for having verified an admin session. Still
+   * `null` for a booking that was never paid: an admin gets no receipt that a
+   * client could not have had.
+   */
+  async getForAdmin(bookingId: string): Promise<Receipt | null> {
+    const id = bookingId?.trim();
+    if (!id) return null;
+    const booking = await firestoreBookingRepository.findById(id);
+    if (!booking) return null;
+    return this.receiptFor(booking);
+  }
+
+  private async receiptFor(booking: Booking): Promise<Receipt | null> {
     if (!isReceiptable(booking)) return null;
+    const id = booking.id;
 
     const [therapistNames, payment] = await Promise.all([
       this.resolveTherapistNames([booking.therapistId]),
