@@ -10,6 +10,8 @@ interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: Booking;
+  /** Bookings do not store the therapist's name; the caller has the profile. */
+  therapistName?: string;
   existingReview?: Review | null;
   onReviewSubmitted?: (review: Review) => void;
 }
@@ -26,6 +28,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
   isOpen,
   onClose,
   booking,
+  therapistName,
   existingReview,
   onReviewSubmitted
 }) => {
@@ -113,7 +116,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
               {existingReview || booking.reviewRating ? 'Update Session Review' : 'Rate Your Therapy Session'}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              With {booking.therapistName || 'Therapist'} • {booking.date} at {booking.time}
+              With {therapistName || booking.therapistName || 'your therapist'} • {booking.date} at {booking.time}
             </p>
           </div>
           <button

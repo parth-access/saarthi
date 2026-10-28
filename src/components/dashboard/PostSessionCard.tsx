@@ -178,6 +178,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
         isOpen={reviewOpen}
         onClose={() => setReviewOpen(false)}
         booking={session}
+        therapistName={therapist?.name}
         onReviewSubmitted={() => {
           onFeedbackSubmitted?.();
         }}
