@@ -82,7 +82,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
       gender: initialData.gender || "",
       age: initialData.age || "",
       message: initialData.message || "",
-      consent: initialData.consent ?? true,
+      consent: initialData.consent ?? false,
     },
   });
 
@@ -276,10 +276,10 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
             rows={4}
             className="rounded-[2rem] border border-transparent bg-primary/5 p-5 text-sm focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
           />
-          <p className="ml-1 text-xs text-muted-foreground">Only your assigned licensed therapist will see your note.</p>
+          <p className="ml-1 text-xs text-muted-foreground">Only your assigned therapist will see your note.</p>
         </div>
 
-        {/* DPDP Act compliant consent — pre-checked, must be true (unchanged) */}
+        {/* DPDP Act consent: unchecked until the client ticks it, and must be true to continue */}
         <div className="space-y-2 border-t border-primary/5 pt-2">
           <label
             htmlFor="booking-consent"
