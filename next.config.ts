@@ -2,10 +2,15 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
-  // Type-checking and linting run during `next build` (Next defaults): the
-  // build gate must fail on type errors or lint errors. Do not re-add
-  // ignoreBuildErrors / ignoreDuringBuilds — that is how a broken deploy
-  // (e.g. the module-scope Resend build crash) would have shipped.
+  // Type-checking and linting still gate every build, but as their own step:
+  // `npm run build` runs `tsc --noEmit` and `next lint` first and stops on any
+  // error, then `next build` skips repeating them. Inside `next build` the
+  // type-check ran while the process still held the whole webpack compile,
+  // and that peak is what Vercel's 8 GB machine was killed for. Do not change
+  // the build script back to a bare `next build` while these flags are set —
+  // that would ship type errors (e.g. the module-scope Resend build crash).
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   experimental: {
     // Vercel's 8 GB build machine ran out of memory after type-check/lint;
     // this trades a little build time for a lower webpack memory peak.
