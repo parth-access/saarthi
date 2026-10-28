@@ -3,6 +3,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/shared/logger';
 import { bookingFromPayload } from './bookingPayload';
+import { pruneUndefined } from '@/shared/utils/firestoreSafe';
 
 export function registerTimelineListeners(eventBus: any) {
   async function writeTimelineEntry(entry: {
@@ -22,11 +23,13 @@ export function registerTimelineListeners(eventBus: any) {
     if (!adminDb) return;
     try {
       const docRef = adminDb.collection('timelines').doc();
-      await docRef.set({
+      // An optional field nobody passed (a decline's `customNote`) must not
+      // make Firestore reject the whole entry and drop it from the timeline.
+      await docRef.set(pruneUndefined({
         id: docRef.id,
         ...entry,
         createdAt: FieldValue.serverTimestamp()
-      });
+      }));
     } catch (err) {
       logger.error(`[TimelineListener] Failed to write timeline entry for event ${entry.event}`, { error: err });
     }

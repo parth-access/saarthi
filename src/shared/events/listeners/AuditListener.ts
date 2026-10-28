@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { auditService } from '@/domains/audit/AuditService';
 import { logger } from '@/shared/logger';
 import { bookingFromPayload } from './bookingPayload';
+import { pruneUndefined } from '@/shared/utils/firestoreSafe';
 
 export function registerAuditListeners(eventBus: any) {
   // Helper to log a sub-collection audit log safely
@@ -11,12 +12,12 @@ export function registerAuditListeners(eventBus: any) {
     if (!adminDb) return;
     try {
       const auditRef = adminDb.collection('bookings').doc(bookingId).collection('audit_logs').doc();
-      await auditRef.set({
+      await auditRef.set(pruneUndefined({
         action,
         timestamp: FieldValue.serverTimestamp(),
         details,
         ...extra
-      });
+      }));
     } catch (err) {
       logger.error(`[AuditListener] Failed to write sub-collection audit log for booking ${bookingId}`, { error: err });
     }

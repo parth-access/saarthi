@@ -146,7 +146,7 @@ export class TherapistPostSessionService {
           t.set(notesRef, {
             id: `session_notes_${bookingId}`,
             bookingId,
-            userId: booking.userId,
+            userId: booking.userId ?? null,
             therapistId: booking.therapistId,
             privateNotes: privateNotes ?? '',
             clientSummary: clientSummary ?? '',
