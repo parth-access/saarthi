@@ -555,7 +555,7 @@ function LoginContent() {
              <div className="flex flex-col gap-3 mb-10">
                 {[
                   "Private & encrypted",
-                  "Licensed professionals",
+                  "Caring professionals",
                   "Flexible scheduling",
                   "Personalized support journey"
                 ].map((benefit, i) => (

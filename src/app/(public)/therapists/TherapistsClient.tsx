@@ -19,7 +19,7 @@ export function JoinTeamCard() {
         <ShieldCheck className="w-10 h-10 text-primary/20" />
       </div>
       <h3 className="text-2xl font-serif text-primary mb-2">Join our Team</h3>
-      <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a licensed psychologist? <br/>Help us redefine well-being.</p>
+      <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a psychologist? <br/>Help us redefine well-being.</p>
       <Button asChild variant="outline" className="rounded-full px-8 hover:bg-primary hover:text-white transition-all">
         <Link href="/contact">Enquire about joining</Link>
       </Button>

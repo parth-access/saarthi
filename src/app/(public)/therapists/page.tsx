@@ -8,15 +8,15 @@ import { DEFAULT_THERAPISTS } from '@/constants/therapists';
 
 const therapistsOgImageUrl = ogImage(
   'Meet Our Verified Therapists',
-  'Connect with licensed, empathetic psychologists holding verified credentials on Saarthi.'
+  'Connect with empathetic psychologists holding verified credentials on Saarthi.'
 );
 
 export const metadata: Metadata = {
   title: 'Our Certified Online Therapists & Psychologists',
-  description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Find clinical therapists specializing in mindfulness, anxiety, depression, CBT, and stress management.',
+  description: 'Meet our verified team of empathetic psychologists on Saarthi. Find clinical therapists specializing in mindfulness, anxiety, depression, CBT, and stress management.',
   openGraph: {
     title: 'Our Certified Online Therapists & Psychologists | Saarthi',
-    description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Professional online sessions for stress, anxiety, and wellness.',
+    description: 'Meet our verified team of empathetic psychologists on Saarthi. Professional online sessions for stress, anxiety, and wellness.',
     url: 'https://www.saarthilife.com/therapists',
     images: [
       {
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Our Certified Online Therapists & Psychologists | Saarthi',
-    description: 'Meet our verified team of empathetic, licensed psychologists on Saarthi. Find clinical therapists.',
+    description: 'Meet our verified team of empathetic psychologists on Saarthi. Find clinical therapists.',
     images: [therapistsOgImageUrl],
   },
   alternates: {
