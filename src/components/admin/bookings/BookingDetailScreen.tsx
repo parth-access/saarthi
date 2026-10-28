@@ -38,7 +38,7 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { BackLink } from '@/components/navigation/BackLink';
-import { useTherapists } from '@/hooks/useTherapists';
+import { useAdminTherapistNames } from '../therapists/useAdminTherapistNames';
 import type { AdminBookingDetail } from '@/domains/booking/queries/adminBookingDetail';
 import { BookingActions } from './BookingActions';
 import { BookingTimeline } from './BookingTimeline';
@@ -70,7 +70,7 @@ import {
 export function BookingDetailScreen({ bookingId }: { bookingId: string }) {
   const { data, loading, initialLoading, error, notFound, reload } =
     useAdminBookingDetail(bookingId);
-  const { therapists } = useTherapists();
+  const { therapists } = useAdminTherapistNames();
 
   const therapistName = useMemo(() => {
     const byId = new Map(therapists.map((therapist) => [therapist.id, therapist.name]));

@@ -22,7 +22,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { ExportCsvButton } from '../ExportCsvButton';
 import { Button } from '@/components/ui/Button';
-import { useTherapists } from '@/hooks/useTherapists';
+import { useAdminTherapistNames } from '../therapists/useAdminTherapistNames';
 import {
   BOOKING_STATUS_GROUPS,
   PAYMENT_STATUS_GROUPS,
@@ -54,7 +54,7 @@ export function BookingsScreen() {
   );
 
   const { data, loading, initialLoading, error, reload } = useAdminBookings(view);
-  const { therapists, loading: therapistsLoading } = useTherapists();
+  const { therapists, loading: therapistsLoading } = useAdminTherapistNames();
 
   const therapistNames = useMemo(
     () => Object.fromEntries(therapists.map((therapist) => [therapist.id, therapist.name])),

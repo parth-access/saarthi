@@ -29,12 +29,12 @@ import {
   isBookingStatusGroupId,
   isPaymentStatusGroupId,
 } from '@/domains/booking/queries/adminBookingQuery';
-import type { Therapist } from '@/types';
+import type { TherapistName } from '../therapists/useAdminTherapistNames';
 import { filterAvailability, type AdminBookingsView } from './adminBookingsUrlState';
 
 interface BookingsFilterBarProps {
   readonly view: AdminBookingsView;
-  readonly therapists: readonly Therapist[];
+  readonly therapists: readonly TherapistName[];
   readonly therapistsLoading: boolean;
   readonly onChange: (patch: Partial<Omit<AdminBookingsView, 'cursor'>>) => void;
 }

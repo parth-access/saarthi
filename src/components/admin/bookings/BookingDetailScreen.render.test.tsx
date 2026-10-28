@@ -2,8 +2,8 @@ import * as React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-vi.mock('@/hooks/useTherapists', () => ({
-  useTherapists: () => ({ therapists: [], loading: false, error: null, refetch: vi.fn() }),
+vi.mock('../therapists/useAdminTherapistNames', () => ({
+  useAdminTherapistNames: () => ({ therapists: [], loading: false }),
 }));
 
 vi.mock('./useAdminBookingDetail', () => ({
