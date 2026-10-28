@@ -493,7 +493,7 @@ describe('when the write cannot go through', () => {
       'THERAPIST_MUTATION',
       expect.any(String),
       expect.any(Error),
-      expect.objectContaining({ therapistId: THERAPIST_ID, adminUid: 'uid_admin' })
+      expect.objectContaining({ therapistId: THERAPIST_ID, actorUid: 'uid_admin' })
     );
   });
 

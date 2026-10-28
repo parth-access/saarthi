@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { therapistService } from "../../services/therapistService";
+import { toast } from "sonner";
+import {
+  therapistAvailabilityService,
+  type ScheduleChangeRequest,
+} from "../../services/therapistAvailabilityService";
 import { TherapistAvailabilityRule, TherapistOverride } from "../../types";
 import { generateTimeSlots } from "../../shared/scheduling/slots";
 import {
@@ -12,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 
 interface ScheduleBuilderProps {
@@ -21,13 +26,36 @@ interface ScheduleBuilderProps {
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+/** Today in India as YYYY-MM-DD: the earliest date worth closing. */
+function istToday(): string {
+  return new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+}
+
+function prettyDate(d: string): string {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  });
+}
+
+/** Changes waiting on the therapist's "yes", and what the server said they do. */
+interface PendingChanges {
+  title: string;
+  notes: string[];
+  changes: ScheduleChangeRequest[];
+  /** True once the server has assessed the impact, so the retry acknowledges it. */
+  acknowledge: boolean;
+}
+
 export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId }) => {
   const [rules, setRules] = useState<TherapistAvailabilityRule[]>([]);
   const [overrides, setOverrides] = useState<TherapistOverride[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [overrideDate, setOverrideDate] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [pending, setPending] = useState<PendingChanges | null>(null);
 
   // New Rule State - standard Saarthi session length is 45 minutes
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -39,16 +67,19 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
   const [breakEnd, setBreakEnd] = useState("");
 
   const loadData = React.useCallback(async () => {
-    setLoading(true);
+    setLoadError(null);
     try {
-      const fetchedRules = await therapistService.getAvailabilityRules(therapistId);
-      const fetchedOverrides = await therapistService.getOverrides(therapistId);
+      const [fetchedRules, fetchedOverrides] = await Promise.all([
+        therapistAvailabilityService.getAvailabilityRules(therapistId),
+        therapistAvailabilityService.getOverrides(therapistId),
+      ]);
       setRules(fetchedRules);
       setOverrides(fetchedOverrides);
     } catch (error) {
-      console.error(error);
+      setLoadError(error instanceof Error ? error.message : "Your schedule could not be loaded.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [therapistId]);
 
   useEffect(() => {
@@ -56,9 +87,18 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
   }, [therapistId, loadData]);
 
   const toggleDay = (idx: number) => {
-    setSelectedDays((prev) =>
-      prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx]
-    );
+    const adding = !selectedDays.includes(idx);
+    // Picking a day that already has hours, on its own, loads those hours to edit.
+    const existing = rules.find((r) => r.dayOfWeek === idx);
+    if (adding && selectedDays.length === 0 && existing) {
+      setStartTime(existing.startTime);
+      setEndTime(existing.endTime);
+      setDuration(existing.slotDuration);
+      setCooldown(existing.cooldownGap);
+      setBreakStart(existing.breaks?.[0]?.startTime ?? "");
+      setBreakEnd(existing.breaks?.[0]?.endTime ?? "");
+    }
+    setSelectedDays((prev) => (adding ? [...prev, idx] : prev.filter((d) => d !== idx)));
   };
 
   /**
@@ -71,91 +111,127 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
     return generateTimeSlots(startTime, endTime, duration, cooldown, breaks);
   };
 
-  const handleSaveRules = async () => {
-    if (selectedDays.length === 0) {
-      alert("Please select at least one working day.");
-      return;
-    }
+  /**
+   * Send changes one at a time through the validated schedule endpoint. When
+   * the server says a change needs a person's judgement (sessions already
+   * booked outside the new hours, or no hours left at all) nothing is written:
+   * the rest wait in a dialog for the therapist's "yes".
+   */
+  const runChanges = async (changes: ScheduleChangeRequest[], acknowledge: boolean, title: string) => {
     setSaving(true);
     try {
-      const breaks = breakStart && breakEnd ? [{ startTime: breakStart, endTime: breakEnd }] : [];
-
-      for (const day of selectedDays) {
-        // check if rule for day exists
-        const existing = rules.find((r) => r.dayOfWeek === day);
-        if (existing) {
-          await therapistService.deleteAvailabilityRule(therapistId, existing.id);
-        }
-
-        await therapistService.saveAvailabilityRule(therapistId, {
-          therapistId,
-          dayOfWeek: day,
-          isActive: true,
-          startTime,
-          endTime,
-          slotDuration: duration,
-          cooldownGap: cooldown,
-          breaks,
+      for (let i = 0; i < changes.length; i++) {
+        const result = await therapistAvailabilityService.writeSchedule({
+          ...changes[i],
+          acknowledgeImpact: acknowledge,
         });
+        if (!result.applied) {
+          setPending({ title, notes: result.notes ?? [], changes: changes.slice(i), acknowledge: true });
+          await loadData();
+          return false;
+        }
+        for (const warning of result.warnings ?? []) toast.warning(warning);
       }
-      setSelectedDays([]);
+      setPending(null);
       await loadData();
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      return true;
     } catch (e) {
-      console.error(e);
-      alert("Failed to save rules. Please try again.");
+      toast.error(e instanceof Error ? e.message : "That change did not go through. Please try again.");
+      await loadData();
+      return false;
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-  const handleDeleteRule = async (ruleId: string) => {
-    if (!confirm("Are you sure you want to remove this day rule?")) return;
-    setSaving(true);
-    try {
-      await therapistService.deleteAvailabilityRule(therapistId, ruleId);
-      await loadData();
-    } catch (e) {
-      console.error(e);
+  const handleSaveRules = async () => {
+    if (selectedDays.length === 0) {
+      toast.error("Pick at least one working day.");
+      return;
     }
-    setSaving(false);
+    const breaks = breakStart && breakEnd ? [{ startTime: breakStart, endTime: breakEnd }] : [];
+    const changes: ScheduleChangeRequest[] = [...selectedDays].sort().map((day) => ({
+      action: "save_rule",
+      // Replacing a day's hours edits its rule in place, in one write, so a
+      // failure can never leave the day with no hours at all.
+      ruleId: rules.find((r) => r.dayOfWeek === day)?.id ?? null,
+      rule: {
+        dayOfWeek: day,
+        isActive: true,
+        startTime,
+        endTime,
+        slotDuration: duration,
+        cooldownGap: cooldown,
+        breaks,
+      },
+    }));
+    if (await runChanges(changes, false, "Save these hours?")) {
+      setSelectedDays([]);
+      setSaveSuccess(true);
+      toast.success("Working hours saved.");
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }
+  };
+
+  const handleDeleteRule = (rule: TherapistAvailabilityRule) => {
+    setPending({
+      title: `Remove ${DAYS[rule.dayOfWeek]}?`,
+      notes: [`Clients will no longer be able to book you on ${DAYS[rule.dayOfWeek]}s. Sessions already booked are not changed.`],
+      changes: [{ action: "delete_rule", ruleId: rule.id }],
+      acknowledge: false,
+    });
   };
 
   const handleBlockDate = async () => {
     if (!overrideDate) return;
-    setSaving(true);
-    try {
-      await therapistService.saveOverride(therapistId, {
-        therapistId,
-        date: overrideDate,
-        type: "blocked",
-        reason: "Blocked Day",
-      });
+    const ok = await runChanges(
+      [{ action: "save_override", overrideId: null, override: { date: overrideDate, type: "blocked", reason: "Blocked Day" } }],
+      false,
+      `Close ${prettyDate(overrideDate)}?`
+    );
+    if (ok) {
+      toast.success(`${prettyDate(overrideDate)} is closed.`);
       setOverrideDate("");
-      await loadData();
-    } catch (e) {
-      console.error(e);
-      alert("Failed to block date.");
     }
-    setSaving(false);
   };
 
-  const handleDeleteOverride = async (overrideId: string) => {
-    setSaving(true);
-    try {
-      await therapistService.deleteOverride(therapistId, overrideId);
-      await loadData();
-    } catch (e) {
-      console.error(e);
+  const handleDeleteOverride = async (override: TherapistOverride) => {
+    if (await runChanges([{ action: "delete_override", overrideId: override.id }], false, "Reopen this date?")) {
+      toast.success(`${prettyDate(override.date)} is open again.`);
     }
-    setSaving(false);
   };
+
+  const confirmPending = async () => {
+    if (!pending) return;
+    if (await runChanges(pending.changes, pending.acknowledge, pending.title)) {
+      setSelectedDays([]);
+      setOverrideDate("");
+      toast.success("Schedule updated.");
+    }
+  };
+
+  const today = istToday();
+  const upcomingOverrides = overrides
+    .filter((o) => o.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12 text-sm text-muted-foreground">
         <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" />
-        Loading schedule configuration...
+        Loading your schedule…
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div role="alert" className="rounded-xl border border-danger/20 bg-danger-surface/40 px-5 py-6 text-center">
+        <p className="text-sm font-medium text-danger">Your schedule could not be loaded.</p>
+        <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">{loadError}</p>
+        <Button variant="outline" size="sm" className="mt-3" onClick={() => { setLoading(true); void loadData(); }}>
+          Try again
+        </Button>
       </div>
     );
   }
@@ -431,7 +507,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleDeleteRule(rule.id)}
+                      onClick={() => handleDeleteRule(rule)}
                       disabled={saving}
                       aria-label={`Delete rule for ${dayName}`}
                       className="p-1.5 text-muted-foreground hover:text-danger rounded hover:bg-neutral-surface transition-colors disabled:opacity-40"
@@ -453,7 +529,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
               Blocked Dates
             </h3>
             <span className="tabular text-xs font-medium text-primary/70">
-              {overrides.length} blocked
+              {upcomingOverrides.length} upcoming
             </span>
           </div>
 
@@ -462,6 +538,8 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
               <input
                 type="date"
                 value={overrideDate}
+                min={today}
+                aria-label="Date to close"
                 onChange={(e) => setOverrideDate(e.target.value)}
                 className="flex-1 h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
               />
@@ -477,22 +555,25 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
             </div>
 
             <div className="space-y-1.5 mt-2">
-              {overrides.length === 0 ? (
+              {upcomingOverrides.length === 0 ? (
                 <p className="text-[0.6875rem] text-muted-foreground italic">
-                  No date overrides. All configured recurring days are bookable.
+                  No closed dates coming up. All your working days are bookable.
                 </p>
               ) : (
-                overrides.map((o) => (
+                upcomingOverrides.map((o) => (
                   <div
                     key={o.id}
                     className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-danger-surface/60 border border-danger/20 text-xs"
                   >
-                    <span className="tabular font-medium text-danger">{o.date}</span>
+                    <span className="tabular font-medium text-danger">
+                      {prettyDate(o.date)}
+                      {o.type === "available" && <span className="ml-1 font-normal text-muted-foreground">(special hours)</span>}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleDeleteOverride(o.id)}
+                      onClick={() => void handleDeleteOverride(o)}
                       disabled={saving}
-                      aria-label={`Unblock ${o.date}`}
+                      aria-label={`Reopen ${prettyDate(o.date)}`}
                       className="p-1 text-danger/70 hover:text-danger rounded transition-colors disabled:opacity-40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -504,6 +585,26 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
           </div>
         </div>
       </div>
+      <Modal isOpen={pending !== null} onClose={() => !saving && setPending(null)} title={pending?.title ?? ""}>
+        <div className="space-y-4 text-sm">
+          {pending && pending.notes.length > 0 && (
+            <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
+              {pending.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setPending(null)} disabled={saving}>
+              Keep as is
+            </Button>
+            <Button onClick={() => void confirmPending()} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Yes, go ahead
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

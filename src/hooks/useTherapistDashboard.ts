@@ -3,10 +3,10 @@
 /**
  * Data hook for the therapist workspace.
  *
- * Fetches the therapist profile and their bookings, then computes the memos
- * the dashboard, sessions and availability pages need. Uses the same services
- * the original combined workspace did — no new API endpoints, no new
- * Firestore reads.
+ * Fetches the therapist profile and their bookings in one request
+ * (GET /api/therapist/workspace), then computes the memos the dashboard,
+ * sessions and availability pages need. Nothing here reads Firestore from the
+ * browser, so the Firestore SDK stays out of the workspace bundle.
  *
  * Designed to be called once in the layout and passed down through context or
  * props, so tab changes within the workspace never re-fetch.
@@ -14,8 +14,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isToday, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { therapistService } from '@/services/therapistService';
 import { bookingService } from '@/services/bookingService';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { mapBooking } from '@/utils/mappers';
 import type { Booking, BookingStatus, Therapist } from '@/types';
 
 function isTodaysBooking(b: Booking): boolean {
@@ -72,13 +73,18 @@ export function useTherapistDashboard(): TherapistDashboardData {
       setLoading(true);
       setError(null);
 
-      const therapistProfile = await therapistService.getTherapistByAuthId(currentUser.uid);
-      setTherapist(therapistProfile);
+      const response = await fetchWithAuth('/api/therapist/workspace');
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || 'Your workspace could not be loaded just now.');
 
-      if (therapistProfile) {
-        const data = await bookingService.getBookingsByTherapist(therapistProfile.id);
-        setBookings(data);
-      } else {
+      const therapistProfile = (body.therapist ?? null) as Therapist | null;
+      setTherapist(therapistProfile);
+      setBookings(
+        (Array.isArray(body.bookings) ? body.bookings : []).map((b: Record<string, unknown>) =>
+          mapBooking(String(b.id), b)
+        )
+      );
+      if (!therapistProfile) {
         setError('No therapist profile found mapped to your account. Please contact support.');
       }
       setHasLoaded(true);

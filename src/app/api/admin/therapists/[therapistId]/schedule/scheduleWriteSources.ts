@@ -272,6 +272,8 @@ export async function applyScheduleWrite(input: {
   readonly therapistName: string;
   readonly change: ScheduleChange;
   readonly actorUid: string;
+  /** The role that authorized the write, named in the audit entry. */
+  readonly actorLabel?: 'Admin' | 'Therapist';
   readonly impact: ScheduleImpact;
 }): Promise<AppliedWrite> {
   if (!adminDb) throw new Error('Firestore adminDb is not initialized.');
@@ -393,7 +395,7 @@ export async function applyScheduleWrite(input: {
       leavesNoConfiguration: impact.losesAllConfiguration,
       timestamp: FieldValue.serverTimestamp(),
       details:
-        `Admin ${actorUid} performed ${change.action} on ${input.therapistName} (${therapistId}), document ${targetId}. ` +
+        `${input.actorLabel ?? 'Admin'} ${actorUid} performed ${change.action} on ${input.therapistName} (${therapistId}), document ${targetId}. ` +
         `${strandedIds.length} existing booking(s) fall outside the new hours and were left unchanged` +
         `${impact.atLeast ? ' (booking scan was truncated, so there may be more)' : ''}.`,
     });

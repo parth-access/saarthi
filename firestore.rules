@@ -288,7 +288,7 @@ service cloud.firestore {
           isSignedIn();
 
         /*
-        Writes go through /api/therapist/availability/rule (the therapist's own
+        Writes go through /api/therapist/schedule (the therapist's own
         hours) or /api/admin/therapists/{id}/schedule (an admin's change). Both
         verify the role live, reject an overlapping or empty window, and write an
         audit entry. A direct client write did none of that, and this branch was
