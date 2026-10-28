@@ -1,14 +1,16 @@
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { db } from '@/lib/firebase/firestore';
 import { isBetterAuth } from '@/lib/auth/provider';
 
 /**
  * The signed-in person's editable profile. Under Firebase the browser reads
  * and writes users/{uid} itself; under Better Auth it has no Firestore
  * identity, so it goes through /api/me/profile. Same shape either way.
+ *
+ * The Firestore SDK is imported on first use of the Firebase path only, so it
+ * never ships to pages that read through the API.
  */
+const loadFirestore = () =>
+  Promise.all([import('firebase/firestore'), import('@/lib/firebase/firestore')]).then(([sdk, mod]) => ({ ...sdk, db: mod.db }));
 
 export interface ProfileData {
   name: string;
@@ -24,6 +26,7 @@ export interface ProfileUser {
 }
 
 async function loadFromFirestore(user: ProfileUser): Promise<ProfileData> {
+  const { doc, getDoc, collection, query, where, getDocs, db } = await loadFirestore();
   const userDoc = await getDoc(doc(db, 'users', user.uid));
   const data = userDoc.exists() ? userDoc.data() : {};
   let name: string = data.name || '';
@@ -49,6 +52,7 @@ async function loadFromFirestore(user: ProfileUser): Promise<ProfileData> {
 }
 
 async function saveToFirestore(user: ProfileUser, fields: Omit<ProfileData, 'usesPassword'>): Promise<void> {
+  const { doc, setDoc, db } = await loadFirestore();
   await setDoc(
     doc(db, 'users', user.uid),
     { ...fields, email: user.email, updatedAt: new Date().toISOString() },
@@ -57,6 +61,7 @@ async function saveToFirestore(user: ProfileUser, fields: Omit<ProfileData, 'use
   // Keep the Firebase Auth display name in step so the header/avatar match.
   if (auth?.currentUser && fields.name && auth.currentUser.displayName !== fields.name) {
     try {
+      const { updateProfile } = await import('firebase/auth');
       await updateProfile(auth.currentUser, { displayName: fields.name });
     } catch {
       /* non-fatal: the Firestore profile is the source of truth for display */

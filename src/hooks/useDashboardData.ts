@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/firestore';
 import { Booking, Therapist } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionStartMs } from '@/lib/sessionDisplay';
@@ -65,7 +63,15 @@ async function fetchFromApi(): Promise<DashboardPayload> {
   return (await res.json()) as DashboardPayload;
 }
 
+/**
+ * Firebase sign-in only. Loaded on first use so the Firestore SDK stays out of
+ * the dashboard bundle for Better Auth, where the API above does the reading.
+ */
 async function fetchFromFirestore(user: { uid: string; email: string; emailVerified?: boolean }): Promise<DashboardPayload> {
+  const [{ collection, query, where, getDocs, doc, getDoc }, { db }] = await Promise.all([
+    import('firebase/firestore'),
+    import('@/lib/firebase/firestore'),
+  ]);
   const bookingsRef = collection(db, 'bookings');
   // Email-matched bookings require a verified address (Firestore rules);
   // until then, show only bookings tied to this account's uid.

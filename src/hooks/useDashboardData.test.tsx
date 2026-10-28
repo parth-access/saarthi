@@ -58,12 +58,19 @@ function Probe() {
   return null;
 }
 
-async function runDataEffect(): Promise<void> {
+/**
+ * Run the data effect and wait for its async chain (lazy SDK import → getDocs →
+ * therapist reads → state). `settled` says when the chain has got far enough;
+ * the Firestore SDK is imported on first use, so the first read takes longer.
+ */
+async function runDataEffect(settled: () => boolean = () => true): Promise<void> {
   const effect = capturedEffects.current.at(-1);
   if (!effect) throw new Error('no data effect captured');
   effect();
-  // The effect kicks off an async chain (getDocs → therapist reads → state).
-  for (let i = 0; i < 6; i++) await Promise.resolve();
+  await vi.waitFor(() => {
+    if (!settled()) throw new Error('data effect still running');
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 beforeEach(() => {
@@ -77,7 +84,7 @@ describe('useDashboardData — self-scoped reads', () => {
     authState.currentUser = { uid: 'therapist_uid', email: 'therapist@example.com', role: 'therapist', emailVerified: true };
 
     renderToStaticMarkup(<Probe />);
-    await runDataEffect();
+    await runDataEffect(() => mockGetDocs.mock.calls.length > 0);
 
     expect(mockWhere).toHaveBeenCalledWith('email', '==', 'therapist@example.com');
     expect(mockGetDocs).toHaveBeenCalledTimes(1);
@@ -87,7 +94,7 @@ describe('useDashboardData — self-scoped reads', () => {
     authState.currentUser = { uid: 'client_uid', email: 'someone@example.com', role: 'client', emailVerified: false };
 
     renderToStaticMarkup(<Probe />);
-    await runDataEffect();
+    await runDataEffect(() => mockGetDocs.mock.calls.length > 0);
 
     expect(mockWhere).toHaveBeenCalledWith('userId', '==', 'client_uid');
     expect(mockWhere).not.toHaveBeenCalledWith('email', '==', 'someone@example.com');

@@ -6,12 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { Booking } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
-import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
-import { CancelModal } from "@/components/dashboard/CancelModal";
-import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useSharedDashboardData } from "@/components/dashboard/DashboardDataContext";
+import { CancelModal, RescheduleModal, SessionDetailsModal, useOpenedOnce } from "@/components/dashboard/lazyModals";
 import { useJoinSession } from "@/hooks/useJoinSession";
 import {
   formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming
@@ -41,7 +39,7 @@ const isUnpaidHold = (b: Booking) =>
   b.status === "awaiting_payment" || b.status === "pending_payment" || b.paymentStatus === "unpaid";
 
 function DashboardBookings() {
-  const { bookings, therapists, initialLoading, error, refresh } = useDashboardData();
+  const { bookings, therapists, initialLoading, error, refresh } = useSharedDashboardData();
   const { join, joiningId } = useJoinSession();
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -49,6 +47,9 @@ function DashboardBookings() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const detailsMounted = useOpenedOnce(detailsOpen);
+  const rescheduleMounted = useOpenedOnce(rescheduleOpen);
+  const cancelMounted = useOpenedOnce(cancelOpen);
 
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
@@ -253,28 +254,28 @@ function DashboardBookings() {
           )}
         </div>
       </div>
-      <SessionDetailsModal
+      {detailsMounted && <SessionDetailsModal
         isOpen={detailsOpen}
         onClose={() => setDetailsOpen(false)}
         session={selected}
         therapist={selected ? therapists[selected.therapistId] : undefined}
         onReschedule={() => setRescheduleOpen(true)}
         onCancel={() => setCancelOpen(true)}
-      />
+      />}
 
-      <RescheduleModal
+      {rescheduleMounted && <RescheduleModal
         isOpen={rescheduleOpen}
         onClose={() => setRescheduleOpen(false)}
         session={selected}
         onRescheduled={() => { refresh(); }}
-      />
+      />}
 
-      <CancelModal
+      {cancelMounted && <CancelModal
         isOpen={cancelOpen}
         onClose={() => setCancelOpen(false)}
         session={selected}
         onCancelled={() => { refresh(); }}
-      />
+      />}
     </div>
   );
 }

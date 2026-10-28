@@ -8,20 +8,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/firestore";
-import { isBetterAuth } from "@/lib/auth/provider";
 import { profileService } from "@/services/profileService";
 import { Booking, Therapist } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
-import { SessionDetailsModal } from "@/components/dashboard/SessionDetailsModal";
-import { RescheduleModal } from "@/components/dashboard/RescheduleModal";
-import { CancelModal } from "@/components/dashboard/CancelModal";
-import { SupportModal } from "@/components/dashboard/SupportModal";
 import { PostSessionCard } from "@/components/dashboard/PostSessionCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useSharedDashboardData } from "@/components/dashboard/DashboardDataContext";
+import { CancelModal, RescheduleModal, SessionDetailsModal, SupportModal, useOpenedOnce } from "@/components/dashboard/lazyModals";
 import { useJoinSession } from "@/hooks/useJoinSession";
 import {
   formatSessionDate, formatSessionTimeRange, formatDayBadge, SESSION_DURATION_LABEL
@@ -125,7 +119,7 @@ function Dashboard() {
   const {
     therapists, upcoming, past, bookings,
     initialLoading, error, refresh,
-  } = useDashboardData();
+  } = useSharedDashboardData();
   const { join, joiningId } = useJoinSession();
 
   const [profile, setProfile] = useState<UserProfile>({});
@@ -133,7 +127,11 @@ function Dashboard() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const detailsMounted = useOpenedOnce(detailsOpen);
+  const rescheduleMounted = useOpenedOnce(rescheduleOpen);
+  const cancelMounted = useOpenedOnce(cancelOpen);
   const [supportOpen, setSupportOpen] = useState(false);
+  const supportMounted = useOpenedOnce(supportOpen);
 
   // Load the user's stored profile (name/phone) for the welcome + support form.
   useEffect(() => {
@@ -141,14 +139,8 @@ function Dashboard() {
     (async () => {
       if (!currentUser?.uid) return;
       try {
-        if (isBetterAuth()) {
-          // No Firestore identity in the browser under Better Auth.
-          const data = await profileService.load({ uid: currentUser.uid, email: currentUser.email });
-          if (active) setProfile(data);
-          return;
-        }
-        const snap = await getDoc(doc(db, "users", currentUser.uid));
-        if (active && snap.exists()) setProfile(snap.data() as UserProfile);
+        const data = await profileService.load({ uid: currentUser.uid, email: currentUser.email });
+        if (active) setProfile(data);
       } catch {
         /* non-fatal: fall back to auth identity */
       }
@@ -521,36 +513,36 @@ function Dashboard() {
         </div>
       </div>
       {/* ===== Modals ===== */}
-      <SessionDetailsModal
+      {detailsMounted && <SessionDetailsModal
         isOpen={detailsOpen}
         onClose={() => setDetailsOpen(false)}
         session={selected}
         therapist={selected ? therapists[selected.therapistId] : undefined}
         onReschedule={() => setRescheduleOpen(true)}
         onCancel={() => setCancelOpen(true)}
-      />
+      />}
 
-      <RescheduleModal
+      {rescheduleMounted && <RescheduleModal
         isOpen={rescheduleOpen}
         onClose={() => setRescheduleOpen(false)}
         session={selected}
         onRescheduled={() => { refresh(); }}
-      />
+      />}
 
-      <CancelModal
+      {cancelMounted && <CancelModal
         isOpen={cancelOpen}
         onClose={() => setCancelOpen(false)}
         session={selected}
         onCancelled={() => { refresh(); }}
-      />
+      />}
 
-      <SupportModal
+      {supportMounted && <SupportModal
         isOpen={supportOpen}
         onClose={() => setSupportOpen(false)}
         userEmail={currentUser?.email || ""}
         userName={profile.name || currentUser?.name || ""}
         userPhone={profile.phone || ""}
-      />
+      />}
     </div>
   );
 }

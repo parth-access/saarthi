@@ -9,13 +9,19 @@ import { theme } from "@/components/ui/DashboardCard";
 export default function RouteTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // The admin console and the therapist workspace are tools, not a story: their
-  // rail and top bar must not blur out and back in on every section change, and
-  // AnimatePresence's "wait" mode would hold each new page back until the old one
-  // had faded. The keyed wrapper also remounts the segment layout on every
-  // navigation, which made the therapist workspace re-read all of its data on
-  // each tab change instead of once.
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/therapist")) return <>{children}</>;
+  // The admin console, the therapist workspace and the client dashboard are
+  // tools, not a story: their navigation must not blur out and back in on every
+  // section change, and AnimatePresence's "wait" mode would hold each new page
+  // back until the old one had faded. The keyed wrapper also remounts the segment
+  // layout on every navigation, which made these areas re-read all of their data
+  // on each tab change instead of once.
+  if (
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/therapist") ||
+    pathname?.startsWith("/dashboard")
+  ) {
+    return <>{children}</>;
+  }
 
   return (
     <AnimatePresence mode="wait">
