@@ -106,8 +106,8 @@ export function JobsScreen() {
 
   return (
     <div className="space-y-4">
-      <RunJobsPanel onRan={reload} />
       <Reading payload={data} loading={loading} onReload={reload} />
+      <RunJobsPanel onRan={reload} />
 
       {error && (
         <Notice tone="warning">
@@ -173,10 +173,9 @@ function Reading({
   onReload: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-hairline bg-white px-4 py-3 shadow-sm">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-hairline pb-3">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-primary">Background jobs</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Read at {formatCreatedAt(payload.generatedAtIso)} {DISPLAY_TIME_ZONE_LABEL}. This page does
           not refresh on its own.
         </p>
