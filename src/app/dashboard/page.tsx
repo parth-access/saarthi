@@ -9,7 +9,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { db } from "@/lib/firebase/firestore";
 import { isBetterAuth } from "@/lib/auth/provider";
 import { profileService } from "@/services/profileService";
 import { Booking, Therapist } from "@/types";

@@ -4,7 +4,7 @@ import {
   query,
   where
 } from 'firebase/firestore';
-import { db } from '../lib/firebase/client';
+import { db } from '../lib/firebase/firestore';
 import { Therapist, TherapistAvailabilityRule, TherapistOverride } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firebaseUtils';
 import { mapTherapist } from '../utils/mappers';

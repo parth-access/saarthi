@@ -1,4 +1,4 @@
-import { auth, isFirebaseEnabled, db } from '../lib/firebase/client';
+import { auth, isFirebaseEnabled } from '../lib/firebase/client';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -10,12 +10,12 @@ import {
   sendEmailVerification,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import {
-  doc,
-  getDoc,
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore';
+
+/**
+ * Firestore, loaded on first use. The auth provider imports this service on
+ * every page, and only sign-in and role lookups touch Firestore.
+ */
+const loadFirestore = () => import('../lib/firebase/firestore');
 import { isBetterAuth } from '../lib/auth/provider';
 import { betterAuthService } from './betterAuthService';
 
@@ -46,6 +46,7 @@ export const authService = {
         console.log('UID:', user.uid);
         console.log('Email:', user.email);
 
+        const { db, doc, getDoc, setDoc, serverTimestamp } = await loadFirestore();
         const userDocRef = doc(db, 'users', user.uid);
         console.log('Checking Firestore user...');
         const userDoc = await getDoc(userDocRef);
@@ -224,6 +225,7 @@ export const authService = {
       console.log('UID:', user.uid);
       console.log('Email:', user.email);
 
+      const { db, doc, getDoc, setDoc, serverTimestamp } = await loadFirestore();
       const userDocRef = doc(db, 'users', user.uid);
       console.log('Checking Firestore user...');
       const userDoc = await getDoc(userDocRef);
@@ -278,6 +280,7 @@ export const authService = {
 
     const user = userCred.user;
 
+    const { db, doc, setDoc, serverTimestamp } = await loadFirestore();
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       name,
@@ -340,6 +343,7 @@ export const authService = {
     uid: string
   ): Promise<'admin' | 'therapist' | 'client' | null> => {
     try {
+      const { db, doc, getDoc } = await loadFirestore();
       const userDoc = await getDoc(doc(db, 'users', uid));
 
       if (userDoc.exists()) {

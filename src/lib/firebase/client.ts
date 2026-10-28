@@ -1,6 +1,5 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 
 // Note: Ensure your .env file has these variables if you are not using firebase-applet-config.json
 const firebaseConfig = {
@@ -17,20 +16,24 @@ const checkEnv = () => {
 }
   
 const firebaseEnabled = checkEnv();
-let app = null;
+let app: ReturnType<typeof initializeApp> | null = null;
 let authInstance: ReturnType<typeof getAuth> | null = null;
-let dbInstance: ReturnType<typeof getFirestore> | null = null;
 
 if (firebaseEnabled) {
   try {
     app = initializeApp(firebaseConfig);
     authInstance = getAuth(app);
-    dbInstance = getFirestore(app);
   } catch (error) {
     console.error('Failed to initialize Firebase:', error);
   }
 }
 
+/*
+ * Firestore lives in `./firestore`, not here. This module is imported by the
+ * auth provider on every page, and the Firestore SDK is the largest piece of
+ * Firebase; pages that never read Firestore from the browser (the admin
+ * console, the public site) should not download it.
+ */
+export const firebaseApp = app;
 export const auth = authInstance as ReturnType<typeof getAuth>;
-export const db = dbInstance as ReturnType<typeof getFirestore>;
 export const isFirebaseEnabled = firebaseEnabled && !!app && !!authInstance;

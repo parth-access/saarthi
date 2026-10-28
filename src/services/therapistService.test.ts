@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const h = vi.hoisted(() => ({ fetchWithAuth: vi.fn(), getDocs: vi.fn() }));
 
 vi.mock('@/lib/fetchWithAuth', () => ({ fetchWithAuth: h.fetchWithAuth }));
-vi.mock('../lib/firebase/client', () => ({ db: {} }));
+vi.mock('../lib/firebase/firestore', () => ({ db: {} }));
 vi.mock('../lib/firebaseUtils', () => ({ handleFirestoreError: vi.fn(), OperationType: { LIST: 'list' } }));
 vi.mock('firebase/firestore', () => ({ collection: vi.fn(), getDocs: h.getDocs, query: vi.fn(), where: vi.fn() }));
 

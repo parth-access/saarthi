@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/client';
+import { auth } from '@/lib/firebase/client';
+import { db } from '@/lib/firebase/firestore';
 import { isBetterAuth } from '@/lib/auth/provider';
 
 /**

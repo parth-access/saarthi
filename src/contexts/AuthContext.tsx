@@ -5,10 +5,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { authService } from '../services/authService';
 import { User as CustomUser } from '../types';
-import { auth, db } from '../lib/firebase/client';
+import { auth } from '../lib/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { syncSessionCookie, invalidateSessionSync, type SessionSyncResult } from '@/services/sessionSyncService';
 import { perfMark, perfMeasure } from '@/lib/perfTracing';
 import { isBetterAuth } from '@/lib/auth/provider';
@@ -118,6 +117,9 @@ const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             console.log('Creating default client profile on-the-fly to prevent premature signout...');
             
             try {
+              // Loaded here, not at module scope: this is the only Firestore
+              // write in the provider, and it runs once per new account.
+              const { db, doc, setDoc, serverTimestamp } = await import('../lib/firebase/firestore');
               const userDocRef = doc(db, 'users', firebaseUser.uid);
               await setDoc(userDocRef, {
                 uid: firebaseUser.uid,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { db } from '@/lib/firebase/firestore';
 import { Booking, Therapist } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { sessionStartMs } from '@/lib/sessionDisplay';

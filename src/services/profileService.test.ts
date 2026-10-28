@@ -8,7 +8,8 @@ const h = vi.hoisted(() => ({
   currentUser: { displayName: 'Old', providerData: [{ providerId: 'password' }] },
 }));
 
-vi.mock('@/lib/firebase/client', () => ({ db: {}, auth: { get currentUser() { return h.currentUser; } } }));
+vi.mock('@/lib/firebase/client', () => ({ auth: { get currentUser() { return h.currentUser; } } }));
+vi.mock('@/lib/firebase/firestore', () => ({ db: {} }));
 vi.mock('firebase/auth', () => ({ updateProfile: h.updateProfile }));
 vi.mock('firebase/firestore', () => ({
   doc: vi.fn(() => ({})),

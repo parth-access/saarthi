@@ -36,7 +36,7 @@ vi.mock('react', async () => {
   };
 });
 
-vi.mock('@/lib/firebase/client', () => ({ db: {} }));
+vi.mock('@/lib/firebase/firestore', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(() => ({})),
   query: vi.fn(() => ({})),
