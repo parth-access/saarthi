@@ -33,6 +33,7 @@ import {
   toneClasses,
 } from '../../bookings/adminBookingPresentation';
 import { CopyableId } from '../../bookings/CopyableId';
+import { RunJobsPanel } from './RunJobsPanel';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import type { AdminJobsPayload, JobScan } from './adminJobsResponse';
 import { interpretReplayActionResponse } from './replayResponse';
@@ -53,8 +54,14 @@ export function JobsScreen() {
   const [replaying, setReplaying] = useState(false);
   const [banner, setBanner] = useState<ReplayBanner | null>(null);
 
-  if (initialLoading) return <JobsSkeleton />;
-  if (!data) return <LoadFailed error={error} onRetry={reload} />;
+  if (initialLoading || !data) {
+    return (
+      <div className="space-y-4">
+        <RunJobsPanel onRan={reload} />
+        {initialLoading ? <JobsSkeleton /> : <LoadFailed error={error} onRetry={reload} />}
+      </div>
+    );
+  }
 
   async function confirmReplay() {
     if (!replayRequest || replaying) return;
@@ -98,7 +105,8 @@ export function JobsScreen() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <RunJobsPanel onRan={reload} />
       <Reading payload={data} loading={loading} onReload={reload} />
 
       {error && (
@@ -186,8 +194,8 @@ function DrivenBy() {
     <p className="rounded-xl border border-hairline bg-neutral-surface px-4 py-2.5 text-xs leading-relaxed text-primary/70">
       <span className="font-medium text-primary">A scheduled job drains the outbox</span>, every five
       minutes, retrying with backoff up to each event&apos;s attempt ceiling. Waiting events need
-      nothing from you. Dead letters and failed emails are different: nothing re-drives those, which
-      is why they lead this page and why replay exists.
+      nothing from you (or use “Deliver queued events” above to drain them now). Dead letters and
+      failed emails are different: nothing re-drives those, which is why replay exists.
     </p>
   );
 }

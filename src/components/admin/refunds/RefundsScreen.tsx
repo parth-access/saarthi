@@ -15,10 +15,11 @@
  *     refunded amount this console knows is one Razorpay returned; everything else
  *     is an estimate from the booking, marked as one, and totals say how many rows
  *     they could not price.
- *  3. **There is no retry button.** `/api/cron/process-refunds` is guarded by a
- *     secret a browser session cannot hold, so the page says the five-minute job
- *     drives these rather than offering a control that would do nothing — or, if
- *     it were wired to move money, do something irreversible on a misclick.
+ *  3. **There is no per-row retry button.** Refunds move money, so they are
+ *     only ever sent by the refunds job, which re-checks each refund's state
+ *     before calling the gateway. An operator who cannot wait five minutes runs
+ *     that same job from Background jobs, behind a confirmation — never a single
+ *     refund from a row, which is how one gets sent twice on a misclick.
  *
  * Rows within a list keep their server order; the summary is sampled once per
  * payload so ages do not shift under a cursor between reads.
@@ -126,21 +127,27 @@ function Reading({
 }
 
 /**
- * Who acts on this queue — which is not the person reading it.
+ * Who acts on this queue, and how to make it act sooner.
  *
- * Stated once, at the top, rather than as a disabled button per row. The refunds
- * job holds the only credential that can call the gateway, and an operator needs
- * to know that the fix for a stuck refund is not on this screen before they go
- * looking for a button that is deliberately absent.
+ * Stated once, at the top, rather than as a button per row: the refunds job is
+ * the only thing that calls the gateway, and the way to hurry it is to run it.
  */
 function DrivenBy() {
   return (
-    <p className="rounded-xl border border-hairline bg-neutral-surface px-4 py-2.5 text-xs leading-relaxed text-primary/70">
-      <span className="font-medium text-primary">These are processed by a scheduled job</span>, which
-      runs every five minutes and holds the only credential that can move money at Razorpay. This
-      console cannot trigger it, so there is no retry button here — a queued refund is waiting for the
-      next run, and a blocked one needs a decision recorded elsewhere, not another attempt.
-    </p>
+    <div className="flex flex-col gap-2 rounded-xl border border-hairline bg-neutral-surface px-4 py-3 text-xs leading-relaxed text-primary/70 sm:flex-row sm:items-center sm:justify-between">
+      <p>
+        <span className="font-medium text-primary">These are processed by a scheduled job</span> every
+        five minutes. A queued refund is waiting for the next run; a blocked one needs a decision, not
+        another attempt.
+      </p>
+      <Link
+        href="/admin/system/jobs"
+        className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-lg bg-white px-3 py-1.5 font-semibold text-primary shadow-sm ring-1 ring-hairline hover:ring-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:self-auto"
+      >
+        Process due refunds now
+        <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+      </Link>
+    </div>
   );
 }
 
