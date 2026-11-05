@@ -1,13 +1,13 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
-import { Shield, Heart, Briefcase, Users } from "lucide-react"
+import { MessagesSquare, Heart, Briefcase, Users } from "lucide-react"
 import { motion } from "framer-motion"
 
 const services = [
   {
-    title: "Anxiety Support",
-    description: "Personalized strategies to manage anxiety and reclaim control over your life.",
-    icon: <Shield className="h-8 w-8 text-primary" />,
+    title: "Teams and Individual Consultation",
+    description: "One-on-one and team sessions tailored to the concerns you or your workplace are facing.",
+    icon: <MessagesSquare className="h-8 w-8 text-primary" />,
   },
   {
     title: "Stress Management",
