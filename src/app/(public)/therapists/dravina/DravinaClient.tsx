@@ -15,7 +15,7 @@ import { DRAVINA_THERAPIST, getTherapistBookingHref } from "@/constants/therapis
 export default function DravinaProfilePage() {
   const dravinaData = {
     name: "Dravina Gupta",
-    title: "Therapist | Psychologist",
+    title: "Counselling Psychologist",
     location: "Delhi, India",
     languages: ["Hindi", "English"],
     experience: "1+ years",
@@ -44,6 +44,16 @@ export default function DravinaProfilePage() {
       },
       {
         degree: "Bachelor’s in Psychology",
+        institution: "",
+        year: ""
+      },
+      {
+        degree: "Bridge Course",
+        institution: "",
+        year: ""
+      },
+      {
+        degree: "CBT Practice",
         institution: "",
         year: ""
       }

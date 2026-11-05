@@ -44,7 +44,9 @@ const Qualifications = ({ items }: QualificationsProps) => {
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-primary">{qual.degree}</h4>
-                    <p className="text-sm text-muted-foreground">{qual.institution} • {qual.year}</p>
+                    {(qual.institution || qual.year) && (
+                      <p className="text-sm text-muted-foreground">{[qual.institution, qual.year].filter(Boolean).join(" • ")}</p>
+                    )}
                   </div>
                 </motion.div>
               ))}
