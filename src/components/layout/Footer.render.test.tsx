@@ -27,6 +27,10 @@ describe('public footer', () => {
     expect(html).toContain('Terms of Service');
   });
 
+  it('states the government and MSME registration', () => {
+    expect(renderToStaticMarkup(<Footer />)).toContain('Govt. Registered | MSME');
+  });
+
   it('keeps the branding, contact details and social profiles', () => {
     const html = renderToStaticMarkup(<Footer />);
 

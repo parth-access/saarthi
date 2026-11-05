@@ -1,7 +1,7 @@
 import Image from "next/image";
 import * as React from "react"
 import Link from "next/link"
-import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin } from "lucide-react"
+import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin, ShieldCheck } from "lucide-react"
 import { CookieSettingsButton } from "@/components/analytics/CookieSettingsButton"
 
 export function Footer() {
@@ -16,6 +16,10 @@ export function Footer() {
             </Link>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">
               A mental wellness platform helping you find clarity, balance, and emotional well-being with the right support.
+            </p>
+            <p className="mb-6 flex items-center gap-2 text-sm font-medium text-primary">
+              <ShieldCheck aria-hidden="true" className="h-4 w-4 shrink-0" />
+              Govt. Registered | MSME
             </p>
             <div className="flex items-center gap-4">
               <a

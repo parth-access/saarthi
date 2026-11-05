@@ -4,6 +4,7 @@ import { Button } from "../ui/Button"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"
+import { ShieldCheck } from "lucide-react"
 
 import { QuoteRotator } from "./QuoteRotator"
 
@@ -49,6 +50,11 @@ const Hero = ({ onBookClick }: HeroProps) => {
                 <Link href="/vision">Learn More</Link>
               </Button>
             </div>
+
+            <p className="mt-6 flex items-center gap-2 text-sm font-medium text-primary">
+              <ShieldCheck aria-hidden="true" className="h-4 w-4 shrink-0" />
+              Govt. Registered | MSME
+            </p>
           </motion.div>
           
           <motion.div
