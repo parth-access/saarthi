@@ -4,30 +4,30 @@ import DravinaClient from './DravinaClient';
 import { ogImage } from '@/lib/og';
 
 const dravinaOgImageUrl = ogImage(
-  'Dravina Gupta — Certified Clinical Psychologist',
+  'Dravina Gupta — Counselling Psychologist',
   'Empathetic and structured therapy support for anxiety, anger, stress, and child/family concerns.'
 );
 
 export const metadata: Metadata = {
-  title: 'Dravina Gupta — Certified Clinical Psychologist',
-  description: 'Book online sessions with Dravina Gupta, a certified clinical psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, stress counselling, and mindfulness.',
+  title: 'Dravina Gupta — Counselling Psychologist',
+  description: 'Book online sessions with Dravina Gupta, a counselling psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, stress counselling, and mindfulness.',
   openGraph: {
-    title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
-    description: 'Book online sessions with Dravina Gupta, a certified psychologist specializing in CBT, anxiety therapy, anger management, and mindfulness on Saarthi.',
+    title: 'Dravina Gupta — Counselling Psychologist | Saarthi',
+    description: 'Book online sessions with Dravina Gupta, a counselling psychologist specializing in CBT, anxiety therapy, anger management, and mindfulness on Saarthi.',
     url: 'https://www.saarthilife.com/therapists/dravina',
     images: [
       {
         url: dravinaOgImageUrl,
         width: 1200,
         height: 630,
-        alt: 'Dravina Gupta - Certified Psychologist Profile',
+        alt: 'Dravina Gupta - Counselling Psychologist Profile',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dravina Gupta — Certified Clinical Psychologist | Saarthi',
-    description: 'Book online sessions with Dravina Gupta, a certified clinical psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, and mindfulness.',
+    title: 'Dravina Gupta — Counselling Psychologist | Saarthi',
+    description: 'Book online sessions with Dravina Gupta, a counselling psychologist at Saarthi. Expert in CBT, anxiety therapy, anger management, and mindfulness.',
     images: [dravinaOgImageUrl],
   },
   alternates: {
@@ -44,9 +44,9 @@ export default function Page() {
         '@id': 'https://www.saarthilife.com/therapists/dravina/#person',
         'url': 'https://www.saarthilife.com/therapists/dravina',
         'name': 'Dravina Gupta',
-        'jobTitle': 'Psychologist & Clinical Counsellor',
+        'jobTitle': 'Counselling Psychologist',
         'knowsLanguage': ['Hindi', 'English'],
-        'description': 'Psychologist holding a Master’s in Clinical Psychology, specializing in anger management, anxiety, depression, and Cognitive Behavioral Therapy.',
+        'description': 'Counselling psychologist holding a Master’s in Clinical Psychology, specializing in anger management, anxiety, depression, and Cognitive Behavioral Therapy.',
         'image': 'https://www.saarthilife.com/dravina.webp',
         'worksFor': {
           '@type': 'Organization',

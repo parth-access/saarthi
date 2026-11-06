@@ -47,7 +47,7 @@ export default function Page() {
         {
           '@type': 'Person',
           'name': 'Dravina Gupta',
-          'jobTitle': 'Founder & Psychologist'
+          'jobTitle': 'Founder & Counselling Psychologist'
         },
         {
           '@type': 'Person',

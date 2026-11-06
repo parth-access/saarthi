@@ -19,9 +19,9 @@ export default function DravinaProfilePage() {
     location: "Delhi, India",
     languages: ["Hindi", "English"],
     experience: "1+ years",
-    shortIntro: "Psychologist with a focus on identifying psychological patterns and supporting clients with practical, structured approaches.",
+    shortIntro: "Counselling psychologist with a focus on identifying psychological patterns and supporting clients with practical, structured approaches.",
     aboutContent: [
-      "Hi, I am Dravina Gupta, a psychologist with a background in Clinical Psychology. I have completed both my graduation and post-graduation in this field and work with individuals dealing with a range of emotional and psychological concerns.",
+      "Hi, I am Dravina Gupta, a counselling psychologist with a background in Clinical Psychology. I have completed both my graduation and post-graduation in this field and work with individuals dealing with a range of emotional and psychological concerns.",
       "I specialize in areas such as anger management, stress, anxiety, depression, and workplace-related challenges. My work involves identifying psychological patterns, understanding individual concerns through observation and conversation, and supporting clients with practical approaches.",
       "I am known for being a patient listener with strong analytical skills and an empathetic approach. I focus on understanding each individual’s situation deeply and helping them navigate their personal challenges in a structured and supportive manner.",
       "I am committed to using my knowledge and experience to support individuals in improving their mental well-being."

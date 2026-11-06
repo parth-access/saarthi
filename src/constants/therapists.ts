@@ -7,7 +7,7 @@ export const DRAVINA_THERAPIST: Therapist = {
   id: '1',
   name: 'Dravina Gupta',
   slug: 'dravina',
-  specialization: 'Psychologist & Clinical Counsellor',
+  specialization: 'Counselling Psychologist',
   experience: '1+ Years',
   bio: 'Specializing in anxiety, depression, anger management, and mindfulness-based stress reduction. Master’s in Clinical Psychology.',
   image: '/dravina.webp',

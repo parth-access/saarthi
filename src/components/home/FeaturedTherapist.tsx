@@ -30,7 +30,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
             <div className="relative overflow-hidden rounded-3xl shadow-2xl">
               <Image
                 src="/dravina.webp"
-                alt="Dravina Gupta - Certified Psychologist at Saarthi"
+                alt="Dravina Gupta - Counselling Psychologist at Saarthi"
                 width={1024}
                 height={1024}
                 sizes="(min-width: 1024px) 40vw, 100vw"
@@ -49,7 +49,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
             <div className="mb-6">
               <h4 className="text-sm font-bold uppercase tracking-widest text-accent mb-4">Featured Therapist</h4>
               <h2 className="text-4xl font-bold text-primary font-serif mb-2">Dravina Gupta</h2>
-              <p className="text-xl text-accent font-medium italic">Founder | Psychologist</p>
+              <p className="text-xl text-accent font-medium italic">Founder | Counselling Psychologist</p>
             </div>
 
             <div className="mb-8">
