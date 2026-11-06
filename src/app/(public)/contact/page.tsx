@@ -10,7 +10,7 @@ const contactOgImageUrl = ogImage(
 
 export const metadata: Metadata = {
   title: 'Contact Saarthi — Online CBT, Anxiety & Wellness Counselling',
-  description: 'Reach out to Saarthi for booking support or general mental wellness inquiries. Message our clinical psychologists and start online therapy sessions safely.',
+  description: 'Reach out to Saarthi for booking support or general mental wellness inquiries. Message our psychologists and start online therapy sessions safely.',
   openGraph: {
     title: 'Contact Saarthi — Online CBT, Anxiety & Wellness Counselling',
     description: 'Reach out to Saarthi for booking support or general mental wellness inquiries. Message our psychologists to start online therapy.',
