@@ -113,7 +113,7 @@ function Profile() {
       <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-primary/60 hover:text-primary mb-8 transition-colors group font-sans"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group font-sans"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to dashboard
@@ -130,10 +130,10 @@ function Profile() {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
                   activeTab === tab.id
                     ? "bg-surface text-primary shadow-sm border border-muted"
-                    : "text-primary/60 hover:text-primary hover:bg-white/50"
+                    : "text-muted-foreground hover:text-primary hover:bg-white/50"
                 }`}
               >
-                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "text-accent" : "text-primary/40"}`} />
+                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "text-accent" : "text-primary/70"}`} />
                 {tab.label}
               </button>
             ))}
@@ -149,7 +149,7 @@ function Profile() {
               <form onSubmit={handleSave} className="space-y-8">
                 <div>
                   <h2 className="text-2xl font-serif text-primary-ink mb-2">Personal information</h2>
-                  <p className="text-primary/60 text-sm font-sans">
+                  <p className="text-muted-foreground text-sm font-sans">
                     These details are used on your bookings and in the emails we send you.
                   </p>
                 </div>
@@ -163,7 +163,7 @@ function Profile() {
                   </div>
                   <div className="font-sans">
                     <h3 className="font-semibold text-primary-ink text-sm">Your avatar</h3>
-                    <p className="text-xs text-primary/50 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       We use your initials across Saarthi — there&apos;s nothing to upload.
                     </p>
                   </div>
@@ -188,9 +188,9 @@ function Profile() {
                       value={currentUser?.email || ""}
                       readOnly
                       disabled
-                      className="bg-primary/5 text-primary/50 cursor-not-allowed"
+                      className="bg-primary/5 text-muted-foreground cursor-not-allowed"
                     />
-                    <p className="text-xs text-primary/40">
+                    <p className="text-xs text-primary/70">
                       Your email identifies your sessions, so it can&apos;t be changed here.
                     </p>
                   </div>
@@ -207,7 +207,7 @@ function Profile() {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label htmlFor="profile-bio" className="text-sm font-medium text-primary">
-                      Anything you&apos;d like your therapist to know <span className="text-primary/40 font-normal">(optional)</span>
+                      Anything you&apos;d like your therapist to know <span className="text-primary/70 font-normal">(optional)</span>
                     </label>
                     <textarea
                       id="profile-bio"
@@ -232,14 +232,14 @@ function Profile() {
               <div className="space-y-8 font-sans">
                 <div>
                   <h2 className="text-2xl font-serif text-primary-ink mb-2">Communications</h2>
-                  <p className="text-primary/60 text-sm">
+                  <p className="text-muted-foreground text-sm">
                     Exactly what Saarthi sends you, and where it goes.
                   </p>
                 </div>
 
                 <div className="rounded-2xl bg-background/60 border border-muted p-4 flex items-start gap-3">
                   <Mail className="w-5 h-5 text-accent shrink-0 mt-0.5" />
-                  <div className="text-sm text-primary/70">
+                  <div className="text-sm text-primary">
                     Everything goes to <span className="font-medium text-primary">{currentUser?.email}</span>.
                   </div>
                 </div>
@@ -267,13 +267,13 @@ function Profile() {
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <h3 className="font-semibold text-primary-ink text-sm">{item.title}</h3>
-                        <p className="text-xs text-primary/60 mt-1 leading-relaxed">{item.desc}</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.desc}</p>
                       </div>
                     </li>
                   ))}
                 </ul>
 
-                <p className="text-xs text-primary/50 leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   These are the essential messages tied to sessions you&apos;ve booked, so there are no
                   toggles to switch off. We never send marketing email. If something isn&apos;t reaching
                   you, or you&apos;d like us to stop contacting you entirely,{" "}
@@ -292,7 +292,7 @@ function Profile() {
               <div className="space-y-8 font-sans">
                 <div>
                   <h2 className="text-2xl font-serif text-primary-ink mb-2">Security &amp; privacy</h2>
-                  <p className="text-primary/60 text-sm">How you sign in, and what to do about your data.</p>
+                  <p className="text-muted-foreground text-sm">How you sign in, and what to do about your data.</p>
                 </div>
 
                 <div className="p-5 rounded-2xl border border-muted bg-surface">
@@ -301,7 +301,7 @@ function Profile() {
                       <h3 className="font-semibold text-primary-ink text-sm flex items-center gap-2">
                         <Shield className="w-4 h-4 text-accent" /> Password
                       </h3>
-                      <p className="text-xs text-primary/60 mt-1 max-w-md leading-relaxed">
+                      <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
                         {usesPassword
                           ? "We'll email you a secure link to set a new password. Your current password keeps working until you use it."
                           : "You sign in with Google, so Saarthi never stores a password for your account. Manage it in your Google account settings."}
@@ -319,14 +319,14 @@ function Profile() {
                         {sendingReset ? "Sending…" : "Email me a reset link"}
                       </Button>
                     ) : (
-                      <span className="text-xs font-medium text-primary/50 shrink-0">Managed by Google</span>
+                      <span className="text-xs font-medium text-muted-foreground shrink-0">Managed by Google</span>
                     )}
                   </div>
                 </div>
 
                 <div className="p-5 rounded-2xl border border-muted bg-surface">
                   <h3 className="font-semibold text-primary-ink text-sm">Your data</h3>
-                  <p className="text-xs text-primary/60 mt-1 mb-3 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-1 mb-3 leading-relaxed">
                     Download a copy of everything Saarthi holds about you — your account, bookings, payments,
                     refunds, reviews, requests, and any session summaries your therapist shared with you. Your
                     therapist&apos;s private notes are their professional records and aren&apos;t included. Read what we
