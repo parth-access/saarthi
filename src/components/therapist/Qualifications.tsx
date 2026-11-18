@@ -16,15 +16,15 @@ interface QualificationsProps {
 const Qualifications = ({ items }: QualificationsProps) => {
   return (
     <section id="qualifications" className="py-24 bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
           >
-            <h2 className="mb-6 text-primary font-serif italic">Qualifications</h2>
+            <h2 className="mb-6 text-primary-ink font-serif italic">Qualifications</h2>
             <p className="mb-10 text-lg text-muted-foreground leading-relaxed">
               My academic background and professional training are the foundation of my clinical practice.
             </p>
@@ -37,13 +37,13 @@ const Qualifications = ({ items }: QualificationsProps) => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex items-center gap-6 p-6 rounded-3xl bg-white shadow-sm border border-primary/5"
+                  className="flex items-center gap-6 p-6 rounded-[1.75rem] bg-surface border border-muted"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sage">
                     <GraduationCap className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-primary">{qual.degree}</h4>
+                    <h4 className="text-lg font-medium text-primary-ink">{qual.degree}</h4>
                     {(qual.institution || qual.year) && (
                       <p className="text-sm text-muted-foreground">{[qual.institution, qual.year].filter(Boolean).join(" • ")}</p>
                     )}
@@ -54,11 +54,11 @@ const Qualifications = ({ items }: QualificationsProps) => {
           </motion.div>
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="relative overflow-hidden rounded-3xl shadow-2xl"
+            className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]"
           >
             <Image
               src="/vision_page.webp"
