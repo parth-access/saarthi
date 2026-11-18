@@ -71,14 +71,14 @@ export function TherapistBookingDetailView({
     <div className="space-y-3">
       <BackLink href="/therapist/sessions" label="Back to Sessions" />
 
-      <header className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+      <header className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">
               {formatSessionDate(booking.date)} · {formatSessionTimeRange(booking.time)} (
               {SESSION_DURATION_LABEL})
             </p>
-            <h2 className="mt-0.5 truncate text-lg font-semibold text-primary">
+            <h2 className="mt-0.5 truncate text-lg font-medium text-primary-ink">
               {booking.name || 'Name not recorded'}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -285,8 +285,8 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
-      <h3 className="text-sm font-semibold text-primary">{title}</h3>
+    <section id={id} className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
+      <h3 className="text-sm font-medium text-primary-ink">{title}</h3>
       {subtitle && <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>}
       {children}
     </section>
@@ -309,7 +309,7 @@ export function DetailSkeleton() {
 
 export function LoadFailed({ error, onRetry }: { error: string | null; onRetry: () => void }) {
   return (
-    <div className="rounded-xl border border-hairline bg-white px-4 py-10 text-center shadow-sm">
+    <div className="rounded-xl border border-hairline bg-surface px-4 py-10 text-center shadow-sm">
       <p className="font-medium text-primary">This booking could not be loaded</p>
       <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
         {error ?? 'The read did not complete.'} Nothing about the booking is shown — a partly loaded
@@ -325,7 +325,7 @@ export function LoadFailed({ error, onRetry }: { error: string | null; onRetry: 
 
 export function NotFoundCard() {
   return (
-    <div className="rounded-xl border border-hairline bg-white px-4 py-10 text-center shadow-sm">
+    <div className="rounded-xl border border-hairline bg-surface px-4 py-10 text-center shadow-sm">
       <p className="font-medium text-primary">Booking not found</p>
       <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-muted-foreground">
         We couldn&apos;t find this booking — it may not exist, or it may not be assigned to you.
