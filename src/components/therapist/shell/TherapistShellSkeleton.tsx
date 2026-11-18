@@ -9,7 +9,7 @@ import { AdminContentSkeleton } from '@/components/admin/shell/AdminShellSkeleto
 export function TherapistShellSkeleton() {
   return (
     <div className="admin-dense min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-gradient-to-b from-[#1F5E3B] to-[#153F28] px-4 pt-5 lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-deep px-4 pt-5 lg:flex">
         <div className="flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-serif text-base font-bold text-primary">
             S
