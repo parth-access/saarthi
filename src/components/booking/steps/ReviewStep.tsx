@@ -174,7 +174,7 @@ export const ReviewStep = ({
         </Button>
         <Button
           variant="accent"
-          className="px-10 h-14 w-full sm:w-auto text-base shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] shadow-accent/20 active:scale-95"
+          className="px-10 h-14 w-full sm:w-auto text-base shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] shadow-accent/20 active:scale-95"
           disabled={isBusy}
           onClick={onConfirm}
         >
