@@ -31,8 +31,8 @@ function getStatusClasses(status: string) {
   if (status === "awaiting_payment") return "bg-amber-100 text-amber-800 border-amber-300";
   if (status === "rejected") return "bg-red-50 text-red-600 border-red-100";
   if (status === "cancelled") return "bg-gray-50 text-gray-500 border-gray-100";
-  if (status === "completed") return "bg-primary/5 text-primary border-primary/10";
-  return "bg-primary/5 text-primary border-primary/10";
+  if (status === "completed") return "bg-primary/5 text-primary border-muted";
+  return "bg-primary/5 text-primary border-muted";
 }
 
 function greetingFor(date = new Date()): string {
@@ -66,9 +66,9 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left bg-white border border-primary/10 rounded-3xl p-5 hover:shadow-md hover:border-primary/20 transition-all duration-300 group flex items-center gap-4"
+      className="w-full text-left bg-surface border border-muted rounded-3xl p-5 hover:shadow-md hover:border-primary/20 transition-all duration-300 group flex items-center gap-4"
     >
-      <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-background border border-primary/5 shrink-0">
+      <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-background border border-muted shrink-0">
         <span className="text-[10px] uppercase tracking-wider text-primary/50 font-sans">{weekday}</span>
         <span className="text-xl font-serif text-primary leading-none">{day}</span>
       </div>
@@ -78,7 +78,7 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
             {session.sessionType || "1:1"} · {formatSessionTimeRange(session.time)}
           </span>
         </div>
-        <h4 className="font-medium text-primary truncate">{therapist?.name || "Assigned Therapist"}</h4>
+        <h4 className="font-medium text-primary-ink truncate">{therapist?.name || "Assigned Therapist"}</h4>
         <div className="mt-1 flex items-center gap-2">
           <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize ${getStatusClasses(session.status)}`}>
             {statusLabel(session.status)}
@@ -201,11 +201,11 @@ function Dashboard() {
   if (error && bookings.length === 0) {
     return (
       <div className="pt-24 pb-20 px-4 sm:px-6">
-        <div className="container mx-auto max-w-md text-center bg-white border border-primary/10 rounded-[2rem] p-10 shadow-sm mt-10">
+        <div className="container mx-auto max-w-md text-center bg-surface border border-muted rounded-[2rem] p-10 shadow-sm mt-10">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-xl font-serif text-primary mb-2">We hit a snag</h2>
+          <h2 className="text-xl font-serif text-primary-ink mb-2">We hit a snag</h2>
           <p className="text-sm text-primary/60 font-sans mb-6">{error}</p>
           <button
             onClick={() => refresh()}
@@ -226,7 +226,7 @@ function Dashboard() {
         {/* Welcome */}
         <div className="mb-8">
           <p className="text-sm text-primary/50 font-sans">{greetingFor()},</p>
-          <h1 className="text-3xl sm:text-4xl font-serif text-primary capitalize">{displayName}</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink capitalize">{displayName}</h1>
           <p className="text-primary/60 font-sans mt-1 text-sm">
             Here&apos;s your space to reflect, prepare, and connect.
           </p>
@@ -249,7 +249,7 @@ function Dashboard() {
             {heroSession ? (
               <section
                 aria-label="Your next session"
-                className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm"
+                className="relative overflow-hidden rounded-[2rem] border border-muted bg-surface shadow-sm"
               >
                 <div className="absolute top-0 right-0 w-56 h-56 bg-accent/5 rounded-bl-full pointer-events-none" />
                 <div className="relative p-6 sm:p-8">
@@ -265,11 +265,11 @@ function Dashboard() {
                   {/* Therapist */}
                   <div className="flex items-center gap-4 mb-6">
                     {heroTherapist?.image ? (
-                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-primary/10">
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden shrink-0 border border-muted">
                         <Image src={normalizeImageUrl(heroTherapist.image)} alt={heroTherapist.name} fill className="object-cover" referrerPolicy="no-referrer" />
                       </div>
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-background flex items-center justify-center text-accent font-serif text-2xl shrink-0 border border-primary/10">
+                      <div className="w-16 h-16 rounded-2xl bg-background flex items-center justify-center text-accent font-serif text-2xl shrink-0 border border-muted">
                         {heroTherapist?.name?.charAt(0) || "T"}
                       </div>
                     )}
@@ -277,29 +277,29 @@ function Dashboard() {
                       <p className="text-[10px] uppercase tracking-widest text-accent font-bold font-sans mb-0.5">
                         {heroSession.sessionType || "1:1"} Session
                       </p>
-                      <h2 className="text-xl font-serif text-primary truncate">{heroTherapist?.name || "Assigned Therapist"}</h2>
+                      <h2 className="text-xl font-serif text-primary-ink truncate">{heroTherapist?.name || "Assigned Therapist"}</h2>
                       <p className="text-sm text-primary/60 font-sans truncate">{heroTherapist?.specialization || "Therapist"}</p>
                     </div>
                   </div>
 
                   {/* Meta grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                    <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Calendar className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Date</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionDate(heroSession.date)}</p>
                     </div>
-                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                    <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Clock className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Time · {SESSION_DURATION_LABEL}</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionTimeRange(heroSession.time)}</p>
                     </div>
-                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                    <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Video className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Mode</p>
                       <p className="text-sm font-medium text-primary font-sans capitalize">{heroSession.sessionMode || "Video Call"}</p>
                     </div>
-                    <div className="rounded-2xl bg-background/50 border border-primary/5 p-4">
+                    <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <CreditCard className="w-4 h-4 text-accent mb-2" />
                       <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Payment</p>
                       <p className={`text-sm font-medium font-sans capitalize ${heroSession.paymentStatus === "paid" ? "text-emerald-600" : "text-accent"}`}>
@@ -308,7 +308,7 @@ function Dashboard() {
                     </div>
                   </div>
                   {/* Meeting availability — honest about what exists right now */}
-                  <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-primary/5 bg-white px-4 py-3 text-xs font-sans">
+                  <div className="mb-5 flex items-start gap-2.5 rounded-2xl border border-muted bg-surface px-4 py-3 text-xs font-sans">
                     {heroSession.status !== "confirmed" ? (
                       <>
                         <Clock className="w-4 h-4 text-accent shrink-0 mt-0.5" />
@@ -346,7 +346,7 @@ function Dashboard() {
                     )}
                     <button
                       onClick={() => openReschedule(heroSession)}
-                      className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-primary/15 hover:bg-primary/5 text-primary text-sm font-medium rounded-2xl transition-all cursor-pointer font-sans"
+                      className="inline-flex items-center gap-2 px-5 py-3 bg-surface border border-primary/15 hover:bg-primary/5 text-primary text-sm font-medium rounded-2xl transition-all cursor-pointer font-sans"
                     >
                       <RefreshCw className="w-4 h-4" /> Reschedule
                     </button>
@@ -368,14 +368,14 @@ function Dashboard() {
             ) : (
               <section
                 aria-label="No upcoming session"
-                className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm p-8 sm:p-10 text-center"
+                className="relative overflow-hidden rounded-[2rem] border border-muted bg-surface shadow-sm p-8 sm:p-10 text-center"
               >
                 <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-bl-full pointer-events-none" />
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-background border border-primary/10 flex items-center justify-center mx-auto mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-background border border-muted flex items-center justify-center mx-auto mb-5">
                     <Calendar className="w-7 h-7 text-accent" />
                   </div>
-                  <h2 className="text-2xl font-serif text-primary mb-2">No sessions scheduled yet</h2>
+                  <h2 className="text-2xl font-serif text-primary-ink mb-2">No sessions scheduled yet</h2>
                   <p className="text-sm text-primary/60 font-sans max-w-md mx-auto mb-6">
                     When you&apos;re ready, choose a time that suits you. Your next {SESSION_DURATION_LABEL.toLowerCase()} session
                     will appear right here with everything you need to join.
@@ -449,7 +449,7 @@ function Dashboard() {
           {/* ===== Sidebar ===== */}
           <aside className="space-y-6">
             {/* Book a session */}
-            <div className="rounded-[2rem] border border-primary/10 bg-primary text-white p-6 shadow-sm relative overflow-hidden">
+            <div className="rounded-[2rem] border border-muted bg-primary text-white p-6 shadow-sm relative overflow-hidden">
               <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-accent/20 rounded-full pointer-events-none" />
               <div className="relative">
                 <Sparkles className="w-5 h-5 text-accent mb-3" />
@@ -468,19 +468,19 @@ function Dashboard() {
 
             {/* My therapists */}
             {myTherapists.length > 0 && (
-              <div className="rounded-[2rem] border border-primary/10 bg-white p-6 shadow-sm">
-                <h3 className="text-sm font-semibold text-primary uppercase tracking-wider font-sans mb-4 flex items-center gap-2">
+              <div className="rounded-[2rem] border border-muted bg-surface p-6 shadow-sm">
+                <h3 className="text-sm font-medium text-primary-ink uppercase tracking-wider font-sans mb-4 flex items-center gap-2">
                   <User className="w-4 h-4 text-accent" /> Your therapists
                 </h3>
                 <ul className="space-y-3">
                   {myTherapists.map((t) => (
                     <li key={t.id} className="flex items-center gap-3">
                       {t.image ? (
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-primary/10">
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0 border border-muted">
                           <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                         </div>
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-background border border-primary/10 flex items-center justify-center text-accent font-serif shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-background border border-muted flex items-center justify-center text-accent font-serif shrink-0">
                           {t.name?.charAt(0) || "T"}
                         </div>
                       )}
@@ -495,8 +495,8 @@ function Dashboard() {
             )}
 
             {/* Support */}
-            <div className="rounded-[2rem] border border-primary/10 bg-white p-6 shadow-sm">
-              <h3 className="text-sm font-semibold text-primary uppercase tracking-wider font-sans mb-2 flex items-center gap-2">
+            <div className="rounded-[2rem] border border-muted bg-surface p-6 shadow-sm">
+              <h3 className="text-sm font-medium text-primary-ink uppercase tracking-wider font-sans mb-2 flex items-center gap-2">
                 <UserCog className="w-4 h-4 text-accent" /> Need a hand?
               </h3>
               <p className="text-sm text-primary/60 font-sans mb-4">
