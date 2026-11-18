@@ -169,7 +169,7 @@ export function NoUpcomingSession() {
       className="rounded-xl border border-dashed border-hairline bg-white px-5 py-8 text-center shadow-sm"
     >
       <CalendarDays className="mx-auto h-5 w-5 text-primary/35" aria-hidden="true" />
-      <h3 className="mt-2 text-sm font-medium text-primary">No active sessions on the horizon</h3>
+      <h3 className="mt-2 text-sm font-semibold text-primary">No active sessions on the horizon</h3>
       <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
         When a session is confirmed it will appear here with its meeting controls.
       </p>
