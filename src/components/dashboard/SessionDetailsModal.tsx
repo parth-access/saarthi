@@ -58,7 +58,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
           />
           <motion.div
             initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             role="dialog"
@@ -66,9 +66,9 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             aria-labelledby="session-details-title"
             ref={panelRef}
             tabIndex={-1}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-primary/10 overflow-hidden outline-none"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-surface shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] flex flex-col border-l border-muted overflow-hidden outline-none"
           >
-            <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 relative z-10">
+            <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50 relative z-10">
               <h3 id="session-details-title" className="text-xl font-serif text-primary">Your Journey</h3>
               <button
                 onClick={onClose}
@@ -83,13 +83,13 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               
               {/* Session Timeline Expander */}
               {activeStep >= 0 && (
-                <div className="bg-[#FFFBE7]/50 rounded-3xl border border-primary/5 overflow-hidden transition-all">
+                <div className="bg-background/50 rounded-3xl border border-muted overflow-hidden transition-all">
                   <button 
                     onClick={() => setShowTimeline(!showTimeline)}
                     className="w-full flex items-center justify-between p-5 text-left focus:outline-none"
                   >
                     <div className="flex items-center gap-3">
-                      <Activity className="w-5 h-5 text-[#E6A520]" />
+                      <Activity className="w-5 h-5 text-accent" />
                       <span className="font-medium text-primary">Session Progress</span>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-primary/40 transition-transform duration-300 ${showTimeline ? 'rotate-180' : ''}`} />
@@ -103,16 +103,16 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden px-5 pb-6"
                       >
-                        <div className="relative border-l border-primary/10 ml-4 pl-6 space-y-6 mt-2">
+                        <div className="relative border-l border-muted ml-4 pl-6 space-y-6 mt-2">
                           {steps.map((step, idx) => {
                             const isCompleted = idx <= activeStep;
                             return (
                               <div key={idx} className="relative">
                                 {/* Dot */}
-                                <div className={`absolute -left-[31px] w-4 h-4 rounded-full border-2 bg-white flex items-center justify-center ${
-                                  isCompleted ? 'border-[#E6A520]' : 'border-primary/20'
+                                <div className={`absolute -left-[31px] w-4 h-4 rounded-full border-2 bg-surface flex items-center justify-center ${
+                                  isCompleted ? 'border-accent' : 'border-primary/20'
                                 }`}>
-                                  {isCompleted && <div className="w-1.5 h-1.5 bg-[#E6A520] rounded-full" />}
+                                  {isCompleted && <div className="w-1.5 h-1.5 bg-accent rounded-full" />}
                                 </div>
                                 <h4 className={`text-sm font-medium ${isCompleted ? 'text-primary' : 'text-primary/40'}`}>
                                   {step.title}
@@ -133,7 +133,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               {/* Status & Basic Info */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs uppercase tracking-widest text-[#E6A520] font-bold">
+                  <span className="text-xs uppercase tracking-widest text-accent font-bold">
                     {session.sessionType} Session
                   </span>
                   <span className={`px-3 py-1 text-xs rounded-full uppercase tracking-wider font-medium ${
@@ -142,7 +142,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                     session.status.includes('pending') ? 'bg-blue-50 text-blue-600 border border-blue-100' :
                     session.status === 'rejected' ? 'bg-red-50 text-red-600 border border-red-100' :
                     session.status === 'cancelled' ? 'bg-gray-50 text-gray-500 border border-gray-100' :
-                    'bg-primary/5 text-primary border border-primary/10'
+                    'bg-primary/5 text-primary border border-muted'
                   }`}>
                     {session.status.replace('_', ' ')}
                   </span>
@@ -150,43 +150,43 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               </div>
 
               {/* Therapist Info */}
-              <div className="bg-white rounded-3xl p-5 border border-primary/5 shadow-sm flex items-center gap-4 group cursor-pointer hover:border-primary/10 hover:shadow-md transition-all">
+              <div className="bg-surface rounded-3xl p-5 border border-muted shadow-sm flex items-center gap-4 group cursor-pointer hover:border-muted hover:shadow-md transition-all">
                 {therapist?.image ? (
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border border-primary/5">
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden shrink-0 border border-muted">
                     <Image src={normalizeImageUrl(therapist.image)} alt={therapist.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-[#FFFBE7] flex items-center justify-center text-[#E6A520] font-serif text-xl shrink-0 border border-primary/5">
+                  <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center text-accent font-serif text-xl shrink-0 border border-muted">
                     {therapist?.name.charAt(0) || 'T'}
                   </div>
                 )}
                 <div>
-                  <h4 className="font-medium text-lg text-primary group-hover:text-[#E6A520] transition-colors">{therapist?.name || 'Assigned Therapist'}</h4>
+                  <h4 className="font-medium text-lg text-primary-ink group-hover:text-accent transition-colors">{therapist?.name || 'Assigned Therapist'}</h4>
                   <p className="text-sm text-primary/60">{therapist?.specialization || 'Therapist'}</p>
                 </div>
               </div>
 
               {/* Details Grid */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
-                  <Calendar className="w-5 h-5 text-[#E6A520] mb-3" />
+                <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
+                  <Calendar className="w-5 h-5 text-accent mb-3" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Date</p>
                   <p className="font-medium text-primary text-sm">{formatSessionDate(session.date)}</p>
                 </div>
-                <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
-                  <Clock className="w-5 h-5 text-[#E6A520] mb-3" />
+                <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
+                  <Clock className="w-5 h-5 text-accent mb-3" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Time · {SESSION_DURATION_LABEL}</p>
                   <p className="font-medium text-primary text-sm">{formatSessionTimeRange(session.time)}</p>
                 </div>
-                <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
-                  <Video className="w-5 h-5 text-[#E6A520] mb-3" />
+                <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
+                  <Video className="w-5 h-5 text-accent mb-3" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Mode</p>
                   <p className="font-medium text-primary text-sm capitalize">{session.sessionMode || 'Video Call'}</p>
                 </div>
-                <div className="bg-[#FFFBE7]/30 border border-primary/5 rounded-2xl p-5 hover:bg-white transition-colors duration-300">
-                  <CreditCard className="w-5 h-5 text-[#E6A520] mb-3" />
+                <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
+                  <CreditCard className="w-5 h-5 text-accent mb-3" />
                   <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Payment</p>
-                  <p className={`font-medium text-sm capitalize ${session.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-[#E6A520]'}`}>
+                  <p className={`font-medium text-sm capitalize ${session.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-accent'}`}>
                     {session.paymentStatus || 'Unpaid'}
                   </p>
                 </div>
@@ -194,8 +194,8 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
 
               {/* Patient Message */}
               {session.message && (
-                <div className="bg-white rounded-3xl p-6 border border-primary/5 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                  <h4 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
+                <div className="bg-surface rounded-3xl p-6 border border-muted shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+                  <h4 className="text-sm font-medium text-primary-ink mb-3 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary/40" /> Your Initial Notes
                   </h4>
                   <div className="text-sm text-primary/70 leading-relaxed max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
@@ -206,7 +206,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             </div>
 
             {/* Actions Footer */}
-            <div className="p-6 border-t border-primary/5 bg-white space-y-3 relative z-10 shadow-[0_-10px_40px_rgb(0,0,0,0.05)]">
+            <div className="p-6 border-t border-muted bg-surface space-y-3 relative z-10 shadow-[0_-10px_40px_rgb(0,0,0,0.05)]">
               {session.status === 'confirmed' && (
                 <button
                   onClick={() => join(session)}
@@ -226,7 +226,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                     onClose();
                     onReschedule();
                   }}
-                  className="w-full py-3.5 text-sm font-medium text-primary hover:text-white bg-white hover:bg-primary border border-primary/20 hover:border-primary rounded-2xl transition-all duration-300 shadow-sm"
+                  className="w-full py-3.5 text-sm font-medium text-primary hover:text-white bg-surface hover:bg-primary border border-primary/20 hover:border-primary rounded-2xl transition-all duration-300 shadow-sm"
                 >
                   Reschedule
                 </button>
@@ -251,7 +251,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             </div>
             
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#E6A520]/5 rounded-bl-full pointer-events-none" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-bl-full pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-tr-full pointer-events-none" />
           </motion.div>
         </React.Fragment>
