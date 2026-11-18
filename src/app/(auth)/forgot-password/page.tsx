@@ -44,7 +44,7 @@ export default function ForgotPassword() {
   if (sentTo) {
     return (
       <AuthCard title="Check your email" subtitle={`If an account exists for ${sentTo}, we've sent a link to reset your password. It expires in 1 hour.`}>
-        <p className="text-sm text-primary/60">
+        <p className="text-sm text-muted-foreground">
           Didn&apos;t get it? Check your spam folder, or{" "}
           <button type="button" onClick={() => setSentTo(null)} className="font-medium text-accent hover:underline">
             try again
@@ -77,7 +77,7 @@ export default function ForgotPassword() {
           <AuthSubmit loading={loading} label="Send reset link" loadingLabel="Sending..." />
         </div>
       </form>
-      <p className="mt-8 text-center text-sm text-primary/60">
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Remembered it?{" "}
         <Link href="/login" className="font-medium text-accent hover:underline">
           Sign in
