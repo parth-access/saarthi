@@ -27,9 +27,9 @@ const steps = [
 const TherapistProcess = () => {
   return (
     <section id="process" className="py-24 bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
-          <h2 className="mb-4 text-primary font-serif">How Sessions Work</h2>
+          <h2 className="mb-4 text-primary-ink font-serif">How Sessions Work</h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
             My therapeutic process is designed to be collaborative, practical, and deeply supportive of your journey.
           </p>
@@ -39,14 +39,14 @@ const TherapistProcess = () => {
           {steps.map((step, index) => (
             <motion.div
               key={step.title}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="relative"
             >
-              <div className="mb-6 text-5xl font-bold text-primary/10 font-serif">{step.number}</div>
-              <h3 className="mb-4 text-xl font-serif text-primary">{step.title}</h3>
+              <div className="mb-6 text-5xl font-medium text-accent/40 font-serif">{step.number}</div>
+              <h3 className="mb-4 text-xl font-serif text-primary-ink">{step.title}</h3>
               <p className="text-base text-muted-foreground">
                 {step.description}
               </p>
