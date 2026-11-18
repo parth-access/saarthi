@@ -97,7 +97,7 @@ export function ContactForm() {
           <motion.form
             key="form"
             onSubmit={handleSubmit}
-            className="space-y-8 rounded-[1.75rem] border border-muted bg-surface p-6 shadow-[0_24px_60px_-48px_rgba(38,68,58,0.45)] sm:p-10"
+            className="space-y-8 rounded-[1.75rem] border border-muted bg-surface p-6 shadow-[0_24px_60px_-48px_rgba(19,59,41,0.45)] sm:p-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
