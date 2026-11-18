@@ -1,19 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1F5E3B;
+  /* Serene palette: soft sage and warm white, a calmer deep green, a muted gold.
+     Every text pairing below clears WCAG AA on the page background. */
+  --color-primary: #355E4B;
   --color-primary-foreground: #FFFFFF;
-  --color-accent: #E6A520;
+  --color-primary-deep: #2D5141;
+  --color-primary-ink: #26443A;
+  /* Accent is used both as text and as a fill behind white text, so it stays
+     dark enough for both (4.6:1 on the background, 5.6:1 under white). */
+  --color-accent: #8E6A35;
   --color-accent-foreground: #FFFFFF;
-  --color-background: #FFFBE7;
-  --color-text: #1A1A1A;
-  --color-muted: #E5E7EB;
-  --color-muted-foreground: #4B5563;
+  --color-accent-soft: #EEDFC4;
+  --color-background: #F6F7F3;
+  --color-surface: #FFFFFF;
+  --color-sage: #E9EFEA;
+  --color-text: #2C3530;
+  --color-muted: #E4E8E1;
+  --color-muted-foreground: #5A645D;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-serif: "Lora", Georgia, serif;
+  --font-heading: var(--font-serif);
 
-  --shadow-soft: 0 10px 40px -10px rgba(31, 94, 59, 0.08);
+  --radius-soft: 1.5rem;
+  --shadow-soft: 0 18px 40px -28px rgba(38, 68, 58, 0.35);
+  --shadow-lift: 0 24px 50px -30px rgba(38, 68, 58, 0.4);
+  --ease-calm: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 /*
@@ -40,7 +53,7 @@
   --color-neutral-surface: #F4F5F3;
 
   /* Cream-tinted hairline: gray-200 reads cold against #FFFBE7. */
-  --color-hairline: #E6E2CE;
+  --color-hairline: #E4E8E1;
 }
 
 @layer base {
@@ -54,8 +67,19 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif);
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    color: inherit;
+  }
+
+  ::selection {
+    background: #DCE8DF;
+    color: var(--color-primary-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
   }
 
   h1 {
@@ -90,7 +114,16 @@
 
   p {
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.7;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
@@ -173,7 +206,7 @@
 }
 
 /*
- * Page and section titles keep Playfair; the many small panel and card titles
+ * Page and section titles keep the serif; the many small panel and card titles
  * below them switch to Inter so a dense screen has one display face per level
  * rather than serif everywhere.
  */

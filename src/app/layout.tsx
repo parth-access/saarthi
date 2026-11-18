@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Providers from './providers';
 import { Toaster } from "@/components/ui/Toaster";
@@ -8,7 +8,7 @@ import { CookieConsent } from "@/components/analytics/CookieConsent";
 import { ogImage } from "@/lib/og";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
+const lora = Lora({ subsets: ["latin"], variable: "--font-serif", style: ["normal", "italic"] });
 
 const rootOgImageUrl = ogImage(
   "Saarthi — Your Safe Space",
@@ -83,7 +83,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} antialiased min-h-screen bg-background selection:bg-accent/30`}>
+      <body className={`${inter.variable} ${lora.variable} antialiased min-h-screen bg-background`}>
         <GoogleAnalytics />
         <Providers>
           {children}
