@@ -107,7 +107,7 @@ export function BreathingPlayer({ pattern }: { pattern: BreathingPattern }) {
           />
           <div className="relative text-center">
             <p className="text-3xl font-serif text-primary tabular-nums">{tick.remaining}</p>
-            <p className="text-[10px] uppercase tracking-widest text-primary/50 mt-1 font-sans">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 font-sans">
               second{tick.remaining === 1 ? "" : "s"}
             </p>
           </div>
@@ -116,7 +116,7 @@ export function BreathingPlayer({ pattern }: { pattern: BreathingPattern }) {
         <p aria-live="polite" className="text-lg font-serif text-primary min-h-[28px]">
           {running ? phase.label : "Ready when you are"}
         </p>
-        <p className="text-xs text-primary/50 mt-1 font-sans">
+        <p className="text-xs text-muted-foreground mt-1 font-sans">
           {tick.cycles > 0
             ? `${tick.cycles} round${tick.cycles === 1 ? "" : "s"} complete`
             : "Follow the circle as it grows and shrinks"}
