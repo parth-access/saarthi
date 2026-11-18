@@ -15,7 +15,7 @@ import { DashboardDataProvider } from "@/components/dashboard/DashboardDataConte
  */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FFFBE7]">
+    <div className="min-h-screen bg-background">
       <DashboardHeader />
       <DashboardDataProvider>{children}</DashboardDataProvider>
     </div>
