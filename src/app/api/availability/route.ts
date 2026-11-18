@@ -147,10 +147,9 @@ export async function GET(request: Request) {
     // offers no slots at all, whatever their stored rules say. The flag rides
     // along so the wizard can say why the day is empty instead of implying the
     // therapist simply does not work.
-    const therapistSnap = await adminDb.collection('therapists').doc(therapistId).get();
-    if (therapistSnap.exists && therapistSnap.data()?.active === false) {
-      return NextResponse.json({ ...EMPTY_DAY(), notBookable: true });
-    }
+    // All five reads go out together (one round trip, not two); the bookability
+    // check below still runs before any of the schedule results are used.
+    const therapistPromise = adminDb.collection('therapists').doc(therapistId).get();
 
     const rulesPromise = adminDb
       .collection('therapistAvailability')
@@ -172,12 +171,17 @@ export async function GET(request: Request) {
       .where('date', '==', date)
       .get();
 
-    const [rulesSnapshot, overridesSnapshot, bookingsList, lockedSlotsSnapshot] = await Promise.all([
+    const [therapistSnap, rulesSnapshot, overridesSnapshot, bookingsList, lockedSlotsSnapshot] = await Promise.all([
+      therapistPromise,
       rulesPromise,
       overridesPromise,
       bookingsPromise,
       lockedSlotsPromise,
     ]);
+
+    if (therapistSnap.exists && therapistSnap.data()?.active === false) {
+      return NextResponse.json({ ...EMPTY_DAY(), notBookable: true });
+    }
 
     // Dev-only stage timings (durations in ms — no ids, tokens or user data).
     if (process.env.NODE_ENV !== 'production') {
