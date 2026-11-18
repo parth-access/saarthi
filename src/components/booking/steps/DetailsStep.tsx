@@ -110,9 +110,9 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
           <div className="inline-flex items-center gap-2 rounded-full border border-muted bg-sage px-4 py-1.5 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span>{sessionType} Therapy Session</span>
-            <span className="text-primary/30">·</span>
+            <span className="text-primary/70">·</span>
             <span className="font-semibold tabular-nums">{priceLabel}</span>
-            <span className="text-primary/30">·</span>
+            <span className="text-primary/70">·</span>
             <span className="text-muted-foreground">{SESSION_DURATION_MINUTES} Minutes</span>
           </div>
         </div>
@@ -121,7 +121,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
       <form onSubmit={handleSubmit(onNext)} className="mx-auto max-w-xl space-y-6" noValidate>
         {/* Full name */}
         <div className="space-y-2">
-          <label htmlFor="booking-name" className="ml-1 block text-sm font-medium text-primary/80">
+          <label htmlFor="booking-name" className="ml-1 block text-sm font-medium text-primary">
             Full Name<Required />
           </label>
           <div className="relative">
@@ -143,7 +143,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
         {/* Email + phone */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="space-y-2">
-            <label htmlFor="booking-email" className="ml-1 block text-sm font-medium text-primary/80">
+            <label htmlFor="booking-email" className="ml-1 block text-sm font-medium text-primary">
               Email Address<Required />
             </label>
             <div className="relative">
@@ -164,7 +164,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="booking-phone" className="ml-1 block text-sm font-medium text-primary/80">
+            <label htmlFor="booking-phone" className="ml-1 block text-sm font-medium text-primary">
               Phone Number<Required />
             </label>
             <div className="flex items-stretch gap-2">
@@ -179,7 +179,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                     <option key={d.code} value={d.code}>{d.flag} {d.code}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/40" />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70" />
               </div>
               <div className="relative flex-1">
                 <Input
@@ -210,7 +210,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
         {/* Gender + age */}
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-2">
-            <label htmlFor="booking-gender" className="ml-1 block text-sm font-medium text-primary/80">
+            <label htmlFor="booking-gender" className="ml-1 block text-sm font-medium text-primary">
               Gender<Required />
             </label>
             <div className="relative">
@@ -229,13 +229,13 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                 <option value="Prefer not to say">Prefer not to say</option>
               </select>
               <FieldTick show={isValid("gender")} className="right-10" />
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/40" />
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70" />
             </div>
             {errors.gender && <p id="booking-gender-error" className="ml-1 text-xs text-danger">{errors.gender.message}</p>}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="booking-age" className="ml-1 block text-sm font-medium text-primary/80">
+            <label htmlFor="booking-age" className="ml-1 block text-sm font-medium text-primary">
               Age<Required />
             </label>
             <div className="relative">
@@ -262,11 +262,11 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
         {/* Note for therapist — the only optional field */}
         <div className="space-y-2">
           <div className="ml-1 flex items-center justify-between">
-            <label htmlFor="booking-message" className="text-sm font-medium text-primary/80">
+            <label htmlFor="booking-message" className="text-sm font-medium text-primary">
               Note for Therapist (Optional)
             </label>
             <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <Lock className="h-3 w-3 text-primary/60" /> Confidential
+              <Lock className="h-3 w-3 text-muted-foreground" /> Confidential
             </span>
           </div>
           <Textarea
