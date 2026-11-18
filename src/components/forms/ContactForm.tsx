@@ -78,10 +78,10 @@ export function ContactForm() {
             key="success"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center text-center py-12 bg-primary/5 rounded-3xl border border-primary/10"
+            className="flex flex-col items-center text-center py-14 px-6 bg-background rounded-[1.75rem] border border-muted"
           >
-            <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
-            <h3 className="text-2xl font-heading font-bold text-text mb-2">Message Sent</h3>
+            <CheckCircle2 className="h-14 w-14 text-primary mb-5" />
+            <h3 className="text-2xl font-heading font-medium text-primary-ink mb-2">Message Sent</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               {"Thank you for reaching out. We've received your message and will get back to you as soon as possible."}
             </p>
@@ -97,7 +97,7 @@ export function ContactForm() {
           <motion.form
             key="form"
             onSubmit={handleSubmit}
-            className="space-y-8"
+            className="space-y-8 rounded-[1.75rem] border border-muted bg-surface p-6 shadow-[0_24px_60px_-48px_rgba(38,68,58,0.45)] sm:p-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -113,7 +113,7 @@ export function ContactForm() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Your full name"
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
+                  className="h-14"
                 />
               </div>
 
@@ -128,7 +128,7 @@ export function ContactForm() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="name@email.com"
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 h-14"
+                  className="h-14"
                 />
               </div>
 
@@ -146,7 +146,7 @@ export function ContactForm() {
                   value={formData.message}
                   onChange={handleChange}
                   placeholder="Feel free to share as much or as little as you want..."
-                  className="bg-[#FFFBE7]/20 focus:bg-white transition-all duration-300 p-4"
+                  className="p-4"
                 />
               </div>
               
@@ -169,7 +169,7 @@ export function ContactForm() {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, ease: "easeOut" }}
-                className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-4 rounded-xl"
+                className="flex items-center gap-2 text-danger text-sm bg-danger-surface p-4 rounded-2xl"
                 role="alert"
               >
                 <AlertCircle className="h-5 w-5 shrink-0" />
@@ -181,7 +181,7 @@ export function ContactForm() {
               <Button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full h-16 text-lg rounded-2xl hover:scale-[1.02] hover:shadow-lg transition-all duration-300 active:scale-100 disabled:opacity-70 disabled:hover:scale-100 disabled:cursor-not-allowed motion-reduce:transition-colors motion-reduce:hover:scale-100 motion-reduce:hover:shadow-none"
+                className="w-full h-14 text-base disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {status === 'loading' ? (
                   <>
