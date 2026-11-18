@@ -43,14 +43,14 @@ export default function AboutPage() {
         {/* 1. Hero Section */}
         <section className="text-center mb-32">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
             className="space-y-6"
           >
-            <h1 className="text-5xl md:text-7xl lg:text-8xl text-primary leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl text-primary-ink leading-[1.1] tracking-tight">
               About Saarthi — <br />
-              <span className="italic font-normal text-accent/80">Your Safe Space.</span>
+              <span className="italic font-normal text-accent">Your Safe Space.</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-serif italic leading-relaxed">
               A place where you feel heard, understood, and supported without judgment.
@@ -62,13 +62,13 @@ export default function AboutPage() {
         <section className="mb-32">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
               className="space-y-8"
             >
-              <h2 className="text-4xl text-primary">A Pause in a Loud World</h2>
+              <h2 className="text-4xl text-primary-ink">A Pause in a Loud World</h2>
               <div className="space-y-6 text-lg text-muted-foreground leading-relaxed">
                 <p>
                   Saarthi was created with a simple yet powerful intention — to offer a space where you feel heard, understood, and supported without judgment. In a world that constantly demands more, Saarthi stands as a pause — a place where you can reconnect with yourself.
@@ -82,21 +82,22 @@ export default function AboutPage() {
               </div>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
               className="relative"
             >
-              <div className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl">
+              <div className="relative aspect-square rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
                 <Image
                   src="/dravina.webp"
                   alt="Calm meditation"
                   width={1024}
                   height={1024}
                   sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover saturate-[.88]"
                 />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)]" />
               </div>
               <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/10 rounded-full blur-2xl -z-10" />
             </motion.div>
@@ -114,7 +115,7 @@ export default function AboutPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/10 text-accent mb-4">
               <Leaf className="w-8 h-8" />
             </div>
-            <h2 className="text-4xl text-primary italic font-serif">What We Believe</h2>
+            <h2 className="text-4xl text-primary-ink italic font-serif">What We Believe</h2>
             <div className="space-y-4">
               <p className="text-xl text-muted-foreground leading-relaxed">
                 At Saarthi, we believe that mental well-being is not a luxury — it is essential.
@@ -129,21 +130,21 @@ export default function AboutPage() {
         {/* 4. Mission & 5. Vision */}
         <section className="mb-32 grid md:grid-cols-2 gap-8">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-12 rounded-[3rem] bg-primary text-white space-y-6"
+            className="p-10 md:p-12 rounded-[1.75rem] bg-[linear-gradient(160deg,#E9EFEA,#DFE8E1)] text-text space-y-5"
           >
             <span className="text-accent font-medium tracking-widest uppercase text-xs">Our Mission</span>
-            <p className="text-primary-foreground/90 text-lg leading-relaxed">
+            <p className="text-text text-lg leading-8">
               To create a safe, inclusive, and calming space where individuals can explore their thoughts, emotions, and personal growth with the right guidance and support.
             </p>
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-12 rounded-[3rem] bg-white border border-primary/5 space-y-6"
+            className="p-10 md:p-12 rounded-[1.75rem] bg-surface border border-muted space-y-5"
           >
             <span className="text-accent font-medium tracking-widest uppercase text-xs">Our Vision</span>
             <p className="text-muted-foreground text-lg leading-relaxed">
@@ -155,22 +156,22 @@ export default function AboutPage() {
         {/* 6. What Makes Saarthi Different */}
         <section className="mb-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl text-primary mb-4">What Makes Saarthi Different</h2>
+            <h2 className="text-4xl md:text-5xl text-primary-ink mb-4">What Makes Saarthi Different</h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-8">
             {differentiators.map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="p-10 rounded-[2.5rem] bg-white border border-primary/5 hover:border-accent/30 transition-all duration-500 group"
+                className="p-9 rounded-[1.5rem] bg-surface border border-muted hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.35)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
               >
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-6 group-hover:bg-accent/10 group-hover:text-accent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
                 </div>
-                <h4 className="text-2xl font-bold text-primary mb-3">{item.title}</h4>
+                <h4 className="text-2xl font-medium text-primary-ink mb-3">{item.title}</h4>
                 <p className="text-muted-foreground leading-relaxed">
                   {item.description}
                 </p>
@@ -182,20 +183,20 @@ export default function AboutPage() {
         {/* 7. Founders Section */}
         <section className="mb-32">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl text-primary mb-4">The Hearts Behind Saarthi</h2>
+            <h2 className="text-4xl md:text-5xl text-primary-ink mb-4">The Hearts Behind Saarthi</h2>
           </div>
           <div className="grid md:grid-cols-2 gap-12">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center space-y-6 p-12 rounded-[3rem] bg-white border border-primary/5"
+              className="text-center space-y-6 p-12 rounded-[1.75rem] bg-surface border border-muted"
             >
-              <div className="w-32 h-32 rounded-full bg-primary/5 mx-auto flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-sage mx-auto flex items-center justify-center">
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-primary">Dravina Gupta</h3>
+                <h3 className="text-2xl font-medium text-primary-ink">Dravina Gupta</h3>
                 <p className="text-accent font-medium italic">Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
@@ -203,17 +204,17 @@ export default function AboutPage() {
               </p>
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-center space-y-6 p-12 rounded-[3rem] bg-white border border-primary/5"
+              className="text-center space-y-6 p-12 rounded-[1.75rem] bg-surface border border-muted"
             >
-              <div className="w-32 h-32 rounded-full bg-primary/5 mx-auto flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full bg-sage mx-auto flex items-center justify-center">
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-primary">Krishna Gupta</h3>
+                <h3 className="text-2xl font-medium text-primary-ink">Krishna Gupta</h3>
                 <p className="text-accent font-medium italic">Co-Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
