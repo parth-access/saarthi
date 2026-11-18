@@ -106,7 +106,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         aria-labelledby={`review-modal-title-${booking.id}`}
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full max-w-lg bg-surface rounded-2xl shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] border border-slate-100 overflow-hidden outline-none"
+        className="relative w-full max-w-lg bg-surface rounded-2xl shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] border border-slate-100 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
