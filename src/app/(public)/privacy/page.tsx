@@ -67,7 +67,7 @@ export default function PrivacyPage() {
               <Shield className="w-4 h-4 text-primary" />
               <span>Legal &amp; Privacy</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-medium text-primary-ink mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-primary-ink mb-4">
               Privacy Policy
             </h1>
             <p className="text-muted-foreground text-sm font-medium">
@@ -91,7 +91,7 @@ export default function PrivacyPage() {
             
             {/* 1. What Saarthi Is */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">1. About Saarthi</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">1. About Saarthi</h2>
               <p>
                 Saarthi (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) operates an online mental health and wellness platform connecting individuals in India and worldwide with qualified, verified therapists and counsellors for individual therapy, anxiety guidance, and emotional support.
               </p>
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
 
             {/* 2. Information We Collect */}
             <section className="space-y-4">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">2. Information We Collect</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">2. Information We Collect</h2>
               <p>We collect information necessary to facilitate session bookings, enable video sessions, process payments, and provide quality care. This includes:</p>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li><strong className="text-primary">Contact Details:</strong> Your full name, email address, phone number, age, and gender provided during session booking.</li>
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
 
             {/* 3. Google Workspace, Calendar & Video Sessions */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">3. Google Workspace &amp; Google Calendar/Meet Integration</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">3. Google Workspace &amp; Google Calendar/Meet Integration</h2>
               <p>
                 To provide seamless online video therapy, Saarthi integrates with Google Calendar and Google Meet APIs via secure OAuth authentication.
               </p>
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
 
             {/* 4. How We Use Information */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">4. How We Use Your Information</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">4. How We Use Your Information</h2>
               <p>Your information is used strictly for legitimate operational and service delivery purposes:</p>
               <div className="grid sm:grid-cols-2 gap-4 pt-2">
                 <div className="p-4 rounded-xl bg-primary/5 border border-muted space-y-1">
@@ -150,7 +150,7 @@ export default function PrivacyPage() {
 
             {/* 5. Confidentiality & Therapist Access */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">5. Therapist Confidentiality</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">5. Therapist Confidentiality</h2>
               <p>
                 Intake notes and information shared during booking or therapy sessions are held in strict confidence. Your intake note is accessible solely to your assigned therapist for session preparation. Counselors and psychologists on Saarthi adhere to professional ethical codes and confidentiality standards.
               </p>
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
 
             {/* 6. Data Security */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">6. Data Security</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">6. Data Security</h2>
               <p>
                 We employ industry-standard technical safeguards, access controls, and encrypted communication channels to protect your data. While no internet transmission is 100% immune from security breaches, we continuously monitor and improve our infrastructure to mitigate risks.
               </p>
@@ -166,7 +166,7 @@ export default function PrivacyPage() {
 
             {/* 7. Cookies & Analytics */}
             <section id="cookies" className="space-y-3 scroll-mt-24">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">7. Cookies &amp; Analytics</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">7. Cookies &amp; Analytics</h2>
               <p>We keep this to the minimum needed to run Saarthi. There are two kinds:</p>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li><strong className="text-primary">Essential (always on):</strong> a sign-in session cookie that keeps you logged in (set only when you sign in, and it expires after up to 5 days), the browser storage our sign-in provider needs to keep sign-in working, and a small note in your browser remembering your analytics choice. The site cannot work without these, so they do not need your consent.</li>
@@ -182,7 +182,7 @@ export default function PrivacyPage() {
 
             {/* 8. Third-Party Service Providers */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">8. Third-Party Service Providers</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">8. Third-Party Service Providers</h2>
               <p>
                 We share data only with essential infrastructure providers required to operate our service:
               </p>
@@ -199,7 +199,7 @@ export default function PrivacyPage() {
 
             {/* 9. Data Retention & Deletion */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">9. Data Retention &amp; Your Rights</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">9. Data Retention &amp; Your Rights</h2>
               <p>
                 We retain booking records and contact information for as long as necessary to maintain your account history and comply with financial accounting obligations. You have the right to:
               </p>
@@ -212,7 +212,7 @@ export default function PrivacyPage() {
 
             {/* 10. Policy Updates */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">10. Changes to This Privacy Policy</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">10. Changes to This Privacy Policy</h2>
               <p>
                 We may update this Privacy Policy periodically to reflect technological updates, service enhancements, or legal requirements. Material changes will be noted on this page with an updated revision date.
               </p>
@@ -220,7 +220,7 @@ export default function PrivacyPage() {
 
             {/* 11. Contact Us */}
             <section className="p-6 rounded-2xl bg-primary/5 border border-muted space-y-3">
-              <h2 className="text-lg font-serif font-medium text-primary-ink">11. Contact &amp; Privacy Inquiries</h2>
+              <h2 className="text-lg font-serif font-semibold text-primary-ink">11. Contact &amp; Privacy Inquiries</h2>
               <p className="text-xs text-muted-foreground">
                 For questions, data access requests, or privacy concerns, please contact our support team:
               </p>
