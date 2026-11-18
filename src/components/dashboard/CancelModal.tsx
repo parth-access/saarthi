@@ -98,8 +98,8 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md outline-none"
           >
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10">
-              <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50">
+            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] overflow-hidden border border-muted">
+              <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50">
                 <div>
                   <h3 id="cancel-title" className="text-xl font-serif text-primary">Cancel Session</h3>
                   <p className="text-xs text-primary/60 font-sans mt-1">
@@ -135,8 +135,8 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-start gap-3 rounded-2xl p-4 border bg-[#FFFBE7]/60 border-primary/10 text-primary/70">
-                    <Info className="w-5 h-5 shrink-0 mt-0.5 text-[#E6A520]" />
+                  <div className="flex items-start gap-3 rounded-2xl p-4 border bg-background/60 border-muted text-primary/70">
+                    <Info className="w-5 h-5 shrink-0 mt-0.5 text-accent" />
                     <div className="text-sm leading-relaxed">
                       No payment has been captured for this session, so there is nothing to refund. This will simply withdraw your request.
                     </div>
@@ -154,7 +154,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
                     onChange={(e) => setReason(e.target.value)}
                     maxLength={500}
                     placeholder="Let us know why, if you'd like to…"
-                    className="w-full rounded-2xl border border-primary/20 bg-white px-4 py-3 text-sm text-primary placeholder:text-primary/30 focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 resize-none"
+                    className="w-full rounded-2xl border border-primary/20 bg-surface px-4 py-3 text-sm text-primary placeholder:text-primary/30 focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 resize-none"
                   />
                 </div>
 
@@ -165,7 +165,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
                 )}
               </div>
 
-              <div className="flex gap-3 p-6 border-t border-primary/5 bg-white font-sans">
+              <div className="flex gap-3 p-6 border-t border-muted bg-surface font-sans">
                 <button
                   type="button"
                   onClick={onClose}
