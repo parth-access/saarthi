@@ -48,7 +48,7 @@ export const FloatingInput = ({
             y: isFocused ? -2 : 0, 
             boxShadow: isFocused ? "0 4px 20px rgba(230, 165, 32, 0.08)" : "0 0px 0px rgba(0,0,0,0)"
          }}
-         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-accent bg-white' : 'border-primary/10 bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
+         className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-accent bg-surface' : 'border-muted bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
       >
          <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-accent' : 'text-primary/40'}`}>
             <Icon className="w-5 h-5" />
