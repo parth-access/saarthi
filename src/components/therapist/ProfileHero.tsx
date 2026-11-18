@@ -85,14 +85,14 @@ const ProfileHero = ({
             transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
             className="relative"
           >
-            <div className="group relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
+            <div className="group relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]">
               <img
                 src={image || "/placeholder.png"}
                 alt={name}
-                className="h-full w-full object-cover saturate-[.88] transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                className="h-full w-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 referrerPolicy="no-referrer"
               />
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(248,247,241,0)_60%,rgba(19,59,41,0.08))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" />
             </div>
             {/* Decorative element */}
             <div className="absolute -bottom-6 -right-6 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
