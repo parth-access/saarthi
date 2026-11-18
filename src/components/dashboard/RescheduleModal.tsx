@@ -128,8 +128,8 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col outline-none"
           >
-            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-primary/10 flex flex-col max-h-[88vh]">
-              <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50 shrink-0">
+            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] overflow-hidden border border-muted flex flex-col max-h-[88vh]">
+              <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50 shrink-0">
                 <div>
                   <h3 id="reschedule-title" className="text-xl font-serif text-primary">Reschedule Session</h3>
                   <p className="text-xs text-primary/60 font-sans mt-1">
@@ -149,7 +149,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                 {/* Date picker */}
                 <div>
                   <label className="flex items-center gap-2 text-sm font-medium text-primary mb-3">
-                    <CalendarIcon className="w-4 h-4 text-[#E6A520]" /> Choose a new date
+                    <CalendarIcon className="w-4 h-4 text-accent" /> Choose a new date
                   </label>
                   <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
                     {dateWindow.map((d) => {
@@ -161,7 +161,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                           className={`shrink-0 w-16 py-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                             active
                               ? 'bg-primary text-white border-primary shadow-sm'
-                              : 'bg-white text-primary/70 border-primary/10 hover:border-[#E6A520]/40 hover:bg-[#FFFBE7]'
+                              : 'bg-surface text-primary/70 border-muted hover:border-accent/40 hover:bg-background'
                           }`}
                           aria-pressed={active}
                         >
@@ -177,7 +177,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                 {selectedDate && (
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-primary mb-3">
-                      <Clock className="w-4 h-4 text-[#E6A520]" /> Available times
+                      <Clock className="w-4 h-4 text-accent" /> Available times
                       <span className="text-xs text-primary/40 font-normal">({SESSION_DURATION_LABEL} session)</span>
                     </label>
 
@@ -190,7 +190,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                         <AlertCircle className="w-4 h-4 shrink-0" /> {slotsError}
                       </div>
                     ) : availableSlots.length === 0 ? (
-                      <div className="text-sm text-primary/60 bg-[#FFFBE7]/50 border border-dashed border-primary/15 rounded-2xl p-5 text-center">
+                      <div className="text-sm text-primary/60 bg-background/50 border border-dashed border-primary/15 rounded-2xl p-5 text-center">
                         No open times on this day. Please try another date.
                       </div>
                     ) : (
@@ -203,8 +203,8 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                               onClick={() => { setSelectedTime(s.time); setError(''); }}
                               className={`py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
                                 active
-                                  ? 'bg-[#E6A520] text-white border-[#E6A520] shadow-sm'
-                                  : 'bg-white text-primary/80 border-primary/10 hover:border-[#E6A520]/40 hover:bg-[#FFFBE7]'
+                                  ? 'bg-accent text-white border-accent shadow-sm'
+                                  : 'bg-surface text-primary/80 border-muted hover:border-accent/40 hover:bg-background'
                               }`}
                               aria-pressed={active}
                             >
@@ -224,7 +224,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                 )}
               </div>
 
-              <div className="flex gap-3 p-6 border-t border-primary/5 bg-white shrink-0 font-sans">
+              <div className="flex gap-3 p-6 border-t border-muted bg-surface shrink-0 font-sans">
                 <button
                   type="button"
                   onClick={onClose}
