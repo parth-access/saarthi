@@ -70,7 +70,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 className={cn(
                   "snap-center shrink-0 w-28 py-5 rounded-[1.5rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   // Transforms only on hover/press so pills never shift the scroller.
-                  "enabled:hover:-translate-y-px enabled:hover:shadow-[0_18px_40px_-30px_rgba(38,68,58,0.4)]",
+                  "enabled:hover:-translate-y-px enabled:hover:shadow-[0_18px_40px_-30px_rgba(19,59,41,0.4)]",
                   "enabled:active:translate-y-0 enabled:active:scale-[0.98] enabled:active:duration-100",
                   "motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:scale-100",
                   "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
@@ -84,7 +84,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 
                 <span className={cn(
                   "text-xs font-medium mb-1 transition-colors",
-                  isSelected ? "text-white/70" : "text-primary/40"
+                  isSelected ? "text-white/70" : "text-primary/70"
                 )}>
                   {label}
                 </span>
@@ -93,7 +93,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 </span>
                 <span className={cn(
                   "text-xs font-semibold transition-colors",
-                   isSelected ? "text-white/80" : "text-primary/50"
+                   isSelected ? "text-white/80" : "text-muted-foreground"
                 )}>
                   {monthShort}
                 </span>
