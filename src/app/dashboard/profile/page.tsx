@@ -103,7 +103,7 @@ function Profile() {
   if (loading) {
     return (
       <div className="pt-28 pb-24 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#E6A520] animate-spin" />
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
       </div>
     );
   }
@@ -129,11 +129,11 @@ function Profile() {
                 aria-current={activeTab === tab.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
                   activeTab === tab.id
-                    ? "bg-white text-primary shadow-sm border border-primary/10"
+                    ? "bg-surface text-primary shadow-sm border border-muted"
                     : "text-primary/60 hover:text-primary hover:bg-white/50"
                 }`}
               >
-                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "text-[#E6A520]" : "text-primary/40"}`} />
+                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? "text-accent" : "text-primary/40"}`} />
                 {tab.label}
               </button>
             ))}
@@ -143,26 +143,26 @@ function Profile() {
             key={activeTab}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex-1 bg-white rounded-3xl p-6 sm:p-8 md:p-10 border border-primary/10 shadow-sm relative w-full"
+            className="flex-1 bg-surface rounded-3xl p-6 sm:p-8 md:p-10 border border-muted shadow-sm relative w-full"
           >
             {activeTab === "personal" && (
               <form onSubmit={handleSave} className="space-y-8">
                 <div>
-                  <h2 className="text-2xl font-serif text-primary mb-2">Personal information</h2>
+                  <h2 className="text-2xl font-serif text-primary-ink mb-2">Personal information</h2>
                   <p className="text-primary/60 text-sm font-sans">
                     These details are used on your bookings and in the emails we send you.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-6 pb-6 border-b border-primary/5">
+                <div className="flex items-center gap-6 pb-6 border-b border-muted">
                   <div
                     aria-hidden="true"
-                    className="w-20 h-20 rounded-full bg-[#FFFBE7] flex items-center justify-center text-2xl font-serif text-[#E6A520] border border-primary/10 shrink-0"
+                    className="w-20 h-20 rounded-full bg-background flex items-center justify-center text-2xl font-serif text-accent border border-muted shrink-0"
                   >
                     {initialsFrom(name, currentUser?.email)}
                   </div>
                   <div className="font-sans">
-                    <h3 className="font-medium text-primary text-sm">Your avatar</h3>
+                    <h3 className="font-medium text-primary-ink text-sm">Your avatar</h3>
                     <p className="text-xs text-primary/50 mt-1">
                       We use your initials across Saarthi — there&apos;s nothing to upload.
                     </p>
@@ -176,7 +176,7 @@ function Profile() {
                       id="profile-name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="bg-[#FFFBE7]/50"
+                      className="bg-background/50"
                       placeholder="Your name"
                       autoComplete="name"
                     />
@@ -200,7 +200,7 @@ function Profile() {
                       id="profile-phone"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="bg-[#FFFBE7]/50"
+                      className="bg-background/50"
                       placeholder="+91 99999 99999"
                       autoComplete="tel"
                     />
@@ -214,7 +214,7 @@ function Profile() {
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
                       maxLength={1000}
-                      className="w-full min-h-[100px] p-3 rounded-xl border border-input bg-[#FFFBE7]/50 text-sm focus:outline-none focus:ring-2 focus:ring-[#E6A520] transition-colors resize-none placeholder:text-muted-foreground/50 font-sans"
+                      className="w-full min-h-[100px] p-3 rounded-xl border border-input bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-accent transition-colors resize-none placeholder:text-muted-foreground/50 font-sans"
                       placeholder="Share a bit about yourself…"
                     />
                   </div>
@@ -231,14 +231,14 @@ function Profile() {
             {activeTab === "communications" && (
               <div className="space-y-8 font-sans">
                 <div>
-                  <h2 className="text-2xl font-serif text-primary mb-2">Communications</h2>
+                  <h2 className="text-2xl font-serif text-primary-ink mb-2">Communications</h2>
                   <p className="text-primary/60 text-sm">
                     Exactly what Saarthi sends you, and where it goes.
                   </p>
                 </div>
 
-                <div className="rounded-2xl bg-[#FFFBE7]/60 border border-primary/10 p-4 flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-[#E6A520] shrink-0 mt-0.5" />
+                <div className="rounded-2xl bg-background/60 border border-muted p-4 flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                   <div className="text-sm text-primary/70">
                     Everything goes to <span className="font-medium text-primary">{currentUser?.email}</span>.
                   </div>
@@ -263,10 +263,10 @@ function Profile() {
                       desc: "Reschedules and cancellations are confirmed by email, including any refund we start.",
                     },
                   ].map((item) => (
-                    <li key={item.title} className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-primary/5">
+                    <li key={item.title} className="flex items-start gap-3 p-4 rounded-2xl bg-surface border border-muted">
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-medium text-primary text-sm">{item.title}</h3>
+                        <h3 className="font-medium text-primary-ink text-sm">{item.title}</h3>
                         <p className="text-xs text-primary/60 mt-1 leading-relaxed">{item.desc}</p>
                       </div>
                     </li>
@@ -280,7 +280,7 @@ function Profile() {
                   <button
                     type="button"
                     onClick={() => openSupport("I have a question about the emails Saarthi sends me: ")}
-                    className="font-medium text-primary underline hover:text-[#E6A520] cursor-pointer"
+                    className="font-medium text-primary underline hover:text-accent cursor-pointer"
                   >
                     tell our care team
                   </button>{" "}
@@ -291,15 +291,15 @@ function Profile() {
             {activeTab === "security" && (
               <div className="space-y-8 font-sans">
                 <div>
-                  <h2 className="text-2xl font-serif text-primary mb-2">Security &amp; privacy</h2>
+                  <h2 className="text-2xl font-serif text-primary-ink mb-2">Security &amp; privacy</h2>
                   <p className="text-primary/60 text-sm">How you sign in, and what to do about your data.</p>
                 </div>
 
-                <div className="p-5 rounded-2xl border border-primary/10 bg-white">
+                <div className="p-5 rounded-2xl border border-muted bg-surface">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="font-medium text-primary text-sm flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-[#E6A520]" /> Password
+                      <h3 className="font-medium text-primary-ink text-sm flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-accent" /> Password
                       </h3>
                       <p className="text-xs text-primary/60 mt-1 max-w-md leading-relaxed">
                         {usesPassword
@@ -324,14 +324,14 @@ function Profile() {
                   </div>
                 </div>
 
-                <div className="p-5 rounded-2xl border border-primary/10 bg-white">
-                  <h3 className="font-medium text-primary text-sm">Your data</h3>
+                <div className="p-5 rounded-2xl border border-muted bg-surface">
+                  <h3 className="font-medium text-primary-ink text-sm">Your data</h3>
                   <p className="text-xs text-primary/60 mt-1 mb-3 leading-relaxed">
                     Download a copy of everything Saarthi holds about you — your account, bookings, payments,
                     refunds, reviews, requests, and any session summaries your therapist shared with you. Your
                     therapist&apos;s private notes are their professional records and aren&apos;t included. Read what we
                     collect and why in our{" "}
-                    <Link href="/privacy" className="font-medium text-primary underline hover:text-[#E6A520]">privacy policy</Link>.
+                    <Link href="/privacy" className="font-medium text-primary underline hover:text-accent">privacy policy</Link>.
                   </p>
                   <DownloadMyDataButton />
                 </div>
