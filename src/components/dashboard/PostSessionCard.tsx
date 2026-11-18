@@ -68,7 +68,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
   return (
     <section
       aria-label="Your completed session"
-      className="relative overflow-hidden rounded-[2rem] border border-primary/10 bg-white shadow-sm"
+      className="relative overflow-hidden rounded-[2rem] border border-muted bg-surface shadow-sm"
     >
       <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-bl-full pointer-events-none" />
       <div className="relative p-6 sm:p-8">
@@ -78,7 +78,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
           </span>
         </div>
 
-        <h3 className="text-xl font-serif text-primary mb-1">
+        <h3 className="text-xl font-serif text-primary-ink mb-1">
           Your session with {therapistName}
         </h3>
         <p className="text-sm text-primary/60 font-sans mb-6">
@@ -86,8 +86,8 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
         </p>
 
         {/* Feedback */}
-        <div className="rounded-2xl bg-background/50 border border-primary/5 p-5 mb-4">
-          <h4 className="text-sm font-semibold text-primary mb-1 font-sans">How was your session?</h4>
+        <div className="rounded-2xl bg-background/50 border border-muted p-5 mb-4">
+          <h4 className="text-sm font-medium text-primary-ink mb-1 font-sans">How was your session?</h4>
           {hasFeedback ? (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex gap-0.5" aria-label={`Rated ${session.reviewRating} out of 5`}>
@@ -120,12 +120,12 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
           <button
             onClick={loadSummary}
             disabled={summaryLoading}
-            className="w-full text-left rounded-2xl bg-background/50 border border-primary/5 p-5 mb-4 hover:border-primary/15 transition-colors group cursor-pointer disabled:opacity-60"
+            className="w-full text-left rounded-2xl bg-background/50 border border-muted p-5 mb-4 hover:border-primary/15 transition-colors group cursor-pointer disabled:opacity-60"
           >
             <div className="flex items-center gap-3">
               <FileText className="w-4 h-4 text-accent shrink-0" />
               <div className="flex-1">
-                <h4 className="text-sm font-semibold text-primary font-sans">Session summary</h4>
+                <h4 className="text-sm font-medium text-primary-ink font-sans">Session summary</h4>
                 <p className="text-xs text-primary/50 font-sans">
                   {summaryLoading
                     ? 'Checking for a shared summary…'
@@ -139,8 +139,8 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
           </button>
         )}
         {summary && (
-          <div className="rounded-2xl bg-background/50 border border-primary/5 p-5 mb-4">
-            <h4 className="text-sm font-semibold text-primary mb-3 font-sans flex items-center gap-2">
+          <div className="rounded-2xl bg-background/50 border border-muted p-5 mb-4">
+            <h4 className="text-sm font-medium text-primary-ink mb-3 font-sans flex items-center gap-2">
               <FileText className="w-4 h-4 text-accent" /> Session summary
             </h4>
             <p className="text-sm text-primary/70 font-sans whitespace-pre-line leading-relaxed">{summary.clientSummary}</p>
@@ -148,8 +148,8 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
         )}
 
         {/* Follow-up state */}
-        <div className="rounded-2xl bg-background/50 border border-primary/5 p-5">
-          <h4 className="text-sm font-semibold text-primary mb-1 font-sans">Your next step</h4>
+        <div className="rounded-2xl bg-background/50 border border-muted p-5">
+          <h4 className="text-sm font-medium text-primary-ink mb-1 font-sans">Your next step</h4>
           {hasFollowUp ? (
             <p className="text-xs text-primary/50 font-sans mb-3">
               {session.followUpStatus === 'scheduled'
