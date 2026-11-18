@@ -182,7 +182,7 @@ function DashboardBookings() {
                           <p className="text-[10px] uppercase tracking-widest text-accent font-bold mb-1 font-sans">
                             {session.sessionType || "1:1"} Session
                           </p>
-                          <h3 className="font-medium text-base text-primary-ink truncate">{t?.name || "Assigned Therapist"}</h3>
+                          <h3 className="font-semibold text-base text-primary-ink truncate">{t?.name || "Assigned Therapist"}</h3>
                         </div>
                       </div>
                       <span className={`shrink-0 px-2.5 py-1 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize font-sans ${getStatusClasses(session.status)}`}>
