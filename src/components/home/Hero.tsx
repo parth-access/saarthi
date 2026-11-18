@@ -23,7 +23,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
   return (
     <section
       id="home"
-      className="relative flex min-h-[92vh] items-center overflow-hidden bg-background pt-28 pb-20 lg:pt-36 lg:pb-28 bg-[radial-gradient(900px_500px_at_85%_20%,rgba(200,165,114,0.10),transparent_70%),radial-gradient(800px_500px_at_0%_80%,rgba(53,94,75,0.07),transparent_70%)]"
+      className="relative flex min-h-[92vh] items-center overflow-hidden bg-background pt-28 pb-20 lg:pt-36 lg:pb-28 bg-[radial-gradient(900px_500px_at_85%_20%,rgba(232,168,56,0.13),transparent_70%),radial-gradient(800px_500px_at_0%_80%,rgba(30,106,69,0.08),transparent_70%)]"
     >
       <div className="mx-auto w-full max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-14 lg:grid-cols-[1.25fr_1fr] lg:items-center lg:gap-16">
@@ -35,7 +35,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
           >
             <h1 className="mb-6 text-[2.8rem] md:text-6xl lg:text-[3.75rem] xl:text-[4.5rem] text-primary-ink font-serif font-semibold leading-[1.06] tracking-[-0.02em]">
               Find clarity. Heal. <br />
-              <span className="italic text-accent">Move forward.</span>
+              <span className="italic text-accent-bright">Move forward.</span>
             </h1>
             <p className="mb-8 text-lg leading-8 text-muted-foreground md:text-xl md:leading-9 lg:max-w-lg">
               {"Professional psychological guidance to help you navigate life's complexities with emotional clarity and mental wellness."}
@@ -69,7 +69,7 @@ const Hero = ({ onBookClick }: HeroProps) => {
             transition={{ duration: 1.2, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
             className="group relative mx-auto w-full max-w-[520px] lg:max-w-none"
           >
-            <div className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
+            <div className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]">
               <Image
                 src="/home_page.webp"
                 alt="Mental Wellness and Emotional Clarity"
@@ -77,17 +77,17 @@ const Hero = ({ onBookClick }: HeroProps) => {
                 height={1067}
                 priority
                 sizes="(min-width: 1024px) 50vw, 100vw"
-                className="aspect-[4/3.4] h-full w-full scale-[1.03] object-cover saturate-[.88] transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.06] motion-reduce:transition-none lg:aspect-[4/4.6]"
+                className="aspect-[4/3.4] h-full w-full scale-[1.03] object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.06] motion-reduce:transition-none lg:aspect-[4/4.6]"
               />
               {/* One soft treatment for every photo: a faint warm wash and a light inner edge. */}
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(180deg,rgba(248,247,241,0)_60%,rgba(19,59,41,0.08))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" />
             </div>
 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
-              className="absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl border border-muted bg-surface px-4 py-3 text-sm font-medium text-primary-ink shadow-[0_14px_30px_-18px_rgba(38,68,58,0.4)] lg:-left-6"
+              className="absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl border border-muted bg-surface px-4 py-3 text-sm font-medium text-primary-ink shadow-[0_14px_30px_-18px_rgba(19,59,41,0.4)] lg:-left-6"
             >
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-sage text-primary">
                 <Heart aria-hidden="true" className="h-4 w-4" />
