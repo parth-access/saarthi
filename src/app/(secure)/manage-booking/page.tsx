@@ -215,7 +215,7 @@ function ManageBookingPage() {
     return (
       <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-background">
         <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-        <p className="font-serif italic text-primary/60">
+        <p className="font-serif italic text-muted-foreground">
           Verifying your booking...
         </p>
       </div>
@@ -251,7 +251,7 @@ function ManageBookingPage() {
     <div className="pt-32 pb-24 px-4 min-h-screen bg-background">
       <div className="max-w-3xl mx-auto">
         {state.view === "dashboard" && (
-          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] border border-muted">
             <div className="mb-8 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 bg-primary/10 text-primary">
                 {isCancelled && (
@@ -384,7 +384,7 @@ function ManageBookingPage() {
         )}
 
         {state.view === "reschedule-date" && (
-          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] border border-muted">
             <DateStep
               selectedDate={state.newDate}
               onSelect={handleDateSelect}
@@ -398,7 +398,7 @@ function ManageBookingPage() {
         )}
 
         {state.view === "reschedule-slot" && (
-          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] border border-muted">
             <div className="mb-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 text-amber-900 text-sm flex items-center gap-2.5">
               <Calendar className="w-4 h-4 text-amber-700 shrink-0" />
               <span>
@@ -434,7 +434,7 @@ export default function SafeManageBookingPage() {
       fallback={
         <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-background font-sans">
           <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-          <p className="font-serif italic text-primary/60">
+          <p className="font-serif italic text-muted-foreground">
             Loading session manager...
           </p>
         </div>
