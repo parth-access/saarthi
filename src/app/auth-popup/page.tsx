@@ -155,7 +155,7 @@ export default function AuthPopupPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4 font-sans text-center">
-      <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+      <div className="w-full max-w-md p-8 bg-surface rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
         {/* Modern minimalistic loading indicator */}
         {!error && (
           <div className="flex flex-col items-center">
