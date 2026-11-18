@@ -65,7 +65,7 @@ function Wellness() {
       <div className="container mx-auto max-w-5xl">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-primary/60 hover:text-primary mb-8 transition-colors group font-sans"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8 transition-colors group font-sans"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           Back to dashboard
@@ -73,7 +73,7 @@ function Wellness() {
 
         <div className="mb-10 font-sans">
           <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink">Wellness corner</h1>
-          <p className="text-sm text-primary/60 mt-2 max-w-2xl leading-relaxed">
+          <p className="text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
             A few things you can do right now, in this tab, between sessions. Nothing here is
             recorded or shared — it runs on your screen and disappears when you leave.
           </p>
@@ -87,7 +87,7 @@ function Wellness() {
                 <Wind className="w-5 h-5 text-accent" />
                 <h2 id="breathing-heading" className="text-xl font-serif text-primary">Guided breathing</h2>
               </div>
-              <p className="text-sm text-primary/60 font-sans mb-6">
+              <p className="text-sm text-muted-foreground font-sans mb-6">
                 Pick a rhythm and the timer will pace you through it.
               </p>
 
@@ -105,8 +105,8 @@ function Wellness() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <h3 className="font-serif text-lg text-primary-ink">{exercise.title}</h3>
-                            <p className="text-xs text-primary/60 mt-1 leading-relaxed font-sans max-w-md">{exercise.desc}</p>
-                            <p className="text-[11px] uppercase tracking-widest text-primary/40 mt-2 font-sans">
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-sans max-w-md">{exercise.desc}</p>
+                            <p className="text-[11px] uppercase tracking-widest text-primary/70 mt-2 font-sans">
                               {exercise.phases.map((p) => p.seconds).join(" · ")} seconds
                             </p>
                           </div>
@@ -138,7 +138,7 @@ function Wellness() {
                 <Anchor className="w-5 h-5 text-accent" />
                 <h2 id="grounding-heading" className="text-xl font-serif text-primary">The 5-4-3-2-1 grounding walk</h2>
               </div>
-              <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
+              <p className="text-sm text-muted-foreground font-sans mb-6 leading-relaxed">
                 When your thoughts are moving faster than you are, this pulls attention back into the
                 room through your senses. Work down the list at your own speed.
               </p>
@@ -150,7 +150,7 @@ function Wellness() {
                     </span>
                     <div>
                       <p className="text-sm font-medium text-primary">{step.sense}</p>
-                      <p className="text-xs text-primary/55 mt-1 leading-relaxed">{step.hint}</p>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{step.hint}</p>
                     </div>
                   </li>
                 ))}
@@ -163,13 +163,13 @@ function Wellness() {
                 <BookOpen className="w-5 h-5 text-accent" />
                 <h2 id="reflection-heading" className="text-xl font-serif text-primary">Questions worth sitting with</h2>
               </div>
-              <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
+              <p className="text-sm text-muted-foreground font-sans mb-6 leading-relaxed">
                 Saarthi doesn&apos;t store journals, so there&apos;s nothing to save here. Write these
                 wherever you already write, or bring one to your next session as a starting point.
               </p>
               <ul className="space-y-3 font-sans">
                 {REFLECTION_PROMPTS.map((prompt) => (
-                  <li key={prompt} className="p-4 rounded-2xl border border-muted bg-background/50 text-sm text-primary/80 leading-relaxed">
+                  <li key={prompt} className="p-4 rounded-2xl border border-muted bg-background/50 text-sm text-primary leading-relaxed">
                     &ldquo;{prompt}&rdquo;
                   </li>
                 ))}
@@ -183,7 +183,7 @@ function Wellness() {
                 <Smile className="w-5 h-5 text-accent" />
                 <h2 id="mood-heading" className="text-lg font-serif text-primary">How are you, right now?</h2>
               </div>
-              <p className="text-xs text-primary/55 font-sans mb-5 leading-relaxed">
+              <p className="text-xs text-muted-foreground font-sans mb-5 leading-relaxed">
                 Just for you — this isn&apos;t saved or sent to your therapist.
               </p>
               <div className="flex items-center justify-between gap-1" role="group" aria-label="Choose how you feel">
@@ -201,7 +201,7 @@ function Wellness() {
                     }`}
                   >
                     <span className="text-xl" aria-hidden="true">{m.emoji}</span>
-                    <span className="text-[10px] font-medium text-primary/60 font-sans">{m.label}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground font-sans">{m.label}</span>
                   </button>
                 ))}
               </div>
@@ -212,7 +212,7 @@ function Wellness() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-5 p-4 rounded-2xl bg-background/70 border border-muted text-sm text-primary/75 leading-relaxed font-sans"
+                    className="mt-5 p-4 rounded-2xl bg-background/70 border border-muted text-sm text-primary leading-relaxed font-sans"
                   >
                     {MOODS[mood].affirmation}
                   </motion.p>
@@ -244,7 +244,7 @@ function Wellness() {
               </div>
             </section>
 
-            <p className="text-xs text-primary/50 leading-relaxed font-sans px-2">
+            <p className="text-xs text-muted-foreground leading-relaxed font-sans px-2">
               If you&apos;re in immediate danger or thinking about harming yourself, please contact
               your local emergency number or the Tele-MANAS helpline on{" "}
               <a href="tel:14416" className="font-medium text-primary underline hover:text-accent">14416</a>{" "}
