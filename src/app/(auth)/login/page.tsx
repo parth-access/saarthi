@@ -206,9 +206,9 @@ function LoginContent() {
     return (
       <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
         {currentUser && sessionSyncFailed ? (
-          <div className="w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 text-center shadow-sm">
+          <div className="w-full max-w-md rounded-2xl border border-red-100 bg-surface p-6 text-center shadow-sm">
             <Shield className="mx-auto mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
-            <h1 className="font-serif text-xl text-primary">We couldn&apos;t finish signing you in</h1>
+            <h1 className="font-serif text-xl text-primary-ink">We couldn&apos;t finish signing you in</h1>
             {syncRefusal ? (
               <p role="alert" className="mt-2 text-sm text-primary/80">
                 {syncRefusal}
@@ -258,13 +258,13 @@ function LoginContent() {
       {/* Left side: Form */}
       <div className="w-full md:w-1/2 flex-1 flex items-center justify-center p-4 sm:p-6 md:p-12 relative z-20 -mt-8 md:mt-0">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[520px] relative"
         >
           {/* Glassmorphic Auth Card */}
-          <div className="bg-white/[0.95] backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-white p-8 sm:p-10 md:p-14 hover:shadow-[0_16px_60px_rgb(0,0,0,0.08)] transition-shadow duration-500">
+          <div className="bg-white/[0.95] backdrop-blur-xl rounded-[1.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-white p-8 sm:p-10 md:p-14 hover:shadow-[0_16px_60px_rgb(0,0,0,0.08)] transition-shadow duration-500">
             {/* Auth pages are reachable logged-out from anywhere; this is the
                 static way back into the public site, never browser history. */}
             <BackLink
@@ -281,7 +281,7 @@ function LoginContent() {
                     exit={{ opacity: 0, filter: "blur(4px)", y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <h1 className="text-3xl sm:text-4xl font-serif text-primary tracking-tight mb-3">
+                    <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink tracking-tight mb-3">
                       {isRegister ? "Begin your journey" : "Welcome back"}
                     </h1>
                     <p className="text-primary/60 text-sm sm:text-base leading-relaxed">
@@ -416,10 +416,10 @@ function LoginContent() {
 
             <div className="mt-8 relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-primary/10"></div>
+                <div className="w-full border-t border-muted"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-primary/50 text-xs uppercase tracking-widest font-medium">Or continue with</span>
+                <span className="px-4 bg-surface text-primary/50 text-xs uppercase tracking-widest font-medium">Or continue with</span>
               </div>
             </div>
 
@@ -443,7 +443,7 @@ function LoginContent() {
                     }
                   }}
                   disabled={loading}
-                  className="w-full h-14 bg-white border border-primary/20 text-primary rounded-2xl font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/30 transition-all shadow-sm hover:shadow-md disabled:opacity-50 select-none touch-manipulation"
+                  className="w-full h-14 bg-surface border border-primary/20 text-primary rounded-2xl font-medium tracking-wide flex items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/30 transition-all shadow-sm hover:shadow-md disabled:opacity-50 select-none touch-manipulation"
                >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -455,7 +455,7 @@ function LoginContent() {
                </motion.button>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-primary/10 flex flex-col items-center">
+            <div className="mt-8 pt-6 border-t border-muted flex flex-col items-center">
               <button
                 onClick={() => {
                   if (loading) return;
@@ -476,7 +476,7 @@ function LoginContent() {
           </div>
           
           <div className="mt-8 flex justify-center text-center">
-            <div className="inline-flex flex-col sm:flex-row items-center gap-2 px-4 py-2 bg-primary/5 rounded-full backdrop-blur-sm border border-primary/10">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 px-4 py-2 bg-primary/5 rounded-full backdrop-blur-sm border border-muted">
               <Lock className="w-3.5 h-3.5 text-accent" />
               <p className="text-xs font-medium text-primary/60">Your data is securely encrypted and strictly private.</p>
             </div>
@@ -505,10 +505,10 @@ function LoginContent() {
           
           {/* Floating Stat Chip */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, x: 0, y: [0, -10, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
-            className="absolute top-[15%] right-[15%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
+            className="absolute top-[15%] right-[15%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]"
           >
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5 text-emerald-300" />
@@ -521,10 +521,10 @@ function LoginContent() {
 
           {/* Floating Trust Card */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, x: 0, y: [0, 10, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5, opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
-            className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl max-w-[220px]"
+            className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] max-w-[220px]"
           >
             <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
               <Shield className="w-5 h-5 text-accent" />
@@ -536,19 +536,19 @@ function LoginContent() {
           </motion.div>
 
           <div className="max-w-xl">
-             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-sm">
                   <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                   <span className="text-xs font-medium text-white/80 uppercase tracking-widest">Wellness Redefined</span>
                </div>
              </motion.div>
              
-             <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-4xl lg:text-5xl xl:text-6xl font-serif text-white mb-6 leading-[1.1]">
+             <motion.h2 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-4xl lg:text-5xl xl:text-6xl font-serif text-white mb-6 leading-[1.1]">
                A quiet space for<br />
                <span className="text-accent italic">your mind</span>
              </motion.h2>
              
-             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg text-white/70 max-w-md leading-relaxed mb-12">
+             <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg text-white/70 max-w-md leading-relaxed mb-12">
                Join a community built on trust, privacy, and emotional safety. Move forward at your own pace alongside dedicated professionals.
              </motion.p>
              
@@ -561,8 +561,8 @@ function LoginContent() {
                 ].map((benefit, i) => (
                   <motion.div 
                     key={i} 
-                    initial={{ opacity: 0, x: -10 }} 
-                    animate={{ opacity: 1, x: 0 }} 
+                    initial={{ opacity: 0, y: 12 }} 
+                    animate={{ opacity: 1, y: 0 }} 
                     transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
                     className="flex items-center gap-3 text-white/80"
                   >
