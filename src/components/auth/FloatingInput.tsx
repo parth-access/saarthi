@@ -50,7 +50,7 @@ export const FloatingInput = ({
          }}
          className={`relative rounded-2xl border transition-colors duration-300 ${isFocused ? 'border-accent bg-surface' : 'border-muted bg-primary/[0.02] hover:border-primary/20 hover:bg-primary/[0.04]'} flex overflow-hidden`}
       >
-         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-accent' : 'text-primary/40'}`}>
+         <div className={`w-12 flex items-center justify-center shrink-0 transition-colors duration-300 ${isFocused ? 'text-accent' : 'text-primary/70'}`}>
             <Icon className="w-5 h-5" />
          </div>
          
@@ -86,7 +86,7 @@ export const FloatingInput = ({
             <button 
                type="button"
                onClick={togglePassword}
-               className="w-12 flex items-center justify-center shrink-0 text-primary/40 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-r-2xl select-none"
+               className="w-12 flex items-center justify-center shrink-0 text-primary/70 hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-r-2xl select-none"
                aria-label={showPassword ? "Hide password" : "Show password"}
             >
                <AnimatePresence mode="wait">
@@ -104,7 +104,7 @@ export const FloatingInput = ({
          )}
       </motion.div>
       {helperText && (
-        <p className="text-xs text-primary/50 pl-3 pt-0.5">{helperText}</p>
+        <p className="text-xs text-muted-foreground pl-3 pt-0.5">{helperText}</p>
       )}
     </div>
   );
