@@ -49,7 +49,7 @@ const FeaturedTherapist = ({ onBookClick }: FeaturedTherapistProps) => {
           >
             <div className="mb-6">
               <h4 className="font-sans text-xs font-semibold uppercase tracking-[0.16em] text-primary mb-4">Featured Therapist</h4>
-              <h2 className="text-4xl md:text-5xl font-medium text-primary-ink font-serif mb-3">Dravina Gupta</h2>
+              <h2 className="text-4xl md:text-5xl font-semibold text-primary-ink font-serif mb-3">Dravina Gupta</h2>
               <p className="font-serif text-lg md:text-xl text-accent italic">Founder | Counselling Psychologist</p>
             </div>
 
