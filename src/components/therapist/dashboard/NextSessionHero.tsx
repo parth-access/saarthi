@@ -101,7 +101,7 @@ export function NextSessionHero({ booking }: NextSessionHeroProps) {
             <span className="font-mono text-3xl font-semibold tabular-nums text-primary">
               {time12}
             </span>
-            <span className="rounded-md border border-hairline bg-neutral-surface px-1.5 py-0.5 text-[0.6875rem] font-medium text-primary/70">
+            <span className="rounded-md border border-hairline bg-neutral-surface px-1.5 py-0.5 text-[0.6875rem] font-medium text-primary">
               {SESSION_DURATION_MINUTES} min
             </span>
           </div>
@@ -150,7 +150,7 @@ export function NextSessionHero({ booking }: NextSessionHeroProps) {
           )}
           <Link
             href={`/therapist/bookings/${booking.id}`}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-hairline px-3 py-2 text-xs font-medium text-primary/70 transition-colors hover:bg-primary/5 hover:text-primary"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-hairline px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/5 hover:text-primary"
           >
             <FileText className="h-3.5 w-3.5" aria-hidden="true" />
             View booking
@@ -168,7 +168,7 @@ export function NoUpcomingSession() {
       aria-label="No upcoming session"
       className="rounded-xl border border-dashed border-hairline bg-white px-5 py-8 text-center shadow-sm"
     >
-      <CalendarDays className="mx-auto h-5 w-5 text-primary/35" aria-hidden="true" />
+      <CalendarDays className="mx-auto h-5 w-5 text-primary/70" aria-hidden="true" />
       <h3 className="mt-2 text-sm font-semibold text-primary">No active sessions on the horizon</h3>
       <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
         When a session is confirmed it will appear here with its meeting controls.
