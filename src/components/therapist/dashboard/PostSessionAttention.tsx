@@ -65,14 +65,14 @@ export function PostSessionAttention({ sessions }: PostSessionAttentionProps) {
               <div className="flex items-center gap-2 sm:shrink-0">
                 <Link
                   href={`/therapist/bookings/${b.id}#post-session-notes`}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-white px-3 py-1.5 text-xs font-medium text-primary/70 transition-colors hover:bg-primary/5 hover:text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-white px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/5 hover:text-primary"
                 >
                   <StickyNote className="h-3.5 w-3.5" aria-hidden="true" />
                   Add notes
                 </Link>
                 <Link
                   href={`/therapist/bookings/${b.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-primary/70 transition-colors hover:text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:text-primary"
                 >
                   <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                   View
