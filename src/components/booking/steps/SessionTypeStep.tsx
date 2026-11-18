@@ -56,9 +56,9 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Session Type</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Session Type</h3>
         <p className="mt-2 text-sm text-muted-foreground">What kind of support are you looking for?</p>
-        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-muted bg-sage px-4 py-1.5 text-xs font-medium text-primary">
           <span>{SESSION_DURATION_MINUTES}-minute session</span>
           <span className="text-primary/30">·</span>
           <span className="font-semibold tabular-nums">{priceLabel}</span>
@@ -73,20 +73,20 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
             aria-pressed={selected === type}
             className={cn(
               // Transforms only on hover/press so cards never shift the grid layout.
-              "group flex flex-col gap-3 rounded-[2rem] border-2 p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-md",
+              "group flex flex-col gap-3 rounded-[1.5rem] border p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_18px_40px_-30px_rgba(38,68,58,0.4)]",
               "enabled:active:translate-y-0 enabled:active:scale-[0.99] enabled:active:duration-100",
               "motion-reduce:transition-colors motion-reduce:duration-150",
               "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
               selected === type
-                ? "border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5 ring-2 ring-primary/10"
-                : "border-muted/30 bg-white text-muted-foreground hover:border-primary/20 hover:bg-background/40"
+                ? "border-primary bg-sage text-primary ring-2 ring-primary/15"
+                : "border-muted bg-surface text-muted-foreground hover:border-primary/20 hover:bg-background/40"
             )}
           >
             <div className="flex items-center justify-between w-full">
               <div className={cn(
                 "w-10 h-10 rounded-2xl flex items-center justify-center transition-colors",
-                selected === type ? "bg-primary text-white" : "bg-primary/5 text-primary group-hover:bg-primary/10"
+                selected === type ? "bg-primary text-white" : "bg-sage text-primary group-hover:bg-primary/10"
               )}>
                 <Icon className="w-5 h-5" />
               </div>
@@ -97,7 +97,7 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
                 {selected === type && (
                   <motion.span
                     initial={reduce ? false : { opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
                   >
                     <Check className="h-3.5 w-3.5" />
@@ -107,14 +107,14 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
               </span>
             </div>
             <div className="space-y-1">
-              <h4 className="font-sans text-base font-semibold text-primary">{title} Therapy</h4>
+              <h4 className="font-sans text-base font-medium text-primary-ink">{title} Therapy</h4>
               <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
             </div>
           </button>
         ))}
       </div>
       <div className="flex pt-4">
-        <Button variant="ghost" className="rounded-full hover:bg-primary/5" onClick={onBack}>
+        <Button variant="ghost" className="rounded-full hover:bg-sage" onClick={onBack}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Go Back
         </Button>
       </div>
