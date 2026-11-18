@@ -263,7 +263,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
           <div className="space-y-6">
             {/* 1. Working Days */}
             <section>
-              <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-2">
+              <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                 1. Working Days
               </label>
               <div className="flex flex-wrap gap-2">
@@ -301,7 +301,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
             {/* 2. Working Hours & Duration */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-hairline">
               <div>
-                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-2">
+                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                   2. Working Hours (IST)
                 </label>
                 <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
               </div>
 
               <div>
-                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-2">
+                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                   3. Session Duration
                 </label>
                 <div className="flex gap-1.5">
@@ -359,7 +359,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
             {/* 4. Buffer Gap & Breaks */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-hairline">
               <div>
-                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-2">
+                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                   4. Cooldown Buffer Between Sessions
                 </label>
                 <div className="flex gap-1.5">
@@ -385,7 +385,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
               </div>
 
               <div>
-                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/60 mb-2">
+                <label className="block text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                   5. Daily Break Window (Optional)
                 </label>
                 <div className="flex items-center gap-2">
@@ -443,11 +443,11 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* LIVE PREVIEW OF SLOTS */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-primary" />
               Generated Start Times
             </h3>
-            <span className="tabular text-xs font-medium text-primary/70">
+            <span className="tabular text-xs font-medium text-primary">
               {previewSlots.length} slots/day
             </span>
           </div>
@@ -456,7 +456,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
               {previewSlots.map((time) => (
                 <span
                   key={time}
-                  className="tabular rounded bg-neutral-surface px-2 py-0.5 font-mono text-[0.6875rem] font-medium text-primary/80 border border-hairline"
+                  className="tabular rounded bg-neutral-surface px-2 py-0.5 font-mono text-[0.6875rem] font-medium text-primary border border-hairline"
                 >
                   {time}
                 </span>
@@ -475,11 +475,11 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* CURRENT CONFIGURED RULES */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-1.5">
               <CalendarDays className="h-3.5 w-3.5 text-primary" />
               Active Weekly Rules
             </h3>
-            <span className="tabular text-xs font-medium text-primary/70">
+            <span className="tabular text-xs font-medium text-primary">
               {rules.length} configured
             </span>
           </div>
@@ -524,11 +524,11 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* BLOCKED DATE OVERRIDES */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground flex items-center gap-1.5">
               <CalendarOff className="h-3.5 w-3.5 text-danger" />
               Blocked Dates
             </h3>
-            <span className="tabular text-xs font-medium text-primary/70">
+            <span className="tabular text-xs font-medium text-primary">
               {upcomingOverrides.length} upcoming
             </span>
           </div>
