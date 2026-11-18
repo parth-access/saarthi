@@ -1,5 +1,6 @@
 import 'server-only';
 import * as admin from 'firebase-admin';
+import { initializeFirestore } from 'firebase-admin/firestore';
 
 if (!admin.apps.length) {
   try {
@@ -14,9 +15,14 @@ if (!admin.apps.length) {
     } else {
       const decoded = Buffer.from(base64, 'base64').toString('utf-8');
       const serviceAccount = JSON.parse(decoded);
-      admin.initializeApp({
+      const app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      // Talk to Firestore over plain HTTPS instead of gRPC. On serverless every
+      // cold start otherwise loads the gRPC stack and opens a channel before the
+      // first query, which made the first slot lookup take ~12s. Must be set
+      // once, before the first admin.firestore() call, hence here.
+      initializeFirestore(app, { preferRest: true });
       console.log('Firebase Admin initialized');
     }
   } catch (error) {
