@@ -135,7 +135,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
             <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
               <CheckCircle className="w-7 h-7" />
             </div>
-            <h4 className="text-lg font-medium text-slate-900">Thank you for your feedback!</h4>
+            <h4 className="text-lg font-semibold text-slate-900">Thank you for your feedback!</h4>
             <p className="text-sm text-slate-500">Your review helps us maintain compassionate, top-quality therapy support.</p>
           </div>
         ) : (
