@@ -105,7 +105,7 @@ export function SupportModal({
             tabIndex={-1}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0 outline-none"
           >
-            <div className="bg-surface rounded-3xl shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] overflow-hidden border border-muted">
+            <div className="bg-surface rounded-3xl shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] overflow-hidden border border-muted">
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50">
                 <div className="flex items-center gap-3">
@@ -114,12 +114,12 @@ export function SupportModal({
                   </div>
                   <div>
                     <h3 id="support-title" className="text-xl font-serif text-primary">Contact Support</h3>
-                    <p className="text-xs text-primary/60 font-sans">We are here to hold space and assist you.</p>
+                    <p className="text-xs text-muted-foreground font-sans">We are here to hold space and assist you.</p>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                  className="p-2 text-primary/70 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close support modal"
                 >
                   <X aria-hidden="true" className="w-5 h-5" />
@@ -190,7 +190,7 @@ export function SupportModal({
                   />
                 </div>
 
-                <div className="bg-background rounded-2xl p-4 flex gap-3 text-xs text-primary/70 leading-relaxed border border-muted">
+                <div className="bg-background rounded-2xl p-4 flex gap-3 text-xs text-primary leading-relaxed border border-muted">
                   <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                   <p>Our dedicated care team and founders personally review all messages. We typically respond within 2-4 hours to ensure you receive genuine, quiet support.</p>
                 </div>
