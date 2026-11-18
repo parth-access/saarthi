@@ -86,7 +86,7 @@ function DashboardBookings() {
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
           <h2 className="text-xl font-serif text-primary-ink mb-2">We hit a snag</h2>
-          <p className="text-sm text-primary/60 font-sans mb-6">{error}</p>
+          <p className="text-sm text-muted-foreground font-sans mb-6">{error}</p>
           <button
             onClick={() => refresh()}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary/90 transition-colors cursor-pointer"
@@ -102,7 +102,7 @@ function DashboardBookings() {
     <div className="pt-28 pb-24 px-4 sm:px-6">
       <div className="container mx-auto max-w-5xl">
         <div className="mb-8 font-sans">
-          <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-primary/60 hover:text-primary mb-6 transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-6 transition-colors">
             <ChevronLeft className="w-4 h-4 mr-1" /> Back to dashboard
           </Link>
 
@@ -117,7 +117,7 @@ function DashboardBookings() {
                   aria-selected={filter === f.key}
                   onClick={() => setFilter(f.key)}
                   className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
-                    filter === f.key ? "bg-primary text-white shadow-sm" : "text-primary/60 hover:text-primary hover:bg-black/5"
+                    filter === f.key ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-primary hover:bg-black/5"
                   }`}
                 >
                   {f.label}
@@ -139,8 +139,8 @@ function DashboardBookings() {
         <div className="bg-white/50 border border-muted rounded-[1.5rem] p-4 sm:p-8 shadow-sm">
           {filtered.length === 0 ? (
             <div className="text-center py-16 bg-surface rounded-3xl border border-muted font-sans">
-              <Calendar className="w-12 h-12 mx-auto mb-4 text-primary/20" />
-              <p className="text-primary/60 mb-5">
+              <Calendar className="w-12 h-12 mx-auto mb-4 text-primary/70" />
+              <p className="text-muted-foreground mb-5">
                 {bookings.length === 0
                   ? "You haven't booked a session yet."
                   : `No ${filter === "all" ? "" : FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} sessions to show.`}
@@ -199,18 +199,18 @@ function DashboardBookings() {
                         <span className="font-medium text-primary">{formatSessionTimeRange(session.time)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Video className="w-4 h-4 text-primary/40 shrink-0" />
-                        <span className="font-medium text-primary/70 capitalize">{session.sessionMode || "Video call"}</span>
+                        <Video className="w-4 h-4 text-primary/70 shrink-0" />
+                        <span className="font-medium text-primary capitalize">{session.sessionMode || "Video call"}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-primary/40 shrink-0" />
+                        <CreditCard className="w-4 h-4 text-primary/70 shrink-0" />
                         <span className={`capitalize font-semibold text-xs ${session.paymentStatus === "paid" ? "text-emerald-700" : "text-amber-800"}`}>
                           {session.paymentStatus || "unpaid"}
                         </span>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-primary/40 font-sans mb-4">{SESSION_DURATION_LABEL} session</p>
+                    <p className="text-[11px] text-primary/70 font-sans mb-4">{SESSION_DURATION_LABEL} session</p>
 
                     <div className="flex flex-wrap items-center gap-2">
                       {session.status === "confirmed" && (
@@ -242,7 +242,7 @@ function DashboardBookings() {
                       )}
                       <button
                         onClick={() => { setSelected(session); setDetailsOpen(true); }}
-                        className="ml-auto inline-flex items-center text-xs font-medium text-primary/50 hover:text-accent transition-colors font-sans cursor-pointer"
+                        className="ml-auto inline-flex items-center text-xs font-medium text-muted-foreground hover:text-accent transition-colors font-sans cursor-pointer"
                       >
                         Details <ChevronRight className="w-4 h-4 ml-0.5" />
                       </button>
