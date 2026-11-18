@@ -98,17 +98,17 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-md outline-none"
           >
-            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] overflow-hidden border border-muted">
+            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] overflow-hidden border border-muted">
               <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50">
                 <div>
                   <h3 id="cancel-title" className="text-xl font-serif text-primary">Cancel Session</h3>
-                  <p className="text-xs text-primary/60 font-sans mt-1">
+                  <p className="text-xs text-muted-foreground font-sans mt-1">
                     {session.date} · {formatSessionTimeRange(session.time)}
                   </p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                  className="p-2 text-primary/70 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close cancel dialog"
                 >
                   <X aria-hidden="true" className="w-5 h-5" />
@@ -135,7 +135,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-start gap-3 rounded-2xl p-4 border bg-background/60 border-muted text-primary/70">
+                  <div className="flex items-start gap-3 rounded-2xl p-4 border bg-background/60 border-muted text-primary">
                     <Info className="w-5 h-5 shrink-0 mt-0.5 text-accent" />
                     <div className="text-sm leading-relaxed">
                       No payment has been captured for this session, so there is nothing to refund. This will simply withdraw your request.
@@ -145,7 +145,7 @@ export function CancelModal({ isOpen, onClose, session, onCancelled }: CancelMod
 
                 <div>
                   <label htmlFor="cancel-reason" className="block text-sm font-medium text-primary mb-2">
-                    Reason <span className="text-primary/40 font-normal">(optional)</span>
+                    Reason <span className="text-primary/70 font-normal">(optional)</span>
                   </label>
                   <textarea
                     id="cancel-reason"
