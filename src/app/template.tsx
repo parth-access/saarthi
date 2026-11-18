@@ -23,8 +23,11 @@ export default function RouteTransition({ children }: { children: React.ReactNod
     return <>{children}</>;
   }
 
+  // initial={false}: the first page a visitor lands on is shown as soon as the
+  // server HTML arrives — photos included — instead of sitting at opacity 0
+  // until JavaScript hydrates. Later in-site navigations still fade softly.
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={pathname}
         initial={{ opacity: 0, filter: "blur(4px)" }}
