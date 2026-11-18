@@ -50,7 +50,7 @@ export default function AboutPage() {
           >
             <h1 className="text-5xl md:text-6xl lg:text-7xl text-primary-ink leading-[1.1] tracking-tight">
               About Saarthi — <br />
-              <span className="italic font-normal text-accent">Your Safe Space.</span>
+              <span className="italic font-medium text-accent-bright">Your Safe Space.</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-serif italic leading-relaxed">
               A place where you feel heard, understood, and supported without judgment.
@@ -88,16 +88,16 @@ export default function AboutPage() {
               transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
               className="relative"
             >
-              <div className="relative aspect-square rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
+              <div className="relative aspect-square rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]">
                 <Image
                   src="/dravina.webp"
                   alt="Calm meditation"
                   width={1024}
                   height={1024}
                   sizes="(min-width: 1024px) 50vw, 100vw"
-                  className="w-full h-full object-cover saturate-[.88]"
+                  className="w-full h-full object-cover"
                 />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)]" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(248,247,241,0)_60%,rgba(19,59,41,0.08))]" />
               </div>
               <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-accent/10 rounded-full blur-2xl -z-10" />
             </motion.div>
@@ -133,7 +133,7 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="p-10 md:p-12 rounded-[1.75rem] bg-[linear-gradient(160deg,#E9EFEA,#DFE8E1)] text-text space-y-5"
+            className="p-10 md:p-12 rounded-[1.75rem] bg-[linear-gradient(160deg,#E4F1E7,#D2E8D9)] text-text space-y-5"
           >
             <span className="text-accent font-medium tracking-widest uppercase text-xs">Our Mission</span>
             <p className="text-text text-lg leading-8">
@@ -166,7 +166,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="p-9 rounded-[1.5rem] bg-surface border border-muted hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.35)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
+                className="p-9 rounded-[1.5rem] bg-surface border border-muted hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(19,59,41,0.35)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
               >
                 <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
