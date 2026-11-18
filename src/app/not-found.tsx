@@ -34,7 +34,7 @@ export default function NotFound() {
               A different route may help
             </span>
             <p className="mt-6 font-serif text-7xl font-medium leading-none tracking-tight text-primary/80 sm:text-8xl">404</p>
-            <h1 className="mt-5 font-serif text-3xl font-medium tracking-tight text-primary-ink sm:text-4xl">This page isn’t here.</h1>
+            <h1 className="mt-5 font-serif text-3xl font-semibold tracking-tight text-primary-ink sm:text-4xl">This page isn’t here.</h1>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
               The link may be old, or the page may have moved. You can return home or use one of these common paths.
             </p>
