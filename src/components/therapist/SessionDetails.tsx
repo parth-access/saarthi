@@ -10,10 +10,10 @@ interface SessionDetailsProps {
 
 const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
   return (
-    <section id="session-details" className="py-24 bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="session-details" className="py-24 bg-surface">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
-          <h2 className="mb-4 text-primary font-serif italic">Session Details</h2>
+          <h2 className="mb-4 text-primary-ink font-serif italic">Session Details</h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
             Information about the mode of therapy and the types of clients I work with.
           </p>
@@ -21,14 +21,14 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
         
         <div className="grid gap-8 sm:grid-cols-2 max-w-4xl mx-auto">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
           >
-            <Card className="h-full border-none shadow-none bg-primary/5 p-12 rounded-3xl">
+            <Card className="h-full border-none shadow-none bg-sage p-12 rounded-[1.75rem]">
               <CardHeader className="flex flex-row items-center gap-6 space-y-0 mb-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface shadow-sm">
                   <Globe className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="text-2xl font-serif">Mode</CardTitle>
@@ -41,14 +41,14 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
           </motion.div>
           
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <Card className="h-full border-none shadow-none bg-accent/5 p-12 rounded-3xl">
+            <Card className="h-full border-none shadow-none bg-accent-soft/40 p-12 rounded-[1.75rem]">
               <CardHeader className="flex flex-row items-center gap-6 space-y-0 mb-6">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface shadow-sm">
                   <Users className="h-8 w-8 text-accent" />
                 </div>
                 <CardTitle className="text-2xl font-serif text-accent">Clients</CardTitle>
@@ -56,7 +56,7 @@ const SessionDetails = ({ mode, clients }: SessionDetailsProps) => {
               <CardContent>
                 <div className="flex flex-wrap gap-3">
                   {clients.map((client) => (
-                    <span key={client} className="px-4 py-2 rounded-full bg-white text-sm font-medium text-accent border border-accent/10">
+                    <span key={client} className="px-4 py-2 rounded-full bg-surface text-sm font-medium text-accent border border-accent/10">
                       {client}
                     </span>
                   ))}
