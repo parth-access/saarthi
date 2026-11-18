@@ -60,7 +60,7 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
         <p className="mt-2 text-sm text-muted-foreground">What kind of support are you looking for?</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-muted bg-sage px-4 py-1.5 text-xs font-medium text-primary">
           <span>{SESSION_DURATION_MINUTES}-minute session</span>
-          <span className="text-primary/30">·</span>
+          <span className="text-primary/70">·</span>
           <span className="font-semibold tabular-nums">{priceLabel}</span>
         </div>
       </div>
@@ -74,7 +74,7 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
             className={cn(
               // Transforms only on hover/press so cards never shift the grid layout.
               "group flex flex-col gap-3 rounded-[1.5rem] border p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_18px_40px_-30px_rgba(38,68,58,0.4)]",
+              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_18px_40px_-30px_rgba(19,59,41,0.4)]",
               "enabled:active:translate-y-0 enabled:active:scale-[0.99] enabled:active:duration-100",
               "motion-reduce:transition-colors motion-reduce:duration-150",
               "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
