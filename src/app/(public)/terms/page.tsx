@@ -67,7 +67,7 @@ export default function TermsPage() {
               <FileText className="w-4 h-4 text-accent" />
               <span>Platform Agreement</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-medium text-primary-ink mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-semibold text-primary-ink mb-4">
               Terms of Service
             </h1>
             <p className="text-muted-foreground text-sm font-medium">
@@ -91,7 +91,7 @@ export default function TermsPage() {
             
             {/* 1. Acceptance */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">1. Acceptance of Terms</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">1. Acceptance of Terms</h2>
               <p>
                 Welcome to Saarthi. By visiting saarthilife.com or booking a therapy session through our platform, you agree to abide by these Terms of Service and our <Link href="/privacy" className="font-semibold text-primary underline hover:text-accent">Privacy Policy</Link>. If you do not agree with any part of these terms, please discontinue use of the platform.
               </p>
@@ -99,7 +99,7 @@ export default function TermsPage() {
 
             {/* 2. Platform Description */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">2. Services Description</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">2. Services Description</h2>
               <p>
                 Saarthi operates an online technology platform connecting clients with independent, verified therapists and psychologists. Through Saarthi, clients can schedule individual therapy sessions, receive video consultation links, and manage appointments.
               </p>
@@ -107,7 +107,7 @@ export default function TermsPage() {
 
             {/* 3. Bookings, Scheduling & Time Slots */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">3. Booking &amp; Scheduling</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">3. Booking &amp; Scheduling</h2>
               <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                 <li><strong className="text-primary">Appointment Slots:</strong> Sessions are scheduled in fixed time increments (e.g. 45 minutes). Selected time slots are held temporarily during checkout and confirmed upon payment verification.</li>
                 <li><strong className="text-primary">Session Access:</strong> Confirmed sessions include a Google Meet video link provided via email confirmation and calendar invitation.</li>
@@ -117,7 +117,7 @@ export default function TermsPage() {
 
             {/* 4. Payments & Pricing */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">4. Pricing &amp; Payment Processing</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">4. Pricing &amp; Payment Processing</h2>
               <p>
                 Session pricing (e.g. ₹1,500 per 45-minute individual session) is displayed during booking. All payments are processed securely through Razorpay prior to session confirmation. Prices are subject to change, but existing confirmed bookings will not be retroactively modified.
               </p>
@@ -125,7 +125,7 @@ export default function TermsPage() {
 
             {/* 5. Rescheduling, Cancellations & Refunds */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">5. Rescheduling &amp; Cancellation Policy</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">5. Rescheduling &amp; Cancellation Policy</h2>
               <div className="p-5 rounded-2xl bg-primary/5 border border-muted space-y-3">
                 <div className="flex items-center gap-2 font-bold text-primary text-sm">
                   <ShieldCheck className="w-4 h-4 text-primary" />
@@ -141,7 +141,7 @@ export default function TermsPage() {
 
             {/* 6. Therapist & Client Relationship */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">6. Therapist &amp; Client Relationship</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">6. Therapist &amp; Client Relationship</h2>
               <p>
                 Therapists on Saarthi act as independent practitioners providing professional therapeutic services. Saarthi provides the booking, scheduling, and payment technology infrastructure but does not dictate therapy methodologies or replace individual professional clinical care.
               </p>
@@ -149,7 +149,7 @@ export default function TermsPage() {
 
             {/* 7. Client Conduct & Responsibilities */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">7. Client Responsibilities &amp; Code of Conduct</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">7. Client Responsibilities &amp; Code of Conduct</h2>
               <p>When using Saarthi, you agree to:</p>
               <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
                 <li>Provide genuine contact and intake details.</li>
@@ -161,7 +161,7 @@ export default function TermsPage() {
 
             {/* 8. Intellectual Property */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">8. Intellectual Property Rights</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">8. Intellectual Property Rights</h2>
               <p>
                 All website design, logos, trademarks, text, software code, and content published on saarthilife.com belong exclusively to Saarthi Mental Wellness. You may not copy, reproduce, or distribute platform materials without prior written approval.
               </p>
@@ -169,7 +169,7 @@ export default function TermsPage() {
 
             {/* 9. Limitation of Liability */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">9. Limitation of Liability</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">9. Limitation of Liability</h2>
               <p>
                 To the fullest extent permitted by applicable law, Saarthi, its founders, and technical partners shall not be liable for indirect, incidental, or consequential damages resulting from platform downtime, technical connectivity issues, or third-party service outages.
               </p>
@@ -177,7 +177,7 @@ export default function TermsPage() {
 
             {/* 10. Modifications & Governing Law */}
             <section className="space-y-3">
-              <h2 className="text-xl sm:text-2xl font-serif font-medium text-primary-ink">10. Modifications &amp; Governing Law</h2>
+              <h2 className="text-xl sm:text-2xl font-serif font-semibold text-primary-ink">10. Modifications &amp; Governing Law</h2>
               <p>
                 We reserve the right to modify these Terms of Service at any time. Continued platform usage after published updates signifies acceptance of modified terms. These terms are governed by the laws of India, with jurisdiction in New Delhi.
               </p>
@@ -185,7 +185,7 @@ export default function TermsPage() {
 
             {/* 11. Contact Support */}
             <section className="p-6 rounded-2xl bg-primary/5 border border-muted space-y-3">
-              <h2 className="text-lg font-serif font-medium text-primary-ink">11. Questions &amp; Support Contact</h2>
+              <h2 className="text-lg font-serif font-semibold text-primary-ink">11. Questions &amp; Support Contact</h2>
               <p className="text-xs text-muted-foreground">
                 If you need help with a booking, rescheduling request, or terms clarification, please contact our support team:
               </p>
