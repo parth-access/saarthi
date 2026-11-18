@@ -104,7 +104,7 @@ export const ReviewStep = ({
   return (
     <div className="space-y-6 sm:space-y-8">
       <motion.div {...stagger(0.15)} className="text-center space-y-2">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Final Review</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Final Review</h3>
         <p className="text-sm text-muted-foreground">Take a moment to check your session details before payment.</p>
       </motion.div>
 
