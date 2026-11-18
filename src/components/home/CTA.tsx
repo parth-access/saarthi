@@ -18,25 +18,24 @@ const CTA = ({ onBookClick }: CTAProps) => {
   };
 
   return (
-    <section className="py-24 bg-primary text-primary-foreground">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center text-center">
+    <section className="py-16 md:py-24 bg-background text-text">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center rounded-[2rem] bg-[linear-gradient(160deg,#E9EFEA,#DFE8E1)] px-6 py-14 text-center md:px-16 md:py-20">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
             className="max-w-3xl"
           >
-            <h2 className="mb-6 text-white font-serif italic">Start your journey today.</h2>
-            <p className="mb-10 text-lg text-primary-foreground/80 md:text-xl">
+            <h2 className="mb-5 text-primary-ink font-serif italic">Start your journey today.</h2>
+            <p className="mx-auto mb-9 max-w-2xl text-lg leading-8 text-muted-foreground md:text-xl md:leading-9">
               Take the first step towards emotional clarity and mental wellness. Book your first session with Saarthi today.
             </p>
             <Button 
               asChild
               size="lg" 
-              variant="accent" 
-              className="text-primary font-bold"
+              variant="primary"
               onClick={handleBookClick}
             >
               <Link href="/book">Book a Session</Link>
