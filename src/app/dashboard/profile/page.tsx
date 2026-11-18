@@ -162,7 +162,7 @@ function Profile() {
                     {initialsFrom(name, currentUser?.email)}
                   </div>
                   <div className="font-sans">
-                    <h3 className="font-medium text-primary-ink text-sm">Your avatar</h3>
+                    <h3 className="font-semibold text-primary-ink text-sm">Your avatar</h3>
                     <p className="text-xs text-primary/50 mt-1">
                       We use your initials across Saarthi — there&apos;s nothing to upload.
                     </p>
@@ -266,7 +266,7 @@ function Profile() {
                     <li key={item.title} className="flex items-start gap-3 p-4 rounded-2xl bg-surface border border-muted">
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-medium text-primary-ink text-sm">{item.title}</h3>
+                        <h3 className="font-semibold text-primary-ink text-sm">{item.title}</h3>
                         <p className="text-xs text-primary/60 mt-1 leading-relaxed">{item.desc}</p>
                       </div>
                     </li>
@@ -298,7 +298,7 @@ function Profile() {
                 <div className="p-5 rounded-2xl border border-muted bg-surface">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="font-medium text-primary-ink text-sm flex items-center gap-2">
+                      <h3 className="font-semibold text-primary-ink text-sm flex items-center gap-2">
                         <Shield className="w-4 h-4 text-accent" /> Password
                       </h3>
                       <p className="text-xs text-primary/60 mt-1 max-w-md leading-relaxed">
@@ -325,7 +325,7 @@ function Profile() {
                 </div>
 
                 <div className="p-5 rounded-2xl border border-muted bg-surface">
-                  <h3 className="font-medium text-primary-ink text-sm">Your data</h3>
+                  <h3 className="font-semibold text-primary-ink text-sm">Your data</h3>
                   <p className="text-xs text-primary/60 mt-1 mb-3 leading-relaxed">
                     Download a copy of everything Saarthi holds about you — your account, bookings, payments,
                     refunds, reviews, requests, and any session summaries your therapist shared with you. Your
@@ -337,7 +337,7 @@ function Profile() {
                 </div>
 
                 <div className="p-5 rounded-2xl border border-red-100 bg-red-50/50">
-                  <h3 className="font-medium text-red-700 text-sm">Close your account</h3>
+                  <h3 className="font-semibold text-red-700 text-sm">Close your account</h3>
                   <p className="text-xs text-red-600/80 mt-1 mb-4 leading-relaxed">
                     Deleting an account touches booking and payment records we&apos;re required to keep for a
                     period, so a person handles it rather than a button. Send us a request and we&apos;ll confirm
