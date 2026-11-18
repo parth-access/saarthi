@@ -65,8 +65,8 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
   if (therapists.length === 0) {
     return (
       <div className="space-y-6 rounded-[1.5rem] border border-dashed border-muted bg-neutral-surface py-16 text-center">
-        <ShieldCheck className="mx-auto h-12 w-12 text-primary/20" />
-        <p className="text-base text-primary/60">No specialists available right now.</p>
+        <ShieldCheck className="mx-auto h-12 w-12 text-primary/70" />
+        <p className="text-base text-muted-foreground">No specialists available right now.</p>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
             className={cn(
               // Transforms only on hover/press so cards never shift the list layout.
               "group flex flex-col items-center gap-6 rounded-[1.5rem] border p-6 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:flex-row",
-              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_18px_40px_-30px_rgba(38,68,58,0.4)]",
+              "enabled:hover:-translate-y-0.5 enabled:hover:shadow-[0_18px_40px_-30px_rgba(19,59,41,0.4)]",
               "enabled:active:translate-y-0 enabled:active:scale-[0.99] enabled:active:duration-100",
               "motion-reduce:transition-colors motion-reduce:duration-150",
               "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
@@ -106,7 +106,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
             <div className="flex-1 space-y-2 text-center sm:text-left">
               <h4 className="font-sans text-lg font-medium text-primary-ink transition-colors group-hover:text-accent">{t.name}</h4>
               <p className="text-xs font-medium text-accent">{t.specialization}</p>
-              <p className="line-clamp-2 text-xs leading-relaxed text-primary/60">{t.bio}</p>
+              <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{t.bio}</p>
             </div>
             <div className={cn(
               "hidden h-10 w-10 items-center justify-center rounded-full transition-colors duration-200 sm:flex",
