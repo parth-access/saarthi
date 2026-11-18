@@ -457,7 +457,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
               </div>
 
               <div className="space-y-4">
-                <h2 className="font-serif text-3xl sm:text-4xl font-medium tracking-tight text-primary-ink">Booking Confirmed</h2>
+                <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary-ink">Booking Confirmed</h2>
                 <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
 
                 {isAuthenticated ? (
