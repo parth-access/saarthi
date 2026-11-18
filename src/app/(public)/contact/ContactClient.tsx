@@ -59,7 +59,7 @@ export default function ContactPage() {
                     <Mail className="h-6 w-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-medium text-primary-ink font-serif">Email Us</h3>
+                    <h3 className="text-lg font-semibold text-primary-ink font-serif">Email Us</h3>
                     <a href="mailto:contact@saarthilife.com" className="text-primary hover:text-primary-deep underline decoration-accent/40 underline-offset-4 hover:decoration-accent font-medium transition-colors block text-lg">
                       contact@saarthilife.com
                     </a>
@@ -72,7 +72,7 @@ export default function ContactPage() {
                     <MapPin className="h-6 w-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-medium text-primary-ink font-serif">Our Location</h3>
+                    <h3 className="text-lg font-semibold text-primary-ink font-serif">Our Location</h3>
                     <p className="text-text text-lg font-medium">Delhi, India</p>
                     <p className="text-sm text-muted-foreground italic">Based in Delhi, offering online sessions across India</p>
                   </div>
@@ -83,7 +83,7 @@ export default function ContactPage() {
                     <Calendar className="h-6 w-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-medium text-primary-ink font-serif">Support Sessions</h3>
+                    <h3 className="text-lg font-semibold text-primary-ink font-serif">Support Sessions</h3>
                     <p className="text-text text-lg font-medium">Online Counselling</p>
                     <p className="text-sm text-muted-foreground italic">Confidential, safe, and tailored clinical care</p>
                   </div>
@@ -125,7 +125,7 @@ export default function ContactPage() {
             <HeartHandshake className="h-6 w-6 text-accent" />
           </div>
           <div className="space-y-1 flex-1">
-            <h4 className="text-base font-medium text-primary-ink font-serif flex items-center gap-2">
+            <h4 className="text-base font-semibold text-primary-ink font-serif flex items-center gap-2">
               In immediate distress or need crisis support?
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
