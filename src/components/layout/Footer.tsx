@@ -63,7 +63,7 @@ export function Footer() {
           
           <div className="md:flex md:justify-center">
             <div>
-              <h4 className="font-heading text-lg font-medium text-primary-ink mb-5">Quick Links</h4>
+              <h4 className="font-heading text-lg font-semibold text-primary-ink mb-5">Quick Links</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li><Link href="/book" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-1 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Book a Session</Link></li>
                 <li><Link href="/therapists" className="inline-block transition-[color,transform] duration-200 ease-out hover:text-primary hover:translate-x-1 motion-reduce:transition-colors motion-reduce:hover:translate-x-0">Therapists</Link></li>
@@ -79,7 +79,7 @@ export function Footer() {
 
           <div className="md:flex md:justify-end">
             <div>
-              <h4 className="font-heading text-lg font-medium text-primary-ink mb-5">Contact</h4>
+              <h4 className="font-heading text-lg font-semibold text-primary-ink mb-5">Contact</h4>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <Mail className="h-5 w-5 text-primary shrink-0" />
