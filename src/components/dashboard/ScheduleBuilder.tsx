@@ -245,7 +245,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         <div className="rounded-xl border border-hairline bg-surface p-5 md:p-6 shadow-sm">
           <div className="border-b border-hairline pb-4 mb-6 flex items-start justify-between">
             <div>
-              <h2 className="text-base font-medium text-primary-ink font-serif">
+              <h2 className="text-base font-semibold text-primary-ink font-serif">
                 Configure Working Schedule
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -443,7 +443,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* LIVE PREVIEW OF SLOTS */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-primary" />
               Generated Start Times
             </h3>
@@ -475,7 +475,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* CURRENT CONFIGURED RULES */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <CalendarDays className="h-3.5 w-3.5 text-primary" />
               Active Weekly Rules
             </h3>
@@ -524,7 +524,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         {/* BLOCKED DATE OVERRIDES */}
         <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <CalendarOff className="h-3.5 w-3.5 text-danger" />
               Blocked Dates
             </h3>
