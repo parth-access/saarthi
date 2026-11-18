@@ -30,10 +30,10 @@ export function EmptyState({ icon: Icon, title, description, action, className, 
         </div>
       )}
       {!illustration && (
-        <Icon className="w-10 h-10 text-primary/20 mb-4" />
+        <Icon className="w-10 h-10 text-primary/70 mb-4" />
       )}
       <h3 className="text-xl font-serif text-primary mb-2">{title}</h3>
-      <p className="text-sm text-primary/60 max-w-sm mb-6 leading-relaxed">
+      <p className="text-sm text-muted-foreground max-w-sm mb-6 leading-relaxed">
         {description}
       </p>
       {action && <div>{action}</div>}
