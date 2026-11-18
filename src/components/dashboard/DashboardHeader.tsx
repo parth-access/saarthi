@@ -67,7 +67,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-colors font-sans ${
-                    active ? "bg-primary text-white shadow-sm" : "text-primary/70 hover:text-primary hover:bg-black/5"
+                    active ? "bg-primary text-white shadow-sm" : "text-primary hover:text-primary hover:bg-black/5"
                   }`}
                 >
                   <item.icon className="w-4 h-4" />
@@ -123,7 +123,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
                 onClick={() => setMobileOpen(false)}
                 aria-current={active ? "page" : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors ${
-                  active ? "bg-primary text-white" : "text-primary/70 hover:bg-black/5"
+                  active ? "bg-primary text-white" : "text-primary hover:bg-black/5"
                 }`}
               >
                 <item.icon className="w-4 h-4" /> {item.label}
@@ -133,7 +133,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
           <Link
             href="/dashboard/profile"
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-primary/70 hover:bg-black/5"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-primary hover:bg-black/5"
           >
             <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-[10px]">
               {initials}
