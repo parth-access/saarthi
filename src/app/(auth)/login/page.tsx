@@ -499,7 +499,11 @@ function LoginContent() {
         />
         
         {/* Decorative Grid */}
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-10 mix-blend-overlay pointer-events-none"
+          style={{ backgroundImage: NOISE_TEXTURE }}
+        />
 
         <div className="w-full h-full flex flex-col justify-center p-12 lg:p-24 relative z-10">
           
@@ -593,6 +597,10 @@ function LoginFallback() {
     </div>
   );
 }
+
+// Fine film grain drawn inline, so the panel needs no image file.
+const NOISE_TEXTURE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 export default function Login() {
   return (
