@@ -96,12 +96,12 @@ export function BreathingPlayer({ pattern }: { pattern: BreathingPattern }) {
   const isExhale = phase.label === "Breathe out";
 
   return (
-    <div className="mt-6 pt-6 border-t border-primary/10">
+    <div className="mt-6 pt-6 border-t border-muted">
       <div className="flex flex-col items-center">
         <div className="relative w-40 h-40 flex items-center justify-center mb-5">
           <motion.span
             aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-[#E6A520]/15 border border-[#E6A520]/30"
+            className="absolute inset-0 rounded-full bg-accent/15 border border-accent/30"
             animate={{ scale: running ? (isInhale ? 1 : isExhale ? 0.62 : undefined) : 0.82 }}
             transition={{ duration: running ? phase.seconds : 0.4, ease: "easeInOut" }}
           />
@@ -134,7 +134,7 @@ export function BreathingPlayer({ pattern }: { pattern: BreathingPattern }) {
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-primary/15 bg-white text-primary text-sm font-medium hover:bg-black/5 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-primary/15 bg-surface text-primary text-sm font-medium hover:bg-black/5 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
