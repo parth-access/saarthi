@@ -108,11 +108,11 @@ function DashboardReceipts() {
     <div className="pt-28 pb-24 px-4 sm:px-6">
       <div className="container mx-auto max-w-4xl">
         <div className="mb-8 font-sans">
-          <Link href="/dashboard" className="inline-flex items-center text-sm text-primary/60 hover:text-primary mb-6 transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
             <ChevronLeft className="w-4 h-4 mr-1" /> Back to dashboard
           </Link>
           <h1 className="text-3xl font-serif text-primary-ink">Payment receipts</h1>
-          <p className="text-sm text-primary/60 mt-1">Every payment you&apos;ve made to Saarthi.</p>
+          <p className="text-sm text-muted-foreground mt-1">Every payment you&apos;ve made to Saarthi.</p>
         </div>
 
         {error && (
@@ -131,7 +131,7 @@ function DashboardReceipts() {
                 <FileText className="w-8 h-8 text-accent" />
               </div>
               <h2 className="text-xl font-serif text-primary-ink mb-2">No receipts yet</h2>
-              <p className="text-primary/60 text-sm max-w-sm mx-auto mb-7 leading-relaxed">
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-7 leading-relaxed">
                 Once you pay for a session, its receipt appears here with the receipt number and
                 payment reference — ready to view or download as a PDF.
               </p>
@@ -147,7 +147,7 @@ function DashboardReceipts() {
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Your Saarthi payment receipts</caption>
                 <thead>
-                  <tr className="border-b border-muted text-primary/60 uppercase tracking-widest text-[10px]">
+                  <tr className="border-b border-muted text-muted-foreground uppercase tracking-widest text-[10px]">
                     <th scope="col" className="pb-4 font-medium">Paid on</th>
                     <th scope="col" className="pb-4 font-medium">Receipt</th>
                     <th scope="col" className="pb-4 font-medium">Session</th>
@@ -163,7 +163,7 @@ function DashboardReceipts() {
                       <td className="py-4 text-primary font-mono text-xs">{receipt.receiptNumber}</td>
                       <td className="py-4 text-primary">
                         <span className="block">{receipt.therapistName}</span>
-                        <span className="block text-primary/50 text-xs mt-0.5">
+                        <span className="block text-muted-foreground text-xs mt-0.5">
                           {receipt.sessionType} · {formatSessionDate(receipt.sessionDate)}
                         </span>
                       </td>
@@ -191,7 +191,7 @@ function DashboardReceipts() {
                         </a>
                         <a
                           href={`/api/receipts/${receipt.bookingId}/pdf?download=1`}
-                          className="ml-4 inline-flex items-center gap-1.5 text-primary/60 hover:text-primary transition-colors text-xs font-semibold uppercase"
+                          className="ml-4 inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors text-xs font-semibold uppercase"
                         >
                           <Download className="w-3.5 h-3.5" /> Save
                         </a>
@@ -200,7 +200,7 @@ function DashboardReceipts() {
                   ))}
                 </tbody>
               </table>
-              <p className="mt-6 text-xs text-primary/50 leading-relaxed">
+              <p className="mt-6 text-xs text-muted-foreground leading-relaxed">
                 Each receipt is a PDF generated from your payment record. Open it to print, or use
                 Save to keep a copy. Need a correction? Contact us from your dashboard.
               </p>
