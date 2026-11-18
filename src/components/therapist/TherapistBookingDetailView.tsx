@@ -206,14 +206,14 @@ export function TherapistBookingDetailView({
             {[1, 2, 3, 4, 5].map((n) => (
               <Star
                 key={n}
-                className={`h-4 w-4 ${n <= booking.reviewRating! ? 'fill-amber-400 text-amber-400' : 'text-primary/20'}`}
+                className={`h-4 w-4 ${n <= booking.reviewRating! ? 'fill-amber-400 text-amber-400' : 'text-primary/70'}`}
                 aria-hidden="true"
               />
             ))}
             <span className="ml-1 text-sm font-medium text-primary">{booking.reviewRating} / 5</span>
           </div>
           {booking.reviewComment && (
-            <p className="mt-2 text-xs italic text-primary/70">“{booking.reviewComment}”</p>
+            <p className="mt-2 text-xs italic text-primary">“{booking.reviewComment}”</p>
           )}
           <span className="sr-only">{`Client rated this session ${booking.reviewRating} out of 5`}</span>
         </Card>
@@ -221,7 +221,7 @@ export function TherapistBookingDetailView({
 
       {booking.reviewComment && booking.reviewRating == null && (
         <Card title="Client feedback">
-          <p className="mt-2 text-xs italic text-primary/70">“{booking.reviewComment}”</p>
+          <p className="mt-2 text-xs italic text-primary">“{booking.reviewComment}”</p>
         </Card>
       )}
 
@@ -266,7 +266,7 @@ function Field({
   return (
     <div className={`min-w-0 ${wide ? 'col-span-2' : ''}`}>
       <dt className="text-[0.6875rem] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
-      <dd className={`mt-0.5 break-words text-sm text-primary/80 ${mono ? 'font-mono' : ''}`}>
+      <dd className={`mt-0.5 break-words text-sm text-primary ${mono ? 'font-mono' : ''}`}>
         {children ?? (empty ? <span className="text-muted-foreground">—</span> : value)}
       </dd>
     </div>
