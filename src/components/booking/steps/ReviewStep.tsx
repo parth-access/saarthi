@@ -104,7 +104,7 @@ export const ReviewStep = ({
   return (
     <div className="space-y-6 sm:space-y-8">
       <motion.div {...stagger(0.15)} className="text-center space-y-2">
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Final Review</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Final Review</h3>
         <p className="text-sm text-muted-foreground">Take a moment to check your session details before payment.</p>
       </motion.div>
 
@@ -157,7 +157,7 @@ export const ReviewStep = ({
               variant="outline"
               size="sm"
               onClick={onJumpToSlots}
-              className="rounded-full bg-white text-danger border-danger/30 hover:bg-danger-surface text-xs font-semibold shrink-0 gap-1.5"
+              className="rounded-full bg-surface text-danger border-danger/30 hover:bg-danger-surface text-xs font-semibold shrink-0 gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Pick Another Slot
             </Button>
@@ -169,12 +169,12 @@ export const ReviewStep = ({
         {...stagger(0.4)}
         className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 sm:pt-4 max-w-xl mx-auto"
       >
-        <Button variant="ghost" className="rounded-full w-full sm:w-auto hover:bg-primary/5" onClick={onBack} disabled={isBusy}>
+        <Button variant="ghost" className="rounded-full w-full sm:w-auto hover:bg-sage" onClick={onBack} disabled={isBusy}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Go Back
         </Button>
         <Button
           variant="accent"
-          className="px-12 h-14 rounded-full w-full sm:w-auto text-base font-semibold shadow-xl shadow-accent/20 active:scale-95"
+          className="px-10 h-14 w-full sm:w-auto text-base shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] shadow-accent/20 active:scale-95"
           disabled={isBusy}
           onClick={onConfirm}
         >
