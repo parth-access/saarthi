@@ -103,7 +103,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Available Slots</h3>
+          <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Available Slots</h3>
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" /> {formattedDate}
           </p>
@@ -135,7 +135,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Available Slots</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Available Slots</h3>
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" /> {formattedDate}
         </p>
