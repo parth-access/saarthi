@@ -37,14 +37,14 @@ const ProfileHero = ({
   };
   return (
     <section className="relative pt-32 pb-16 md:pt-48 md:pb-24 bg-background overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="text-primary font-serif mb-4">{name}</h1>
+            <h1 className="text-primary-ink font-serif mb-4">{name}</h1>
             <p className="text-xl md:text-2xl text-accent font-serif italic mb-6">{title}</p>
             
             <div className="flex flex-wrap gap-6 mb-8 text-muted-foreground">
@@ -80,18 +80,19 @@ const ProfileHero = ({
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
             className="relative"
           >
-            <div className="group aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
+            <div className="group relative aspect-[4/5] overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
               <img
                 src={image || "/placeholder.png"}
                 alt={name}
-                className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                className="h-full w-full object-cover saturate-[.88] transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 referrerPolicy="no-referrer"
               />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[1.75rem] bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" />
             </div>
             {/* Decorative element */}
             <div className="absolute -bottom-6 -right-6 -z-10 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
