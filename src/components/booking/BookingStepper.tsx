@@ -33,7 +33,7 @@ export function BookingStepper({ currentStep, onStepClick }: Props) {
         <div className="flex items-baseline justify-between gap-3">
           <p className="min-w-0 truncate text-base font-semibold text-primary">{STEP_LABELS[clamped - 1]}</p>
           <p className="shrink-0 text-xs font-medium text-muted-foreground">
-            Step {clamped} <span className="text-primary/30">/ {total}</span>
+            Step {clamped} <span className="text-primary/70">/ {total}</span>
           </p>
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -72,9 +72,9 @@ export function BookingStepper({ currentStep, onStepClick }: Props) {
                     aria-current={isCurrent ? "step" : undefined}
                     className={cn(
                       "flex h-11 w-11 items-center justify-center rounded-2xl border transition-all duration-500",
-                      isCurrent && "border-primary bg-primary text-white shadow-[0_10px_24px_-14px_rgba(38,68,58,0.55)]",
+                      isCurrent && "border-primary bg-primary text-white shadow-[0_10px_24px_-14px_rgba(19,59,41,0.55)]",
                       isDone && "border-primary/20 bg-primary/10 text-primary",
-                      !isCurrent && !isDone && "border-muted bg-surface text-muted-foreground/70",
+                      !isCurrent && !isDone && "border-muted bg-surface text-muted-foreground",
                     )}
                   >
                     {iconNode}
@@ -85,7 +85,7 @@ export function BookingStepper({ currentStep, onStepClick }: Props) {
                     type="button"
                     onClick={() => onStepClick(stepNum)}
                     aria-label={`Go back to step ${stepNum}: ${label}`}
-                    className="cursor-pointer text-center text-xs font-medium text-primary/60 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                    className="cursor-pointer text-center text-xs font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
                     {label}
                   </button>
@@ -93,7 +93,7 @@ export function BookingStepper({ currentStep, onStepClick }: Props) {
                   <span
                     className={cn(
                       "text-center text-xs font-medium transition-colors",
-                      isCurrent ? "text-primary" : "text-muted-foreground/60",
+                      isCurrent ? "text-primary" : "text-muted-foreground",
                     )}
                   >
                     {label}
