@@ -161,7 +161,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                   </div>
                 )}
                 <div>
-                  <h4 className="font-medium text-lg text-primary-ink group-hover:text-accent transition-colors">{therapist?.name || 'Assigned Therapist'}</h4>
+                  <h4 className="font-semibold text-lg text-primary-ink group-hover:text-accent transition-colors">{therapist?.name || 'Assigned Therapist'}</h4>
                   <p className="text-sm text-primary/60">{therapist?.specialization || 'Therapist'}</p>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               {/* Patient Message */}
               {session.message && (
                 <div className="bg-surface rounded-3xl p-6 border border-muted shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
-                  <h4 className="text-sm font-medium text-primary-ink mb-3 flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-primary-ink mb-3 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary/40" /> Your Initial Notes
                   </h4>
                   <div className="text-sm text-primary/70 leading-relaxed max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
