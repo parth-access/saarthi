@@ -72,9 +72,9 @@ export function BookingStepper({ currentStep, onStepClick }: Props) {
                     aria-current={isCurrent ? "step" : undefined}
                     className={cn(
                       "flex h-11 w-11 items-center justify-center rounded-2xl border transition-all duration-500",
-                      isCurrent && "scale-105 border-primary bg-primary text-white shadow-lg shadow-primary/20",
+                      isCurrent && "border-primary bg-primary text-white shadow-[0_10px_24px_-14px_rgba(38,68,58,0.55)]",
                       isDone && "border-primary/20 bg-primary/10 text-primary",
-                      !isCurrent && !isDone && "border-muted bg-white text-muted-foreground/70",
+                      !isCurrent && !isDone && "border-muted bg-surface text-muted-foreground/70",
                     )}
                   >
                     {iconNode}
