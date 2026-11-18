@@ -81,7 +81,7 @@ export function ContactForm() {
             className="flex flex-col items-center text-center py-14 px-6 bg-background rounded-[1.75rem] border border-muted"
           >
             <CheckCircle2 className="h-14 w-14 text-primary mb-5" />
-            <h3 className="text-2xl font-heading font-medium text-primary-ink mb-2">Message Sent</h3>
+            <h3 className="text-2xl font-heading font-semibold text-primary-ink mb-2">Message Sent</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               {"Thank you for reaching out. We've received your message and will get back to you as soon as possible."}
             </p>
