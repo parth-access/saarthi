@@ -235,7 +235,7 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer disabled:opacity-60 ${
                     followUp === opt.value
                       ? 'bg-primary text-white border-primary'
-                      : 'bg-white text-primary/70 border-hairline hover:border-primary/30 hover:text-primary'
+                      : 'bg-surface text-primary/70 border-hairline hover:border-primary/30 hover:text-primary'
                   }`}
                 >
                   {followUp === opt.value && <Check className="h-3 w-3" />}
