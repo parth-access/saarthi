@@ -102,7 +102,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Your Details</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Your Details</h3>
         <p className="text-sm text-muted-foreground">Please provide your intake details for your confidential session.</p>
 
         {/* Subtle price & session anchor — keeps the amount visible before Review. */}
