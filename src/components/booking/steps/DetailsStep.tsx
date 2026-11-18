@@ -102,12 +102,12 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Your Details</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Your Details</h3>
         <p className="text-sm text-muted-foreground">Please provide your intake details for your confidential session.</p>
 
         {/* Subtle price & session anchor — keeps the amount visible before Review. */}
         <div className="flex items-center justify-center pt-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-muted bg-sage px-4 py-1.5 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span>{sessionType} Therapy Session</span>
             <span className="text-primary/30">·</span>
@@ -133,7 +133,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
               aria-required
               aria-invalid={!!errors.name}
               aria-describedby={errors.name ? "booking-name-error" : undefined}
-              className="h-14 rounded-2xl border border-transparent bg-primary/5 pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+              className="h-14 rounded-2xl border border-transparent bg-sage pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
             />
             <FieldTick show={isValid("name")} />
           </div>
@@ -156,7 +156,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                 aria-required
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? "booking-email-error" : undefined}
-                className="h-14 rounded-2xl border border-transparent bg-primary/5 pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+                className="h-14 rounded-2xl border border-transparent bg-sage pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
               />
               <FieldTick show={isValid("email")} />
             </div>
@@ -173,7 +173,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                   aria-label="Country dial code"
                   value={dialCode}
                   onChange={(e) => { setDialCode(e.target.value); syncPhone(e.target.value, national); }}
-                  className="h-14 w-[104px] appearance-none rounded-2xl border border-transparent bg-primary/5 pl-4 pr-8 text-sm font-semibold text-primary outline-none transition-all focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+                  className="h-14 w-[104px] appearance-none rounded-2xl border border-transparent bg-sage pl-4 pr-8 text-sm font-semibold text-primary outline-none transition-all focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
                 >
                   {DIAL_CODES.map((d) => (
                     <option key={d.code} value={d.code}>{d.flag} {d.code}</option>
@@ -198,7 +198,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                   aria-required
                   aria-invalid={!!errors.phone}
                   aria-describedby={errors.phone ? "booking-phone-error" : undefined}
-                  className="h-14 rounded-2xl border border-transparent bg-primary/5 pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+                  className="h-14 rounded-2xl border border-transparent bg-sage pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
                 />
                 <FieldTick show={isValid("phone")} />
               </div>
@@ -220,7 +220,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                 aria-required
                 aria-invalid={!!errors.gender}
                 aria-describedby={errors.gender ? "booking-gender-error" : undefined}
-                className="flex h-14 w-full appearance-none rounded-2xl border border-transparent bg-primary/5 px-4 pr-16 text-sm font-medium text-primary outline-none transition-all focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+                className="flex h-14 w-full appearance-none rounded-2xl border border-transparent bg-sage px-4 pr-16 text-sm font-medium text-primary outline-none transition-all focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
               >
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
@@ -251,7 +251,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
                 aria-required
                 aria-invalid={!!errors.age}
                 aria-describedby={errors.age ? "booking-age-error" : undefined}
-                className="h-14 rounded-2xl border border-transparent bg-primary/5 pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+                className="h-14 rounded-2xl border border-transparent bg-sage pr-11 focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
               />
               <FieldTick show={isValid("age")} />
             </div>
@@ -274,16 +274,16 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
             {...register("message")}
             placeholder="Briefly describe what brings you to therapy or what you would like support with..."
             rows={4}
-            className="rounded-[2rem] border border-transparent bg-primary/5 p-5 text-sm focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
+            className="rounded-[1.5rem] border border-transparent bg-sage p-5 text-sm focus:border-primary/20 focus:ring-2 focus:ring-primary/10"
           />
           <p className="ml-1 text-xs text-muted-foreground">Only your assigned therapist will see your note.</p>
         </div>
 
         {/* DPDP Act consent: unchecked until the client ticks it, and must be true to continue */}
-        <div className="space-y-2 border-t border-primary/5 pt-2">
+        <div className="space-y-2 border-t border-muted pt-2">
           <label
             htmlFor="booking-consent"
-            className="flex cursor-pointer items-start gap-3 rounded-xl p-3 text-xs leading-relaxed text-muted-foreground transition-colors hover:bg-primary/5"
+            className="flex cursor-pointer items-start gap-3 rounded-xl p-3 text-xs leading-relaxed text-muted-foreground transition-colors hover:bg-sage"
           >
             <input
               id="booking-consent"
@@ -307,7 +307,7 @@ export const DetailsStep = ({ initialData, sessionType = "Individual", onNext, o
         </div>
 
         <div className="flex justify-between pt-4">
-          <Button type="button" variant="ghost" className="rounded-full hover:bg-primary/5" onClick={onBack}>
+          <Button type="button" variant="ghost" className="rounded-full hover:bg-sage" onClick={onBack}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Back
           </Button>
           <Button type="submit" variant="accent" className="rounded-full px-10 shadow-md shadow-accent/20">
