@@ -25,6 +25,7 @@ import { cn } from "../../lib/utils"
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
 import { useBooking } from "../../hooks/useBooking"
+import { warmAvailability } from "../../hooks/useAvailability"
 import { useAuth } from "../../contexts/AuthContext"
 import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
@@ -167,6 +168,12 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
       source: 'therapist_deep_link',
     });
   }, [requestedTherapist, therapists, therapistsError, therapistsLoading, trackBookingStarted]);
+
+  // Wake the slot service as soon as a therapist is chosen (click or deep link),
+  // so its cold start is over by the time a date is picked.
+  React.useEffect(() => {
+    warmAvailability(bookingData.therapistId);
+  }, [bookingData.therapistId]);
 
   const handleNext = () => setStep(s => s + 1)
 
