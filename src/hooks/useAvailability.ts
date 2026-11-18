@@ -130,3 +130,22 @@ export function useAvailability(
 
   return { slots, loading, error, refetch };
 }
+
+const warmedTherapists = new Set<string>();
+
+/**
+ * Fire-and-forget request that wakes the availability function (and its
+ * Firestore connection) before the visitor reaches the slot step. Called when a
+ * therapist is picked, so a serverless cold start overlaps with the time spent
+ * choosing a session type and date instead of happening after the date click.
+ * The response is ignored — slots are always fetched fresh by useAvailability —
+ * and each therapist is warmed at most once per page load.
+ */
+export function warmAvailability(therapistId: string | null | undefined): void {
+  if (!therapistId || warmedTherapists.has(therapistId) || typeof window === 'undefined') return;
+  warmedTherapists.add(therapistId);
+  // Today's date in IST, the calendar the server schedules against.
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  const params = new URLSearchParams({ therapistId, date: today });
+  fetch(`/api/availability?${params.toString()}`).catch(() => {});
+}
