@@ -87,7 +87,7 @@ export default function TermsPage() {
           </div>
 
           {/* Content Sections */}
-          <div className="space-y-10 text-primary/90 text-sm sm:text-base leading-relaxed">
+          <div className="space-y-10 text-primary text-sm sm:text-base leading-relaxed">
             
             {/* 1. Acceptance */}
             <section className="space-y-3">
