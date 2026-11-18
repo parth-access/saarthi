@@ -21,8 +21,8 @@ const TONE_PILL: Record<SlotTone, string> = {
   available: "bg-surface border-muted text-primary hover:border-accent/40 hover:text-accent hover:bg-background",
   booked: "bg-danger-surface border-transparent text-danger/70",
   locked: "bg-warning-surface border-transparent text-warning",
-  past: "bg-muted/20 border-transparent text-primary/30 line-through decoration-primary/20",
-  beyond: "bg-muted/20 border-transparent text-primary/40",
+  past: "bg-muted/20 border-transparent text-primary/70 line-through decoration-primary/20",
+  beyond: "bg-muted/20 border-transparent text-primary/70",
 };
 
 /** Legend swatch colour per tone. */
@@ -123,7 +123,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
             >
               <RefreshCw className="h-4 w-4" /> Try Again
             </Button>
-            <Button variant="ghost" onClick={onBack} className="rounded-full px-5 text-primary/70 hover:bg-sage">
+            <Button variant="ghost" onClick={onBack} className="rounded-full px-5 text-primary hover:bg-sage">
               Pick Another Date
             </Button>
           </div>
@@ -139,7 +139,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" /> {formattedDate}
         </p>
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-sage px-3 py-1 text-xs font-medium text-primary/70">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-sage px-3 py-1 text-xs font-medium text-primary">
           <Globe className="h-3 w-3" />
           <span>All times in IST (Indian Standard Time · UTC+5:30)</span>
         </div>
@@ -147,9 +147,9 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
 
       {slots.length === 0 ? (
         <div className="space-y-4 rounded-[1.5rem] border border-muted bg-neutral-surface py-16 text-center">
-          <Clock className="mx-auto h-10 w-10 text-primary/20" />
+          <Clock className="mx-auto h-10 w-10 text-primary/70" />
           <div className="space-y-1">
-            <p className="text-base font-medium text-primary/60">No availability on this day.</p>
+            <p className="text-base font-medium text-muted-foreground">No availability on this day.</p>
             <p className="text-xs text-muted-foreground">All slots are either booked or outside the specialist&apos;s working hours.</p>
           </div>
           <Button
@@ -222,7 +222,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
       )}
 
       <div className="flex justify-center pt-4">
-        <Button variant="ghost" className="rounded-full text-xs font-medium text-primary/60 hover:bg-sage" onClick={onBack}>
+        <Button variant="ghost" className="rounded-full text-xs font-medium text-muted-foreground hover:bg-sage" onClick={onBack}>
           <ChevronLeft className="mr-2 h-3.5 w-3.5" /> Select Different Date
         </Button>
       </div>
