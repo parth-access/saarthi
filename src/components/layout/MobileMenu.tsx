@@ -55,10 +55,10 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
           className="fixed inset-0 z-[9999] flex flex-col bg-background p-6 md:hidden"
           role="dialog"
           aria-modal="true"
@@ -77,7 +77,7 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
             </Link>
             <button
               onClick={onClose}
-              className="p-2 text-primary hover:bg-primary/5 rounded-full transition-colors"
+              className="p-2 text-primary hover:bg-sage rounded-xl transition-colors"
               aria-label="Close menu"
             >
               <X className="h-8 w-8 stroke-[1.5]" />
@@ -85,16 +85,16 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
           </div>
 
           {/* Middle: Navigation Links */}
-          <nav className="flex flex-col space-y-6">
+          <nav className="flex flex-col gap-5">
             {links.map((link, index) => (
               <motion.div
                 key={link.name}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 + 0.2 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 + 0.12, duration: 0.4, ease: [0.22, 0.61, 0.36, 1] }}
               >
                 <Link href={link.href}
-                  className="text-4xl font-serif font-medium text-primary hover:text-accent transition-colors"
+                  className="text-4xl font-serif font-medium text-primary-ink hover:text-primary transition-colors"
                   onClick={onClose}
                 >
                   {link.name}
@@ -106,13 +106,13 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
           {/* Bottom: Primary CTA */}
           <div className="mt-auto pb-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
             >
               <Button 
                 asChild
-                className="w-full h-14 text-base font-bold tracking-wider uppercase rounded-full bg-primary text-white hover:bg-primary/90 shadow-xl shadow-primary/10" 
+                className="w-full h-14 text-base font-medium" 
                 onClick={() => {
                   trackEvent('book_demo_click', {
                     location: 'mobile_menu',
