@@ -12,7 +12,7 @@ const EXERCISES: BreathingPattern[] = [
     id: "box-breathing",
     title: "Box Breathing",
     desc: "A steady four-count rhythm that settles a racing mind. Four equal sides, over and over.",
-    color: "bg-[#FFFBE7]",
+    color: "bg-background",
     phases: [
       { label: "Breathe in", seconds: 4 },
       { label: "Hold", seconds: 4 },
@@ -72,7 +72,7 @@ function Wellness() {
         </Link>
 
         <div className="mb-10 font-sans">
-          <h1 className="text-3xl sm:text-4xl font-serif text-primary">Wellness corner</h1>
+          <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink">Wellness corner</h1>
           <p className="text-sm text-primary/60 mt-2 max-w-2xl leading-relaxed">
             A few things you can do right now, in this tab, between sessions. Nothing here is
             recorded or shared — it runs on your screen and disappears when you leave.
@@ -82,9 +82,9 @@ function Wellness() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Breathing — a real guided timer, one open at a time */}
-            <section aria-labelledby="breathing-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+            <section aria-labelledby="breathing-heading" className="bg-surface border border-muted rounded-[2rem] p-6 sm:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-1">
-                <Wind className="w-5 h-5 text-[#E6A520]" />
+                <Wind className="w-5 h-5 text-accent" />
                 <h2 id="breathing-heading" className="text-xl font-serif text-primary">Guided breathing</h2>
               </div>
               <p className="text-sm text-primary/60 font-sans mb-6">
@@ -95,7 +95,7 @@ function Wellness() {
                 {EXERCISES.map((exercise) => {
                   const isOpen = openExercise === exercise.id;
                   return (
-                    <div key={exercise.id} className={`rounded-3xl border border-primary/10 ${exercise.color} p-5`}>
+                    <div key={exercise.id} className={`rounded-3xl border border-muted ${exercise.color} p-5`}>
                       <button
                         type="button"
                         onClick={() => setOpenExercise(isOpen ? null : exercise.id)}
@@ -104,13 +104,13 @@ function Wellness() {
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <h3 className="font-serif text-lg text-primary">{exercise.title}</h3>
+                            <h3 className="font-serif text-lg text-primary-ink">{exercise.title}</h3>
                             <p className="text-xs text-primary/60 mt-1 leading-relaxed font-sans max-w-md">{exercise.desc}</p>
                             <p className="text-[11px] uppercase tracking-widest text-primary/40 mt-2 font-sans">
                               {exercise.phases.map((p) => p.seconds).join(" · ")} seconds
                             </p>
                           </div>
-                          <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-white/70 border border-primary/10 rounded-full px-3 py-1.5 font-sans group-hover:bg-white transition-colors">
+                          <span className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-white/70 border border-muted rounded-full px-3 py-1.5 font-sans group-hover:bg-surface transition-colors">
                             {isOpen ? "Close" : "Practise"}
                           </span>
                         </div>
@@ -133,9 +133,9 @@ function Wellness() {
               </div>
             </section>
             {/* Grounding — static content, honestly presented as something to read and do */}
-            <section aria-labelledby="grounding-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+            <section aria-labelledby="grounding-heading" className="bg-surface border border-muted rounded-[2rem] p-6 sm:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-1">
-                <Anchor className="w-5 h-5 text-[#E6A520]" />
+                <Anchor className="w-5 h-5 text-accent" />
                 <h2 id="grounding-heading" className="text-xl font-serif text-primary">The 5-4-3-2-1 grounding walk</h2>
               </div>
               <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
@@ -144,8 +144,8 @@ function Wellness() {
               </p>
               <ol className="space-y-3 font-sans">
                 {GROUNDING.map((step) => (
-                  <li key={step.count} className="flex items-start gap-4 p-4 rounded-2xl bg-[#FFFBE7]/70 border border-primary/5">
-                    <span className="w-9 h-9 shrink-0 rounded-full bg-white border border-primary/10 flex items-center justify-center font-serif text-lg text-[#E6A520]">
+                  <li key={step.count} className="flex items-start gap-4 p-4 rounded-2xl bg-background/70 border border-muted">
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-surface border border-muted flex items-center justify-center font-serif text-lg text-accent">
                       {step.count}
                     </span>
                     <div>
@@ -158,9 +158,9 @@ function Wellness() {
             </section>
 
             {/* Reflection prompts — no storage, and it says so rather than implying a journal */}
-            <section aria-labelledby="reflection-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 sm:p-8 shadow-sm">
+            <section aria-labelledby="reflection-heading" className="bg-surface border border-muted rounded-[2rem] p-6 sm:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-1">
-                <BookOpen className="w-5 h-5 text-[#E6A520]" />
+                <BookOpen className="w-5 h-5 text-accent" />
                 <h2 id="reflection-heading" className="text-xl font-serif text-primary">Questions worth sitting with</h2>
               </div>
               <p className="text-sm text-primary/60 font-sans mb-6 leading-relaxed">
@@ -169,7 +169,7 @@ function Wellness() {
               </p>
               <ul className="space-y-3 font-sans">
                 {REFLECTION_PROMPTS.map((prompt) => (
-                  <li key={prompt} className="p-4 rounded-2xl border border-primary/10 bg-[#FFFBE7]/50 text-sm text-primary/80 leading-relaxed">
+                  <li key={prompt} className="p-4 rounded-2xl border border-muted bg-background/50 text-sm text-primary/80 leading-relaxed">
                     &ldquo;{prompt}&rdquo;
                   </li>
                 ))}
@@ -178,9 +178,9 @@ function Wellness() {
           </div>
           <aside className="space-y-6">
             {/* Mood check-in — local only, and labelled as such */}
-            <section aria-labelledby="mood-heading" className="bg-white border border-primary/10 rounded-[2rem] p-6 shadow-sm">
+            <section aria-labelledby="mood-heading" className="bg-surface border border-muted rounded-[2rem] p-6 shadow-sm">
               <div className="flex items-center gap-2.5 mb-1">
-                <Smile className="w-5 h-5 text-[#E6A520]" />
+                <Smile className="w-5 h-5 text-accent" />
                 <h2 id="mood-heading" className="text-lg font-serif text-primary">How are you, right now?</h2>
               </div>
               <p className="text-xs text-primary/55 font-sans mb-5 leading-relaxed">
@@ -196,7 +196,7 @@ function Wellness() {
                     title={m.label}
                     className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border transition-all cursor-pointer ${
                       mood === index
-                        ? "border-[#E6A520] bg-[#FFFBE7] shadow-sm"
+                        ? "border-accent bg-background shadow-sm"
                         : "border-transparent hover:bg-black/[0.03]"
                     }`}
                   >
@@ -212,7 +212,7 @@ function Wellness() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-5 p-4 rounded-2xl bg-[#FFFBE7]/70 border border-primary/5 text-sm text-primary/75 leading-relaxed font-sans"
+                    className="mt-5 p-4 rounded-2xl bg-background/70 border border-muted text-sm text-primary/75 leading-relaxed font-sans"
                   >
                     {MOODS[mood].affirmation}
                   </motion.p>
@@ -222,7 +222,7 @@ function Wellness() {
 
             {/* Real routes only: the live therapist directory and the booking flow */}
             <section className="rounded-[2rem] bg-primary text-white p-6 shadow-sm">
-              <Heart className="w-6 h-6 text-[#E6A520] mb-3" />
+              <Heart className="w-6 h-6 text-accent mb-3" />
               <h2 className="text-lg font-serif mb-2">Some things need a person</h2>
               <p className="text-sm text-white/70 leading-relaxed font-sans mb-5">
                 Breathing helps in the moment. If something keeps coming back, talk it through with a
@@ -231,7 +231,7 @@ function Wellness() {
               <div className="space-y-2.5 font-sans">
                 <Link
                   href="/book"
-                  className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-white text-primary text-sm font-semibold hover:bg-white/90 transition-colors"
+                  className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-surface text-primary text-sm font-semibold hover:bg-white/90 transition-colors"
                 >
                   Book a session
                 </Link>
@@ -247,7 +247,7 @@ function Wellness() {
             <p className="text-xs text-primary/50 leading-relaxed font-sans px-2">
               If you&apos;re in immediate danger or thinking about harming yourself, please contact
               your local emergency number or the Tele-MANAS helpline on{" "}
-              <a href="tel:14416" className="font-medium text-primary underline hover:text-[#E6A520]">14416</a>{" "}
+              <a href="tel:14416" className="font-medium text-primary underline hover:text-accent">14416</a>{" "}
               (India, 24×7). Saarthi isn&apos;t a crisis service.
             </p>
           </aside>
