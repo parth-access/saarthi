@@ -74,7 +74,7 @@ export const TherapistStep = ({ selectedId, onSelect }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Choose your Therapist</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Choose your Therapist</h3>
         <p className="mt-2 text-sm text-muted-foreground">Select a specialist best suited for your journey</p>
       </div>
       <div className="grid gap-6">
