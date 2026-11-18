@@ -107,7 +107,7 @@ export default function ContactPage() {
                 </p>
               </div>
 
-              <div className="bg-surface p-8 md:p-12 rounded-[1.5rem] border border-muted shadow-soft overflow-hidden">
+              <div>
                 <ContactForm />
               </div>
             </motion.div>
