@@ -63,7 +63,7 @@ export default function VisionPage() {
               className="text-4xl md:text-6xl lg:text-[4.3rem] text-primary-ink font-medium leading-[1.1] tracking-tight mb-10"
             >
               Our Vision — <br />
-              <span className="italic font-normal text-accent">Making Emotional Well-being Simple</span>
+              <span className="italic font-medium text-accent-bright">Making Emotional Well-being Simple</span>
             </motion.h1>
             
             <motion.div
@@ -92,18 +92,18 @@ export default function VisionPage() {
               transition={{ duration: 1.2 }}
               className="relative"
             >
-              <div className="relative aspect-[4/5] rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
+              <div className="relative aspect-[4/5] rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]">
                 <Image
                    src="/vision_page.webp"
                    alt="Visionary landscape"
                    width={1024}
                    height={1536}
                    sizes="(min-width: 1024px) 50vw, 100vw"
-                   className="w-full h-full object-cover saturate-[.88]"
+                   className="w-full h-full object-cover"
                 />
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)]" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(248,247,241,0)_60%,rgba(19,59,41,0.08))]" />
               </div>
-              <div className="absolute -bottom-8 -right-4 md:-right-8 w-44 h-44 bg-surface border border-muted rounded-full flex items-center justify-center text-primary-ink shadow-[0_18px_40px_-24px_rgba(38,68,58,0.4)] rotate-6 p-7 text-center">
+              <div className="absolute -bottom-8 -right-4 md:-right-8 w-44 h-44 bg-surface border border-muted rounded-full flex items-center justify-center text-primary-ink shadow-[0_18px_40px_-24px_rgba(19,59,41,0.4)] rotate-6 p-7 text-center">
                 <p className="text-sm font-serif italic">&quot;Building a world where people feel safe to grow.&quot;</p>
               </div>
             </motion.div>
@@ -119,7 +119,7 @@ export default function VisionPage() {
                 <span className="text-accent font-medium tracking-widest uppercase text-xs">The Future We See</span>
                 <h2 className="text-4xl md:text-6xl text-primary-ink leading-tight">
                   A world where <br />
-                  <span className="italic font-normal text-accent">well-being is normal.</span>
+                  <span className="italic font-medium text-accent-bright">well-being is normal.</span>
                 </h2>
               </motion.div>
 
@@ -127,7 +127,7 @@ export default function VisionPage() {
                 <p className="text-xl text-muted-foreground leading-relaxed">
                   We envision a world where taking care of your mental well-being feels normal and accessible.
                 </p>
-                <p className="text-lg text-muted-foreground/80 leading-relaxed">
+                <p className="text-lg text-muted-foreground leading-relaxed">
                   A world where people feel comfortable expressing themselves and growing without hesitation.
                 </p>
               </div>
@@ -142,7 +142,7 @@ export default function VisionPage() {
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="p-12 md:p-16 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0"
+              className="p-12 md:p-16 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(19,59,41,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0"
             >
               <span className="text-accent font-medium tracking-widest uppercase text-xs mb-6 block">Our Belief</span>
               <h2 className="text-4xl md:text-5xl font-serif text-primary-ink mb-8 italic">Feeling understood should be natural</h2>
@@ -180,7 +180,7 @@ export default function VisionPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="p-8 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
+                className="p-8 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(19,59,41,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
               >
                 <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
@@ -206,7 +206,7 @@ export default function VisionPage() {
               <span className="text-accent font-medium tracking-widest uppercase text-xs">Your Journey Matters</span>
               <h2 className="text-5xl md:text-7xl text-primary-ink leading-[1.1]">
                 Every Step <br />
-                <span className="italic font-normal text-accent select-none">Matters.</span>
+                <span className="italic font-medium text-accent-bright select-none">Matters.</span>
               </h2>
               <div className="space-y-8">
                 <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto font-serif italic">
