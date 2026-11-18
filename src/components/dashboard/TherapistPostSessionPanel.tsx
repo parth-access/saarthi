@@ -151,7 +151,7 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary/70 hover:text-primary transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary transition-colors cursor-pointer"
         aria-expanded={open}
       >
         <StickyNote className="h-3.5 w-3.5" />
@@ -235,7 +235,7 @@ export const TherapistPostSessionPanel: React.FC<TherapistPostSessionPanelProps>
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer disabled:opacity-60 ${
                     followUp === opt.value
                       ? 'bg-primary text-white border-primary'
-                      : 'bg-surface text-primary/70 border-hairline hover:border-primary/30 hover:text-primary'
+                      : 'bg-surface text-primary border-hairline hover:border-primary/30 hover:text-primary'
                   }`}
                 >
                   {followUp === opt.value && <Check className="h-3 w-3" />}
