@@ -16,7 +16,7 @@ export function JoinTeamCard() {
   return (
     <Card className="h-full flex flex-col items-center justify-center p-12 text-center border border-dashed border-muted rounded-[1.75rem] bg-sage/50">
       <div className="h-20 w-20 rounded-full bg-surface flex items-center justify-center mb-6">
-        <ShieldCheck className="w-10 h-10 text-primary/40" />
+        <ShieldCheck className="w-10 h-10 text-primary/70" />
       </div>
       <h3 className="text-2xl font-serif text-primary-ink mb-2">Join our Team</h3>
       <p className="text-muted-foreground text-sm mb-8 leading-relaxed">Are you a psychologist? <br/>Help us redefine well-being.</p>
@@ -61,7 +61,7 @@ export default function TherapistsPage() {
   }, [])
 
   return (
-    <div className="pt-32 pb-24 bg-background min-h-screen bg-[radial-gradient(70%_40%_at_50%_0%,#E9EFEA,transparent)]">      
+    <div className="pt-32 pb-24 bg-background min-h-screen bg-[radial-gradient(70%_40%_at_50%_0%,#E2EFE5,transparent)]">      
       <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="mb-20 text-center space-y-4">
           <motion.div
@@ -78,7 +78,7 @@ export default function TherapistsPage() {
             className="text-5xl md:text-6xl lg:text-7xl text-primary-ink font-serif font-medium leading-[1.05] tracking-tight"
           >
             Find Your <br />
-            <span className="italic font-normal text-accent">Saarthi.</span>
+            <span className="italic font-medium text-accent-bright">Saarthi.</span>
           </motion.h1>
           
           <motion.p
@@ -94,7 +94,7 @@ export default function TherapistsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="w-8 h-8 text-accent animate-spin" />
-            <p className="text-sm font-sans font-medium text-primary/60">Connecting you with our clinical care network...</p>
+            <p className="text-sm font-sans font-medium text-muted-foreground">Connecting you with our clinical care network...</p>
           </div>
         ) : (
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
@@ -107,17 +107,17 @@ export default function TherapistsPage() {
                   transition={{ delay: index * 0.1 }}
                   className="group"
                 >
-                  <Card className="h-full flex flex-col overflow-hidden border border-muted bg-surface transition-all duration-500 hover:border-primary/25 hover:-translate-y-1 hover:shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] rounded-[1.75rem]">
+                  <Card className="h-full flex flex-col overflow-hidden border border-muted bg-surface transition-all duration-500 hover:border-primary/25 hover:-translate-y-1 hover:shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] rounded-[1.75rem]">
                     <div className="relative h-80 overflow-hidden">
                       {therapist.image ? (
                         <>
                           <img
                             src={therapist.image.startsWith('http') || therapist.image.startsWith('/') ? therapist.image : `/${therapist.image}`}
                             alt={therapist.name}
-                            className="w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03] saturate-[.88] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                            className="w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.22,0.61,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                             referrerPolicy="no-referrer"
                           />
-                          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] pointer-events-none" />
+                          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(248,247,241,0)_60%,rgba(19,59,41,0.08))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] pointer-events-none" />
                         </>
                       ) : (
                         <div aria-hidden="true" className="w-full h-full bg-gradient-to-br from-primary/10 to-accent/10" />
@@ -126,7 +126,7 @@ export default function TherapistsPage() {
                     <CardHeader className="p-8">
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium text-accent bg-accent-soft/60 px-2.5 py-0.5 rounded-full">{therapist.specialization}</span>
+                          <span className="text-xs font-medium text-primary-ink bg-accent-soft px-2.5 py-0.5 rounded-full">{therapist.specialization}</span>
                           <span className="text-xs font-medium text-primary bg-sage px-2.5 py-0.5 rounded-full">Verified M.A. Clinical Psych</span>
                         </div>
                         <CardTitle className="text-3xl font-serif text-primary-ink group-hover:text-primary transition-colors">{therapist.name}</CardTitle>
@@ -149,7 +149,7 @@ export default function TherapistsPage() {
                         return (
                           <Button 
                             asChild 
-                            className="w-full h-12 group/btn text-base shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)]"
+                            className="w-full h-12 group/btn text-base shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)]"
                             onClick={() => {
                               if (cta.isProfile) {
                                 trackEvent('view_therapist_profile', {
