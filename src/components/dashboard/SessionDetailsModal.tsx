@@ -66,13 +66,13 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
             aria-labelledby="session-details-title"
             ref={panelRef}
             tabIndex={-1}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-surface shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] flex flex-col border-l border-muted overflow-hidden outline-none"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-surface shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] flex flex-col border-l border-muted overflow-hidden outline-none"
           >
             <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50 relative z-10">
               <h3 id="session-details-title" className="text-xl font-serif text-primary">Your Journey</h3>
               <button
                 onClick={onClose}
-                className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                className="p-2 text-primary/70 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                 aria-label="Close details"
               >
                 <X aria-hidden="true" className="w-5 h-5" />
@@ -92,7 +92,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                       <Activity className="w-5 h-5 text-accent" />
                       <span className="font-medium text-primary">Session Progress</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-primary/40 transition-transform duration-300 ${showTimeline ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-primary/70 transition-transform duration-300 ${showTimeline ? 'rotate-180' : ''}`} />
                   </button>
                   
                   <AnimatePresence>
@@ -114,10 +114,10 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                                 }`}>
                                   {isCompleted && <div className="w-1.5 h-1.5 bg-accent rounded-full" />}
                                 </div>
-                                <h4 className={`text-sm font-medium ${isCompleted ? 'text-primary' : 'text-primary/40'}`}>
+                                <h4 className={`text-sm font-medium ${isCompleted ? 'text-primary' : 'text-primary/70'}`}>
                                   {step.title}
                                 </h4>
-                                <p className={`text-xs mt-0.5 ${isCompleted ? 'text-primary/60' : 'text-primary/30'}`}>
+                                <p className={`text-xs mt-0.5 ${isCompleted ? 'text-muted-foreground' : 'text-primary/70'}`}>
                                   {step.desc}
                                 </p>
                               </div>
@@ -162,7 +162,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                 )}
                 <div>
                   <h4 className="font-semibold text-lg text-primary-ink group-hover:text-accent transition-colors">{therapist?.name || 'Assigned Therapist'}</h4>
-                  <p className="text-sm text-primary/60">{therapist?.specialization || 'Therapist'}</p>
+                  <p className="text-sm text-muted-foreground">{therapist?.specialization || 'Therapist'}</p>
                 </div>
               </div>
 
@@ -170,22 +170,22 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
                   <Calendar className="w-5 h-5 text-accent mb-3" />
-                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Date</p>
+                  <p className="text-xs text-primary/70 uppercase tracking-wider mb-1 font-medium">Date</p>
                   <p className="font-medium text-primary text-sm">{formatSessionDate(session.date)}</p>
                 </div>
                 <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
                   <Clock className="w-5 h-5 text-accent mb-3" />
-                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Time · {SESSION_DURATION_LABEL}</p>
+                  <p className="text-xs text-primary/70 uppercase tracking-wider mb-1 font-medium">Time · {SESSION_DURATION_LABEL}</p>
                   <p className="font-medium text-primary text-sm">{formatSessionTimeRange(session.time)}</p>
                 </div>
                 <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
                   <Video className="w-5 h-5 text-accent mb-3" />
-                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Mode</p>
+                  <p className="text-xs text-primary/70 uppercase tracking-wider mb-1 font-medium">Mode</p>
                   <p className="font-medium text-primary text-sm capitalize">{session.sessionMode || 'Video Call'}</p>
                 </div>
                 <div className="bg-background/30 border border-muted rounded-2xl p-5 hover:bg-surface transition-colors duration-300">
                   <CreditCard className="w-5 h-5 text-accent mb-3" />
-                  <p className="text-xs text-primary/40 uppercase tracking-wider mb-1 font-medium">Payment</p>
+                  <p className="text-xs text-primary/70 uppercase tracking-wider mb-1 font-medium">Payment</p>
                   <p className={`font-medium text-sm capitalize ${session.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-accent'}`}>
                     {session.paymentStatus || 'Unpaid'}
                   </p>
@@ -196,9 +196,9 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               {session.message && (
                 <div className="bg-surface rounded-3xl p-6 border border-muted shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
                   <h4 className="text-sm font-semibold text-primary-ink mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary/40" /> Your Initial Notes
+                    <FileText className="w-4 h-4 text-primary/70" /> Your Initial Notes
                   </h4>
-                  <div className="text-sm text-primary/70 leading-relaxed max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="text-sm text-primary leading-relaxed max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                     {session.message}
                   </div>
                 </div>
@@ -244,7 +244,7 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
               )}
               <a
                 href={`mailto:support@saarthilife.com?subject=Re: Session ${session.id}`}
-                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-primary/50 hover:text-primary transition-colors duration-200"
+                className="flex items-center justify-center gap-2 w-full py-3 text-sm font-medium text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 <UserCog className="w-4 h-4" /> Need assistance? Contact Support
               </a>
