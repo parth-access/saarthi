@@ -121,7 +121,7 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
           {/* Header row with Client Name, Status Badges, and Booking ID */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-serif font-medium text-base text-primary-ink">
+              <h3 className="font-serif font-semibold text-base text-primary-ink">
                 {booking.name}
               </h3>
 
