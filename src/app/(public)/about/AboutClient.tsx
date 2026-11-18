@@ -171,7 +171,7 @@ export default function AboutPage() {
                 <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
                 </div>
-                <h4 className="text-2xl font-medium text-primary-ink mb-3">{item.title}</h4>
+                <h4 className="text-2xl font-semibold text-primary-ink mb-3">{item.title}</h4>
                 <p className="text-muted-foreground leading-relaxed">
                   {item.description}
                 </p>
@@ -196,7 +196,7 @@ export default function AboutPage() {
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-medium text-primary-ink">Dravina Gupta</h3>
+                <h3 className="text-2xl font-semibold text-primary-ink">Dravina Gupta</h3>
                 <p className="text-accent font-medium italic">Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
@@ -214,7 +214,7 @@ export default function AboutPage() {
                 <Users className="w-12 h-12 text-primary opacity-40" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-medium text-primary-ink">Krishna Gupta</h3>
+                <h3 className="text-2xl font-semibold text-primary-ink">Krishna Gupta</h3>
                 <p className="text-accent font-medium italic">Co-Founder</p>
               </div>
               <p className="text-muted-foreground leading-relaxed">
