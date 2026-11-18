@@ -105,12 +105,12 @@ export function SupportModal({
             tabIndex={-1}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg origin-center p-4 sm:p-0 outline-none"
           >
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-primary/10">
+            <div className="bg-surface rounded-3xl shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] overflow-hidden border border-muted">
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-primary/5 bg-[#FFFBE7]/50">
+              <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#E6A520]/10 flex items-center justify-center">
-                    <HelpCircle className="w-5 h-5 text-[#E6A520]" />
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-accent" />
                   </div>
                   <div>
                     <h3 id="support-title" className="text-xl font-serif text-primary">Contact Support</h3>
@@ -136,7 +136,7 @@ export function SupportModal({
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-2xl border border-primary/15 bg-[#FFFBE7]/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10"
+                      className="w-full rounded-2xl border border-primary/15 bg-background/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
                     />
                   </div>
                   <div>
@@ -146,7 +146,7 @@ export function SupportModal({
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full rounded-2xl border border-primary/15 bg-[#FFFBE7]/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10"
+                      className="w-full rounded-2xl border border-primary/15 bg-background/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
                     />
                   </div>
                 </div>
@@ -159,7 +159,7 @@ export function SupportModal({
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="e.g. +91 99999 99999"
-                      className="w-full rounded-2xl border border-primary/15 bg-[#FFFBE7]/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10"
+                      className="w-full rounded-2xl border border-primary/15 bg-background/10 px-4 py-2.5 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
                     />
                   </div>
                   <div>
@@ -167,7 +167,7 @@ export function SupportModal({
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full rounded-2xl border border-primary/15 bg-[#FFFBE7]/10 px-4 py-2.5 text-sm text-primary focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10"
+                      className="w-full rounded-2xl border border-primary/15 bg-background/10 px-4 py-2.5 text-sm text-primary focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
                     >
                       <option value="General Support">General Support</option>
                       <option value="Booking Help">Booking Help & Slots</option>
@@ -186,12 +186,12 @@ export function SupportModal({
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="We listen without judgment. Share your concerns, booking queries, or specific assistance details..."
-                    className="w-full rounded-2xl border border-primary/15 bg-[#FFFBE7]/10 px-4 py-3 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-[#E6A520] focus:ring-4 focus:ring-[#E6A520]/10 resize-none"
+                    className="w-full rounded-2xl border border-primary/15 bg-background/10 px-4 py-3 text-sm text-primary placeholder:text-primary/30 transition-all focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 resize-none"
                   />
                 </div>
 
-                <div className="bg-[#FFFBE7] rounded-2xl p-4 flex gap-3 text-xs text-primary/70 leading-relaxed border border-primary/5">
-                  <Sparkles className="w-4 h-4 text-[#E6A520] shrink-0 mt-0.5" />
+                <div className="bg-background rounded-2xl p-4 flex gap-3 text-xs text-primary/70 leading-relaxed border border-muted">
+                  <Sparkles className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                   <p>Our dedicated care team and founders personally review all messages. We typically respond within 2-4 hours to ensure you receive genuine, quiet support.</p>
                 </div>
 
