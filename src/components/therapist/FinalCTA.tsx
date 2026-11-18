@@ -21,7 +21,7 @@ const FinalCTA = ({ onBookClick, bookingHref }: FinalCTAProps) => {
   return (
     <section id="contact" className="py-16 md:py-24 bg-background text-text">
       <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center rounded-[2rem] bg-[linear-gradient(160deg,#E9EFEA,#DFE8E1)] px-6 py-14 text-center md:px-16 md:py-20">
+        <div className="flex flex-col items-center rounded-[2rem] bg-[linear-gradient(160deg,#E4F1E7,#D2E8D9)] px-6 py-14 text-center md:px-16 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
