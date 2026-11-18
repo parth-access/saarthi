@@ -47,7 +47,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Preferred Date</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Preferred Date</h3>
         <p className="mt-2 text-sm text-muted-foreground">Choose a day that works for you</p>
       </div>
 
@@ -68,15 +68,15 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
                 aria-pressed={isSelected}
                 aria-label={`${label}, ${dayNum} ${monthShort}`}
                 className={cn(
-                  "snap-center shrink-0 w-28 py-5 rounded-[2rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                  "snap-center shrink-0 w-28 py-5 rounded-[1.5rem] border transition-all duration-300 flex flex-col items-center justify-center relative overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   // Transforms only on hover/press so pills never shift the scroller.
-                  "enabled:hover:-translate-y-px enabled:hover:shadow-md",
+                  "enabled:hover:-translate-y-px enabled:hover:shadow-[0_18px_40px_-30px_rgba(38,68,58,0.4)]",
                   "enabled:active:translate-y-0 enabled:active:scale-[0.98] enabled:active:duration-100",
                   "motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:scale-100",
                   "motion-reduce:enabled:hover:translate-y-0 motion-reduce:enabled:hover:shadow-none motion-reduce:enabled:active:scale-100",
                   isSelected
                     ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105"
-                    : "bg-white border-primary/5 hover:border-primary/20 hover:bg-background text-primary"
+                    : "bg-surface border-muted hover:border-primary/20 hover:bg-background text-primary"
                 )}
               >
                 {/* Subtle highlight effect */}
@@ -106,8 +106,8 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
         </p>
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-primary/5">
-        <Button variant="ghost" className="rounded-full hover:bg-primary/5" onClick={onBack}>
+      <div className="flex justify-between pt-4 border-t border-muted">
+        <Button variant="ghost" className="rounded-full hover:bg-sage" onClick={onBack}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Button
