@@ -26,14 +26,14 @@ const Hero = ({ onBookClick }: HeroProps) => {
       className="relative flex min-h-[92vh] items-center overflow-hidden bg-background pt-28 pb-20 lg:pt-36 lg:pb-28 bg-[radial-gradient(900px_500px_at_85%_20%,rgba(200,165,114,0.10),transparent_70%),radial-gradient(800px_500px_at_0%_80%,rgba(53,94,75,0.07),transparent_70%)]"
     >
       <div className="mx-auto w-full max-w-[1160px] px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-14 lg:grid-cols-2 lg:items-center lg:gap-24">
+        <div className="grid gap-14 lg:grid-cols-[1.25fr_1fr] lg:items-center lg:gap-16">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
             className="flex flex-col items-center text-center lg:items-start lg:text-left"
           >
-            <h1 className="mb-6 text-[2.6rem] md:text-6xl lg:text-[4.3rem] text-primary-ink font-serif font-medium leading-[1.1] tracking-[-0.02em]">
+            <h1 className="mb-6 text-[2.8rem] md:text-6xl lg:text-[3.75rem] xl:text-[4.5rem] text-primary-ink font-serif font-semibold leading-[1.06] tracking-[-0.02em]">
               Find clarity. Heal. <br />
               <span className="italic text-accent">Move forward.</span>
             </h1>
