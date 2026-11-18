@@ -242,10 +242,10 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
     <div className="flex flex-col xl:flex-row gap-6 items-start font-sans text-primary">
       {/* BUILDER PANEL */}
       <div className="flex-1 w-full space-y-6">
-        <div className="rounded-xl border border-hairline bg-white p-5 md:p-6 shadow-sm">
+        <div className="rounded-xl border border-hairline bg-surface p-5 md:p-6 shadow-sm">
           <div className="border-b border-hairline pb-4 mb-6 flex items-start justify-between">
             <div>
-              <h2 className="text-base font-semibold text-primary font-serif">
+              <h2 className="text-base font-medium text-primary-ink font-serif">
                 Configure Working Schedule
               </h2>
               <p className="mt-0.5 text-xs text-muted-foreground">
@@ -281,7 +281,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                           ? "bg-primary text-white border-primary shadow-sm"
                           : hasExistingRule
                           ? "bg-neutral-surface/80 text-primary border-hairline hover:border-primary/40"
-                          : "bg-white text-muted-foreground border-hairline hover:text-primary hover:border-primary/30"
+                          : "bg-surface text-muted-foreground border-hairline hover:text-primary hover:border-primary/30"
                       )}
                       title={hasExistingRule ? `${day} already has a rule configured` : day}
                     >
@@ -311,7 +311,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                       type="time"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                      className="w-full h-9 pl-9 pr-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                     />
                   </div>
                   <span className="text-xs text-muted-foreground">to</span>
@@ -321,7 +321,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                       type="time"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
-                      className="w-full h-9 pl-9 pr-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                      className="w-full h-9 pl-9 pr-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                     />
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                         "h-9 flex-1 rounded-lg text-xs font-medium transition-all border",
                         duration === val
                           ? "bg-primary text-white border-primary shadow-sm font-semibold"
-                          : "bg-neutral-surface/40 text-muted-foreground border-hairline hover:text-primary hover:bg-white"
+                          : "bg-neutral-surface/40 text-muted-foreground border-hairline hover:text-primary hover:bg-surface"
                       )}
                     >
                       {val}m
@@ -372,7 +372,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                         "h-9 flex-1 rounded-lg text-xs font-medium transition-all border",
                         cooldown === val
                           ? "bg-primary text-white border-primary shadow-sm font-semibold"
-                          : "bg-neutral-surface/40 text-muted-foreground border-hairline hover:text-primary hover:bg-white"
+                          : "bg-neutral-surface/40 text-muted-foreground border-hairline hover:text-primary hover:bg-surface"
                       )}
                     >
                       {val === 0 ? "None" : `${val}m`}
@@ -393,7 +393,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                     type="time"
                     value={breakStart}
                     onChange={(e) => setBreakStart(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                    className="w-full h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                     placeholder="Break start"
                   />
                   <span className="text-xs text-muted-foreground">to</span>
@@ -401,7 +401,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                     type="time"
                     value={breakEnd}
                     onChange={(e) => setBreakEnd(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                    className="w-full h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs font-medium text-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
                     placeholder="Break end"
                   />
                 </div>
@@ -441,9 +441,9 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
       {/* RIGHT SIDE PANEL - LIVE PREVIEW & ACTIVE CONFIG */}
       <div className="w-full xl:w-88 space-y-4 shrink-0">
         {/* LIVE PREVIEW OF SLOTS */}
-        <div className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-primary" />
               Generated Start Times
             </h3>
@@ -473,9 +473,9 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         </div>
 
         {/* CURRENT CONFIGURED RULES */}
-        <div className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <CalendarDays className="h-3.5 w-3.5 text-primary" />
               Active Weekly Rules
             </h3>
@@ -522,9 +522,9 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
         </div>
 
         {/* BLOCKED DATE OVERRIDES */}
-        <div className="rounded-xl border border-hairline bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
+            <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-primary/60 flex items-center gap-1.5">
               <CalendarOff className="h-3.5 w-3.5 text-danger" />
               Blocked Dates
             </h3>
@@ -541,7 +541,7 @@ export const ScheduleBuilder: React.FC<ScheduleBuilderProps> = ({ therapistId })
                 min={today}
                 aria-label="Date to close"
                 onChange={(e) => setOverrideDate(e.target.value)}
-                className="flex-1 h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs text-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                className="flex-1 h-9 px-3 rounded-lg bg-neutral-surface/40 border border-hairline text-xs text-primary focus:bg-surface focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
               />
               <Button
                 type="button"
