@@ -15,9 +15,9 @@
   --color-background: #F6F7F3;
   --color-surface: #FFFFFF;
   --color-sage: #E9EFEA;
-  --color-text: #2C3530;
+  --color-text: #232B26;
   --color-muted: #E4E8E1;
-  --color-muted-foreground: #5A645D;
+  --color-muted-foreground: #4F5952;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Lora", Georgia, serif;
@@ -67,8 +67,9 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif);
-    font-weight: 500;
-    letter-spacing: -0.015em;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
     color: inherit;
   }
 
@@ -83,22 +84,22 @@
   }
 
   h1 {
-    font-size: 2.5rem;
-    line-height: 1.1;
+    font-size: 2.75rem;
+    line-height: 1.08;
   }
   @media (min-width: 768px) {
     h1 {
-      font-size: 4rem;
+      font-size: 4.5rem;
     }
   }
 
   h2 {
-    font-size: 2rem;
-    line-height: 1.2;
+    font-size: 2.125rem;
+    line-height: 1.15;
   }
   @media (min-width: 768px) {
     h2 {
-      font-size: 3rem;
+      font-size: 3.25rem;
     }
   }
 
@@ -113,7 +114,7 @@
   }
 
   p {
-    font-size: 1rem;
+    font-size: 1.0625rem;
     line-height: 1.7;
   }
 
