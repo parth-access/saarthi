@@ -160,7 +160,7 @@ export default function AuthPopupPage() {
         {!error && (
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-medium text-gray-800 mb-2">Saarthi Google Authentication</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Saarthi Google Authentication</h2>
             <p className="text-gray-500 text-sm">{status}</p>
           </div>
         )}
@@ -169,7 +169,7 @@ export default function AuthPopupPage() {
         {error && (
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-2xl font-bold mb-6">!</div>
-            <h2 className="text-xl font-medium text-gray-800 mb-2">Sign-In Failed</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Sign-In Failed</h2>
             <p className="text-rose-500 text-sm max-w-xs mb-6">{error}</p>
             <button 
               onClick={() => window.close()} 
