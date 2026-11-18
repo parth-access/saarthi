@@ -18,7 +18,7 @@ interface Props {
 
 /** Pill styling per availability tone. Disabled state is driven by isAvailable, not by tone. */
 const TONE_PILL: Record<SlotTone, string> = {
-  available: "bg-white border-primary/10 text-primary hover:border-accent/40 hover:text-accent hover:bg-background",
+  available: "bg-surface border-muted text-primary hover:border-accent/40 hover:text-accent hover:bg-background",
   booked: "bg-danger-surface border-transparent text-danger/70",
   locked: "bg-warning-surface border-transparent text-warning",
   past: "bg-muted/20 border-transparent text-primary/30 line-through decoration-primary/20",
@@ -103,16 +103,16 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
     return (
       <div className="space-y-8">
         <div className="text-center">
-          <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+          <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Available Slots</h3>
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" /> {formattedDate}
           </p>
         </div>
 
-        <div className="mx-auto max-w-lg space-y-4 rounded-[2rem] border border-danger/20 bg-danger-surface p-8 text-center shadow-sm">
+        <div className="mx-auto max-w-lg space-y-4 rounded-[1.5rem] border border-danger/20 bg-danger-surface p-8 text-center shadow-sm">
           <AlertCircle className="mx-auto h-10 w-10 text-danger opacity-80" />
           <div className="space-y-1">
-            <h4 className="font-sans text-base font-semibold text-primary">Unable to Check Slots</h4>
+            <h4 className="font-sans text-base font-medium text-primary-ink">Unable to Check Slots</h4>
             <p className="text-sm text-danger">{error}</p>
           </div>
           <div className="flex items-center justify-center gap-3 pt-2">
@@ -123,7 +123,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
             >
               <RefreshCw className="h-4 w-4" /> Try Again
             </Button>
-            <Button variant="ghost" onClick={onBack} className="rounded-full px-5 text-primary/70 hover:bg-primary/5">
+            <Button variant="ghost" onClick={onBack} className="rounded-full px-5 text-primary/70 hover:bg-sage">
               Pick Another Date
             </Button>
           </div>
@@ -135,18 +135,18 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
   return (
     <div className="space-y-8">
       <div className="space-y-2 text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary">Available Slots</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Available Slots</h3>
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" /> {formattedDate}
         </p>
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary/70">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-sage px-3 py-1 text-xs font-medium text-primary/70">
           <Globe className="h-3 w-3" />
           <span>All times in IST (Indian Standard Time · UTC+5:30)</span>
         </div>
       </div>
 
       {slots.length === 0 ? (
-        <div className="space-y-4 rounded-[2rem] border border-primary/5 bg-neutral-surface py-16 text-center">
+        <div className="space-y-4 rounded-[1.5rem] border border-muted bg-neutral-surface py-16 text-center">
           <Clock className="mx-auto h-10 w-10 text-primary/20" />
           <div className="space-y-1">
             <p className="text-base font-medium text-primary/60">No availability on this day.</p>
@@ -201,7 +201,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
                   {isLoading && (
                     <motion.span
                       initial={reduce ? false : { opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: reduce ? 0.1 : 0.18, ease: "easeOut" }}
                       className="absolute inset-0 flex items-center justify-center gap-2"
                     >
@@ -222,7 +222,7 @@ export const SlotStep = ({ therapistId, date, onSelect, onBack, lockingTime }: P
       )}
 
       <div className="flex justify-center pt-4">
-        <Button variant="ghost" className="rounded-full text-xs font-medium text-primary/60 hover:bg-primary/5" onClick={onBack}>
+        <Button variant="ghost" className="rounded-full text-xs font-medium text-primary/60 hover:bg-sage" onClick={onBack}>
           <ChevronLeft className="mr-2 h-3.5 w-3.5" /> Select Different Date
         </Button>
       </div>
