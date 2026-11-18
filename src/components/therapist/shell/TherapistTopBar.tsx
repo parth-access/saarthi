@@ -28,7 +28,7 @@ export function TherapistTopBar({ section, onOpenNav, onRefresh, loading }: Ther
           type="button"
           onClick={onOpenNav}
           aria-label="Open navigation"
-          className="-ml-1.5 rounded-lg p-2 text-primary/70 hover:bg-neutral-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+          className="-ml-1.5 rounded-lg p-2 text-primary hover:bg-neutral-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
         >
           <Menu aria-hidden="true" className="h-5 w-5" />
         </button>
