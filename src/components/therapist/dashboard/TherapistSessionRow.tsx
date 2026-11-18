@@ -70,7 +70,7 @@ export function TherapistSessionRow({ booking, isToday: today }: TherapistSessio
 
       {/* Chevron */}
       <ChevronRight
-        className="h-4 w-4 shrink-0 text-primary/25 transition-all group-hover:text-primary/60 group-hover:translate-x-0.5"
+        className="h-4 w-4 shrink-0 text-primary/70 transition-all group-hover:text-primary/60 group-hover:translate-x-0.5"
         aria-hidden="true"
       />
     </Link>
