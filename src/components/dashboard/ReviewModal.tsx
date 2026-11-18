@@ -106,7 +106,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
         aria-labelledby={`review-modal-title-${booking.id}`}
         ref={panelRef}
         tabIndex={-1}
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden outline-none"
+        className="relative w-full max-w-lg bg-surface rounded-2xl shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] border border-slate-100 overflow-hidden outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -198,7 +198,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                 maxLength={1000}
                 rows={4}
                 placeholder="How did the session feel? Any feedback regarding your therapist's support, atmosphere, or takeaways?"
-                className="w-full px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition resize-none"
+                className="w-full px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 bg-slate-50/50 border border-slate-200 rounded-xl focus:bg-surface focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition resize-none"
               />
             </div>
 
