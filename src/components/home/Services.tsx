@@ -46,7 +46,7 @@ const Services = () => {
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.6, delay: index * 0.07, ease: [0.22, 0.61, 0.36, 1] }}
             >
-              <Card className="group h-full border-transparent bg-background p-7 shadow-none hover:-translate-y-[3px] hover:border-muted hover:bg-surface hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.35)] motion-reduce:hover:translate-y-0">
+              <Card className="group h-full border-transparent bg-background p-7 shadow-none hover:-translate-y-[3px] hover:border-muted hover:bg-surface hover:shadow-[0_18px_40px_-28px_rgba(19,59,41,0.35)] motion-reduce:hover:translate-y-0">
                 <CardHeader>
                   <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-sage text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-white">
                     {service.icon}
