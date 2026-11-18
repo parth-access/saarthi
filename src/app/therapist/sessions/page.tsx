@@ -155,7 +155,7 @@ function TherapistSessionsContent() {
                 'flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 active
                   ? 'border-primary bg-primary text-white'
-                  : 'border-hairline bg-white text-primary/70 hover:border-primary/30 hover:text-primary'
+                  : 'border-hairline bg-white text-primary hover:border-primary/30 hover:text-primary'
               )}
             >
               {tab.label}
