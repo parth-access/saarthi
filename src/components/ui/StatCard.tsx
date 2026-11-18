@@ -33,7 +33,7 @@ export function StatCard({ title, value, icon: Icon, trend, className, ...props 
         )}
       </div>
       <h3 className="text-3xl font-serif text-primary font-semibold mb-1">{value}</h3>
-      <p className="text-sm font-medium text-primary/60">{title}</p>
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
     </DashboardCard>
   )
 }
