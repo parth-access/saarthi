@@ -43,7 +43,7 @@ const Qualifications = ({ items }: QualificationsProps) => {
                     <GraduationCap className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-medium text-primary-ink">{qual.degree}</h4>
+                    <h4 className="text-lg font-semibold text-primary-ink">{qual.degree}</h4>
                     {(qual.institution || qual.year) && (
                       <p className="text-sm text-muted-foreground">{[qual.institution, qual.year].filter(Boolean).join(" • ")}</p>
                     )}
