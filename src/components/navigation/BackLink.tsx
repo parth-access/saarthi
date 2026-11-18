@@ -30,7 +30,7 @@ export function BackLink({ href, label, icon: Icon = ArrowLeft, className }: Bac
     <Link
       href={href}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-sm text-xs text-primary/70 underline-offset-2',
+        'inline-flex items-center gap-1.5 rounded-sm text-xs text-primary underline-offset-2',
         'transition-colors hover:text-primary hover:underline',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         className
