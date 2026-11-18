@@ -43,7 +43,7 @@ export function BookingPauseControl({
 
   if (archived) {
     return (
-      <div className="rounded-xl border border-hairline bg-neutral-surface px-4 py-3 text-xs text-primary/80">
+      <div className="rounded-xl border border-hairline bg-neutral-surface px-4 py-3 text-xs text-primary">
         Your profile has been archived by the practice, so you can&apos;t receive new bookings. Contact an
         administrator if this is a mistake.
       </div>
