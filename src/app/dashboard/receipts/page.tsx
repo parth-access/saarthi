@@ -111,7 +111,7 @@ function DashboardReceipts() {
           <Link href="/dashboard" className="inline-flex items-center text-sm text-primary/60 hover:text-primary mb-6 transition-colors">
             <ChevronLeft className="w-4 h-4 mr-1" /> Back to dashboard
           </Link>
-          <h1 className="text-3xl font-serif text-primary">Payment receipts</h1>
+          <h1 className="text-3xl font-serif text-primary-ink">Payment receipts</h1>
           <p className="text-sm text-primary/60 mt-1">Every payment you&apos;ve made to Saarthi.</p>
         </div>
 
@@ -124,13 +124,13 @@ function DashboardReceipts() {
           </div>
         )}
 
-        <div className="bg-white border border-primary/10 rounded-[2rem] p-4 md:p-8 shadow-sm font-sans">
+        <div className="bg-surface border border-muted rounded-[2rem] p-4 md:p-8 shadow-sm font-sans">
           {receipts.length === 0 && !error ? (
             <div className="text-center py-14">
-              <div className="w-16 h-16 bg-[#FFFBE7] rounded-full flex items-center justify-center mx-auto mb-6 border border-primary/5">
-                <FileText className="w-8 h-8 text-[#E6A520]" />
+              <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-6 border border-muted">
+                <FileText className="w-8 h-8 text-accent" />
               </div>
-              <h2 className="text-xl font-serif text-primary mb-2">No receipts yet</h2>
+              <h2 className="text-xl font-serif text-primary-ink mb-2">No receipts yet</h2>
               <p className="text-primary/60 text-sm max-w-sm mx-auto mb-7 leading-relaxed">
                 Once you pay for a session, its receipt appears here with the receipt number and
                 payment reference — ready to view or download as a PDF.
@@ -147,7 +147,7 @@ function DashboardReceipts() {
               <table className="w-full text-left text-sm">
                 <caption className="sr-only">Your Saarthi payment receipts</caption>
                 <thead>
-                  <tr className="border-b border-primary/10 text-primary/60 uppercase tracking-widest text-[10px]">
+                  <tr className="border-b border-muted text-primary/60 uppercase tracking-widest text-[10px]">
                     <th scope="col" className="pb-4 font-medium">Paid on</th>
                     <th scope="col" className="pb-4 font-medium">Receipt</th>
                     <th scope="col" className="pb-4 font-medium">Session</th>
@@ -158,7 +158,7 @@ function DashboardReceipts() {
                 </thead>
                 <tbody>
                   {receipts.map((receipt) => (
-                    <tr key={receipt.bookingId} className="border-b border-primary/5 hover:bg-black/[0.02] align-top">
+                    <tr key={receipt.bookingId} className="border-b border-muted hover:bg-black/[0.02] align-top">
                       <td className="py-4 text-primary whitespace-nowrap">{paidOn(receipt.paidAtIso)}</td>
                       <td className="py-4 text-primary font-mono text-xs">{receipt.receiptNumber}</td>
                       <td className="py-4 text-primary">
@@ -185,7 +185,7 @@ function DashboardReceipts() {
                           href={`/api/receipts/${receipt.bookingId}/pdf`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[#E6A520] hover:text-primary transition-colors text-xs font-semibold uppercase"
+                          className="inline-flex items-center gap-1.5 text-accent hover:text-primary transition-colors text-xs font-semibold uppercase"
                         >
                           <Eye className="w-3.5 h-3.5" /> View
                         </a>
