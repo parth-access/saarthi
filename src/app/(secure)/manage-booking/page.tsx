@@ -213,7 +213,7 @@ function ManageBookingPage() {
 
   if (loading) {
     return (
-      <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-[#FFFBE7]">
+      <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-background">
         <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
         <p className="font-serif italic text-primary/60">
           Verifying your booking...
@@ -224,8 +224,8 @@ function ManageBookingPage() {
 
   if (loadError || !booking) {
     return (
-      <div className="pt-32 pb-20 px-4 min-h-[60vh] bg-[#FFFBE7] flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-lg border border-red-100">
+      <div className="pt-32 pb-20 px-4 min-h-[60vh] bg-background flex items-center justify-center">
+        <div className="max-w-md w-full bg-surface rounded-3xl p-8 text-center shadow-lg border border-red-100">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
@@ -248,10 +248,10 @@ function ManageBookingPage() {
   }
 
   return (
-    <div className="pt-32 pb-24 px-4 min-h-screen bg-[#FFFBE7]">
+    <div className="pt-32 pb-24 px-4 min-h-screen bg-background">
       <div className="max-w-3xl mx-auto">
         {state.view === "dashboard" && (
-          <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl border border-primary/10">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
             <div className="mb-8 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 bg-primary/10 text-primary">
                 {isCancelled && (
@@ -267,7 +267,7 @@ function ManageBookingPage() {
                   <span className="text-emerald-700">Confirmed Session</span>
                 )}
               </div>
-              <h1 className="text-3xl md:text-4xl font-serif text-primary mb-3">
+              <h1 className="text-3xl md:text-4xl font-serif text-primary-ink mb-3">
                 Manage Your Session
               </h1>
               <p className="text-muted-foreground text-lg">
@@ -297,7 +297,7 @@ function ManageBookingPage() {
 
             <div className="bg-muted/10 rounded-3xl p-6 md:p-8 space-y-6 mb-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center shrink-0 shadow-sm">
                   <User className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -311,7 +311,7 @@ function ManageBookingPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center shrink-0 shadow-sm">
                   <Video className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -325,7 +325,7 @@ function ManageBookingPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center shrink-0 shadow-sm">
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -341,7 +341,7 @@ function ManageBookingPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center shrink-0 shadow-sm">
                   <Clock className="w-5 h-5 text-primary" />
                 </div>
                 <div>
@@ -384,7 +384,7 @@ function ManageBookingPage() {
         )}
 
         {state.view === "reschedule-date" && (
-          <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl border border-primary/10">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
             <DateStep
               selectedDate={state.newDate}
               onSelect={handleDateSelect}
@@ -398,7 +398,7 @@ function ManageBookingPage() {
         )}
 
         {state.view === "reschedule-slot" && (
-          <div className="bg-white rounded-[2rem] p-8 md:p-12 shadow-xl border border-primary/10">
+          <div className="bg-surface rounded-[2rem] p-8 md:p-12 shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] border border-muted">
             <div className="mb-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 text-amber-900 text-sm flex items-center gap-2.5">
               <Calendar className="w-4 h-4 text-amber-700 shrink-0" />
               <span>
@@ -432,7 +432,7 @@ export default function SafeManageBookingPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-[#FFFBE7] font-sans">
+        <div className="pt-32 pb-20 flex flex-col items-center justify-center min-h-[60vh] bg-background font-sans">
           <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
           <p className="font-serif italic text-primary/60">
             Loading session manager...
