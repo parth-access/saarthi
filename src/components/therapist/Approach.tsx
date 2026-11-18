@@ -9,16 +9,16 @@ interface ApproachProps {
 
 const Approach = ({ items }: ApproachProps) => {
   return (
-    <section id="approach" className="py-24 bg-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="approach" className="py-24 bg-surface">
+      <div className="mx-auto max-w-[1160px] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
           >
-            <h2 className="mb-6 text-primary font-serif italic">Therapeutic Approach</h2>
+            <h2 className="mb-6 text-primary-ink font-serif italic">Therapeutic Approach</h2>
             <p className="mb-10 text-lg text-muted-foreground leading-relaxed">
               My therapeutic approach is integrative, drawing from various evidence-based practices to tailor the session to your unique needs.
             </p>
@@ -27,11 +27,11 @@ const Approach = ({ items }: ApproachProps) => {
               {items.map((approach, index) => (
                 <motion.div
                   key={approach}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="flex items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/5"
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-sage border border-muted"
                 >
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                   <span className="text-lg font-medium text-primary">{approach}</span>
@@ -41,11 +41,11 @@ const Approach = ({ items }: ApproachProps) => {
           </motion.div>
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1 }}
-            className="relative overflow-hidden rounded-3xl shadow-2xl"
+            className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]"
           >
             <Image
               src="/vision_page.webp"
