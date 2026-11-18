@@ -47,7 +47,7 @@ export const DateStep = ({ selectedDate, onSelect, onNext, onBack }: Props) => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Preferred Date</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Preferred Date</h3>
         <p className="mt-2 text-sm text-muted-foreground">Choose a day that works for you</p>
       </div>
 
