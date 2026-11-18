@@ -174,7 +174,7 @@ export function TherapistShell({ children, therapist, onRefresh, loading }: Ther
       </a>
 
       {/* Desktop rail */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-gradient-to-b from-[#1F5E3B] to-[#153F28] px-3 pb-3 pt-5 lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-deep px-3 pb-3 pt-5 lg:flex">
         <Rail pathname={pathname} therapist={therapist ?? null} />
       </aside>
 
@@ -192,7 +192,7 @@ export function TherapistShell({ children, therapist, onRefresh, loading }: Ther
             role="dialog"
             aria-modal="true"
             aria-label="Therapist navigation"
-            className="relative flex h-full w-72 max-w-[85%] flex-col bg-gradient-to-b from-[#1F5E3B] to-[#153F28] px-3 pb-3 pt-5 shadow-2xl"
+            className="relative flex h-full w-72 max-w-[85%] flex-col bg-gradient-to-b from-primary to-primary-deep px-3 pb-3 pt-5 shadow-2xl"
           >
             <button
               type="button"
