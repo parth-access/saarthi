@@ -32,7 +32,7 @@ function getStatusClasses(status: string) {
   if (status === "awaiting_payment" || status === "pending_payment") return "bg-amber-100 text-amber-800 border-amber-300";
   if (status === "rejected") return "bg-red-50 text-red-600 border-red-100";
   if (status === "cancelled" || status === "expired" || status === "no_show") return "bg-gray-50 text-gray-500 border-gray-100";
-  return "bg-primary/5 text-primary border-primary/10";
+  return "bg-primary/5 text-primary border-muted";
 }
 
 const isUnpaidHold = (b: Booking) =>
@@ -81,11 +81,11 @@ function DashboardBookings() {
   if (error && bookings.length === 0) {
     return (
       <div className="pt-28 pb-24 px-4 sm:px-6">
-        <div className="container mx-auto max-w-md text-center bg-white border border-primary/10 rounded-[2rem] p-10 shadow-sm">
+        <div className="container mx-auto max-w-md text-center bg-surface border border-muted rounded-[2rem] p-10 shadow-sm">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
-          <h2 className="text-xl font-serif text-primary mb-2">We hit a snag</h2>
+          <h2 className="text-xl font-serif text-primary-ink mb-2">We hit a snag</h2>
           <p className="text-sm text-primary/60 font-sans mb-6">{error}</p>
           <button
             onClick={() => refresh()}
@@ -107,9 +107,9 @@ function DashboardBookings() {
           </Link>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <h1 className="text-3xl sm:text-4xl font-serif text-primary">All sessions</h1>
+            <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink">All sessions</h1>
 
-            <div role="tablist" aria-label="Filter sessions" className="flex flex-wrap bg-white rounded-3xl p-1.5 border border-primary/10 shadow-sm w-fit gap-1 sm:gap-2">
+            <div role="tablist" aria-label="Filter sessions" className="flex flex-wrap bg-surface rounded-3xl p-1.5 border border-muted shadow-sm w-fit gap-1 sm:gap-2">
               {FILTERS.map((f) => (
                 <button
                   key={f.key}
@@ -136,9 +136,9 @@ function DashboardBookings() {
           </div>
         )}
 
-        <div className="bg-white/50 border border-primary/10 rounded-[2.5rem] p-4 sm:p-8 shadow-sm">
+        <div className="bg-white/50 border border-muted rounded-[1.5rem] p-4 sm:p-8 shadow-sm">
           {filtered.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-3xl border border-primary/5 font-sans">
+            <div className="text-center py-16 bg-surface rounded-3xl border border-muted font-sans">
               <Calendar className="w-12 h-12 mx-auto mb-4 text-primary/20" />
               <p className="text-primary/60 mb-5">
                 {bookings.length === 0
@@ -164,38 +164,38 @@ function DashboardBookings() {
                   <div
                     key={session.id}
                     className={`border rounded-3xl p-6 hover:shadow-md transition-all duration-300 flex flex-col h-full relative overflow-hidden ${
-                      unpaid ? "border-amber-200 bg-white" : "border-primary/10 hover:border-primary/20 bg-white"
+                      unpaid ? "border-amber-200 bg-surface" : "border-muted hover:border-primary/20 bg-surface"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4 mb-5">
                       <div className="flex gap-4 items-center min-w-0">
                         {t?.image ? (
-                          <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-primary/10">
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-muted">
                             <Image src={normalizeImageUrl(t.image)} alt={t.name} fill className="object-cover" referrerPolicy="no-referrer" />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-[#FFFBE7] flex items-center justify-center text-[#E6A520] font-serif shrink-0 border border-primary/10">
+                          <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center text-accent font-serif shrink-0 border border-muted">
                             {t?.name?.charAt(0) || "T"}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="text-[10px] uppercase tracking-widest text-[#E6A520] font-bold mb-1 font-sans">
+                          <p className="text-[10px] uppercase tracking-widest text-accent font-bold mb-1 font-sans">
                             {session.sessionType || "1:1"} Session
                           </p>
-                          <h3 className="font-semibold text-base text-primary truncate">{t?.name || "Assigned Therapist"}</h3>
+                          <h3 className="font-medium text-base text-primary-ink truncate">{t?.name || "Assigned Therapist"}</h3>
                         </div>
                       </div>
                       <span className={`shrink-0 px-2.5 py-1 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize font-sans ${getStatusClasses(session.status)}`}>
                         {session.status.replace(/_/g, " ")}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 py-4 border-y border-primary/5 text-sm mb-4 bg-[#FFFBE7]/30 -mx-6 px-6 flex-1 font-sans">
+                    <div className="grid grid-cols-2 gap-3 py-4 border-y border-muted text-sm mb-4 bg-background/30 -mx-6 px-6 flex-1 font-sans">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-[#E6A520]/80 shrink-0" />
+                        <Calendar className="w-4 h-4 text-accent shrink-0" />
                         <span className="font-medium text-primary">{formatSessionDate(session.date)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-[#E6A520]/80 shrink-0" />
+                        <Clock className="w-4 h-4 text-accent shrink-0" />
                         <span className="font-medium text-primary">{formatSessionTimeRange(session.time)}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ function DashboardBookings() {
                       {canReschedule && (
                         <button
                           onClick={() => { setSelected(session); setRescheduleOpen(true); }}
-                          className="px-3.5 py-2 bg-white hover:bg-primary/5 border border-primary/15 text-primary font-medium text-xs rounded-xl cursor-pointer transition-all font-sans"
+                          className="px-3.5 py-2 bg-surface hover:bg-primary/5 border border-primary/15 text-primary font-medium text-xs rounded-xl cursor-pointer transition-all font-sans"
                         >
                           Reschedule
                         </button>
@@ -235,14 +235,14 @@ function DashboardBookings() {
                       {unpaid && (
                         <Link
                           href="/book"
-                          className="px-3.5 py-2 bg-[#E6A520] hover:bg-[#c48b1a] text-white font-semibold text-xs rounded-xl shadow-sm transition-colors font-sans"
+                          className="px-3.5 py-2 bg-accent hover:bg-accent/90 text-white font-semibold text-xs rounded-xl shadow-sm transition-colors font-sans"
                         >
                           Book again
                         </Link>
                       )}
                       <button
                         onClick={() => { setSelected(session); setDetailsOpen(true); }}
-                        className="ml-auto inline-flex items-center text-xs font-medium text-primary/50 hover:text-[#E6A520] transition-colors font-sans cursor-pointer"
+                        className="ml-auto inline-flex items-center text-xs font-medium text-primary/50 hover:text-accent transition-colors font-sans cursor-pointer"
                       >
                         Details <ChevronRight className="w-4 h-4 ml-0.5" />
                       </button>
