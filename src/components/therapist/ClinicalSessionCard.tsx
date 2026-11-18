@@ -148,7 +148,7 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
               )}
 
               {/* Standard Saarthi Duration Badge */}
-              <span className="px-2 py-0.5 rounded bg-neutral-surface text-primary/70 border border-hairline font-mono text-[0.6875rem]">
+              <span className="px-2 py-0.5 rounded bg-neutral-surface text-primary border border-hairline font-mono text-[0.6875rem]">
                 45 mins
               </span>
             </div>
@@ -161,13 +161,13 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
 
           {/* Demographic & Contact Strip */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1 font-medium text-primary/80">
+            <span className="flex items-center gap-1 font-medium text-primary">
               <User className="h-3.5 w-3.5 text-muted-foreground" />
               {[booking.gender || null, ageLabel].filter(Boolean).join(", ") || "Client Details"}
             </span>
 
             <span>•</span>
-            <span className="px-2 py-0.5 rounded bg-neutral-surface font-medium text-primary/80 border border-hairline">
+            <span className="px-2 py-0.5 rounded bg-neutral-surface font-medium text-primary border border-hairline">
               {booking.sessionType || "Individual Therapy"}
             </span>
 
@@ -176,7 +176,7 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
                 <span>•</span>
                 <a
                   href={`tel:${booking.phone}`}
-                  className="flex items-center gap-1 font-mono text-primary/80 hover:text-primary transition-colors"
+                  className="flex items-center gap-1 font-mono text-primary hover:text-primary transition-colors"
                 >
                   <Phone className="h-3 w-3" />
                   {booking.phone}
@@ -189,7 +189,7 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
                 <span>•</span>
                 <a
                   href={`mailto:${booking.email}`}
-                  className="font-mono text-primary/80 hover:text-primary transition-colors truncate max-w-[200px]"
+                  className="font-mono text-primary hover:text-primary transition-colors truncate max-w-[200px]"
                 >
                   {booking.email}
                 </a>
@@ -199,8 +199,8 @@ export const ClinicalSessionCard: React.FC<ClinicalSessionCardProps> = ({
 
           {/* Clinical Intake Notes / Reason */}
           {booking.message ? (
-            <div className="bg-neutral-surface/40 rounded-lg p-3 border border-hairline text-xs text-primary/80 italic relative">
-              <span className="font-semibold text-primary/60 not-italic mr-1.5">Intake Note:</span>
+            <div className="bg-neutral-surface/40 rounded-lg p-3 border border-hairline text-xs text-primary italic relative">
+              <span className="font-semibold text-muted-foreground not-italic mr-1.5">Intake Note:</span>
               &ldquo;{booking.message}&rdquo;
             </div>
           ) : (
