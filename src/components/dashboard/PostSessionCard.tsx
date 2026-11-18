@@ -81,7 +81,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
         <h3 className="text-xl font-serif text-primary-ink mb-1">
           Your session with {therapistName}
         </h3>
-        <p className="text-sm text-primary/60 font-sans mb-6">
+        <p className="text-sm text-muted-foreground font-sans mb-6">
           Thank you for showing up for yourself.
         </p>
 
@@ -94,15 +94,15 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
                 {[1, 2, 3, 4, 5].map((n) => (
                   <Star
                     key={n}
-                    className={`w-4 h-4 ${n <= (session.reviewRating || 0) ? 'fill-accent text-accent' : 'text-primary/20'}`}
+                    className={`w-4 h-4 ${n <= (session.reviewRating || 0) ? 'fill-accent text-accent' : 'text-primary/70'}`}
                   />
                 ))}
               </div>
-              <span className="text-xs text-primary/50 font-sans">Thank you for your feedback</span>
+              <span className="text-xs text-muted-foreground font-sans">Thank you for your feedback</span>
             </div>
           ) : (
             <>
-              <p className="text-xs text-primary/50 font-sans mb-3">
+              <p className="text-xs text-muted-foreground font-sans mb-3">
                 Your honest reflection helps us support you better. Optional, always.
               </p>
               <button
@@ -126,7 +126,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
               <FileText className="w-4 h-4 text-accent shrink-0" />
               <div className="flex-1">
                 <h4 className="text-sm font-medium text-primary-ink font-sans">Session summary</h4>
-                <p className="text-xs text-primary/50 font-sans">
+                <p className="text-xs text-muted-foreground font-sans">
                   {summaryLoading
                     ? 'Checking for a shared summary…'
                     : summaryError
@@ -134,7 +134,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
                       : 'If your therapist shared one, you can read it here.'}
                 </p>
               </div>
-              {!summaryLoading && !summaryError && <ChevronRight className="w-4 h-4 text-primary/30 group-hover:text-accent transition-colors" />}
+              {!summaryLoading && !summaryError && <ChevronRight className="w-4 h-4 text-primary/70 group-hover:text-accent transition-colors" />}
             </div>
           </button>
         )}
@@ -143,7 +143,7 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
             <h4 className="text-sm font-medium text-primary-ink mb-3 font-sans flex items-center gap-2">
               <FileText className="w-4 h-4 text-accent" /> Session summary
             </h4>
-            <p className="text-sm text-primary/70 font-sans whitespace-pre-line leading-relaxed">{summary.clientSummary}</p>
+            <p className="text-sm text-primary font-sans whitespace-pre-line leading-relaxed">{summary.clientSummary}</p>
           </div>
         )}
 
@@ -151,17 +151,17 @@ export const PostSessionCard: React.FC<PostSessionCardProps> = ({ session, thera
         <div className="rounded-2xl bg-background/50 border border-muted p-5">
           <h4 className="text-sm font-medium text-primary-ink mb-1 font-sans">Your next step</h4>
           {hasFollowUp ? (
-            <p className="text-xs text-primary/50 font-sans mb-3">
+            <p className="text-xs text-muted-foreground font-sans mb-3">
               {session.followUpStatus === 'scheduled'
                 ? 'A follow-up session has been scheduled — it will appear in your upcoming sessions.'
                 : 'Your therapist recommended a follow-up. Book whenever it feels right for you.'}
             </p>
           ) : noFollowUp ? (
-            <p className="text-xs text-primary/50 font-sans mb-3">
+            <p className="text-xs text-muted-foreground font-sans mb-3">
               No follow-up is currently planned. You can book another session whenever you need one.
             </p>
           ) : (
-            <p className="text-xs text-primary/50 font-sans mb-3">
+            <p className="text-xs text-muted-foreground font-sans mb-3">
               You can book another session whenever you need one.
             </p>
           )}
