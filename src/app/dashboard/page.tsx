@@ -78,7 +78,7 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
             {session.sessionType || "1:1"} · {formatSessionTimeRange(session.time)}
           </span>
         </div>
-        <h4 className="font-medium text-primary-ink truncate">{therapist?.name || "Assigned Therapist"}</h4>
+        <h4 className="font-semibold text-primary-ink truncate">{therapist?.name || "Assigned Therapist"}</h4>
         <div className="mt-1 flex items-center gap-2">
           <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase tracking-wider font-medium border capitalize ${getStatusClasses(session.status)}`}>
             {statusLabel(session.status)}
