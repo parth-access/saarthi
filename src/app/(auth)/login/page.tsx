@@ -210,11 +210,11 @@ function LoginContent() {
             <Shield className="mx-auto mb-3 h-6 w-6 text-red-600" aria-hidden="true" />
             <h1 className="font-serif text-xl text-primary-ink">We couldn&apos;t finish signing you in</h1>
             {syncRefusal ? (
-              <p role="alert" className="mt-2 text-sm text-primary/80">
+              <p role="alert" className="mt-2 text-sm text-primary">
                 {syncRefusal}
               </p>
             ) : (
-              <p role="alert" className="mt-2 text-sm text-primary/60">
+              <p role="alert" className="mt-2 text-sm text-muted-foreground">
                 Your secure session could not be confirmed. Please sign out and try again.
               </p>
             )}
@@ -233,7 +233,7 @@ function LoginContent() {
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
               className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full"
             />
-            <p className="text-sm font-medium text-primary/60">
+            <p className="text-sm font-medium text-muted-foreground">
               {currentUser ? "Securing your session..." : "Loading safe space..."}
             </p>
           </div>
@@ -270,7 +270,7 @@ function LoginContent() {
             <BackLink
               href="/"
               label="Back to Saarthi"
-              className="mb-6 text-primary/60 hover:text-primary"
+              className="mb-6 text-muted-foreground hover:text-primary"
             />
             <div className="mb-8 min-h-[96px]">
               <AnimatePresence mode="wait">
@@ -284,7 +284,7 @@ function LoginContent() {
                     <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink tracking-tight mb-3">
                       {isRegister ? "Begin your journey" : "Welcome back"}
                     </h1>
-                    <p className="text-primary/60 text-sm sm:text-base leading-relaxed">
+                    <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
                       {isRegister 
                         ? "Create a safe space to track your progress and find the right support." 
                         : "Step into your secure, private space for emotional well-being."}
@@ -374,7 +374,7 @@ function LoginContent() {
                 <div className="flex justify-end">
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-primary/60 hover:text-primary transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Forgot password?
                   </Link>
@@ -419,7 +419,7 @@ function LoginContent() {
                 <div className="w-full border-t border-muted"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-surface text-primary/50 text-xs uppercase tracking-widest font-medium">Or continue with</span>
+                <span className="px-4 bg-surface text-muted-foreground text-xs uppercase tracking-widest font-medium">Or continue with</span>
               </div>
             </div>
 
@@ -463,7 +463,7 @@ function LoginContent() {
                   setError("");
                 }}
                 disabled={loading}
-                className="text-sm text-primary/60 hover:text-primary transition-colors inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded-md p-1 disabled:opacity-50 select-none touch-manipulation"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary rounded-md p-1 disabled:opacity-50 select-none touch-manipulation"
                 type="button"
               >
                 {isRegister ? (
@@ -478,7 +478,7 @@ function LoginContent() {
           <div className="mt-8 flex justify-center text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-2 px-4 py-2 bg-primary/5 rounded-full backdrop-blur-sm border border-muted">
               <Lock className="w-3.5 h-3.5 text-accent" />
-              <p className="text-xs font-medium text-primary/60">Your data is securely encrypted and strictly private.</p>
+              <p className="text-xs font-medium text-muted-foreground">Your data is securely encrypted and strictly private.</p>
             </div>
           </div>
         </motion.div>
@@ -508,7 +508,7 @@ function LoginContent() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, x: 0, y: [0, -10, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
-            className="absolute top-[15%] right-[15%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]"
+            className="absolute top-[15%] right-[15%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]"
           >
             <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5 text-emerald-300" />
@@ -524,7 +524,7 @@ function LoginContent() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, x: 0, y: [0, 10, 0] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.5, opacity: { duration: 0.8 }, x: { duration: 0.8 } }}
-            className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] max-w-[220px]"
+            className="absolute bottom-[20%] left-[10%] bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] max-w-[220px]"
           >
             <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
               <Shield className="w-5 h-5 text-accent" />
@@ -545,7 +545,7 @@ function LoginContent() {
              
              <motion.h2 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="text-4xl lg:text-5xl xl:text-6xl font-serif text-white mb-6 leading-[1.1]">
                A quiet space for<br />
-               <span className="text-accent italic">your mind</span>
+               <span className="text-accent-bright italic">your mind</span>
              </motion.h2>
              
              <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-lg text-white/70 max-w-md leading-relaxed mb-12">
@@ -588,7 +588,7 @@ function LoginContent() {
 function LoginFallback() {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center gap-6 p-4">
-      <p className="text-sm font-medium text-primary/60">Loading safe space...</p>
+      <p className="text-sm font-medium text-muted-foreground">Loading safe space...</p>
       <BackLink href="/" label="Back to Saarthi" />
     </div>
   );
