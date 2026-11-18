@@ -33,15 +33,15 @@ export const QuoteRotator = () => {
   const currentText = index === -1 ? "Your Safe Space" : quotes[index];
 
   return (
-    <div className="mt-8 mb-10 min-h-[2rem] flex items-center justify-center">
+    <div className="flex min-h-[3.75rem] items-center justify-center rounded-2xl border border-muted bg-surface/70 px-5 py-3.5 lg:justify-start">
       <AnimatePresence mode="wait">
         <motion.p
           key={currentText}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="text-lg md:text-xl font-medium text-primary tracking-wider italic"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+          className="font-serif text-base md:text-lg italic text-text"
         >
           {currentText}
         </motion.p>
