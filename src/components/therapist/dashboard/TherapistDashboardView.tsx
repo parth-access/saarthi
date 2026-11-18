@@ -84,13 +84,13 @@ function Stat({
         <p
           className={cn(
             'text-[0.6875rem] font-semibold uppercase tracking-[0.08em]',
-            tone === 'warning' ? 'text-warning' : 'text-primary/55'
+            tone === 'warning' ? 'text-warning' : 'text-muted-foreground'
           )}
         >
           {title}
         </p>
         <Icon
-          className={cn('h-4 w-4', tone === 'warning' ? 'text-warning' : 'text-primary/45')}
+          className={cn('h-4 w-4', tone === 'warning' ? 'text-warning' : 'text-primary/70')}
           aria-hidden="true"
         />
       </div>
@@ -120,7 +120,7 @@ function SectionHeading({
       {actionLabel && actionHref && (
         <Link
           href={actionHref}
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary/60 hover:text-primary"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
         >
           {actionLabel}
           <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -306,7 +306,7 @@ export function TherapistDashboardView({
           <div className="space-y-4">
             {Array.from(groupByDate(upcomingSessions.slice(0, 10))).map(([date, bookings]) => (
               <div key={date} className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary/50">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {formatSessionDay(date)}
                 </p>
                 {bookings.map((b) => (
@@ -317,7 +317,7 @@ export function TherapistDashboardView({
             {upcomingSessions.length > 10 && (
               <Link
                  href="/therapist/sessions?view=upcoming"
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary/60 hover:text-primary"
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
               >
                 View all {upcomingSessions.length} upcoming
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
