@@ -58,7 +58,7 @@ const Qualifications = ({ items }: QualificationsProps) => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]"
+            className="relative overflow-hidden rounded-[1.75rem] shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]"
           >
             <Image
               src="/vision_page.webp"
