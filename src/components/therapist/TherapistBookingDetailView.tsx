@@ -78,7 +78,7 @@ export function TherapistBookingDetailView({
               {formatSessionDate(booking.date)} · {formatSessionTimeRange(booking.time)} (
               {SESSION_DURATION_LABEL})
             </p>
-            <h2 className="mt-0.5 truncate text-lg font-medium text-primary-ink">
+            <h2 className="mt-0.5 truncate text-lg font-semibold text-primary-ink">
               {booking.name || 'Name not recorded'}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -286,7 +286,7 @@ function Card({
 }) {
   return (
     <section id={id} className="rounded-xl border border-hairline bg-surface p-4 shadow-sm">
-      <h3 className="text-sm font-medium text-primary-ink">{title}</h3>
+      <h3 className="text-sm font-semibold text-primary-ink">{title}</h3>
       {subtitle && <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{subtitle}</p>}
       {children}
     </section>
