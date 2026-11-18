@@ -56,7 +56,7 @@ export const SessionTypeStep = ({ selected, onSelect, onBack, priceLabel = SESSI
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h3 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-primary-ink">Session Type</h3>
+        <h3 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-primary-ink">Session Type</h3>
         <p className="mt-2 text-sm text-muted-foreground">What kind of support are you looking for?</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-muted bg-sage px-4 py-1.5 text-xs font-medium text-primary">
           <span>{SESSION_DURATION_MINUTES}-minute session</span>
