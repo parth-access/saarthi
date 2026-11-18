@@ -451,14 +451,14 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
             >
               <div className="relative inline-flex items-center justify-center">
                 <div className="absolute inset-0 bg-primary/10 rounded-full scale-[1.8] animate-pulse motion-reduce:animate-none" />
-                <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
+                <div className="relative w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)]">
                   <CheckCircle2 className="w-12 h-12" />
                 </div>
               </div>
 
               <div className="space-y-4">
                 <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-primary-ink">Booking Confirmed</h2>
-                <p className="text-base italic text-primary/70">“Every journey begins with a single, intentional step.”</p>
+                <p className="text-base italic text-primary">“Every journey begins with a single, intentional step.”</p>
 
                 {isAuthenticated ? (
                   <p className="text-muted-foreground text-sm leading-relaxed">
@@ -468,7 +468,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
                   <div className="space-y-3 pt-2 text-left">
                     <div className="bg-sage p-5 rounded-2xl border border-muted flex items-start gap-3.5">
                       <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                      <div className="space-y-1 text-xs text-primary/80">
+                      <div className="space-y-1 text-xs text-primary">
                         <p className="font-bold text-primary text-sm">Session Confirmation Sent</p>
                         <p className="leading-relaxed">
                           We have emailed your calendar invitation, video session link, and receipt to <span className="font-semibold text-primary underline">{bookingData.email}</span>.
@@ -612,7 +612,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
             initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-surface rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)] outline-none"
+            className="bg-surface rounded-3xl p-8 max-w-md w-full text-center space-y-4 shadow-[0_24px_50px_-30px_rgba(19,59,41,0.35)] outline-none"
           >
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
               <Loader2 className="w-8 h-8 animate-spin motion-reduce:animate-none" />
