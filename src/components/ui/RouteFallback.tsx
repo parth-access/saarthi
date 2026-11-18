@@ -87,7 +87,7 @@ export function RouteError({
             </div>
 
             {showContact && (
-              <p className="text-sm text-primary/60">
+              <p className="text-sm text-muted-foreground">
                 Still stuck?{" "}
                 <Link
                   href="/contact"
@@ -99,7 +99,7 @@ export function RouteError({
             )}
 
             {error.digest && (
-              <p className="text-xs text-primary/50">
+              <p className="text-xs text-muted-foreground">
                 Reference: {error.digest}
               </p>
             )}
