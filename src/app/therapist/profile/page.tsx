@@ -99,7 +99,7 @@ export default function TherapistProfilePage() {
       </div>
 
       {t.archived && (
-        <p className="rounded-lg bg-neutral-surface px-3 py-2 text-xs text-primary/80">
+        <p className="rounded-lg bg-neutral-surface px-3 py-2 text-xs text-primary">
           Your profile has been archived by the practice, so it can&apos;t be edited.
         </p>
       )}
@@ -167,10 +167,10 @@ export default function TherapistProfilePage() {
         <aside className="space-y-2 rounded-xl border border-hairline bg-white p-4 text-xs shadow-sm">
           <p className="font-medium text-primary">Set by the practice</p>
           <dl className="space-y-1.5 text-muted-foreground">
-            <div><dt className="inline font-medium text-primary/80">Name: </dt><dd className="inline">{t.name}</dd></div>
-            <div><dt className="inline font-medium text-primary/80">Session price: </dt><dd className="inline">{sessionPriceDisplayFor(t)}</dd></div>
+            <div><dt className="inline font-medium text-primary">Name: </dt><dd className="inline">{t.name}</dd></div>
+            <div><dt className="inline font-medium text-primary">Session price: </dt><dd className="inline">{sessionPriceDisplayFor(t)}</dd></div>
             {t.slug && (
-              <div><dt className="inline font-medium text-primary/80">Booking link: </dt><dd className="inline break-all">/book?therapist={t.slug}</dd></div>
+              <div><dt className="inline font-medium text-primary">Booking link: </dt><dd className="inline break-all">/book?therapist={t.slug}</dd></div>
             )}
           </dl>
           <p className="pt-1 text-[0.6875rem] leading-relaxed text-muted-foreground">
