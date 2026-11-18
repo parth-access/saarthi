@@ -42,7 +42,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-40 border-b border-primary/5 bg-[#FFFBE7]/85 backdrop-blur-md print:hidden">
+    <header className="fixed top-0 inset-x-0 z-40 border-b border-muted bg-background/85 backdrop-blur-md print:hidden">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Brand */}
@@ -84,7 +84,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
               className="hidden sm:flex items-center gap-2.5 group"
               title="Edit profile"
             >
-              <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/10 flex items-center justify-center text-primary font-semibold text-sm group-hover:bg-primary/15 transition-colors">
+              <div className="w-9 h-9 rounded-full bg-primary/10 border border-muted flex items-center justify-center text-primary font-semibold text-sm group-hover:bg-primary/15 transition-colors">
                 {initials}
               </div>
               <span className="hidden lg:block text-sm font-medium text-primary max-w-[140px] truncate font-sans">
@@ -93,7 +93,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
             </Link>
             <button
               onClick={logout}
-              className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary bg-white border border-primary/10 hover:bg-black/5 transition-colors rounded-full shadow-sm cursor-pointer font-sans"
+              className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary bg-surface border border-muted hover:bg-black/5 transition-colors rounded-full shadow-sm cursor-pointer font-sans"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
@@ -113,7 +113,7 @@ export function DashboardHeader({ displayName }: { displayName?: string }) {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-primary/5 bg-[#FFFBE7] px-4 py-3 space-y-1 font-sans">
+        <div className="md:hidden border-t border-muted bg-background px-4 py-3 space-y-1 font-sans">
           {NAV.map((item) => {
             const active = isActive(item.href, item.exact);
             return (
