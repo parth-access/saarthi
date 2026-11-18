@@ -47,7 +47,7 @@ function Row({ label, value, icon: Icon }: { label: string; value?: string; icon
   const reduce = useReducedMotion();
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sage text-primary/70">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-sage text-primary">
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
@@ -63,7 +63,7 @@ function Row({ label, value, icon: Icon }: { label: string; value?: string; icon
             {value}
           </motion.p>
         ) : (
-          <p className="mt-0.5 text-sm text-primary/35">Not selected yet</p>
+          <p className="mt-0.5 text-sm text-primary/70">Not selected yet</p>
         )}
       </div>
     </div>
@@ -93,10 +93,10 @@ function SummaryBody({
           {therapist ? (
             <>
               <p className="truncate text-base font-semibold text-primary">{therapist.name}</p>
-              <p className="truncate text-xs font-medium text-primary/60">{therapist.specialization}</p>
+              <p className="truncate text-xs font-medium text-muted-foreground">{therapist.specialization}</p>
             </>
           ) : (
-            <p className="text-sm text-primary/35">Choose a therapist to begin</p>
+            <p className="text-sm text-primary/70">Choose a therapist to begin</p>
           )}
         </div>
       </div>
@@ -121,7 +121,7 @@ function SummaryBody({
         </p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-2xl bg-sage px-4 py-3 text-xs leading-relaxed text-primary/70">
+      <div className="flex items-start gap-2 rounded-2xl bg-sage px-4 py-3 text-xs leading-relaxed text-primary">
         <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
         <span>After secure payment we email your calendar invite, video link and receipt right away.</span>
       </div>
@@ -179,7 +179,7 @@ export function BookingSummary({ therapist, sessionType, date, time, variant = "
           </span>
           <span className="flex shrink-0 items-center gap-2">
             <span className="text-sm font-semibold tabular-nums text-primary">{sessionPriceDisplayFor(therapist)}</span>
-            <ChevronDown className={cn("h-4 w-4 text-primary/50 transition-transform", open && "rotate-180")} />
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
           </span>
         </button>
         {open && (
