@@ -69,7 +69,7 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
       className="w-full text-left bg-surface border border-muted rounded-3xl p-5 hover:shadow-md hover:border-primary/20 transition-all duration-300 group flex items-center gap-4"
     >
       <div className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl bg-background border border-muted shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-primary/50 font-sans">{weekday}</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-sans">{weekday}</span>
         <span className="text-xl font-serif text-primary leading-none">{day}</span>
       </div>
       <div className="min-w-0 flex-1">
@@ -108,7 +108,7 @@ function CompactSessionCard({ session, therapist, onOpen, onJoin, joining }: Com
           Book again
         </Link>
       ) : (
-        <ChevronRight className="w-5 h-5 text-primary/30 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
+        <ChevronRight className="w-5 h-5 text-primary/70 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
       )}
     </button>
   );
@@ -206,7 +206,7 @@ function Dashboard() {
             <AlertCircle className="w-7 h-7 text-red-500" />
           </div>
           <h2 className="text-xl font-serif text-primary-ink mb-2">We hit a snag</h2>
-          <p className="text-sm text-primary/60 font-sans mb-6">{error}</p>
+          <p className="text-sm text-muted-foreground font-sans mb-6">{error}</p>
           <button
             onClick={() => refresh()}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-full hover:bg-primary/90 transition-colors cursor-pointer"
@@ -225,9 +225,9 @@ function Dashboard() {
       <div className="container mx-auto max-w-6xl">
         {/* Welcome */}
         <div className="mb-8">
-          <p className="text-sm text-primary/50 font-sans">{greetingFor()},</p>
+          <p className="text-sm text-muted-foreground font-sans">{greetingFor()},</p>
           <h1 className="text-3xl sm:text-4xl font-serif text-primary-ink capitalize">{displayName}</h1>
-          <p className="text-primary/60 font-sans mt-1 text-sm">
+          <p className="text-muted-foreground font-sans mt-1 text-sm">
             Here&apos;s your space to reflect, prepare, and connect.
           </p>
         </div>
@@ -278,7 +278,7 @@ function Dashboard() {
                         {heroSession.sessionType || "1:1"} Session
                       </p>
                       <h2 className="text-xl font-serif text-primary-ink truncate">{heroTherapist?.name || "Assigned Therapist"}</h2>
-                      <p className="text-sm text-primary/60 font-sans truncate">{heroTherapist?.specialization || "Therapist"}</p>
+                      <p className="text-sm text-muted-foreground font-sans truncate">{heroTherapist?.specialization || "Therapist"}</p>
                     </div>
                   </div>
 
@@ -286,22 +286,22 @@ function Dashboard() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                     <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Calendar className="w-4 h-4 text-accent mb-2" />
-                      <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Date</p>
+                      <p className="text-[10px] uppercase tracking-wider text-primary/70 font-sans mb-0.5">Date</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionDate(heroSession.date)}</p>
                     </div>
                     <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Clock className="w-4 h-4 text-accent mb-2" />
-                      <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Time · {SESSION_DURATION_LABEL}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-primary/70 font-sans mb-0.5">Time · {SESSION_DURATION_LABEL}</p>
                       <p className="text-sm font-medium text-primary font-sans">{formatSessionTimeRange(heroSession.time)}</p>
                     </div>
                     <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <Video className="w-4 h-4 text-accent mb-2" />
-                      <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Mode</p>
+                      <p className="text-[10px] uppercase tracking-wider text-primary/70 font-sans mb-0.5">Mode</p>
                       <p className="text-sm font-medium text-primary font-sans capitalize">{heroSession.sessionMode || "Video Call"}</p>
                     </div>
                     <div className="rounded-2xl bg-background/50 border border-muted p-4">
                       <CreditCard className="w-4 h-4 text-accent mb-2" />
-                      <p className="text-[10px] uppercase tracking-wider text-primary/40 font-sans mb-0.5">Payment</p>
+                      <p className="text-[10px] uppercase tracking-wider text-primary/70 font-sans mb-0.5">Payment</p>
                       <p className={`text-sm font-medium font-sans capitalize ${heroSession.paymentStatus === "paid" ? "text-emerald-600" : "text-accent"}`}>
                         {heroSession.paymentStatus || "unpaid"}
                       </p>
@@ -312,19 +312,19 @@ function Dashboard() {
                     {heroSession.status !== "confirmed" ? (
                       <>
                         <Clock className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                        <span className="text-primary/60">
+                        <span className="text-muted-foreground">
                           Your therapist is confirming this session. The meeting link appears here once it&apos;s confirmed.
                         </span>
                       </>
                     ) : heroSession.meetingUrl ? (
                       <>
                         <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span className="text-primary/70">Your Google Meet link is ready — join from here at your session time.</span>
+                        <span className="text-primary">Your Google Meet link is ready — join from here at your session time.</span>
                       </>
                     ) : (
                       <>
                         <Clock className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                        <span className="text-primary/60">
+                        <span className="text-muted-foreground">
                           Your meeting link is being prepared. Use Join session and we&apos;ll fetch it for you.
                         </span>
                       </>
@@ -352,7 +352,7 @@ function Dashboard() {
                     </button>
                     <button
                       onClick={() => openDetails(heroSession)}
-                      className="inline-flex items-center gap-2 px-5 py-3 text-primary/70 hover:text-primary text-sm font-medium rounded-2xl transition-colors cursor-pointer font-sans"
+                      className="inline-flex items-center gap-2 px-5 py-3 text-primary hover:text-primary text-sm font-medium rounded-2xl transition-colors cursor-pointer font-sans"
                     >
                       <FileText className="w-4 h-4" /> Details
                     </button>
@@ -376,7 +376,7 @@ function Dashboard() {
                     <Calendar className="w-7 h-7 text-accent" />
                   </div>
                   <h2 className="text-2xl font-serif text-primary-ink mb-2">No sessions scheduled yet</h2>
-                  <p className="text-sm text-primary/60 font-sans max-w-md mx-auto mb-6">
+                  <p className="text-sm text-muted-foreground font-sans max-w-md mx-auto mb-6">
                     When you&apos;re ready, choose a time that suits you. Your next {SESSION_DURATION_LABEL.toLowerCase()} session
                     will appear right here with everything you need to join.
                   </p>
@@ -394,7 +394,7 @@ function Dashboard() {
               <section aria-labelledby="upcoming-heading" className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 id="upcoming-heading" className="text-lg font-serif text-primary">Also coming up</h3>
-                  <Link href="/dashboard/bookings" className="text-xs font-medium text-primary/50 hover:text-primary font-sans inline-flex items-center gap-1">
+                  <Link href="/dashboard/bookings" className="text-xs font-medium text-muted-foreground hover:text-primary font-sans inline-flex items-center gap-1">
                     All sessions <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -428,7 +428,7 @@ function Dashboard() {
                 <div className="flex items-center justify-between">
                   <h3 id="history-heading" className="text-lg font-serif text-primary">Your journey so far</h3>
                   {past.length > 4 && (
-                    <Link href="/dashboard/bookings" className="text-xs font-medium text-primary/50 hover:text-primary font-sans inline-flex items-center gap-1">
+                    <Link href="/dashboard/bookings" className="text-xs font-medium text-muted-foreground hover:text-primary font-sans inline-flex items-center gap-1">
                       View all {past.length} <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   )}
@@ -486,7 +486,7 @@ function Dashboard() {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-primary truncate">{t.name}</p>
-                        <p className="text-xs text-primary/50 font-sans truncate">{t.specialization || "Therapist"}</p>
+                        <p className="text-xs text-muted-foreground font-sans truncate">{t.specialization || "Therapist"}</p>
                       </div>
                     </li>
                   ))}
@@ -499,7 +499,7 @@ function Dashboard() {
               <h3 className="text-sm font-medium text-primary-ink uppercase tracking-wider font-sans mb-2 flex items-center gap-2">
                 <UserCog className="w-4 h-4 text-accent" /> Need a hand?
               </h3>
-              <p className="text-sm text-primary/60 font-sans mb-4">
+              <p className="text-sm text-muted-foreground font-sans mb-4">
                 Questions about a session, payment, or your account — our care team replies personally.
               </p>
               <button
