@@ -128,17 +128,17 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
             exit={{ opacity: 0, scale: 0.96, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col outline-none"
           >
-            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] overflow-hidden border border-muted flex flex-col max-h-[88vh]">
+            <div className="bg-surface rounded-3xl shadow-[0_18px_40px_-34px_rgba(19,59,41,0.35)] overflow-hidden border border-muted flex flex-col max-h-[88vh]">
               <div className="flex items-center justify-between p-6 border-b border-muted bg-background/50 shrink-0">
                 <div>
                   <h3 id="reschedule-title" className="text-xl font-serif text-primary">Reschedule Session</h3>
-                  <p className="text-xs text-primary/60 font-sans mt-1">
+                  <p className="text-xs text-muted-foreground font-sans mt-1">
                     Currently {session.date} · {formatSessionTimeRange(session.time)}
                   </p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-primary/40 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
+                  className="p-2 text-primary/70 hover:text-primary transition-colors hover:bg-black/5 rounded-full"
                   aria-label="Close reschedule dialog"
                 >
                   <X aria-hidden="true" className="w-5 h-5" />
@@ -161,7 +161,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                           className={`shrink-0 w-16 py-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                             active
                               ? 'bg-primary text-white border-primary shadow-sm'
-                              : 'bg-surface text-primary/70 border-muted hover:border-accent/40 hover:bg-background'
+                              : 'bg-surface text-primary border-muted hover:border-accent/40 hover:bg-background'
                           }`}
                           aria-pressed={active}
                         >
@@ -178,11 +178,11 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-primary mb-3">
                       <Clock className="w-4 h-4 text-accent" /> Available times
-                      <span className="text-xs text-primary/40 font-normal">({SESSION_DURATION_LABEL} session)</span>
+                      <span className="text-xs text-primary/70 font-normal">({SESSION_DURATION_LABEL} session)</span>
                     </label>
 
                     {slotsLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-primary/50 py-6 justify-center">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
                         <Loader2 className="w-4 h-4 animate-spin" /> Checking the calendar…
                       </div>
                     ) : slotsError ? (
@@ -190,7 +190,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                         <AlertCircle className="w-4 h-4 shrink-0" /> {slotsError}
                       </div>
                     ) : availableSlots.length === 0 ? (
-                      <div className="text-sm text-primary/60 bg-background/50 border border-dashed border-primary/15 rounded-2xl p-5 text-center">
+                      <div className="text-sm text-muted-foreground bg-background/50 border border-dashed border-primary/15 rounded-2xl p-5 text-center">
                         No open times on this day. Please try another date.
                       </div>
                     ) : (
@@ -204,7 +204,7 @@ export function RescheduleModal({ isOpen, onClose, session, onRescheduled }: Res
                               className={`py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer ${
                                 active
                                   ? 'bg-accent text-white border-accent shadow-sm'
-                                  : 'bg-surface text-primary/80 border-muted hover:border-accent/40 hover:bg-background'
+                                  : 'bg-surface text-primary border-muted hover:border-accent/40 hover:bg-background'
                               }`}
                               aria-pressed={active}
                             >
