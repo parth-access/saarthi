@@ -54,7 +54,7 @@ export const ProtectedRoute = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBE7]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -63,7 +63,7 @@ export const ProtectedRoute = ({
   if (!isAuthenticated) {
     // Return loading placeholder while redirecting to avoid flashing unauthenticated content
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBE7]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
       </div>
     );
@@ -71,7 +71,7 @@ export const ProtectedRoute = ({
 
   if (!isRoleAllowed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBE7]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
       </div>
     );
