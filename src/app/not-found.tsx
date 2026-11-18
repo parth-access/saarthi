@@ -19,7 +19,7 @@ export default function NotFound() {
             <Image src="/saarthi-logo.webp" alt="Saarthi" width={256} height={256} className="h-9 w-auto object-contain" />
             <span className="hidden font-serif text-xl font-semibold text-primary sm:inline">Saarthi</span>
           </Link>
-          <Link href="/" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-primary/80 hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <Link href="/" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-primary/80 hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Home
           </Link>
@@ -33,8 +33,8 @@ export default function NotFound() {
               <Compass className="h-3.5 w-3.5" aria-hidden="true" />
               A different route may help
             </span>
-            <p className="mt-6 font-serif text-7xl font-semibold leading-none tracking-tight text-primary sm:text-8xl">404</p>
-            <h1 className="mt-5 font-serif text-3xl font-semibold tracking-tight text-primary sm:text-4xl">This page isn’t here.</h1>
+            <p className="mt-6 font-serif text-7xl font-medium leading-none tracking-tight text-primary/80 sm:text-8xl">404</p>
+            <h1 className="mt-5 font-serif text-3xl font-medium tracking-tight text-primary-ink sm:text-4xl">This page isn’t here.</h1>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
               The link may be old, or the page may have moved. You can return home or use one of these common paths.
             </p>
@@ -44,7 +44,7 @@ export default function NotFound() {
             </Link>
           </div>
 
-          <aside className="rounded-xl border border-hairline bg-white p-3 shadow-sm">
+          <aside className="rounded-xl border border-hairline bg-surface p-3 shadow-sm">
             <p className="px-2 pb-2 pt-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-primary/50">Where to next</p>
             <div className="space-y-1">
               {destinations.map(({ href, title, detail, Icon }) => (
