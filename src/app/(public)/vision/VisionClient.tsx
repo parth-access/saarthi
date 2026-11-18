@@ -185,7 +185,7 @@ export default function VisionPage() {
                 <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
                 </div>
-                <h3 className="text-xl font-medium text-primary-ink mb-3">{item.title}</h3>
+                <h3 className="text-xl font-semibold text-primary-ink mb-3">{item.title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm">
                   {item.description}
                 </p>
