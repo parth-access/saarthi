@@ -87,7 +87,7 @@ const ProfileHero = ({
           >
             <div className="group aspect-[4/5] overflow-hidden rounded-3xl shadow-2xl">
               <img
-                src={image || "/placeholder.png"}
+                src={image || "/dravina.webp"}
                 alt={name}
                 className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 referrerPolicy="no-referrer"
