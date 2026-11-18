@@ -47,9 +47,9 @@ export default function VisionPage() {
         <section className="mb-32">
           <div className="max-w-4xl">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
               className="flex items-center gap-4 mb-8"
             >
               <div className="h-px w-12 bg-accent/40" />
@@ -57,13 +57,13 @@ export default function VisionPage() {
             </motion.div>
             
             <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="text-4xl md:text-6xl lg:text-7xl text-primary leading-[0.85] tracking-tighter mb-12"
+              transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+              className="text-4xl md:text-6xl lg:text-[4.3rem] text-primary-ink font-medium leading-[1.1] tracking-tight mb-10"
             >
               Our Vision — <br />
-              <span className="italic font-normal text-accent/80">Making Emotional Well-being Simple</span>
+              <span className="italic font-normal text-accent">Making Emotional Well-being Simple</span>
             </motion.h1>
             
             <motion.div
@@ -72,7 +72,7 @@ export default function VisionPage() {
               transition={{ duration: 1, delay: 0.5 }}
               className="space-y-6 max-w-2xl"
             >
-              <p className="text-xl md:text-2xl text-primary/70 leading-relaxed font-serif italic">
+              <p className="text-xl md:text-2xl text-text/80 leading-relaxed font-serif italic">
                 Saarthi is built to make emotional well-being feel simple, natural, and accessible.
               </p>
               <p className="text-lg text-muted-foreground leading-relaxed">
@@ -83,40 +83,41 @@ export default function VisionPage() {
         </section>
 
         {/* Section 2: Vision Statement (Moved Up) */}
-        <section className="mb-48">
+        <section className="mb-32 md:mb-40">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 1.2 }}
               className="relative"
             >
-              <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl">
+              <div className="relative aspect-[4/5] rounded-[1.75rem] overflow-hidden shadow-[0_24px_50px_-30px_rgba(38,68,58,0.35)]">
                 <Image
                    src="/vision_page.webp"
                    alt="Visionary landscape"
                    width={1024}
                    height={1536}
                    sizes="(min-width: 1024px) 50vw, 100vw"
-                   className="w-full h-full object-cover"
+                   className="w-full h-full object-cover saturate-[.88]"
                 />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(246,247,243,0)_55%,rgba(38,68,58,0.10)),rgba(200,165,114,0.06)]" />
               </div>
-              <div className="absolute -bottom-8 -right-8 w-48 h-48 bg-accent rounded-full flex items-center justify-center text-white shadow-xl rotate-12 p-8 text-center">
+              <div className="absolute -bottom-8 -right-4 md:-right-8 w-44 h-44 bg-surface border border-muted rounded-full flex items-center justify-center text-primary-ink shadow-[0_18px_40px_-24px_rgba(38,68,58,0.4)] rotate-6 p-7 text-center">
                 <p className="text-sm font-serif italic">&quot;Building a world where people feel safe to grow.&quot;</p>
               </div>
             </motion.div>
 
             <div className="space-y-12">
               <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
+                transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
                 className="space-y-6"
               >
                 <span className="text-accent font-medium tracking-widest uppercase text-xs">The Future We See</span>
-                <h2 className="text-4xl md:text-6xl text-primary leading-tight">
+                <h2 className="text-4xl md:text-6xl text-primary-ink leading-tight">
                   A world where <br />
                   <span className="italic font-normal text-accent">well-being is normal.</span>
                 </h2>
@@ -135,16 +136,16 @@ export default function VisionPage() {
         </section>
 
         {/* Section 3: Belief Statement (Smaller, not dramatic) */}
-        <section className="mb-48">
+        <section className="mb-32 md:mb-40">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="p-12 md:p-16 rounded-[4rem] bg-white border border-primary/5 shadow-sm hover:shadow-xl transition-all duration-500"
+              className="p-12 md:p-16 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0"
             >
               <span className="text-accent font-medium tracking-widest uppercase text-xs mb-6 block">Our Belief</span>
-              <h2 className="text-4xl md:text-5xl font-serif text-primary mb-8 italic">Feeling understood should be natural</h2>
+              <h2 className="text-4xl md:text-5xl font-serif text-primary-ink mb-8 italic">Feeling understood should be natural</h2>
               <div className="space-y-6 max-w-2xl mx-auto text-lg text-muted-foreground leading-relaxed">
                 <p>
                   We believe emotional well-being should feel simple and approachable.
@@ -158,7 +159,7 @@ export default function VisionPage() {
         </section>
 
         {/* Section 4: The Saarthi Way */}
-        <section className="mb-48">
+        <section className="mb-32 md:mb-40">
           <div className="text-center mb-16">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -167,7 +168,7 @@ export default function VisionPage() {
               className="space-y-4"
             >
               <span className="text-accent font-medium tracking-widest uppercase text-xs">The Saarthi Way</span>
-              <h2 className="text-4xl md:text-6xl text-primary">Our Pillars of Care</h2>
+              <h2 className="text-4xl md:text-6xl text-primary-ink">Our Pillars of Care</h2>
             </motion.div>
           </div>
 
@@ -175,16 +176,16 @@ export default function VisionPage() {
             {pillars.map((item, index) => (
               <motion.div
                 key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="p-8 rounded-[3rem] bg-white border border-primary/5 shadow-sm hover:shadow-xl transition-all duration-500 group"
+                className="p-8 rounded-[1.75rem] bg-surface border border-muted shadow-[0_18px_40px_-34px_rgba(38,68,58,0.35)] hover:-translate-y-[3px] hover:shadow-[0_18px_40px_-28px_rgba(38,68,58,0.4)] transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:hover:translate-y-0 group"
               >
-                <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-6 group-hover:bg-accent/10 group-hover:text-accent transition-all">
+                <div className="h-12 w-12 rounded-2xl bg-sage flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                   {item.icon}
                 </div>
-                <h3 className="text-xl font-bold text-primary mb-3">{item.title}</h3>
+                <h3 className="text-xl font-medium text-primary-ink mb-3">{item.title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm">
                   {item.description}
                 </p>
@@ -196,14 +197,14 @@ export default function VisionPage() {
         {/* Section 5: Closing Section */}
         <section className="text-center pb-20">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="max-w-4xl mx-auto space-y-16"
           >
             <div className="space-y-6">
               <span className="text-accent font-medium tracking-widest uppercase text-xs">Your Journey Matters</span>
-              <h2 className="text-5xl md:text-8xl text-primary leading-tight">
+              <h2 className="text-5xl md:text-7xl text-primary-ink leading-[1.1]">
                 Every Step <br />
                 <span className="italic font-normal text-accent select-none">Matters.</span>
               </h2>
@@ -211,9 +212,9 @@ export default function VisionPage() {
                 <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-2xl mx-auto font-serif italic">
                   Every step you take towards understanding yourself matters.
                 </p>
-                <div className="flex justify-center items-center gap-4 text-primary/40">
+                <div className="flex justify-center items-center gap-4 text-accent/50">
                   <Quote className="w-8 h-8 rotate-180" />
-                  <p className="text-2xl md:text-3xl text-primary font-serif italic max-w-xl">
+                  <p className="text-2xl md:text-3xl text-primary-ink font-serif italic max-w-xl">
                     Mental wellness isn&apos;t a destination you reach; it&apos;s a way of traveling.
                   </p>
                   <Quote className="w-8 h-8" />
@@ -222,7 +223,7 @@ export default function VisionPage() {
             </div>
             
             <div className="flex flex-col items-center gap-8">
-              <Button asChild size="lg" className="h-20 px-16 text-xl rounded-[2rem] shadow-2xl shadow-primary/20 hover:shadow-accent/30 transition-all hover:-translate-y-2 bg-primary hover:bg-primary/95">
+              <Button asChild size="lg" className="h-14 px-10 text-base">
                 <Link href="/therapists">Find Your Saarthi</Link>
               </Button>
               <p className="text-muted-foreground text-sm tracking-widest uppercase">We’re here whenever you’re ready.</p>
