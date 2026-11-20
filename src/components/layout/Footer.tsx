@@ -100,6 +100,14 @@ export function Footer() {
           </div>
         </div>
         
+        <p className="mb-8 rounded-2xl bg-primary/5 px-5 py-4 text-sm leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-primary">Saarthi is not an emergency service.</span>{" "}
+          If you are in crisis or thinking about harming yourself, call the government&apos;s free Tele-MANAS helpline on{" "}
+          <a href="tel:14416" className="font-semibold text-primary underline-offset-2 hover:underline">14416</a> or{" "}
+          <a href="tel:18008914416" className="font-semibold text-primary underline-offset-2 hover:underline">1-800-891-4416</a>,
+          or <a href="tel:112" className="font-semibold text-primary underline-offset-2 hover:underline">112</a> in an emergency.
+        </p>
+
         <div className="border-t border-muted pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
           <div className="flex items-center gap-6">

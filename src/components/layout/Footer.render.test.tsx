@@ -27,6 +27,12 @@ describe('public footer', () => {
     expect(html).toContain('Terms of Service');
   });
 
+  it('says it is not an emergency service and gives the crisis helplines', () => {
+    const html = renderToStaticMarkup(<Footer />);
+    expect(html).toContain('Saarthi is not an emergency service.');
+    for (const tel of ['tel:14416', 'tel:18008914416', 'tel:112']) expect(html).toContain(`href="${tel}"`);
+  });
+
   it('states the government and MSME registration', () => {
     expect(renderToStaticMarkup(<Footer />)).toContain('Govt. Registered | MSME');
   });
