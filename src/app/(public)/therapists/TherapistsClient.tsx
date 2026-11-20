@@ -3,14 +3,13 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MapPin, ArrowRight, ShieldCheck, Loader2 } from "lucide-react"
+import { MapPin, ArrowRight, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Therapist } from "@/types"
-import { therapistService } from "@/services/therapistService"
 import { trackEvent } from "@/lib/analytics"
-import { DEFAULT_THERAPISTS, getTherapistCtaDetails } from "@/constants/therapists"
+import { getTherapistCtaDetails } from "@/constants/therapists"
 
 export function JoinTeamCard() {
   return (
@@ -27,38 +26,8 @@ export function JoinTeamCard() {
   );
 }
 
-export default function TherapistsPage() {
-  const [therapists, setTherapists] = React.useState<Therapist[]>(DEFAULT_THERAPISTS)
-  const [loading, setLoading] = React.useState(true)
-
-  React.useEffect(() => {
-    let active = true
-    const load = async () => {
-      try {
-        const fetched = await therapistService.getTherapists()
-        if (active) {
-          if (fetched && fetched.length > 0) {
-            setTherapists(fetched)
-          } else {
-            setTherapists(DEFAULT_THERAPISTS)
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load therapists dynamically, falling back to static team list:", err)
-        if (active) {
-          setTherapists(DEFAULT_THERAPISTS)
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
-      }
-    }
-    load()
-    return () => {
-      active = false
-    }
-  }, [])
+/** The list is read on the server (see page.tsx) so it is in the first HTML. */
+export default function TherapistsPage({ therapists }: { therapists: Therapist[] }) {
 
   return (
     <div className="pt-32 pb-24 bg-background min-h-screen selection:bg-primary/10">      
@@ -69,7 +38,7 @@ export default function TherapistsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="inline-flex items-center gap-2 bg-primary/5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-primary/60 border border-primary/10"
           >
-            <ShieldCheck className="w-3 h-3" /> Our Verified Team
+            <ShieldCheck className="w-3 h-3" /> Our Therapists
           </motion.div>
           
           <motion.h1
@@ -91,13 +60,7 @@ export default function TherapistsPage() {
           </motion.p>
         </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-8 h-8 text-accent animate-spin" />
-            <p className="text-sm font-sans font-medium text-primary/60">Connecting you with our clinical care network...</p>
-          </div>
-        ) : (
-          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
               {therapists.map((therapist, index) => (
                 <motion.div
@@ -125,10 +88,9 @@ export default function TherapistsPage() {
                     </div>
                     <CardHeader className="p-8">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] uppercase font-black tracking-widest text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">{therapist.specialization}</span>
-                          <span className="text-[10px] font-semibold text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">Verified M.A. Clinical Psych</span>
-                        </div>
+                        {therapist.specialization && (
+                          <span className="inline-block text-[10px] uppercase font-black tracking-widest text-accent bg-accent/10 px-2.5 py-0.5 rounded-full">{therapist.specialization}</span>
+                        )}
                         <CardTitle className="text-3xl font-serif text-primary group-hover:text-accent transition-colors">{therapist.name}</CardTitle>
                         <CardDescription className="text-muted-foreground line-clamp-3 leading-relaxed italic text-base">
                           &ldquo;{therapist.bio}&rdquo;
@@ -189,7 +151,6 @@ export default function TherapistsPage() {
                 <JoinTeamCard />
             </motion.div>
           </div>
-        )}
       </div>
     </div>
   )

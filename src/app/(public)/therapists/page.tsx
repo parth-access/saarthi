@@ -1,36 +1,61 @@
+import 'server-only';
 import React from 'react';
 import { Metadata } from 'next';
 import TherapistsClient from './TherapistsClient';
 import { ogImage } from '@/lib/og';
-import { therapistService } from '@/services/therapistService';
+import { adminDb } from '@/lib/firebase/admin';
+import { mapTherapist } from '@/utils/mappers';
 import { Therapist } from '@/types';
 import { DEFAULT_THERAPISTS } from '@/constants/therapists';
 
+/** The directory changes rarely; re-render at most every 5 minutes. */
+export const revalidate = 300;
+
+/**
+ * Read on the server so the cards are in the HTML that search engines and
+ * link previews receive, rather than appearing only after the browser fetches
+ * them. Bookable, non-archived therapists only, as on the profile pages; the
+ * built-in profile stands in if the read fails or finds nobody.
+ */
+async function loadDirectory(): Promise<Therapist[]> {
+  if (!adminDb) return DEFAULT_THERAPISTS;
+  try {
+    const snap = await adminDb.collection('therapists').where('active', '==', true).get();
+    const listed = snap.docs
+      .map((d) => mapTherapist(d.id, d.data()))
+      .filter((t) => !t.archived);
+    return listed.length > 0 ? listed : DEFAULT_THERAPISTS;
+  } catch (err) {
+    console.error('Could not read the therapist directory; showing the built-in profile.', err);
+    return DEFAULT_THERAPISTS;
+  }
+}
+
 const therapistsOgImageUrl = ogImage(
-  'Meet Our Verified Therapists',
-  'Connect with empathetic psychologists holding verified credentials on Saarthi.'
+  'Meet Our Therapists',
+  'Online sessions with empathetic psychologists on Saarthi.'
 );
 
 export const metadata: Metadata = {
-  title: 'Our Certified Online Therapists & Psychologists',
-  description: 'Meet our verified team of empathetic psychologists on Saarthi. Find therapists specializing in mindfulness, anxiety, depression, CBT, and stress management.',
+  title: 'Our Online Therapists & Psychologists',
+  description: 'Meet the empathetic psychologists on Saarthi, specializing in mindfulness, anxiety, depression, CBT, and stress management.',
   openGraph: {
-    title: 'Our Certified Online Therapists & Psychologists | Saarthi',
-    description: 'Meet our verified team of empathetic psychologists on Saarthi. Professional online sessions for stress, anxiety, and wellness.',
+    title: 'Our Online Therapists & Psychologists | Saarthi',
+    description: 'Meet the empathetic psychologists on Saarthi. Online sessions for stress, anxiety, and wellness.',
     url: 'https://www.saarthilife.com/therapists',
     images: [
       {
         url: therapistsOgImageUrl,
         width: 1200,
         height: 630,
-        alt: 'Saarthi Certified Therapists and Psychologists',
+        alt: 'Saarthi Therapists and Psychologists',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Our Certified Online Therapists & Psychologists | Saarthi',
-    description: 'Meet our verified team of empathetic psychologists on Saarthi. Find therapists.',
+    title: 'Our Online Therapists & Psychologists | Saarthi',
+    description: 'Meet the empathetic psychologists on Saarthi.',
     images: [therapistsOgImageUrl],
   },
   alternates: {
@@ -39,19 +64,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  let therapists: Therapist[] = [];
-  try {
-    const fetched = await therapistService.getTherapists();
-    therapists = fetched && fetched.length > 0 ? fetched : DEFAULT_THERAPISTS;
-  } catch {
-    therapists = DEFAULT_THERAPISTS;
-  }
+  const therapists = await loadDirectory();
 
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    'name': 'Saarthi Certified Professional Therapists & Counsellors',
-    'description': 'Browse verified, empathetic psychologists and counsellors representing Saarthi online mental health network in India.',
+    'name': 'Saarthi Therapists & Counsellors',
+    'description': 'Browse the empathetic psychologists and counsellors offering online sessions through Saarthi in India.',
     'url': 'https://www.saarthilife.com/therapists',
     'mainEntity': {
       '@type': 'ItemList',
@@ -88,7 +107,7 @@ export default async function Page() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <TherapistsClient />
+      <TherapistsClient therapists={therapists} />
     </>
   );
 }
