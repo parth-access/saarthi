@@ -10,10 +10,10 @@ const ogImageUrl = ogImage(
 
 export const metadata: Metadata = {
   title: 'Book an Online Therapy Session',
-  description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+  description: 'Book your confidential online therapy or mental health assessment session directly with counsellors on Saarthi.',
   openGraph: {
     title: 'Book an Online Therapy Session | Saarthi',
-    description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+    description: 'Book your confidential online therapy or mental health assessment session directly with counsellors on Saarthi.',
     url: 'https://www.saarthilife.com/book',
     images: [
       {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Book an Online Therapy Session | Saarthi',
-    description: 'Book your confidential online therapy or mental health assessment session directly with certified counsellors on Saarthi.',
+    description: 'Book your confidential online therapy or mental health assessment session directly with counsellors on Saarthi.',
     images: [ogImageUrl],
   },
   alternates: {

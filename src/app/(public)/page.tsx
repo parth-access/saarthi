@@ -5,15 +5,15 @@ import { ogImage } from '@/lib/og';
 
 const ogImageUrl = ogImage(
   'Saarthi — Your Safe Space',
-  'Book verified, empathetic therapists for online counselling sessions in India.'
+  'Book empathetic therapists for online counselling sessions in India.'
 );
 
 export const metadata: Metadata = {
   title: 'Online Therapy & Mental Wellness Support in India',
-  description: 'Book online sessions with certified, empathetic therapists on Saarthi. Find expert guidance for anxiety, stress relief, student counselling, and emotional wellness.',
+  description: 'Book online sessions with empathetic therapists on Saarthi. Find expert guidance for anxiety, stress relief, student counselling, and emotional wellness.',
   openGraph: {
     title: 'Saarthi — Online Therapy & Mental Wellness Support',
-    description: 'Book online sessions with certified, empathetic therapists. Start your emotional wellness journey in India.',
+    description: 'Book online sessions with empathetic therapists. Start your emotional wellness journey in India.',
     url: 'https://www.saarthilife.com',
     images: [
       {
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Saarthi — Online Therapy & Mental Wellness Support',
-    description: 'Book online sessions with certified, empathetic therapists on Saarthi. Modern, professional counselling support in India.',
+    description: 'Book online sessions with empathetic therapists on Saarthi. Modern, professional counselling support in India.',
     images: [ogImageUrl],
   },
   alternates: {
@@ -45,7 +45,7 @@ export default function Page() {
         'name': 'Saarthi',
         'url': 'https://www.saarthilife.com',
         'logo': 'https://www.saarthilife.com/saarthi-logo-Photoroom.png',
-        'description': 'Online therapy and mental wellness support platform connecting people with verified, empathetic therapists in India.',
+        'description': 'Online therapy and mental wellness support platform connecting people with empathetic therapists in India.',
         'contactPoint': {
           '@type': 'ContactPoint',
           'email': 'contact@saarthilife.com',

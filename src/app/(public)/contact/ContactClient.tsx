@@ -146,7 +146,7 @@ export default function ContactPage() {
           <div className="max-w-xl mx-auto space-y-8">
             <h3 className="text-2xl font-serif text-primary">Prefer to start directly?</h3>
             <p className="text-muted-foreground font-sans">
-              If you feel ready, you can browse verified psychologists or book a consultation session directly.
+              If you feel ready, you can meet our psychologists or book a consultation session directly.
             </p>
             <Link 
               href="/therapists"

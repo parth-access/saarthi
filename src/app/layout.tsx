@@ -12,7 +12,7 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif"
 
 const rootOgImageUrl = ogImage(
   "Saarthi — Your Safe Space",
-  "Book verified, empathetic therapists for online counselling sessions in India."
+  "Book empathetic therapists for online counselling sessions in India."
 );
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Saarthi",
     default: "Saarthi — Online Therapy & Mental Wellness Support",
   },
-  description: "Book certified therapists for online sessions in India. Find professional counselling, therapy for anxiety, student support, and guide to emotional wellness with Saarthi.",
+  description: "Book therapists for online sessions in India. Find professional counselling, therapy for anxiety, student support, and guide to emotional wellness with Saarthi.",
   keywords: [
     "online therapy India",
     "mental health support",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: "https://www.saarthilife.com",
     title: "Saarthi — Online Therapy & Mental Wellness Support",
-    description: "Book certified therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
+    description: "Book therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
     siteName: "Saarthi",
     images: [
       {
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Saarthi — Online Therapy & Mental Wellness Support",
-    description: "Book certified therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
+    description: "Book therapists for online sessions in India. Professional counselling and emotional wellness guidance.",
     images: [rootOgImageUrl],
   },
   alternates: {
