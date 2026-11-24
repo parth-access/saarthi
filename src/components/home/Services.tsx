@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { SAARTHI_CLASSES_URL } from "@/constants/links"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
 import { MessagesSquare, Heart, Briefcase, Users, Presentation, GraduationCap, ChevronDown, ArrowRight, ArrowUpRight } from "lucide-react"
 import { motion } from "framer-motion"
@@ -45,7 +46,7 @@ const programmes = [
     // Wording from classes.saarthilife.com's own description.
     description: "Live small-batch psychology classes for Class 11, Class 12 and CUET-UG with Dravina Gupta.",
     icon: <GraduationCap className="h-8 w-8 text-primary" />,
-    href: "https://classes.saarthilife.com",
+    href: SAARTHI_CLASSES_URL,
     cta: "Explore classes",
     external: true,
   },
