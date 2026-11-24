@@ -233,3 +233,9 @@
   scrollbar-width: thin;
   scrollbar-color: rgb(255 255 255 / 0.2) transparent;
 }
+
+/* Gentle downward nudge on the home Services arrow, so it reads as "more below". */
+@keyframes services-nudge {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(3px); }
+}
