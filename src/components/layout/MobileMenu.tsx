@@ -2,10 +2,11 @@ import Image from "next/image";
 import * as React from "react"
 import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { X } from "lucide-react"
+import { X, GraduationCap, ArrowUpRight } from "lucide-react"
 import { Button } from "../ui/Button"
 import Link from "next/link"
 import { trackEvent } from "@/lib/analytics"
+import { SAARTHI_CLASSES_URL } from "@/constants/links"
 
 interface MobileMenuProps {
   isOpen: boolean
@@ -109,7 +110,23 @@ const MobileMenu = ({ isOpen, onClose, onBookClick, links }: MobileMenuProps) =>
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.4 }}
+              className="space-y-3"
             >
+              <a
+                href={SAARTHI_CLASSES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  trackEvent('saarthi_classes_click', { location: 'mobile_menu' });
+                  onClose();
+                }}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-muted bg-surface text-sm font-semibold text-primary transition-colors hover:border-primary/40 hover:bg-sage"
+              >
+                <GraduationCap aria-hidden="true" className="h-4 w-4" />
+                Saarthi Classes
+                <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                <span className="sr-only"> (opens classes.saarthilife.com in a new tab)</span>
+              </a>
               <Button 
                 asChild
                 className="w-full h-14 text-base font-medium" 
