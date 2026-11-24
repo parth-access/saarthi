@@ -23,3 +23,19 @@ describe('public navigation resources CTA', () => {
     expect(renderToStaticMarkup(<Navbar />)).toContain('href="/dashboard/resources"');
   });
 });
+
+describe('Saarthi Classes button', () => {
+  beforeEach(() => { authState.currentUser = null; });
+
+  it('links to the classes site in a new tab, for everyone', () => {
+    for (const user of [null, { uid: 'c', email: 'c@example.test', role: 'client' as const }]) {
+      authState.currentUser = user;
+      const html = renderToStaticMarkup(<Navbar />);
+      const link = html.match(/<a[^>]*href="https:\/\/classes\.saarthilife\.com"[^>]*>/);
+      expect(link).not.toBeNull();
+      expect(link![0]).toContain('target="_blank"');
+      expect(link![0]).toContain('rel="noopener noreferrer"');
+      expect(html).toContain('Saarthi Classes');
+    }
+  });
+});
