@@ -1,17 +1,20 @@
+"use client";
+
 import * as React from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
-import { MessagesSquare, Heart, Briefcase, Users } from "lucide-react"
+import { MessagesSquare, Heart, Briefcase, Users, Presentation, GraduationCap, ChevronDown, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 
 const services = [
   {
-    title: "Teams and Individual Consultation",
-    description: "One-on-one and team sessions tailored to the concerns you or your workplace are facing.",
+    title: "Teens and Individual Counselling",
+    description: "One-on-one sessions for teenagers and adults, tailored to the concerns you are facing.",
     icon: <MessagesSquare className="h-8 w-8 text-primary" />,
   },
   {
-    title: "Stress Management",
-    description: "Practical tools to navigate stress and build resilience in everyday life.",
+    title: "Stress and Anger Management",
+    description: "Practical tools to manage stress and anger and build resilience in everyday life.",
     icon: <Heart className="h-8 w-8 text-primary" />,
   },
   {
@@ -24,9 +27,34 @@ const services = [
     description: "Building healthy connections and navigating relationship challenges.",
     icon: <Users className="h-8 w-8 text-primary" />,
   },
+];
+
+// Shown under the main four when the arrow is opened. Each sits beneath the
+// service it is drawn next to on desktop (columns 2 and 3).
+const programmes = [
+  {
+    title: "Workshops",
+    description: "Group sessions on emotional well-being for schools, colleges and workplaces.",
+    icon: <Presentation className="h-8 w-8 text-primary" />,
+    cta: "Enquire",
+  },
+  {
+    title: "Saarthi Classes",
+    description: "Guided classes that build everyday emotional skills, one topic at a time.",
+    icon: <GraduationCap className="h-8 w-8 text-primary" />,
+    cta: "Enquire",
+  },
 ]
 
+const cardClass =
+  "group h-full border-none shadow-none transition-all duration-300 ease-out hover:bg-background/50 hover:-translate-y-1 hover:shadow-md motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none"
+const tileClass =
+  "mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-primary/10 motion-reduce:transition-colors motion-reduce:group-hover:scale-100"
+
 const Services = () => {
+  const [showProgrammes, setShowProgrammes] = React.useState(false)
+  const panelId = React.useId()
+
   return (
     <section id="services" className="py-24 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -46,9 +74,9 @@ const Services = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className="group h-full border-none shadow-none transition-all duration-300 ease-out hover:bg-background/50 hover:-translate-y-1 hover:shadow-md motion-reduce:transition-colors motion-reduce:duration-150 motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none">
+              <Card className={cardClass}>
                 <CardHeader>
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 transition-all duration-300 ease-out group-hover:scale-110 group-hover:bg-primary/10 motion-reduce:transition-colors motion-reduce:group-hover:scale-100">
+                  <div className={tileClass}>
                     {service.icon}
                   </div>
                   <CardTitle className="text-xl font-serif">{service.title}</CardTitle>
@@ -61,6 +89,69 @@ const Services = () => {
               </Card>
             </motion.div>
           ))}
+        </div>
+
+        {/* Centred under the grid, so on desktop it sits on the gap between
+            the 2nd and 3rd services. */}
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowProgrammes((open) => !open)}
+            aria-expanded={showProgrammes}
+            aria-controls={panelId}
+            aria-label={showProgrammes ? "Hide Workshops and Saarthi Classes" : "Show Workshops and Saarthi Classes"}
+            title={showProgrammes ? "Hide" : "Workshops & Saarthi Classes"}
+            className="group/arrow flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary/25 bg-white text-primary shadow-[0_6px_16px_-8px_rgba(31,94,59,0.45)] transition-all duration-300 ease-out hover:translate-y-0.5 hover:border-primary hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4 motion-reduce:transition-colors motion-reduce:hover:translate-y-0"
+          >
+            <ChevronDown
+              aria-hidden="true"
+              className={`h-[22px] w-[22px] transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none ${
+                showProgrammes ? "rotate-180" : "animate-[services-nudge_2.4s_ease-in-out_infinite] motion-reduce:animate-none"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div
+          id={panelId}
+          inert={!showProgrammes}
+          className={`grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none ${
+            showProgrammes ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className="grid gap-8 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+              {programmes.map((programme, index) => (
+                <div
+                  key={programme.title}
+                  className={`transition-all duration-500 ease-out motion-reduce:transition-none ${
+                    index === 0 ? "lg:col-start-2" : "lg:col-start-3"
+                  } ${showProgrammes ? "translate-y-0 opacity-100" : "translate-y-2.5 opacity-0"}`}
+                  style={{ transitionDelay: showProgrammes ? `${index * 80}ms` : "0ms" }}
+                >
+                  <Card className={cardClass}>
+                    <CardHeader>
+                      <div className={tileClass}>{programme.icon}</div>
+                      <CardTitle className="text-xl font-serif">{programme.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-base text-muted-foreground">
+                        {programme.description}
+                      </CardDescription>
+                      <Link
+                        href="/contact"
+                        className="mt-3 inline-flex items-center gap-1.5 border-b border-accent/60 font-medium text-primary transition-[gap] duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      >
+                        {programme.cta}
+                        <span className="sr-only"> about {programme.title}</span>
+                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
