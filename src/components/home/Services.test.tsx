@@ -29,9 +29,13 @@ describe('Home Services section', () => {
     expect(html).toMatch(new RegExp(`id="${panelId}"[^>]*inert`));
   });
 
-  it('includes Workshops and Saarthi Classes with enquiry links to Contact', () => {
+  it('links Workshops to Contact and Saarthi Classes to the classes site', () => {
     expect(html).toContain('Workshops');
     expect(html).toContain('Saarthi Classes');
-    expect(html.match(/href="\/contact"/g)).toHaveLength(2);
+    expect(html.match(/href="\/contact"/g)).toHaveLength(1);
+    const classes = html.match(/<a[^>]*href="https:\/\/classes\.saarthilife\.com"[^>]*>/);
+    expect(classes).not.toBeNull();
+    expect(classes![0]).toContain('target="_blank"');
+    expect(classes![0]).toContain('rel="noopener noreferrer"');
   });
 });
