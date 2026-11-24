@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/Card"
-import { MessagesSquare, Heart, Briefcase, Users, Presentation, GraduationCap, ChevronDown, ArrowRight } from "lucide-react"
+import { MessagesSquare, Heart, Briefcase, Users, Presentation, GraduationCap, ChevronDown, ArrowRight, ArrowUpRight } from "lucide-react"
 import { motion } from "framer-motion"
 
 const services = [
@@ -36,13 +36,18 @@ const programmes = [
     title: "Workshops",
     description: "Group sessions on emotional well-being for schools, colleges and workplaces.",
     icon: <Presentation className="h-8 w-8 text-primary" />,
+    href: "/contact",
     cta: "Enquire",
+    external: false,
   },
   {
     title: "Saarthi Classes",
-    description: "Guided classes that build everyday emotional skills, one topic at a time.",
+    // Wording from classes.saarthilife.com's own description.
+    description: "Live small-batch psychology classes for Class 11, Class 12 and CUET-UG with Dravina Gupta.",
     icon: <GraduationCap className="h-8 w-8 text-primary" />,
-    cta: "Enquire",
+    href: "https://classes.saarthilife.com",
+    cta: "Explore classes",
+    external: true,
   },
 ]
 
@@ -139,12 +144,19 @@ const Services = () => {
                         {programme.description}
                       </CardDescription>
                       <Link
-                        href="/contact"
+                        href={programme.href}
+                        {...(programme.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                         className="mt-3 inline-flex items-center gap-1.5 border-b border-accent/60 font-medium text-primary transition-[gap] duration-200 hover:gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
                         {programme.cta}
-                        <span className="sr-only"> about {programme.title}</span>
-                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                        <span className="sr-only">
+                          {programme.external ? " (opens classes.saarthilife.com in a new tab)" : ` about ${programme.title}`}
+                        </span>
+                        {programme.external ? (
+                          <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                        ) : (
+                          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                        )}
                       </Link>
                     </CardContent>
                   </Card>
