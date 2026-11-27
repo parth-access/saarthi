@@ -244,12 +244,20 @@ service cloud.firestore {
           && resource.data.userId == request.auth.uid
         );
 
-      allow update, delete: if
+      // A therapist may only move the status of a request for their own
+      // booking. userId / therapistId / bookingId are ownership: rewriting
+      // userId planted the request in another client's dashboard and data
+      // export, therapistId handed it to a colleague. Deleting erased the
+      // client's request before the admin inbox saw it.
+      allow update: if
         isAdmin()
         || (
           isSignedIn()
           && isTherapistDocOwner(resource.data.therapistId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
         );
+
+      allow delete: if isAdmin();
     }
 
     /*
