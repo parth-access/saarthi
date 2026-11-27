@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { TherapistAvailabilityRule, TherapistOverride } from '@/types';
-import { firestoreBookingRepository } from '@/domains/booking';
+// Direct module, not the '@/domains/booking' barrel: the barrel re-exports the
+// commands, which pull googleapis (Calendar), Resend and Razorpay into this
+// function's bundle and added ~13 MB to every cold start.
+import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 import { hasLapsedUnpaidHold } from '@/domains/booking/utils/holdLapse';
 import { verifySession } from '@/lib/auth/verifySession';
 import { generateTimeSlots, slotTemporalReason } from '@/shared/scheduling/slots';

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GET } from './route';
 import { verifySession } from '@/lib/auth/verifySession';
-import { firestoreBookingRepository, Booking } from '@/domains/booking';
+import { Booking } from '@/domains/booking';
+import { firestoreBookingRepository } from '@/domains/booking/repository/FirestoreBookingRepository';
 
 /**
  * Reschedule-availability regression tests. A booking being rescheduled (the
@@ -33,8 +34,8 @@ const h = vi.hoisted(() => ({
 
 vi.mock('@/lib/auth/verifySession', () => ({ verifySession: vi.fn() }));
 
-vi.mock('@/domains/booking', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/domains/booking')>();
+vi.mock('@/domains/booking/repository/FirestoreBookingRepository', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/domains/booking/repository/FirestoreBookingRepository')>();
   return {
     ...actual,
     firestoreBookingRepository: {
