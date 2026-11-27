@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export default function TermsPage() {
-  const lastUpdated = "August 31, 2026";
+  const lastUpdated = "November 28, 2026";
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -133,7 +133,16 @@ export default function TermsPage() {
                 </div>
                 <ul className="list-disc pl-5 space-y-2 text-xs sm:text-sm text-muted-foreground">
                   <li><strong className="text-primary">Rescheduling:</strong> Clients can reschedule their session up to 24 hours prior to the scheduled start time through the booking management link or by contacting support, subject to therapist availability.</li>
-                  <li><strong className="text-primary">Late Cancellations &amp; No-Shows:</strong> If a client fails to attend a session without prior notice or cancels within 24 hours of the appointment, the session fee may be forfeited to compensate the therapist for reserved time.</li>
+                  <li>
+                    <strong className="text-primary">Cancellations &amp; Refunds:</strong> If you cancel a paid session from your dashboard or through support, your refund depends on how much notice you give before the scheduled start time:
+                    <ul className="mt-2 list-[circle] pl-5 space-y-1">
+                      <li><strong className="text-primary">48 hours or more:</strong> a full (100%) refund.</li>
+                      <li><strong className="text-primary">24 to 48 hours:</strong> a 50% refund.</li>
+                      <li><strong className="text-primary">Less than 24 hours:</strong> no refund, as the therapist has reserved that time for you.</li>
+                    </ul>
+                    <span className="mt-2 block">Refunds go back to your original payment method. UPI refunds usually arrive within a few hours; cards and net banking can take 5–7 business days, depending on your bank.</span>
+                  </li>
+                  <li><strong className="text-primary">No-Shows:</strong> If you miss a session without cancelling, the session fee is not refunded.</li>
                   <li><strong className="text-primary">Therapist Rescheduling:</strong> In rare cases where a therapist must reschedule due to emergency or illness, the client will be offered a replacement slot or a full refund.</li>
                 </ul>
               </div>
