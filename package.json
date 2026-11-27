@@ -7,7 +7,8 @@
     "build": "tsc --noEmit && next lint && next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:rules": "npx --yes firebase-tools@15.15.0 emulators:exec --only firestore --project demo-saarthi-rules 'vitest run --config vitest.rules.config.ts'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.2",
@@ -37,7 +38,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^5.0.2",
+    "@firebase/rules-unit-testing": "^4.0.1",
     "@tailwindcss/postcss": "^4.0.8",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^22.20.5",
