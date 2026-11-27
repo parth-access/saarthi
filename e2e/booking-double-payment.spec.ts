@@ -1,7 +1,7 @@
 import { test, expect, type Browser } from '@playwright/test';
-import { auditEvents, bookingDate, bookingsFor, clearFirestore, confirmedBookingsAt, seedTherapist, THERAPIST } from './support/firestore';
+import { auditEvents, bookingDate, bookingsFor, clearFirestore, confirmedBookingsAt, expireSlotHold, seedTherapist, THERAPIST } from './support/firestore';
 import { fakeRazorpay, sendWebhook, installFakeCheckout } from './support/razorpay';
-import { expectConfirmed, fillDetails, newClient, payWithTestCard, payWithUpi, pickSlot } from './support/booking';
+import { expectConfirmed, fillDetails, newClient, openCheckout, payWithTestCard, payWithUpi, pickSlot } from './support/booking';
 
 const SLOT = '12:15';
 
@@ -75,4 +75,30 @@ test('a second customer cannot take a slot that is still held', async ({ browser
   await second.getByRole('button', { name: /Find Slots/ }).click();
   await expect(second.getByRole('button', { name: 'Select 11:30 AM' })).toBeVisible();
   await expect(second.getByRole('button', { name: 'Select 12:15 PM' })).toHaveCount(0);
+});
+
+test('an abandoned checkout frees its slot once the hold lapses', async ({ browser }) => {
+  const first = await customerPage(browser);
+  const second = await customerPage(browser);
+  const quitter = newClient('abandoned');
+  const buyer = newClient('after-abandon');
+
+  // The first customer opens checkout and walks away without closing it, so
+  // their booking stays awaiting payment.
+  await pickSlot(first, SLOT);
+  await fillDetails(first, quitter);
+  await openCheckout(first);
+  await expect.poll(async () => (await bookingsFor(quitter.email))[0]?.status).toBe('awaiting_payment');
+  await first.close();
+
+  // Once the hold runs out the slot is offered and can be booked again.
+  await expireSlotHold(SLOT);
+  await pickSlot(second, SLOT);
+  await fillDetails(second, buyer);
+  await payWithTestCard(second);
+  await expectConfirmed(second);
+
+  const [booking] = await bookingsFor(buyer.email);
+  expect(booking).toMatchObject({ status: 'confirmed', paymentStatus: 'paid', time: SLOT });
+  expect(await confirmedBookingsAt(SLOT)).toHaveLength(1);
 });
