@@ -121,6 +121,13 @@ async function seed(): Promise<void> {
   });
 }
 
+/** Demote the t1 therapist to a client the way the admin console does, leaving therapists/t1.authId in place. */
+async function demoteTherapist(): Promise<void> {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore() as unknown as Firestore, 'users/thera-uid'), { role: 'client' });
+  });
+}
+
 beforeAll(async () => {
   env = await initializeTestEnvironment({
     projectId: PROJECT_ID,
@@ -326,6 +333,11 @@ describe('bookings/{id}/audit_logs', () => {
     await assertFails(getDoc(doc(otherTherapist(), 'bookings/b-alice/audit_logs/a1')));
   });
 
+  it('demoted therapist: can no longer read logs of their former bookings', async () => {
+    await demoteTherapist();
+    await assertFails(getDoc(doc(therapist(), 'bookings/b-alice/audit_logs/a1')));
+  });
+
   it('admin reads; nobody writes', async () => {
     await assertSucceeds(getDocs(collection(admin(), 'bookings/b-bob/audit_logs')));
     await assertFails(setDoc(doc(admin(), 'bookings/b-bob/audit_logs/forged'), { action: 'x' }));
@@ -394,6 +406,12 @@ describe('reschedule_requests', () => {
     await assertFails(updateDoc(doc(therapist(), 'reschedule_requests/r-alice'), { therapistId: 't2' }));
     await assertFails(updateDoc(doc(therapist(), 'reschedule_requests/r-alice'), { bookingId: 'b-bob' }));
     await assertFails(deleteDoc(doc(therapist(), 'reschedule_requests/r-alice')));
+  });
+
+  it('demoted therapist: loses access even though therapists/{id}.authId still names them', async () => {
+    await demoteTherapist();
+    await assertFails(getDoc(doc(therapist(), 'reschedule_requests/r-alice')));
+    await assertFails(updateDoc(doc(therapist(), 'reschedule_requests/r-alice'), { status: 'approved' }));
   });
 
   it('admin: full read/update/delete', async () => {
