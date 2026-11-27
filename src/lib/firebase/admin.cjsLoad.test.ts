@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Next.js keeps firebase-admin external, so on Vercel it is loaded with a plain
