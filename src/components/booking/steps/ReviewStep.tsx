@@ -55,12 +55,11 @@ export const ReviewStep = ({
 
   const isBusy = submitting || (bookingFlowState !== 'IDLE' && bookingFlowState !== 'ERROR');
 
-  const isLockExpiredError = error && (
-    error.toLowerCase().includes('lock') || 
-    error.toLowerCase().includes('expired') || 
-    error.toLowerCase().includes('available') || 
-    error.toLowerCase().includes('conflict')
-  );
+  // Errors that mean this slot is gone, so the fix is to pick another one.
+  // Includes the 409 messages /api/bookings/create passes through for slot
+  // conflicts ("already booked", "reserved by another user", "unavailable").
+  const isLockExpiredError = !!error &&
+    /lock|expired|available|conflict|already booked|reserved by another user/i.test(error);
   
   const getButtonContent = () => {
     if (bookingFlowState === 'VERIFYING_PAYMENT') {
