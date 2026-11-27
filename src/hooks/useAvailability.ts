@@ -44,11 +44,10 @@ export function useAvailability(
     perfMark('AVAILABILITY_START');
 
     try {
-      const params = new URLSearchParams({ therapistId, date });
-      if (excludeBookingId) {
-        params.set('excludeBookingId', excludeBookingId);
-      }
-      const res = await fetch(`/api/availability?${params.toString()}`);
+      const url = availabilityUrl(therapistId, date, excludeBookingId);
+      // A request started when the date was picked is reused once; a failed
+      // one falls back to a fresh fetch rather than surfacing its error.
+      const res = await (takePrefetched(url)?.catch(() => fetch(url)) ?? fetch(url));
       if (!res.ok) {
         throw new Error('Unable to check slot availability. Please try again.');
       }
@@ -129,6 +128,45 @@ export function useAvailability(
   }, []);
 
   return { slots, loading, error, refetch };
+}
+
+function availabilityUrl(therapistId: string, date: string, excludeBookingId?: string | null): string {
+  const params = new URLSearchParams({ therapistId, date });
+  if (excludeBookingId) params.set('excludeBookingId', excludeBookingId);
+  return `/api/availability?${params.toString()}`;
+}
+
+/**
+ * How long a prefetched response may stand in for a fresh one. Short on
+ * purpose: it only has to cover "pick a date, click Find Slots", and the slot
+ * lock re-checks the time server-side anyway, so a slot taken in between is
+ * refused at lock time rather than booked twice.
+ */
+export const PREFETCH_TTL_MS = 15_000;
+
+const prefetched = new Map<string, { at: number; response: Promise<Response> }>();
+
+/** Hands out a prefetched response at most once; stale entries are dropped. */
+function takePrefetched(url: string): Promise<Response> | null {
+  const hit = prefetched.get(url);
+  prefetched.delete(url);
+  if (!hit || Date.now() - hit.at > PREFETCH_TTL_MS) return null;
+  return hit.response;
+}
+
+/**
+ * Starts the slot request for a day as soon as it is picked, so the slot step
+ * (which mounts only after "Find Slots" and the step transition) finds the
+ * answer already on its way instead of starting from zero.
+ */
+export function prefetchAvailability(therapistId: string | null | undefined, date: string | null | undefined): void {
+  if (!therapistId || !date || typeof window === 'undefined') return;
+  const url = availabilityUrl(therapistId, date);
+  const hit = prefetched.get(url);
+  if (hit && Date.now() - hit.at <= PREFETCH_TTL_MS) return;
+  const response = fetch(url);
+  response.catch(() => {});
+  prefetched.set(url, { at: Date.now(), response });
 }
 
 const warmedTherapists = new Set<string>();
