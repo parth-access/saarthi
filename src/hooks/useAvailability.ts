@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { perfMark, perfMeasure } from '@/lib/perfTracing';
 
 export interface Slot {
@@ -30,21 +30,45 @@ export function useAvailability(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Only the latest request may write state: an older response that lands
+  // late (the date changed, or a refetch overtook it) is dropped.
+  const requestSeq = useRef(0);
+  const inFlight = useRef(false);
+  // The URL whose slots are on screen, so a refetch of the same day can run in
+  // the background instead of swapping the grid for placeholders.
+  const shownUrl = useRef<string | null>(null);
 
-  const fetchAvailability = useCallback(async () => {
+  /**
+   * `background` is the tab-visibility revalidation. When this day's slots are
+   * already on screen it keeps them there (no `loading`), is skipped while
+   * another request is still out, and a failure leaves them untouched: the
+   * lock step re-checks the slot server-side anyway.
+   */
+  const fetchAvailability = useCallback(async (background = false) => {
     if (!therapistId || !date) {
+      requestSeq.current++;
+      inFlight.current = false;
+      shownUrl.current = null;
       setSlots([]);
       setLoading(false);
       setError(null);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    const url = availabilityUrl(therapistId, date, excludeBookingId);
+    const revalidating = background && shownUrl.current === url;
+    if (background && inFlight.current) return;
+
+    const id = ++requestSeq.current;
+    const isLatest = () => id === requestSeq.current;
+    inFlight.current = true;
+    if (!revalidating) {
+      setLoading(true);
+      setError(null);
+    }
     perfMark('AVAILABILITY_START');
 
     try {
-      const url = availabilityUrl(therapistId, date, excludeBookingId);
       // A request started when the date was picked is reused once; a failed
       // one falls back to a fresh fetch rather than surfacing its error.
       const res = await (takePrefetched(url)?.catch(() => fetch(url)) ?? fetch(url));
@@ -89,13 +113,25 @@ export function useAvailability(
       const slotObjects = Array.from(slotMap.values());
       slotObjects.sort((a, b) => a.time.localeCompare(b.time));
 
+      if (!isLatest()) return;
+      shownUrl.current = url;
       setSlots(slotObjects);
+      setError(null);
     } catch (err) {
+      if (!isLatest() || revalidating) return;
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setLoading(false);
+      if (isLatest()) {
+        inFlight.current = false;
+        if (!revalidating) setLoading(false);
+      }
     }
   }, [therapistId, date, excludeBookingId]);
+
+  // A response that lands after unmount must not set state.
+  useEffect(() => () => {
+    requestSeq.current++;
+  }, []);
 
   useEffect(() => {
     fetchAvailability();
@@ -114,7 +150,7 @@ export function useAvailability(
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchAvailability();
+        fetchAvailability(true);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
