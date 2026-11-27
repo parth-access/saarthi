@@ -6,6 +6,11 @@ dist/
 coverage/
 .vercel/
 
+# Playwright end-to-end output
+test-results/
+playwright-report/
+blob-report/
+
 # TypeScript incremental build cache: machine-local, never shared.
 # Committing it makes `tsc` skip re-checking files it believes unchanged,
 # which can both invent stale errors and hide real ones.

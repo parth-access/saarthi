@@ -10,8 +10,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    // The Firestore rules suite needs the emulator; `npm run test:rules` runs it.
-    exclude: [...configDefaults.exclude, 'tests/rules/**'],
+    // The Firestore rules suite needs the emulator (`npm run test:rules`); the
+    // Playwright booking suite runs with `npm run test:e2e`.
+    exclude: [...configDefaults.exclude, 'tests/rules/**', 'e2e/**'],
   },
   resolve: {
     alias: {
