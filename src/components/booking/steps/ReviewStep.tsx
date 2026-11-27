@@ -4,6 +4,7 @@ import { ChevronLeft, Loader2, AlertCircle, Clock, RotateCcw } from "lucide-reac
 import { Button } from "../../ui/Button"
 
 import { Therapist } from "../../../types"
+import { CrisisNote } from "@/components/safety/CrisisNote"
 import { confirmCtaLabelFor, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "../bookingUi"
 import { BookingSummary } from "../BookingSummary"
 
@@ -164,6 +165,10 @@ export const ReviewStep = ({
           )}
         </motion.div>
       )}
+
+      <motion.div {...stagger(0.35)} className="max-w-xl mx-auto">
+        <CrisisNote className="text-xs sm:text-sm" />
+      </motion.div>
 
       <motion.div
         {...stagger(0.4)}
