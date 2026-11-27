@@ -2,6 +2,7 @@ import { Command, CommandHandler } from './types';
 import { razorpayGateway } from '../RazorpayGateway';
 import { firestorePaymentRepository } from '../PaymentRepository';
 import { adminDb } from '@/lib/firebase/admin';
+import { assertCapturedAmountMatches } from '../capturedAmount';
 
 export class ConfirmPaymentCommand implements Command {
   readonly name = 'ConfirmPaymentCommand';
@@ -73,11 +74,9 @@ export class ConfirmPaymentCommandHandler implements CommandHandler<ConfirmPayme
         if (!rzpPayment && razorpayGateway.isConfigured()) {
           throw new Error('Could not verify the payment amount with Razorpay');
         }
-        if (rzpPayment && payment.amount && rzpPayment.amount) {
-          const expectedPaise = payment.amount * 100;
-          if (rzpPayment.amount !== expectedPaise && rzpPayment.amount !== payment.amount) {
-            throw new Error(`Payment amount mismatch: expected ${expectedPaise} paise, got ${rzpPayment.amount}`);
-          }
+        if (rzpPayment) {
+          // Exact paise only, never the rupee figure; missing amounts fail closed.
+          assertCapturedAmountMatches({ expectedRupees: payment.amount, captured: rzpPayment, orderId });
         }
       }
 
