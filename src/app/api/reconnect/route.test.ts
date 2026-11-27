@@ -12,7 +12,7 @@ const sendMock = vi.fn().mockResolvedValue({ data: { id: 're_test' }, error: nul
 const addMock = vi.fn().mockResolvedValue({ id: 'doc_1' });
 
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({ emails: { send: sendMock } })),
+  Resend: vi.fn().mockImplementation(function () { return { emails: { send: sendMock } }; }),
 }));
 
 vi.mock('@/lib/firebase/admin', () => ({

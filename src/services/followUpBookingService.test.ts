@@ -28,14 +28,17 @@ vi.mock('@/domains/booking/repository/FirestoreBookingRepository', () => ({
 
 vi.mock('@/domains/booking/commands/CreateBookingCommand', () => ({
   CreateBookingCommand: vi.fn(),
-  CreateBookingCommandHandler: vi.fn().mockImplementation(() => ({
-    execute: vi.fn().mockResolvedValue({
-      bookingId: 'bk_followup_new',
-      orderId: 'order_123',
-      amount: 120000,
-      currency: 'INR',
-    }),
-  })),
+  // Constructed with `new`, so the implementation must be a `function`, not an arrow.
+  CreateBookingCommandHandler: vi.fn().mockImplementation(function () {
+    return {
+      execute: vi.fn().mockResolvedValue({
+        bookingId: 'bk_followup_new',
+        orderId: 'order_123',
+        amount: 120000,
+        currency: 'INR',
+      }),
+    };
+  }),
 }));
 
 function makeCompletedBooking(overrides: Partial<Booking> = {}): Booking {

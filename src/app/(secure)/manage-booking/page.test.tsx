@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import * as React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { createRoot, type Root } from 'react-dom/client';
 import { act } from 'react';
 
@@ -56,7 +56,7 @@ const BOOKING = {
 describe('manage-booking token consumption & URL scrubbing', () => {
   let container: HTMLElement;
   let root: Root;
-  let replaceStateSpy: ReturnType<typeof vi.spyOn>;
+  let replaceStateSpy: MockInstance<History['replaceState']>;
 
   const renderPage = async () => {
     await act(async () => {

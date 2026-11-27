@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const sendMock = vi.fn().mockResolvedValue({ data: { id: 're_test' }, error: null });
 
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({ emails: { send: sendMock } })),
+  Resend: vi.fn().mockImplementation(function () { return { emails: { send: sendMock } }; }),
 }));
 
 beforeEach(() => {
