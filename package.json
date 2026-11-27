@@ -62,6 +62,9 @@
   "overrides": {
     "next": {
       "postcss": "$postcss"
+    },
+    "firebase-admin": {
+      "jwks-rsa": "^3.2.2"
     }
   }
 }
