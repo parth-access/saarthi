@@ -11,7 +11,8 @@
  * sessions are ended so the new role applies on their next sign-in.
  */
 import fs from 'node:fs';
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import pg from 'pg';
 import { poolSsl } from '../../src/lib/auth/betterAuth';
 
@@ -68,8 +69,8 @@ try {
       await client.query('commit');
 
       const serviceAccount = JSON.parse(Buffer.from(env('FIREBASE_ADMIN_KEY_BASE64'), 'base64').toString('utf8'));
-      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-      await admin.firestore().collection('users').doc(user.id).set({ role, updatedAt: admin.firestore.Timestamp.now() }, { merge: true });
+      initializeApp({ credential: cert(serviceAccount) });
+      await getFirestore().collection('users').doc(user.id).set({ role, updatedAt: Timestamp.now() }, { merge: true });
 
       console.log(`\nDone. ${email} is now ${role}; they need to sign in again.`);
     }

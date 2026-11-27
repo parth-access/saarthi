@@ -1,12 +1,25 @@
 import 'server-only';
-import * as admin from 'firebase-admin';
-import { initializeFirestore } from 'firebase-admin/firestore';
+// Modular entry points only: firebase-admin 14 removed the legacy `admin.*`
+// namespace (admin.apps, admin.firestore(), admin.credential, ...).
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth, type Auth } from 'firebase-admin/auth';
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase-admin/firestore';
 
-if (!admin.apps.length) {
+if (!getApps().length) {
   try {
     const base64 = process.env.FIREBASE_ADMIN_KEY_BASE64;
+    const emulatorProjectId = process.env.FIREBASE_EMULATOR_PROJECT_ID;
 
-    if (!base64) {
+    if (process.env.FIRESTORE_EMULATOR_HOST && emulatorProjectId) {
+      // Local emulator only (end-to-end tests). A `demo-` project id is
+      // Firebase's emulator-only namespace: it has no real backend, so this
+      // branch can never read or write production data.
+      if (!emulatorProjectId.startsWith('demo-')) {
+        throw new Error('FIREBASE_EMULATOR_PROJECT_ID must start with "demo-"');
+      }
+      initializeApp({ projectId: emulatorProjectId });
+      console.log('Firebase Admin initialized against the Firestore emulator');
+    } else if (!base64) {
       if (process.env.NODE_ENV !== 'production' || process.env.NEXT_PHASE !== 'phase-production-server') {
         console.warn('Skipping Firebase Admin initialization during build');
       } else {
@@ -15,13 +28,13 @@ if (!admin.apps.length) {
     } else {
       const decoded = Buffer.from(base64, 'base64').toString('utf-8');
       const serviceAccount = JSON.parse(decoded);
-      const app = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      const app = initializeApp({
+        credential: cert(serviceAccount),
       });
       // Talk to Firestore over plain HTTPS instead of gRPC. On serverless every
       // cold start otherwise loads the gRPC stack and opens a channel before the
       // first query, which made the first slot lookup take ~12s. Must be set
-      // once, before the first admin.firestore() call, hence here.
+      // once, before the first getFirestore() call, hence here.
       initializeFirestore(app, { preferRest: true });
       console.log('Firebase Admin initialized');
     }
@@ -30,5 +43,5 @@ if (!admin.apps.length) {
   }
 }
 
-export const adminDb = admin.apps.length ? admin.firestore() : null as unknown as admin.firestore.Firestore;
-export const adminAuth = admin.apps.length ? admin.auth() : null as unknown as admin.auth.Auth;
+export const adminDb = getApps().length ? getFirestore() : null as unknown as Firestore;
+export const adminAuth = getApps().length ? getAuth() : null as unknown as Auth;

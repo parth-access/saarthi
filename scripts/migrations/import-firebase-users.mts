@@ -11,7 +11,9 @@
  * .env.local. Prints counts and uids only, never emails or hashes.
  */
 import fs from 'node:fs';
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import pg from 'pg';
 import { planFirebaseImport, type FirebaseUserLike, type FirestoreUserDocLike } from '../../src/lib/auth/firebaseImport';
 import { poolSsl } from '../../src/lib/auth/betterAuth';
@@ -33,23 +35,23 @@ const apply = process.argv.includes('--apply');
 const databaseUrl = env('DATABASE_URL');
 const serviceAccount = JSON.parse(Buffer.from(env('FIREBASE_ADMIN_KEY_BASE64'), 'base64').toString('utf8'));
 
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+initializeApp({ credential: cert(serviceAccount) });
 
 // 1. Every Firebase Auth user, with password hashes (the Admin SDK service
 //    account is allowed to read them).
 const firebaseUsers: FirebaseUserLike[] = [];
 let pageToken: string | undefined;
 do {
-  const page = await admin.auth().listUsers(1000, pageToken);
+  const page = await getAuth().listUsers(1000, pageToken);
   firebaseUsers.push(...(page.users as unknown as FirebaseUserLike[]));
   pageToken = page.pageToken;
 } while (pageToken);
 
 // 2. Their Firestore profiles, for role and ban state.
 const docs = new Map<string, FirestoreUserDocLike>();
-const refs = firebaseUsers.map((u) => admin.firestore().collection('users').doc(u.uid));
+const refs = firebaseUsers.map((u) => getFirestore().collection('users').doc(u.uid));
 for (let i = 0; i < refs.length; i += 300) {
-  const snaps = await admin.firestore().getAll(...refs.slice(i, i + 300));
+  const snaps = await getFirestore().getAll(...refs.slice(i, i + 300));
   for (const snap of snaps) if (snap.exists) docs.set(snap.id, snap.data() as FirestoreUserDocLike);
 }
 

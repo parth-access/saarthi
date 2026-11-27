@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { z } from 'zod';
 import escapeString from 'escape-html';
 import { adminDb } from '@/lib/firebase/admin';
-import * as admin from 'firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import {
   generateContactConfirmationEmail,
   generateContactConfirmationText,
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
       status: 'unread',
       priority: 'normal',
       source: 'website',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      lastUpdatedAt: FieldValue.serverTimestamp(),
       userAgent: request.headers.get('user-agent') || 'unknown',
     });
 

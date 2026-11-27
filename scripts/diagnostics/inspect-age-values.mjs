@@ -9,7 +9,8 @@
  */
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 function loadEnv() {
   for (const file of ['.env.local', '.env']) {
@@ -31,11 +32,11 @@ if (!b64) {
   process.exit(1);
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(JSON.parse(Buffer.from(b64, 'base64').toString('utf8'))),
+initializeApp({
+  credential: cert(JSON.parse(Buffer.from(b64, 'base64').toString('utf8'))),
 });
 
-const db = admin.firestore();
+const db = getFirestore();
 const mask = (s) => (s ? crypto.createHash('sha1').update(String(s)).digest('hex').slice(0, 6) : '—');
 
 // Must match MIN_CLIENT_AGE / MAX_CLIENT_AGE in src/shared/constants/index.ts.

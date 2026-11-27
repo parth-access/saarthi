@@ -16,8 +16,8 @@ vi.mock('@/lib/firebase/admin', () => ({
   adminDb: { collection: () => ({ add: addMock }) },
 }));
 
-vi.mock('firebase-admin', () => ({
-  firestore: { FieldValue: { serverTimestamp: () => 'SERVER_TIMESTAMP' } },
+vi.mock('firebase-admin/firestore', () => ({
+  FieldValue: { serverTimestamp: () => 'SERVER_TIMESTAMP' },
 }));
 
 vi.mock('../_lib/rateLimit', () => ({
