@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifySession } from '@/lib/auth/verifySession';
 import { RescheduleBookingCommand, RescheduleBookingCommandHandler } from '@/domains/booking';
+import { RESCHEDULE_CUTOFF_MESSAGE } from '@/domains/booking/ReschedulePolicy';
 import { logger } from '../../_lib/logger';
 import { getClientIp, checkRateLimit } from '../../_lib/rateLimit';
 
@@ -81,6 +82,10 @@ export async function POST(req: Request) {
     logger.error('BOOKING', 'Client self-service reschedule failed', error);
     const rawMsg = error instanceof Error ? error.message : String(error);
 
+    // Inside the 24-hour cutoff: a policy refusal the client should read as is.
+    if (rawMsg === RESCHEDULE_CUTOFF_MESSAGE) {
+      return NextResponse.json({ success: false, error: rawMsg }, { status: 400 });
+    }
     // Slot conflicts — retriable, user should pick another slot.
     if (rawMsg.includes('unavailable') || rawMsg.includes('already booked') || rawMsg.includes('outside the therapist')) {
       return NextResponse.json(

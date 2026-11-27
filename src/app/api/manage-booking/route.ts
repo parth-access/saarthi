@@ -5,6 +5,7 @@ import { z } from "zod";
 import { adminDb } from '@/lib/firebase/admin';
 import { logger } from "../_lib/logger";
 import { firestoreBookingRepository, RescheduleBookingCommand, RescheduleBookingCommandHandler } from "@/domains/booking";
+import { RESCHEDULE_CUTOFF_MESSAGE } from "@/domains/booking/ReschedulePolicy";
 
 /** Short, non-reversible correlation marker for a booking token — never log the token itself. */
 function fingerprintToken(token: string): string {
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
     if (rawMsg.includes('unavailable') || rawMsg.includes('already booked')) {
       return NextResponse.json({ error: rawMsg }, { status: 409 });
     }
-    if (rawMsg.includes('current session time')) {
+    if (rawMsg.includes('current session time') || rawMsg === RESCHEDULE_CUTOFF_MESSAGE) {
       return NextResponse.json({ error: rawMsg }, { status: 400 });
     }
     return NextResponse.json({ error: 'Failed to reschedule booking.' }, { status: 500 });
