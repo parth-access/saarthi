@@ -13,10 +13,20 @@ export class RazorpayGateway implements PaymentGateway {
       throw new Error('Razorpay keys are not configured properly. Payment cannot proceed.');
     }
     
-    return new Razorpay({
+    const client = new Razorpay({
       key_id,
       key_secret
     });
+
+    // End-to-end tests send API calls to a local fake Razorpay. Honoured only
+    // for test-mode keys outside production, so live payments always reach
+    // api.razorpay.com.
+    const apiHost = process.env.RAZORPAY_API_HOST;
+    if (apiHost && key_id.startsWith('rzp_test_') && process.env.NODE_ENV !== 'production') {
+      (client as unknown as { api: { rq: { defaults: { baseURL: string } } } }).api.rq.defaults.baseURL = apiHost;
+    }
+
+    return client;
   }
 
   async fetchPayment(paymentId: string): Promise<{ id: string; order_id: string; status: string; amount: number; currency: string } | null> {
