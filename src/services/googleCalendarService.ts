@@ -1,4 +1,8 @@
-import { google } from 'googleapis';
+// googleapis is ~13 MB of generated API clients. It is loaded on first use, not
+// at import: this module sits under the event-bus listeners that every
+// booking-touching route imports, so a static import put it into the cold
+// start of routes (availability, lock-slot) that never call Calendar.
+const loadGoogle = async () => (await import('googleapis')).google;
 import { SESSION_DURATION_MINUTES } from '@/shared/constants';
 import { adminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -36,7 +40,7 @@ interface TherapistContact {
 type GoogleApiError = { code?: number; response?: { status?: number } } & Record<string, any>;
 
 export class GoogleCalendarService {
-  private static getOAuth2Client() {
+  private static async getOAuth2Client() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
@@ -45,6 +49,7 @@ export class GoogleCalendarService {
       return null;
     }
 
+    const google = await loadGoogle();
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
@@ -59,9 +64,10 @@ export class GoogleCalendarService {
   }
 
   /** Returns an authenticated Calendar v3 client, or null when credentials are absent. */
-  private static getCalendarClient() {
-    const oauth2Client = this.getOAuth2Client();
+  private static async getCalendarClient() {
+    const oauth2Client = await this.getOAuth2Client();
     if (!oauth2Client) return null;
+    const google = await loadGoogle();
     return google.calendar({ version: 'v3', auth: oauth2Client });
   }
 
@@ -194,7 +200,7 @@ Session Type: ${booking.sessionType || 'Individual'}`,
       }
 
       // 2. FAIL CLOSED: no credentials => never fabricate a link, mark retryable, persist NO meetingUrl.
-      const calendar = this.getCalendarClient();
+      const calendar = await this.getCalendarClient();
       if (!calendar) {
         logger.error('CALENDAR', 'Google OAuth credentials not configured; cannot create a real Google Meet link', {
           bookingId,
@@ -347,7 +353,7 @@ Session Type: ${booking.sessionType || 'Individual'}`,
         return this.createOrSyncCalendarEvent(bookingId);
       }
 
-      const calendar = this.getCalendarClient();
+      const calendar = await this.getCalendarClient();
       if (!calendar) {
         logger.error('CALENDAR', 'Google OAuth credentials not configured; cannot update calendar event', { bookingId });
         await this.markRetryRequired(booking, 'Google Calendar credentials are not configured');
@@ -453,7 +459,7 @@ Session Type: ${booking.sessionType || 'Individual'}`,
         return true;
       }
 
-      const calendar = this.getCalendarClient();
+      const calendar = await this.getCalendarClient();
       if (!calendar) {
         logger.warn('CALENDAR', `Cannot delete calendar event for ${bookingId}: credentials not configured`, {
           bookingId,
