@@ -196,6 +196,34 @@ describe('GET /api/availability — reschedule targets exclude the booking\'s cu
   });
 });
 
+describe('GET /api/availability — abandoned checkouts', () => {
+  beforeEach(() => {
+    h.state.rules = [rule(3, '09:00', '17:00', [{ startTime: '11:30', endTime: '13:00' }])];
+  });
+
+  it('offers a slot again once an unpaid booking\'s hold has lapsed', async () => {
+    vi.mocked(firestoreBookingRepository.findActiveBookingsByTherapistAndDate).mockResolvedValue([
+      booking({ status: 'awaiting_payment', paymentStatus: 'pending', holdExpiresAt: new Date(Date.now() - 1000) }),
+    ]);
+
+    const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02' }));
+
+    expect(body.bookedTimes).toEqual([]);
+    expect(body.availableSlots).toContain('09:00');
+  });
+
+  it('keeps the slot booked while the unpaid hold is still running', async () => {
+    vi.mocked(firestoreBookingRepository.findActiveBookingsByTherapistAndDate).mockResolvedValue([
+      booking({ status: 'awaiting_payment', paymentStatus: 'pending', holdExpiresAt: new Date(Date.now() + 60_000) }),
+    ]);
+
+    const body = await json(await call({ therapistId: THERAPIST, date: '2026-09-02' }));
+
+    expect(body.bookedTimes).toEqual(['09:00']);
+    expect(body.availableSlots).not.toContain('09:00');
+  });
+});
+
 describe('IST temporal partition (server-side, not per-component)', () => {
   beforeEach(() => {
     // Tuesday 09:00-21:00. 2026-09-01 and 2026-09-15 are both Tuesdays, so the

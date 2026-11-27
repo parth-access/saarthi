@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/admin';
 import { TherapistAvailabilityRule, TherapistOverride } from '@/types';
 import { firestoreBookingRepository } from '@/domains/booking';
+import { hasLapsedUnpaidHold } from '@/domains/booking/utils/holdLapse';
 import { verifySession } from '@/lib/auth/verifySession';
 import { generateTimeSlots, slotTemporalReason } from '@/shared/scheduling/slots';
 import { logger } from '../_lib/logger';
@@ -194,8 +195,11 @@ export async function GET(request: Request) {
     // A booking never blocks itself: its own active-booking row and its own slot
     // pin must not make its own session look like somebody else's reservation.
     // (Whether that own slot is then *offerable* is decided below — it is not.)
+    // An unpaid booking whose hold ran out (an abandoned checkout) no longer
+    // holds its slot: CreateBookingCommand would accept a new booking for it.
     const bookedTimes = bookingsList
       .filter((booking) => !excludedBooking || booking.id !== excludedBooking.id)
+      .filter((booking) => !hasLapsedUnpaidHold(booking))
       .map((booking) => booking.time);
 
     const lockedTimes: string[] = [];
