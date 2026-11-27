@@ -25,7 +25,7 @@ import { cn } from "../../lib/utils"
 // Hooks
 import { useTherapists } from "../../hooks/useTherapists"
 import { useBooking } from "../../hooks/useBooking"
-import { warmAvailability } from "../../hooks/useAvailability"
+import { prefetchAvailability, warmAvailability } from "../../hooks/useAvailability"
 import { useAuth } from "../../contexts/AuthContext"
 import { bookingService } from "../../services/bookingService"
 import { paymentService } from "../../services/paymentService"
@@ -169,11 +169,14 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
     });
   }, [requestedTherapist, therapists, therapistsError, therapistsLoading, trackBookingStarted]);
 
-  // Wake the slot service as soon as a therapist is chosen (click or deep link),
-  // so its cold start is over by the time a date is picked.
+  // Wake the slot service as soon as the therapist list is on screen (and again
+  // for whichever therapist is chosen), so a serverless cold start — several
+  // seconds — overlaps with choosing a therapist, session and date instead of
+  // landing after "Find Slots".
+  const firstTherapistId = therapists[0]?.id;
   React.useEffect(() => {
-    warmAvailability(bookingData.therapistId);
-  }, [bookingData.therapistId]);
+    warmAvailability(bookingData.therapistId || firstTherapistId);
+  }, [bookingData.therapistId, firstTherapistId]);
 
   const handleNext = () => setStep(s => s + 1)
 
@@ -232,6 +235,7 @@ const BookingSystem = ({ requestedTherapist }: BookingSystemProps) => {
     trackBookingStarted({ step: 3 })
     releaseCurrentLock()
     setBookingData(prev => ({ ...prev, date, time: "" }))
+    prefetchAvailability(bookingData.therapistId, date)
   }
 
   const handleSlotSelect = async (time: string) => {
