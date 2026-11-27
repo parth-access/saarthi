@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
@@ -10,6 +10,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // The Firestore rules suite needs the emulator; `npm run test:rules` runs it.
+    exclude: [...configDefaults.exclude, 'tests/rules/**'],
   },
   resolve: {
     alias: {
