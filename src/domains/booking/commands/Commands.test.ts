@@ -37,7 +37,8 @@ vi.mock("@/shared/config", () => ({
 
 // Class-based mock for Razorpay to guarantee "new Razorpay" works perfectly
 
-// Razorpay's view of each test payment: captured, on the order the test pays.
+// Razorpay's view of each test payment: captured, on the order the test pays,
+// for the ₹1,500 test price (Razorpay reports paise).
 // Confirmation fails closed when the gateway cannot vouch for a payment.
 const PAYMENT_ORDERS: Record<string, string> = {
   pay_123: 'order_123',
@@ -55,7 +56,7 @@ vi.mock('razorpay', () => {
         create: vi.fn().mockResolvedValue({ id: 'order_123' })
       };
       payments = {
-        fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured' })),
+        fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured', amount: 150000, currency: 'INR' })),
       };
     }
   };
@@ -2191,7 +2192,7 @@ describe('Command Handlers Suite', () => {
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
       vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
       vi.spyOn(firestorePaymentRepository, 'findByOrderId').mockResolvedValue(
-        new Payment({ id: 'pay_1', bookingId: 'bk_admin_confirm_1', razorpayOrderId: 'order_123', status: 'pending' })
+        new Payment({ id: 'pay_1', bookingId: 'bk_admin_confirm_1', razorpayOrderId: 'order_123', status: 'pending', amount: 1500 })
       );
       vi.spyOn(firestorePaymentRepository, 'save').mockResolvedValue(undefined);
       vi.spyOn(razorpayGateway, 'verifySignature').mockReturnValue(true);

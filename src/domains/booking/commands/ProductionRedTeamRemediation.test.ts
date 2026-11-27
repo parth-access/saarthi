@@ -40,7 +40,7 @@ vi.mock('razorpay', () => ({
       create: vi.fn().mockResolvedValue({ id: 'order_123' }),
     };
     payments = {
-      fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured' })),
+      fetch: vi.fn(async (id: string) => ({ id, order_id: PAYMENT_ORDERS[id], status: 'captured', amount: 150000, currency: 'INR' })),
     };
   },
 }));
