@@ -9,7 +9,8 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card"
 import { Therapist } from "@/types"
 import { trackEvent } from "@/lib/analytics"
-import { getTherapistCtaDetails } from "@/constants/therapists"
+import { formatExperience, getTherapistCtaDetails } from "@/constants/therapists"
+import { sessionPriceDisplayFor } from "@/components/booking/bookingUi"
 
 export function JoinTeamCard() {
   return (
@@ -98,12 +99,15 @@ export default function TherapistsPage({ therapists }: { therapists: Therapist[]
                       </div>
                     </CardHeader>
                     <CardContent className="p-8 pt-0 mt-auto">
-                      <div className="flex items-center justify-between gap-4 mb-8">
+                      <p className="mb-4 whitespace-nowrap font-serif text-2xl text-primary">
+                        {sessionPriceDisplayFor(therapist)}<span className="font-sans text-sm text-primary/55"> per session</span>
+                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-8">
                         <div className="flex items-center gap-2 text-xs font-black text-primary/60 uppercase tracking-tighter">
-                          <ShieldCheck className="h-4 w-4" /> {therapist.experience || '1+ Years'} Exp.
+                          <ShieldCheck className="h-4 w-4" aria-hidden="true" /> {formatExperience(therapist.experience)}
                         </div>
                         <div className="flex items-center gap-2 text-xs font-black text-primary/60 uppercase tracking-tighter">
-                          <MapPin className="h-4 w-4" /> Online
+                          <MapPin className="h-4 w-4" aria-hidden="true" /> Online
                         </div>
                       </div>
                       {(() => {
