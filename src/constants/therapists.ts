@@ -63,3 +63,19 @@ export const getTherapistCtaDetails = (therapist: Therapist) => {
     isProfile: false,
   };
 };
+
+/**
+ * Turns the stored experience value into a readable card label. Firestore may
+ * hold a bare number ("1", "3+") or a phrase ("1+ Years"); both read naturally.
+ */
+export function formatExperience(raw: unknown): string {
+  const value = typeof raw === 'number' ? String(raw) : typeof raw === 'string' ? raw.trim() : '';
+  if (!value) return '1+ years experience';
+  const bare = value.match(/^(\d+(?:\.\d+)?)(\+?)$/);
+  if (bare) {
+    const [, n, plus] = bare;
+    const unit = n === '1' && !plus ? 'year' : 'years';
+    return `${n}${plus} ${unit} experience`;
+  }
+  return `${value.replace(/\bYears?\b/, (m) => m.toLowerCase())} experience`;
+}
