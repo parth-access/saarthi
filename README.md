@@ -32,11 +32,60 @@ npm run dev                  # http://localhost:3000
 |---|---|
 | `npm run dev` | Local dev server |
 | `npm test` | Run the test suite |
+| `npm run test:e2e` | Booking end-to-end tests (Playwright, see below) |
 | `npm run lint` | ESLint |
 | `npx tsc --noEmit` | Type-check |
 | `npm run build` | Production build (type-check + lint run as part of it) |
 
 CI (`.github/workflows/ci.yml`) runs type-check, lint, tests and build on every push / PR to `main`.
+
+### Booking end-to-end tests
+
+`npm run test:e2e` drives the real booking wizard in Chromium, from picking a
+therapist to a confirmed booking, against a fully local stack. Playwright starts
+three servers itself:
+
+| Server | Port | What it is |
+|---|---|---|
+| Firestore emulator | 8085 | `firebase.e2e.json`, project `demo-saarthi-e2e` (emulator-only, no real backend) |
+| Fake Razorpay | 4010 | `e2e/fake-razorpay/server.mjs`: orders, payments and refunds in memory, amounts in paise |
+| `next dev` | 3005 | the app, started with the test env from `e2e/env.ts` |
+
+No real or live key is used. Every key in `e2e/env.ts` is a made-up test
+value, so the suite needs no secrets locally or in CI. The app reaches the fake
+gateway through `RAZORPAY_API_HOST`, which is honoured only for `rzp_test_` keys
+outside production. Razorpay's checkout script is swapped for
+`e2e/fake-razorpay/checkout.js`, which accepts Razorpay's published test values:
+card `4111 1111 1111 1111` and UPI id `success@razorpay`.
+
+**Before you run it**
+
+- Java 11+ (for the emulator) and the Firebase CLI. A global `firebase` is used
+  if present, otherwise `npx firebase-tools@15.15.0`.
+- Install the browser once: `npx playwright install chromium`.
+- Nothing else may be listening on 3005. The suite never reuses a running
+  server, because one started without the test env would talk to real
+  services. Stop your own `npm run dev` too if it uses the same `.next` folder.
+
+**What it covers**
+
+| Spec | Case |
+|---|---|
+| `booking-happy-path` | Pay with the test card, and with UPI; booking confirmed, order created at `price × 100` paise |
+| `booking-late-upi-webhook` | UPI approved after checkout was closed: only the `payment.captured` webhook confirms it; a repeated webhook changes nothing |
+| `booking-double-payment` | Two customers pay for one slot: one booking is confirmed, the other gets one full refund; a held slot is not offered to anyone else |
+| `booking-amount-mismatch` | Captured amount ≠ order amount (rupees-as-paise, 1 paisa short, wrong price): `assertCapturedAmountMatches` refuses it, nothing is confirmed |
+| `booking-hold-expiry` | Hold lapses on Review: if someone else took the slot, no order or payment is made; if not, paying still books it |
+
+One test is marked `test.fail`: when the slot is lost on Review, the
+**Pick Another Slot** button does not appear (see the comment in
+`booking-hold-expiry.spec.ts`). Remove the mark once that is fixed.
+
+Useful flags: `npx playwright test booking-happy-path` (one spec),
+`--headed` (watch it), `--ui` (step through), and `E2E_PORT=3015` to use
+another port. On failure, traces and screenshots are in `test-results/`; open
+one with `npx playwright show-trace <trace.zip>`. CI runs the suite in the
+**Booking E2E** job.
 
 ## Project layout
 
