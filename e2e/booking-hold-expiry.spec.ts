@@ -35,12 +35,6 @@ test('hold expires on Review and someone else takes the slot: no payment is take
 });
 
 test('hold expires on Review and someone else takes the slot: the customer is offered another slot', async ({ page, browser }) => {
-  // Known bug: ReviewStep shows "Pick Another Slot" only for errors naming a
-  // lock, expiry, availability or conflict, and this one says "reserved by
-  // another user", so the customer is left with only "Go Back". Remove this
-  // line once ReviewStep recognises the message.
-  test.fail(true, 'ReviewStep does not offer Pick Another Slot for "reserved by another user"');
-
   await loseSlotOnReview(page, browser);
   await page.getByRole('button', { name: /Pick Another Slot/ }).click({ timeout: 5_000 });
   await expect(page.getByRole('button', { name: 'Select 11:30 AM' })).toBeVisible();

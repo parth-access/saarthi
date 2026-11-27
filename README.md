@@ -75,11 +75,7 @@ card `4111 1111 1111 1111` and UPI id `success@razorpay`.
 | `booking-late-upi-webhook` | UPI approved after checkout was closed: only the `payment.captured` webhook confirms it; a repeated webhook changes nothing |
 | `booking-double-payment` | Two customers pay for one slot: one booking is confirmed, the other gets one full refund; a held slot is not offered to anyone else |
 | `booking-amount-mismatch` | Captured amount ≠ order amount (rupees-as-paise, 1 paisa short, wrong price): `assertCapturedAmountMatches` refuses it, nothing is confirmed |
-| `booking-hold-expiry` | Hold lapses on Review: if someone else took the slot, no order or payment is made; if not, paying still books it |
-
-One test is marked `test.fail`: when the slot is lost on Review, the
-**Pick Another Slot** button does not appear (see the comment in
-`booking-hold-expiry.spec.ts`). Remove the mark once that is fixed.
+| `booking-hold-expiry` | Hold lapses on Review: if someone else took the slot, no order or payment is made and **Pick Another Slot** is offered; if not, paying still books it |
 
 Useful flags: `npx playwright test booking-happy-path` (one spec),
 `--headed` (watch it), `--ui` (step through), and `E2E_PORT=3015` to use
