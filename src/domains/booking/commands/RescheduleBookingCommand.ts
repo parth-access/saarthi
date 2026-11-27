@@ -9,6 +9,7 @@ import { OutboxProcessor, generateDeterministicEventId } from '@/shared/events/o
 import { istToUtcIsoString } from '@/shared/utils/dateTime';
 import { slotStartEpochMs, slotTemporalReason } from '@/shared/scheduling/slots';
 import { BOOKING_WINDOW_DAYS } from '@/shared/constants';
+import { canClientReschedule, RESCHEDULE_CUTOFF_MESSAGE } from '../ReschedulePolicy';
 import { runPlannedTransaction, TxReader, TxWriter } from '@/shared/firestore/transactionPhases';
 
 export interface RescheduleBookingSessionContext {
@@ -21,6 +22,15 @@ export interface RescheduleBookingSessionContext {
   email?: string;
   role?: string;
   isTokenFlow?: boolean;
+}
+
+/** The booking's current start instant (ms), or NaN when it can't be worked out. */
+function currentSessionStartMs(booking: Booking): number {
+  if (booking.utcDateTime) {
+    const t = Date.parse(String(booking.utcDateTime));
+    if (Number.isFinite(t)) return t;
+  }
+  return slotStartEpochMs(booking.date, booking.time) ?? NaN;
 }
 
 export class RescheduleBookingCommand {
@@ -124,6 +134,14 @@ export class RescheduleBookingCommandHandler {
 
     if (booking.status === 'cancelled' || booking.status === 'rejected') {
       throw new Error('Cannot reschedule a cancelled or rejected booking.');
+    }
+
+    // Clients (signed in or via the emailed manage link) may only move a
+    // session up to 24 hours before it starts, as the terms say. Admins and
+    // therapists are exempt so they can still handle emergencies.
+    const isStaff = command.session.role === 'admin' || command.session.role === 'therapist';
+    if (!isStaff && !canClientReschedule(currentSessionStartMs(booking), Date.now())) {
+      throw new Error(RESCHEDULE_CUTOFF_MESSAGE);
     }
 
     // 1. A reschedule must move the session somewhere else. Without this guard

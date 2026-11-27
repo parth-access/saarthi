@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { RESCHEDULE_CUTOFF_MESSAGE } from '../ReschedulePolicy';
 import { CreateBookingCommand, CreateBookingCommandHandler } from './CreateBookingCommand';
 import { GeneratePaymentLinkCommand, GeneratePaymentLinkCommandHandler } from './GeneratePaymentLinkCommand';
 import { LockSlotCommand, LockSlotCommandHandler } from './LockSlotCommand';
@@ -1571,6 +1572,11 @@ describe('Command Handlers Suite', () => {
      * the UI use, so the fixture and production agree on what "in 5 days" means.
      */
     const TARGET_DATE = istDatePlusDays(5);
+    /**
+     * The booking being moved must itself be more than 24 hours away, or client
+     * and token reschedules are refused by the 24-hour cutoff (ReschedulePolicy).
+     */
+    const CURRENT_DATE = istDatePlusDays(3);
 
     beforeEach(() => {
       mockBooking = new Booking({
@@ -1580,7 +1586,7 @@ describe('Command Handlers Suite', () => {
         name: 'John Smith',
         email: 'john@example.com',
         phone: '1234567890',
-        date: '2026-08-10',
+        date: CURRENT_DATE,
         time: '10:00',
         sessionMode: 'online',
         bookingToken: 'token_abc_123',
@@ -1755,7 +1761,7 @@ describe('Command Handlers Suite', () => {
         therapistId: 'therapist_1',
         name: 'John',
         email: 'john@example.com',
-        date: '2026-08-10',
+        date: CURRENT_DATE,
         time: '10:00'
       });
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
@@ -1778,7 +1784,7 @@ describe('Command Handlers Suite', () => {
         therapistId: 'therapist_1',
         name: 'John',
         email: 'john@example.com',
-        date: '2026-08-10',
+        date: CURRENT_DATE,
         time: '10:00'
       });
       vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(mockBooking);
@@ -1855,7 +1861,7 @@ describe('Command Handlers Suite', () => {
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow("This new slot is already booked.");
-      expect(mockBooking.date).toBe('2026-08-10');
+      expect(mockBooking.date).toBe(CURRENT_DATE);
       expect(mockBooking.time).toBe('10:00');
     });
 
@@ -1879,6 +1885,41 @@ describe('Command Handlers Suite', () => {
       await expect(handler.execute(command)).rejects.toThrow("This new slot is unavailable.");
     });
 
+    describe('24-hour client cutoff', () => {
+      const soonBooking = () => new Booking({
+        ...mockBooking,
+        id: 'bk_reschedule_soon',
+        utcDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+      });
+      const runWith = (booking: Booking, session: ConstructorParameters<typeof RescheduleBookingCommand>[3]) => {
+        vi.spyOn(firestoreBookingRepository, 'findById').mockResolvedValue(booking);
+        vi.spyOn(firestoreBookingRepository, 'save').mockResolvedValue(undefined);
+        const mockTx = { get: vi.fn(), set: vi.fn(), delete: vi.fn(), update: vi.fn(), create: vi.fn() };
+        vi.mocked(adminDb.runTransaction).mockImplementationOnce(async (callback) => callback(mockTx as any));
+        const command = new RescheduleBookingCommand(booking.id, TARGET_DATE, '14:00', session);
+        return { mockTx, result: new RescheduleBookingCommandHandler().execute(command) };
+      };
+
+      it('R. A guest using the emailed link cannot move a session less than 24 hours away', async () => {
+        const { mockTx, result } = runWith(soonBooking(), { isTokenFlow: true });
+        await expect(result).rejects.toThrow(RESCHEDULE_CUTOFF_MESSAGE);
+        expect(mockTx.set).not.toHaveBeenCalled();
+        expect(mockTx.delete).not.toHaveBeenCalled();
+      });
+
+      it('S. A signed-in client who owns the booking is refused the same way', async () => {
+        const booking = soonBooking();
+        const { result } = runWith(booking, { email: booking.email, role: 'client' });
+        await expect(result).rejects.toThrow(RESCHEDULE_CUTOFF_MESSAGE);
+      });
+
+      it('T. An admin is not bound by the cutoff', async () => {
+        const { result } = runWith(soonBooking(), { role: 'admin', uid: 'admin_1' });
+        const error = await result.then(() => null, (e: unknown) => e);
+        expect(error instanceof Error ? error.message : '').not.toBe(RESCHEDULE_CUTOFF_MESSAGE);
+      });
+    });
+
     it('P. The booking\'s own current slot is rejected as a destination', async () => {
       // The UI no longer offers the current slot, but the server must refuse it
       // independently: rescheduling 09:00 to 09:00 would re-pin the same slot
@@ -1897,7 +1938,7 @@ describe('Command Handlers Suite', () => {
         return callback(mockTx as any);
       });
 
-      const command = new RescheduleBookingCommand('bk_reschedule_1', '2026-08-10', '10:00', { isTokenFlow: true });
+      const command = new RescheduleBookingCommand('bk_reschedule_1', CURRENT_DATE, '10:00', { isTokenFlow: true });
       const handler = new RescheduleBookingCommandHandler();
 
       await expect(handler.execute(command)).rejects.toThrow(
