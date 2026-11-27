@@ -12,6 +12,7 @@ import { profileService } from "@/services/profileService";
 import { Booking, Therapist } from "@/types";
 import { normalizeImageUrl } from "@/lib/utils";
 import { PostSessionCard } from "@/components/dashboard/PostSessionCard";
+import { CrisisNote } from "@/components/safety/CrisisNote";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useSharedDashboardData } from "@/components/dashboard/DashboardDataContext";
@@ -509,6 +510,7 @@ function Dashboard() {
                 Contact support
               </button>
             </div>
+            <CrisisNote className="rounded-[2rem]" />
           </aside>
         </div>
       </div>
