@@ -26,14 +26,36 @@ export async function POST(req: Request) {
     const decodedClaims = await verifySession(req);
     if (!decodedClaims) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { userId, bookingId, therapistId, userName, userEmail, reason } = await req.json();
+    // `therapistId` in the body is ignored: it used to be stored as sent, so a
+    // client could address a request to any therapist, who could then read
+    // and act on it (Firestore rules key therapist access on this field).
+    const { userId, bookingId, userName, userEmail, reason } = await req.json();
 
     if (userId !== decodedClaims.uid) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!userId || !bookingId || !therapistId || !userEmail) {
+    if (!userId || typeof bookingId !== 'string' || !bookingId || !userEmail) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // The caller must own the booking (same test as /api/bookings/join-session:
+    // uid, or the session's verified email), and the therapist comes from it.
+    // Missing and not-yours answer alike, so booking ids cannot be probed.
+    const bookingSnap = await adminDb.collection("bookings").doc(bookingId).get();
+    const booking = bookingSnap.exists ? bookingSnap.data() : undefined;
+    const sessionEmail = decodedClaims.email?.toLowerCase();
+    const ownsBooking =
+      !!booking &&
+      (booking.userId === decodedClaims.uid ||
+        (!!sessionEmail && typeof booking.email === 'string' && booking.email.toLowerCase() === sessionEmail));
+    if (!ownsBooking) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const therapistId = booking.therapistId;
+    if (typeof therapistId !== 'string' || !therapistId) {
+      return NextResponse.json({ error: "This booking has no therapist to reschedule with" }, { status: 409 });
     }
 
     // Create reschedule request in Firestore

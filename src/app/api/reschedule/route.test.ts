@@ -14,9 +14,16 @@ vi.mock('resend', () => ({
   Resend: vi.fn().mockImplementation(function () { return { emails: { send: sendMock } }; }),
 }));
 
+// bookings/{id} reads; each test can swap in its own booking.
+const OWN_BOOKING = { userId: 'user_1', email: 'user_1@example.com', therapistId: 'th_1' };
+const bookings: Record<string, Record<string, unknown>> = {};
+const bookingDocMock = vi.fn((id: string) => ({
+  get: vi.fn().mockResolvedValue({ exists: id in bookings, data: () => bookings[id] }),
+}));
+
 vi.mock('@/lib/firebase/admin', () => ({
   adminDb: {
-    collection: vi.fn().mockReturnValue({ add: addMock }),
+    collection: vi.fn((name: string) => (name === 'bookings' ? { doc: bookingDocMock } : { add: addMock })),
   },
 }));
 
@@ -44,6 +51,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.RESEND_API_KEY;
   vi.mocked(verifySession).mockResolvedValue(CLAIMS);
+  for (const id of Object.keys(bookings)) delete bookings[id];
+  bookings.bk_1 = { ...OWN_BOOKING };
 });
 
 describe('POST /api/reschedule', () => {
@@ -120,5 +129,72 @@ describe('POST /api/reschedule', () => {
     expect(html).not.toContain('<img src=x');
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
+  });
+
+  describe('therapistId comes from the booking, not the request body', () => {
+    const body = {
+      userId: 'user_1',
+      bookingId: 'bk_1',
+      userName: 'Test User',
+      userEmail: 'user_1@example.com',
+      reason: 'Conflict',
+    };
+
+    it('stores the booking’s therapist even when the body names another one', async () => {
+      process.env.RESEND_API_KEY = 're_test_key';
+      const res = await post({ ...body, therapistId: 'th_someone_else' });
+
+      expect(res.status).toBe(200);
+      expect(addMock.mock.calls[0][0].therapistId).toBe('th_1');
+    });
+
+    it('works when the body sends no therapistId at all', async () => {
+      process.env.RESEND_API_KEY = 're_test_key';
+      const res = await post(body);
+
+      expect(res.status).toBe(200);
+      expect(addMock.mock.calls[0][0].therapistId).toBe('th_1');
+    });
+
+    it('refuses a booking that belongs to someone else', async () => {
+      bookings.bk_other = { userId: 'user_2', email: 'user_2@example.com', therapistId: 'th_2' };
+      const res = await post({ ...body, bookingId: 'bk_other', therapistId: 'th_2' });
+
+      expect(res.status).toBe(403);
+      expect(addMock).not.toHaveBeenCalled();
+      expect(sendMock).not.toHaveBeenCalled();
+    });
+
+    it('refuses a booking that does not exist, with the same answer as not-yours', async () => {
+      const res = await post({ ...body, bookingId: 'bk_missing' });
+
+      expect(res.status).toBe(403);
+      expect(addMock).not.toHaveBeenCalled();
+    });
+
+    it('accepts a guest booking owned through the session’s verified email', async () => {
+      process.env.RESEND_API_KEY = 're_test_key';
+      bookings.bk_guest = { userId: null, email: 'USER_1@example.com', therapistId: 'th_3' };
+      const res = await post({ ...body, bookingId: 'bk_guest' });
+
+      expect(res.status).toBe(200);
+      expect(addMock.mock.calls[0][0].therapistId).toBe('th_3');
+    });
+
+    it('refuses a booking whose email matches only when the session has no verified email', async () => {
+      vi.mocked(verifySession).mockResolvedValue({ uid: 'user_1', role: 'client' });
+      bookings.bk_guest = { userId: null, email: 'user_1@example.com', therapistId: 'th_3' };
+      const res = await post({ ...body, bookingId: 'bk_guest' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('answers 409 when the booking has no therapist', async () => {
+      bookings.bk_1 = { userId: 'user_1', email: 'user_1@example.com' };
+      const res = await post(body);
+
+      expect(res.status).toBe(409);
+      expect(addMock).not.toHaveBeenCalled();
+    });
   });
 });
