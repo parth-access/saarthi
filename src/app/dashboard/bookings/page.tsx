@@ -12,7 +12,7 @@ import { useSharedDashboardData } from "@/components/dashboard/DashboardDataCont
 import { CancelModal, RescheduleModal, SessionDetailsModal, useOpenedOnce } from "@/components/dashboard/lazyModals";
 import { useJoinSession } from "@/hooks/useJoinSession";
 import {
-  formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming
+  formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming, isClientReschedulable
 } from "@/lib/sessionDisplay";
 
 type Filter = "all" | "upcoming" | "completed" | "cancelled" | "rejected" | "unpaid";
@@ -159,6 +159,7 @@ function DashboardBookings() {
                 const unpaid = isUnpaidHold(session);
                 const canReschedule =
                   isUpcoming(session) &&
+                  isClientReschedulable(session) &&
                   (session.status === "confirmed" || session.status === "pending" || session.status === "pending_approval");
                 return (
                   <div

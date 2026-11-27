@@ -4,7 +4,8 @@ import { X, Calendar, Clock, Video, CreditCard, Activity, FileText, UserCog, Che
 import { Booking, Therapist } from '@/types';
 import { normalizeImageUrl } from '@/lib/utils';
 import { useJoinSession } from '@/hooks/useJoinSession';
-import { formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming } from '@/lib/sessionDisplay';
+import { formatSessionDate, formatSessionTimeRange, SESSION_DURATION_LABEL, isUpcoming, isClientReschedulable } from '@/lib/sessionDisplay';
+import { RESCHEDULE_CUTOFF_MESSAGE } from '@/domains/booking/ReschedulePolicy';
 import Image from 'next/image';
 import { useDialogA11y } from '@/hooks/useDialogA11y';
 
@@ -220,7 +221,10 @@ export function SessionDetailsModal({ isOpen, onClose, session, therapist, onRes
                   )}
                 </button>
               )}
-              {isFuture && (session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
+              {isFuture && !isClientReschedulable(session) && (session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
+                <p className="text-center text-xs text-primary/60 leading-relaxed">{RESCHEDULE_CUTOFF_MESSAGE}</p>
+              )}
+              {isFuture && isClientReschedulable(session) && (session.status === 'confirmed' || session.status === 'pending' || session.status === 'pending_approval') && (
                 <button
                   onClick={() => {
                     onClose();

@@ -19,7 +19,7 @@ import { useSharedDashboardData } from "@/components/dashboard/DashboardDataCont
 import { CancelModal, RescheduleModal, SessionDetailsModal, SupportModal, useOpenedOnce } from "@/components/dashboard/lazyModals";
 import { useJoinSession } from "@/hooks/useJoinSession";
 import {
-  formatSessionDate, formatSessionTimeRange, formatDayBadge, SESSION_DURATION_LABEL
+  formatSessionDate, formatSessionTimeRange, formatDayBadge, SESSION_DURATION_LABEL, isClientReschedulable
 } from "@/lib/sessionDisplay";
 
 interface UserProfile { name?: string; phone?: string; bio?: string; }
@@ -345,12 +345,12 @@ function Dashboard() {
                           : <><Video className="w-4 h-4" /> Join session</>}
                       </button>
                     )}
-                    <button
+                    {isClientReschedulable(heroSession) && <button
                       onClick={() => openReschedule(heroSession)}
                       className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-primary/15 hover:bg-primary/5 text-primary text-sm font-medium rounded-2xl transition-all cursor-pointer font-sans"
                     >
                       <RefreshCw className="w-4 h-4" /> Reschedule
-                    </button>
+                    </button>}
                     <button
                       onClick={() => openDetails(heroSession)}
                       className="inline-flex items-center gap-2 px-5 py-3 text-primary/70 hover:text-primary text-sm font-medium rounded-2xl transition-colors cursor-pointer font-sans"

@@ -1,4 +1,5 @@
 import { SESSION_DURATION_MINUTES } from '@/shared/constants';
+import { canClientReschedule } from '@/domains/booking/ReschedulePolicy';
 
 /**
  * Client-safe helpers for presenting a booking's session time.
@@ -89,6 +90,11 @@ export function sessionStartMs(booking: { utcDateTime?: string; date?: string; t
     if (Number.isFinite(t)) return t;
   }
   return NaN;
+}
+
+/** Whether a client may still reschedule this session (the 24-hour cutoff). */
+export function isClientReschedulable(booking: { utcDateTime?: string; date?: string; time?: string }): boolean {
+  return canClientReschedule(sessionStartMs(booking), Date.now());
 }
 
 /** Whether the session start is still in the future. */
