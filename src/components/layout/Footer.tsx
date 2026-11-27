@@ -1,5 +1,6 @@
 import Image from "next/image";
 import * as React from "react"
+import { CrisisNote } from "@/components/safety/CrisisNote"
 import Link from "next/link"
 import { Mail, MapPin, Phone, Instagram, Youtube, Facebook, Linkedin, ShieldCheck } from "lucide-react"
 import { CookieSettingsButton } from "@/components/analytics/CookieSettingsButton"
@@ -100,6 +101,8 @@ export function Footer() {
           </div>
         </div>
         
+        <CrisisNote className="mb-8" />
+
         <div className="border-t border-muted pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} Saarthi Mental Wellness. All rights reserved.</p>
           <div className="flex items-center gap-6">
