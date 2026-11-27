@@ -20,6 +20,8 @@ import { DateStep } from "@/components/booking/steps/DateStep";
 import { SlotStep } from "@/components/booking/steps/SlotStep";
 import { Booking, BookingStatus } from "@/types";
 import { istToUtcIsoString } from "@/shared/utils/dateTime";
+import { isClientReschedulable } from "@/lib/sessionDisplay";
+import { RESCHEDULE_CUTOFF_MESSAGE } from "@/domains/booking/ReschedulePolicy";
 
 interface EnrichedBooking extends Booking {
   therapistName: string;
@@ -208,8 +210,10 @@ function ManageBookingPage() {
     normStatus === "rescheduled" ||
     booking?.paymentStatus === "paid";
 
+  const insideCutoff = Boolean(booking) && !isPast && !isClientReschedulable(booking!);
+
   const isReschedulable =
-    canRescheduleStatus && !isPast && !isCancelled && !isCompleted;
+    canRescheduleStatus && !isPast && !isCancelled && !isCompleted && !insideCutoff;
 
   if (loading) {
     return (
@@ -376,6 +380,8 @@ function ManageBookingPage() {
                   "This session has been completed."}
                 {isPast && !isCompleted && !isCancelled &&
                   "This session has already taken place and cannot be rescheduled."}
+                {!isCancelled && !isCompleted && !isPast && canRescheduleStatus && insideCutoff &&
+                  RESCHEDULE_CUTOFF_MESSAGE}
                 {!isCancelled && !isCompleted && !isPast && !canRescheduleStatus &&
                   "This booking status does not allow self-service rescheduling. Please contact support."}
               </div>
