@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { bookingsFor, clearFirestore, expireSlotHold, seedTherapist } from './support/firestore';
 import { fakeRazorpay, installFakeCheckout } from './support/razorpay';
+import { SLOT_HOLD_MS } from '../src/shared/constants';
 import { expectConfirmed, fillDetails, newClient, payButton, payWithTestCard, pickSlot } from './support/booking';
 
 const SLOT = '10:45';
@@ -44,6 +45,8 @@ test('hold expires on Review but the slot is still free: paying still books it',
   const client = newClient('lapsed');
   await pickSlot(page, SLOT);
   await fillDetails(page, client);
+  // The banner states the real hold length, not a hard-coded figure.
+  await expect(page.getByText(`reserved for ${SLOT_HOLD_MS / 60_000} minutes`)).toBeVisible();
   await expireSlotHold(SLOT);
 
   await payWithTestCard(page);

@@ -7,6 +7,7 @@ import { Therapist } from "../../../types"
 import { CrisisNote } from "@/components/safety/CrisisNote"
 import { confirmCtaLabelFor, SHARED_SUMMARY_LAYOUT_ID, SHARED_CARD_TRANSITION } from "../bookingUi"
 import { BookingSummary } from "../BookingSummary"
+import { SLOT_HOLD_MS } from "@/shared/constants"
 
 export type BookingFlowState = 
   | 'IDLE'
@@ -16,6 +17,9 @@ export type BookingFlowState =
   | 'VERIFYING_PAYMENT'
   | 'CONFIRMED'
   | 'ERROR';
+
+// Shown to the customer; follows the server-side hold so the two cannot drift.
+const SLOT_HOLD_MINUTES = Math.round(SLOT_HOLD_MS / 60_000)
 
 interface Props {
   data: {
@@ -115,7 +119,7 @@ export const ReviewStep = ({
       >
         <div className="flex items-center gap-2.5">
           <Clock className="w-4 h-4 shrink-0" />
-          <span>Your selected slot is temporarily reserved for <strong>15 minutes</strong>.</span>
+          <span>Your selected slot is temporarily reserved for <strong>{SLOT_HOLD_MINUTES} minutes</strong>.</span>
         </div>
         <span className="text-[11px] font-semibold text-warning bg-warning/15 px-2 py-0.5 rounded-full shrink-0">Held</span>
       </motion.div>
