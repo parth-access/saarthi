@@ -1,8 +1,9 @@
 name: Scheduled Jobs
 
-# Drives Saarthi's background cron endpoints on the Vercel Hobby plan, where
-# Vercel's own cron is limited to once-per-day / 2 jobs. GitHub Actions runs
-# these on a sub-daily schedule for free.
+# BACKUP scheduler for Saarthi's background cron endpoints. The primary is
+# cron-job.org hitting /api/cron/all every 5 minutes (docs/ops/external-schedulers.md):
+# GitHub throttles scheduled workflows, and in practice this "every 5 minutes"
+# schedule has run every 6-10 hours. Vercel's daily cron is the other backup.
 #
 # Required repository configuration (Settings -> Secrets and variables -> Actions):
 #   - Secret   CRON_SECRET     : must equal the CRON_SECRET set in Vercel prod env

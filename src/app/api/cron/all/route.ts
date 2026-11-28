@@ -11,10 +11,13 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * Backup scheduler — called once a day by Vercel Cron (vercel.json `crons`).
+ * Runs every background job in one request — called every 5 minutes by
+ * cron-job.org and once a day by Vercel Cron (vercel.json `crons`).
  *
- * The primary scheduler is GitHub Actions every 5 minutes
- * (.github/workflows/scheduled-jobs.yml). GitHub silently disables scheduled
+ * The primary scheduler is cron-job.org calling this route every 5 minutes
+ * (docs/ops/external-schedulers.md). GitHub Actions
+ * (.github/workflows/scheduled-jobs.yml) and Vercel's daily cron are backups:
+ * GitHub throttles its schedule to every few hours, and silently disables scheduled
  * workflows after 60 days without a push; if that happens, this daily run
  * keeps every job moving (all are idempotent, so running alongside GitHub is
  * harmless) and, when GITHUB_KEEPALIVE_TOKEN is set, switches the GitHub
